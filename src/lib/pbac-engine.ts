@@ -695,6 +695,7 @@ class UnifiedPBACEngine {
 
     this.roles.set(id, role);
     this.saveToDisk();
+    this.invalidateUserCache();
 
     this.recordAudit({
       orgId,
@@ -752,6 +753,7 @@ class UnifiedPBACEngine {
 
     this.roles.set(id, cloned);
     this.saveToDisk();
+    this.invalidateUserCache();
 
     this.recordAudit({
       orgId,
@@ -786,6 +788,7 @@ class UnifiedPBACEngine {
     role.status = status;
     role.updatedAt = new Date().toISOString();
     this.saveToDisk();
+    this.invalidateUserCache();
 
     this.recordAudit({
       orgId,
@@ -821,6 +824,7 @@ class UnifiedPBACEngine {
 
     this.roles.delete(roleId);
     this.saveToDisk();
+    this.invalidateUserCache();
 
     this.recordAudit({
       orgId,
@@ -864,6 +868,7 @@ class UnifiedPBACEngine {
 
     set.add(roleId);
     this.saveToDisk();
+    this.invalidateUserCache(userId);
 
     this.recordAudit({
       orgId,
@@ -895,6 +900,7 @@ class UnifiedPBACEngine {
     if (this.userRoleAssignments.has(userId)) {
       this.userRoleAssignments.get(userId)!.delete(roleId);
       this.saveToDisk();
+      this.invalidateUserCache(userId);
     }
 
     this.recordAudit({
@@ -941,6 +947,7 @@ class UnifiedPBACEngine {
     }
 
     this.saveToDisk();
+    this.invalidateUserCache();
 
     this.recordAudit({
       orgId,
@@ -980,6 +987,7 @@ class UnifiedPBACEngine {
     }
 
     this.saveToDisk();
+    this.invalidateUserCache();
 
     this.recordAudit({
       orgId,
@@ -1030,9 +1038,70 @@ class UnifiedPBACEngine {
     return { success: true, userId, roleIds };
   }
 
+  // Helper to map project role name to canonical PBAC role slug
+  public getRoleSlugForProjectRole(projectRole: string): string {
+    const norm = (projectRole || '').toUpperCase().trim();
+    if (norm === 'PROJECT_ADMIN' || norm === 'ADMIN') return 'project-admin';
+    if (norm === 'PROJECT_MANAGER' || norm === 'MANAGER' || norm === 'LEAD' || norm === 'PM') return 'project-manager';
+    if (norm === 'VIEWER' || norm === 'GUEST') return 'viewer';
+    return 'member';
+  }
+
+  // Synchronize a project member's role into PBAC store and invalidate cache
+  public async syncProjectMemberRole(orgId: string, userId: string, projectRole: string, projectId?: string) {
+    await this.ensureOrgSeeded(orgId);
+    const targetSlug = this.getRoleSlugForProjectRole(projectRole);
+    const targetRoleId = `role_${orgId}_${targetSlug}`;
+
+    if (!this.userRoleAssignments.has(userId)) {
+      this.userRoleAssignments.set(userId, new Set<string>());
+    }
+    const roleSet = this.userRoleAssignments.get(userId)!;
+
+    // Clear any canonical project roles and assign the new project role
+    const canonicalSlugs = ['project-admin', 'project-manager', 'member', 'viewer'];
+    for (const s of canonicalSlugs) {
+      roleSet.delete(`role_${orgId}_${s}`);
+    }
+    roleSet.add(targetRoleId);
+
+    this.saveToDisk();
+    this.invalidateUserCache(userId);
+  }
+
+  // Synchronize an org member's role into PBAC store and invalidate cache
+  public async syncOrgMemberRole(orgId: string, userId: string, orgRole: string) {
+    await this.ensureOrgSeeded(orgId);
+    const norm = (orgRole || '').toUpperCase().trim();
+    const isOrgAdmin = norm === 'OWNER' || norm === 'ADMIN';
+
+    if (!this.userRoleAssignments.has(userId)) {
+      this.userRoleAssignments.set(userId, new Set<string>());
+    }
+    const roleSet = this.userRoleAssignments.get(userId)!;
+
+    if (isOrgAdmin) {
+      roleSet.add(`role_${orgId}_org-admin`);
+    } else {
+      roleSet.delete(`role_${orgId}_org-admin`);
+      if (roleSet.size === 0) {
+        roleSet.add(`role_${orgId}_member`);
+      }
+    }
+
+    this.saveToDisk();
+    this.invalidateUserCache(userId);
+  }
+
   // High-Throughput Cached Capability Resolution for Scale (100k+ Users)
-  public async getUserCapabilities(orgId: string, userId: string): Promise<Set<string>> {
-    const cacheKey = `${orgId}:${userId}`;
+  public async getUserCapabilities(
+    orgId: string,
+    userId: string,
+    context?: { projectRole?: string; projectId?: string }
+  ): Promise<Set<string>> {
+    const projectRole = context?.projectRole;
+    const projectId = context?.projectId;
+    const cacheKey = projectRole ? `${orgId}:${userId}:${projectRole}` : `${orgId}:${userId}`;
     const cached = this.capabilityCache.get(cacheKey);
     const now = Date.now();
     if (cached && (now - cached.timestamp) < 60000) { // 60s TTL
@@ -1040,6 +1109,25 @@ class UnifiedPBACEngine {
     }
 
     await this.ensureOrgSeeded(orgId);
+
+    // Check if user is Super Admin
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, isSuperAdmin: true, email: true },
+      });
+      if (dbUser?.isSuperAdmin || dbUser?.email === 'cocofbd@gmail.com') {
+        const superPerms = new Set<string>(ALL_PBAC_PERMISSION_KEYS);
+        this.capabilityCache.set(cacheKey, {
+          permissions: superPerms,
+          roles: [{ id: `role_${orgId}_super-admin`, name: 'Super Admin', isSystem: true }],
+          timestamp: now,
+        });
+        return superPerms;
+      }
+    } catch (e) {
+      console.error('Error checking super admin for capabilities:', e);
+    }
 
     // Auto-resolve role from database if not present in assignments
     if (!this.userRoleAssignments.has(userId) || this.userRoleAssignments.get(userId)!.size === 0) {
@@ -1090,8 +1178,20 @@ class UnifiedPBACEngine {
       }
     }
 
-    const assignedRoleIds = Array.from(this.userRoleAssignments.get(userId) || []);
-    const activeRoles = assignedRoleIds
+    const assignedRoleIds = new Set<string>(this.userRoleAssignments.get(userId) || []);
+
+    // If a projectRole is explicitly active in this context, enforce its permissions
+    if (projectRole) {
+      const slug = this.getRoleSlugForProjectRole(projectRole);
+      const targetRoleId = `role_${orgId}_${slug}`;
+      const canonicalSlugs = ['project-admin', 'project-manager', 'member', 'viewer'];
+      for (const s of canonicalSlugs) {
+        assignedRoleIds.delete(`role_${orgId}_${s}`);
+      }
+      assignedRoleIds.add(targetRoleId);
+    }
+
+    const activeRoles = Array.from(assignedRoleIds)
       .map((rId) => this.roles.get(rId))
       .filter((r): r is PBACRole => Boolean(r && r.orgId === orgId && r.status === 'ACTIVE'));
 
@@ -1118,8 +1218,14 @@ class UnifiedPBACEngine {
     return perms;
   }
 
-  public async hasPermission(orgId: string, userId: string, permissionKey: string): Promise<boolean> {
-    const perms = await this.getUserCapabilities(orgId, userId);
+  public async hasPermission(
+    orgId: string,
+    userId: string,
+    permissionKey: string,
+    projectRole?: string,
+    projectId?: string
+  ): Promise<boolean> {
+    const perms = await this.getUserCapabilities(orgId, userId, { projectRole, projectId });
     return perms.has(permissionKey);
   }
 

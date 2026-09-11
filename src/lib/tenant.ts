@@ -160,7 +160,7 @@ export async function assertIssueAccess(issueId: string) {
  */
 export async function assertProjectPermission(projectId: string, permissionKey: string) {
   const access = await assertProjectAccess(projectId);
-  const { user, project } = access;
+  const { user, project, role } = access;
 
   if (user.isSuperAdmin) {
     return { ...access, hasPermission: true };
@@ -168,7 +168,7 @@ export async function assertProjectPermission(projectId: string, permissionKey: 
 
   const orgId = project.workspace.orgId;
   const { pbacEngine } = await import("./pbac-engine");
-  const hasPerm = await pbacEngine.hasPermission(orgId, user.id, permissionKey);
+  const hasPerm = await pbacEngine.hasPermission(orgId, user.id, permissionKey, role, projectId);
 
   if (!hasPerm) {
     const { logger } = await import("./logger");
@@ -192,14 +192,14 @@ export async function assertProjectPermission(projectId: string, permissionKey: 
  */
 export async function assertOrgPermission(orgId: string, permissionKey: string) {
   const access = await assertOrgAccess(orgId);
-  const { user } = access;
+  const { user, role } = access;
 
   if (user.isSuperAdmin) {
     return { ...access, hasPermission: true };
   }
 
   const { pbacEngine } = await import("./pbac-engine");
-  const hasPerm = await pbacEngine.hasPermission(orgId, user.id, permissionKey);
+  const hasPerm = await pbacEngine.hasPermission(orgId, user.id, permissionKey, role);
 
   if (!hasPerm) {
     const { logger } = await import("./logger");

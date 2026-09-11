@@ -1826,6 +1826,7 @@ export function ProjectClient({
                           className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
                         >
                           <option value="PROJECT_MEMBER">Member (Read/Write)</option>
+                          <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
                           <option value="PROJECT_ADMIN">Admin (Full Control)</option>
                           <option value="VIEWER">Viewer (Read-Only)</option>
                         </select>
@@ -1907,6 +1908,7 @@ export function ProjectClient({
                           className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
                         >
                           <option value="PROJECT_MEMBER">Member (Read/Write)</option>
+                          <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
                           <option value="PROJECT_ADMIN">Admin (Full Control)</option>
                           <option value="VIEWER">Viewer (Read-Only)</option>
                         </select>
@@ -1984,6 +1986,7 @@ export function ProjectClient({
                                 className="text-xs py-1 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium outline-none cursor-pointer focus:border-blue-500"
                               >
                                 <option value="PROJECT_ADMIN">Admin</option>
+                                <option value="PROJECT_MANAGER">Project Manager</option>
                                 <option value="PROJECT_MEMBER">Member</option>
                                 <option value="VIEWER">Viewer</option>
                               </select>
@@ -1999,7 +2002,7 @@ export function ProjectClient({
                             </>
                           ) : (
                             <span className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                              {member.role === "PROJECT_ADMIN" ? "Admin" : member.role === "PROJECT_MEMBER" ? "Member" : member.role}
+                              {member.role === "PROJECT_ADMIN" ? "Admin" : member.role === "PROJECT_MANAGER" ? "Manager" : member.role === "PROJECT_MEMBER" || member.role === "MEMBER" ? "Member" : "Viewer"}
                             </span>
                           )}
                         </div>

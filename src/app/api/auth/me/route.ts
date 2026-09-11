@@ -33,7 +33,10 @@ export async function GET() {
 
   const primaryOrgId = orgs[0]?.organization?.id;
   let capabilities: string[] = [];
-  if (primaryOrgId) {
+  if (user.isSuperAdmin) {
+    const { ALL_PBAC_PERMISSION_KEYS } = await import("@/lib/pbac-engine");
+    capabilities = [...ALL_PBAC_PERMISSION_KEYS];
+  } else if (primaryOrgId) {
     try {
       const { pbacEngine } = await import("@/lib/pbac-engine");
       const caps = await pbacEngine.getUserCapabilities(primaryOrgId, user.id);

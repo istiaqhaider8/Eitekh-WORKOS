@@ -77,6 +77,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     });
 
+    // Sync with PBAC store
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      await pbacEngine.syncOrgMemberRole(id, user.id, body.role || "MEMBER");
+    } catch (pbacErr) {
+      console.error("Failed to sync org member role with PBAC:", pbacErr);
+    }
+
     // Optionally assign to projects if provided
     if (Array.isArray(body.projectIds) && body.projectIds.length > 0) {
       for (const projectId of body.projectIds) {
@@ -125,6 +133,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       where: { orgId_userId: { orgId: id, userId: body.userId } },
       data: { role: body.role },
     });
+
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      await pbacEngine.syncOrgMemberRole(id, body.userId, body.role);
+    } catch (pbacErr) {
+      console.error("Failed to sync org member role with PBAC:", pbacErr);
+    }
+
     return NextResponse.json(updated);
   } catch (error: any) {
     const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 400;
@@ -154,6 +170,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.organizationMember.delete({
       where: { orgId_userId: { orgId: id, userId: body.userId } },
     });
+
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      pbacEngine.invalidateUserCache(body.userId);
+    } catch (e) {}
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 400;

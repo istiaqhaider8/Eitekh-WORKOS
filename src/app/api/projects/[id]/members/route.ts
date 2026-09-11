@@ -148,6 +148,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     });
 
+    const orgId = project.workspace.orgId;
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      await pbacEngine.syncProjectMemberRole(orgId, targetUserId, body.role || "PROJECT_MEMBER", id);
+    } catch (pbacErr) {
+      console.error("Failed to sync project member role with PBAC:", pbacErr);
+    }
+
     await logAuditEvent({
       actorId: currentUser.id,
       actorName: currentUser.fullName || `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || currentUser.email,
@@ -187,6 +195,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data: { role: body.role }
     });
 
+    const orgId = project.workspace.orgId;
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      await pbacEngine.syncProjectMemberRole(orgId, body.userId, body.role, id);
+    } catch (pbacErr) {
+      console.error("Failed to sync project member role with PBAC:", pbacErr);
+    }
+
     await logAuditEvent({
       actorId: currentUser.id,
       actorName: currentUser.fullName || `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim() || currentUser.email,
@@ -223,6 +239,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.projectMember.delete({
       where: { projectId_userId: { projectId: id, userId: body.userId } }
     });
+
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      pbacEngine.invalidateUserCache(body.userId);
+    } catch (e) {}
 
     await logAuditEvent({
       actorId: currentUser.id,
