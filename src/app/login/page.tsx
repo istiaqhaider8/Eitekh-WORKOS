@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Shield, ArrowRight, ArrowLeft, Lock, Mail, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, ArrowLeft, Lock, Mail, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,31 +39,8 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = async (role: string) => {
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/demo-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Demo login failed");
 
-      if (role === "admin") {
-        router.push("/super-admin");
-      } else {
-        router.push("/");
-      }
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
@@ -167,46 +144,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick 1-Click Demo Logins */}
-          <div className="pt-4 border-t border-slate-300 dark:border-slate-800 space-y-2.5">
-            <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">
-              Instant 1-Click Evaluation
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDemoLogin("admin")}
-                className="p-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 rounded-lg text-left text-xs transition-colors"
-              >
-                <span className="font-bold text-amber-800 dark:text-amber-300 block">👑 Super Admin</span>
-                <span className="text-[10px] text-amber-600/80">admin@zenith.local</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin("lead")}
-                className="p-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-lg text-left text-xs transition-colors"
-              >
-                <span className="font-bold text-blue-800 dark:text-blue-300 block">👩‍💻 Lead Architect</span>
-                <span className="text-[10px] text-blue-600/80">sarah@acme.com</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin("dev")}
-                className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 rounded-lg text-left text-xs transition-colors"
-              >
-                <span className="font-bold text-slate-800 dark:text-slate-200 block">👨‍💻 Fullstack Marcus</span>
-                <span className="text-[10px] text-slate-500">marcus@acme.com</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin("owner")}
-                className="p-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 rounded-lg text-left text-xs transition-colors"
-              >
-                <span className="font-bold text-purple-800 dark:text-purple-300 block">🏢 Org Owner</span>
-                <span className="text-[10px] text-purple-600/80">alex@acme.com</span>
-              </button>
-            </div>
-          </div>
+
+
 
           <div className="text-center text-xs text-slate-500">
             Need an account?{" "}
