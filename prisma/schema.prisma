@@ -1,0 +1,707 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// USER & IDENTITY
+// -------------------------------------------------------------
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  avatarUrl       String?
+  jobTitle        String?
+  company         String?
+  timezone        String    @default("UTC")
+  language        String    @default("en")
+  isSuperAdmin    Boolean   @default(false)
+  isSupportAdmin  Boolean   @default(false)
+  status          String    @default("ACTIVE") // ACTIVE, SUSPENDED, PENDING_VERIFY
+  mfaEnabled      Boolean   @default(false)
+  mfaSecret       String?
+  recoveryCodes   String?   // JSON array of hashed recovery codes
+  emailVerifiedAt DateTime?
+  verificationToken String?
+  resetToken      String?
+  resetTokenExp   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sessions             Session[]
+  orgMemberships       OrganizationMember[]
+  workspaceMemberships WorkspaceMember[]
+  teamMemberships      TeamMember[]
+  projectMemberships   ProjectMember[]
+  reportedIssues       Issue[]              @relation("IssueReporter")
+  assignedIssues       Issue[]              @relation("IssueAssignee")
+  assignedSubtasks     Subtask[]
+  comments             Comment[]
+  timeEntries          TimeEntry[]
+  watchers             Watcher[]
+  notifications        Notification[]
+  activityLogs         ActivityLog[]
+  attachments          Attachment[]
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  token        String    @unique
+  userAgent    String?
+  ipAddress    String?
+  os           String?
+  browser      String?
+  location     String?
+  lastActiveAt DateTime  @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// -------------------------------------------------------------
+// TENANCY HIERARCHY: Organization -> Workspace -> Team -> Project
+// -------------------------------------------------------------
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  logoUrl      String?
+  domain       String?
+  timezone     String   @default("UTC")
+  language     String   @default("en")
+  dateFormat   String   @default("YYYY-MM-DD")
+  workingDays  String   @default("1,2,3,4,5") // Mon-Fri
+  workingHours String   @default("09:00-17:00")
+  status       String   @default("ACTIVE") // ACTIVE, SUSPENDED, ARCHIVED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members    OrganizationMember[]
+  workspaces Workspace[]
+  webhooks   Webhook[]
+}
+
+model OrganizationMember {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      String   @default("MEMBER") // OWNER, ADMIN, MEMBER, GUEST
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
+  @@index([orgId, role])
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  orgId       String
+  name        String
+  slug        String
+  description String?
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members      WorkspaceMember[]
+  teams        Team[]
+  projects     Project[]
+
+  @@index([orgId])
+  @@index([orgId, isArchived])
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String   @default("MEMBER") // WORKSPACE_ADMIN, MEMBER, VIEWER
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  workspaceId String
+  projectId   String?
+  name        String
+  description String?
+  avatarUrl   String?
+  leadId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project      Project?     @relation("ProjectTeamsList", fields: [projectId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+  projects     Project[]
+  sprints      Sprint[]
+  issues       Issue[]
+
+  @@index([workspaceId])
+  @@index([leadId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("MEMBER") // LEAD, MEMBER
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId])
+}
+
+// -------------------------------------------------------------
+// PROJECT & ISSUE HIERARCHY
+// -------------------------------------------------------------
+model Project {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  teamId       String?
+  name         String
+  key          String    // e.g. DEV, CP
+  description  String?
+  ownerId      String
+  template     String    @default("SCRUM") // SCRUM, KANBAN, BUG_TRACKING, GENERAL
+  status       String    @default("ACTIVE") // PLANNING, ACTIVE, ON_HOLD, COMPLETED, ARCHIVED
+  priority     String    @default("MEDIUM")
+  issueCounter Int       @default(0)
+  startDate    DateTime?
+  targetDate   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  team            Team?            @relation(fields: [teamId], references: [id])
+  projectTeams    Team[]           @relation("ProjectTeamsList")
+  members         ProjectMember[]
+  components      Component[]
+  epics           Epic[]
+  sprints         Sprint[]
+  workflows       Workflow[]
+  issues          Issue[]
+  labels          Label[]
+  automationRules AutomationRule[]
+  recurringTasks  RecurringTask[]
+  webhooks        Webhook[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([status])
+  @@index([createdAt])
+  @@index([ownerId])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("MEMBER") // PROJECT_ADMIN, PROJECT_MANAGER, MEMBER, VIEWER
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@index([projectId])
+  @@index([projectId, role])
+  @@index([userId, role])
+}
+
+model Component {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  ownerId     String?
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  Issue[]
+}
+
+model Epic {
+  id          String    @id @default(cuid())
+  projectId   String
+  name        String
+  summary     String?
+  color       String    @default("#3b82f6")
+  ownerId     String?
+  status      String    @default("ACTIVE") // PLANNING, ACTIVE, DONE
+  startDate   DateTime?
+  targetDate  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  Issue[]
+}
+
+model Sprint {
+  id        String    @id @default(cuid())
+  projectId String
+  teamId    String?
+  name      String
+  goal      String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    String    @default("FUTURE") // FUTURE, ACTIVE, COMPLETED
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team    Team?   @relation(fields: [teamId], references: [id])
+  issues  Issue[]
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model Workflow {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  isDefault Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  statuses    WorkflowStatus[]
+  transitions WorkflowTransition[]
+
+  @@index([projectId])
+}
+
+model WorkflowStatus {
+  id         String @id @default(cuid())
+  workflowId String
+  name       String
+  category   String @default("TO_DO") // BACKLOG, TO_DO, IN_PROGRESS, REVIEW, TESTING, DONE
+  color      String @default("#6b7280")
+  position   Int    @default(0)
+  wipLimit   Int?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  issues   Issue[]
+
+  @@index([workflowId])
+}
+
+model WorkflowTransition {
+  id           String  @id @default(cuid())
+  workflowId   String
+  fromStatusId String
+  toStatusId   String
+  requiredRole String?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// CORE ISSUE TRACKING
+// -------------------------------------------------------------
+model Issue {
+  id             String    @id @default(cuid())
+  projectId      String
+  keyNumber      Int       // 1, 2, 3...
+  issueKey       String    // DEV-1, DEV-2...
+  title          String
+  description    String?   // Markdown rich text
+  issueType      String    @default("TASK") // TASK, BUG, STORY, EPIC, SUBTASK, FEATURE, INCIDENT
+  statusId       String
+  priority       String    @default("MEDIUM") // CRITICAL, HIGHEST, HIGH, MEDIUM, LOW, LOWEST
+  reporterId     String
+  assigneeId     String?
+  teamId         String?
+  epicId         String?
+  sprintId       String?
+  parentIssueId  String?
+  componentId    String?
+  estimatePoints Int?
+  estimateHours  Float?
+  remainingHours Float?
+  timeSpentHours Float?    @default(0)
+  startDate      DateTime?
+  dueDate        DateTime?
+  securityLevel  String    @default("PUBLIC") // PUBLIC, RESTRICTED
+  position       Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status            WorkflowStatus      @relation(fields: [statusId], references: [id])
+  reporter          User                @relation("IssueReporter", fields: [reporterId], references: [id])
+  assignee          User?               @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  team              Team?               @relation(fields: [teamId], references: [id])
+  epic              Epic?               @relation(fields: [epicId], references: [id])
+  sprint            Sprint?             @relation(fields: [sprintId], references: [id])
+  component         Component?          @relation(fields: [componentId], references: [id])
+  parentIssue       Issue?              @relation("ParentChild", fields: [parentIssueId], references: [id])
+  subIssues         Issue[]             @relation("ParentChild")
+  subtasks          Subtask[]
+  comments          Comment[]
+  attachments       Attachment[]
+  timeEntries       TimeEntry[]
+  watchers          Watcher[]
+  labels            IssueLabel[]
+  activityLogs      ActivityLog[]
+  customFieldValues CustomFieldValue[]
+  outgoingDeps      IssueDependency[]   @relation("SourceDep")
+  incomingDeps      IssueDependency[]   @relation("TargetDep")
+
+  @@unique([projectId, keyNumber])
+  @@index([issueKey])
+  @@index([projectId])
+  @@index([projectId, statusId])
+  @@index([projectId, sprintId])
+  @@index([projectId, priority])
+  @@index([projectId, issueType])
+  @@index([projectId, dueDate])
+  @@index([projectId, assigneeId])
+  @@index([projectId, createdAt])
+  @@index([assigneeId])
+  @@index([reporterId])
+  @@index([dueDate])
+  @@index([updatedAt])
+  @@index([parentIssueId])
+  @@index([epicId])
+  @@index([teamId])
+}
+
+model Subtask {
+  id            String    @id @default(cuid())
+  parentIssueId String
+  title         String
+  assigneeId    String?
+  status        String    @default("TO_DO") // TO_DO, IN_PROGRESS, DONE
+  priority      String    @default("MEDIUM")
+  estimateHours Float?
+  dueDate       DateTime?
+  isCompleted   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  parentIssue Issue @relation(fields: [parentIssueId], references: [id], onDelete: Cascade)
+  assignee    User? @relation(fields: [assigneeId], references: [id])
+
+  @@index([parentIssueId])
+  @@index([assigneeId])
+}
+
+model IssueDependency {
+  id            String   @id @default(cuid())
+  sourceIssueId String
+  targetIssueId String
+  type          String   @default("BLOCKS") // BLOCKS, BLOCKED_BY, RELATES_TO, DUPLICATES, FINISH_TO_START, START_TO_START
+  createdAt     DateTime @default(now())
+
+  sourceIssue Issue @relation("SourceDep", fields: [sourceIssueId], references: [id], onDelete: Cascade)
+  targetIssue Issue @relation("TargetDep", fields: [targetIssueId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceIssueId, targetIssueId, type])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  issueId   String
+  userId    String
+  content   String   // Markdown with @mentions
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@index([userId])
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  issueId    String
+  uploaderId String
+  fileName   String
+  fileSize   Int
+  mimeType   String
+  fileUrl    String
+  createdAt  DateTime @default(now())
+
+  issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  uploader User  @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+}
+
+model Watcher {
+  id        String   @id @default(cuid())
+  issueId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, userId])
+}
+
+model Label {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  color     String   @default("#6b7280")
+  createdAt DateTime @default(now())
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  IssueLabel[]
+
+  @@unique([projectId, name])
+}
+
+model IssueLabel {
+  id      String @id @default(cuid())
+  issueId String
+  labelId String
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, labelId])
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  issueId      String
+  actorId      String
+  actionType   String   // CREATED, UPDATED_STATUS, UPDATED_ASSIGNEE, COMMENTED, ETC.
+  fieldChanged String?
+  oldValue     String?
+  newValue     String?
+  timestamp    DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  actor User  @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@index([issueId, timestamp])
+  @@index([actorId])
+  @@index([actorId, timestamp])
+}
+
+model TimeEntry {
+  id              String   @id @default(cuid())
+  issueId         String
+  userId          String
+  durationMinutes Int
+  workDate        DateTime @default(now())
+  description     String?
+  createdAt       DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@index([issueId, workDate])
+  @@index([userId])
+  @@index([userId, workDate])
+}
+
+// -------------------------------------------------------------
+// CUSTOM FIELDS & AUTOMATION
+// -------------------------------------------------------------
+model CustomField {
+  id          String   @id @default(cuid())
+  scopeType   String   @default("PROJECT") // ORG, WORKSPACE, PROJECT
+  scopeId     String
+  name        String
+  fieldType   String   @default("TEXT") // TEXT, NUMBER, DATE, DROPDOWN, MULTISELECT, CHECKBOX, USER, URL
+  optionsJson String?  // JSON array for dropdown choices
+  isRequired  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  values CustomFieldValue[]
+}
+
+model CustomFieldValue {
+  id            String    @id @default(cuid())
+  customFieldId String
+  issueId       String
+  valueString   String?
+  valueNumber   Float?
+  valueDate     DateTime?
+  valueJson     String?
+
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  issue       Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@unique([customFieldId, issueId])
+}
+
+model AutomationRule {
+  id             String   @id @default(cuid())
+  projectId      String
+  name           String
+  triggerType    String   // ISSUE_CREATED, STATUS_CHANGED, ASSIGNEE_CHANGED, DUE_DATE
+  triggerConfig  String?  // JSON
+  conditionRules String?  // JSON
+  actionType     String   // CHANGE_STATUS, ASSIGN_USER, ADD_COMMENT, NOTIFY
+  actionConfig   String?  // JSON
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model RecurringTask {
+  id           String    @id @default(cuid())
+  projectId    String
+  scheduleCron String    // DAILY, WEEKLY, MONTHLY
+  templateData String    // JSON of issue title, type, priority, assignee, etc.
+  isActive     Boolean   @default(true)
+  lastRunAt    DateTime?
+  nextRunAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// SUPER ADMIN & PLATFORM GOVERNANCE
+// -------------------------------------------------------------
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  linkUrl   String?
+  type      String   @default("INFO") // MENTION, ASSIGNMENT, STATUS, DUE_DATE
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model FeatureFlag {
+  id              String   @id @default(cuid())
+  key             String   @unique // e.g. SCRUM, TIMELINE, AUTOMATION, CUSTOM_FIELDS, AI_ASSISTANT
+  description     String?
+  isGlobalEnabled Boolean  @default(true)
+  orgOverrides    String?  // JSON mapping orgId -> boolean
+  createdAt       DateTime @default(now())
+}
+
+model SystemAnnouncement {
+  id             String    @id @default(cuid())
+  title          String
+  message        String
+  severity       String    @default("INFO") // INFO, WARNING, CRITICAL
+  targetAudience String    @default("ALL") // ALL, ORGS, USERS
+  isActive       Boolean   @default(true)
+  startsAt       DateTime  @default(now())
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model PlatformAuditLog {
+  id             String   @id @default(cuid())
+  actorId        String
+  action         String   // TENANT_SUSPENDED, ROLE_CHANGED, USER_STATUS, MAINTENANCE_MODE
+  targetResource String
+  orgId          String?
+  details        String?  // JSON details of changes
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([action])
+  @@index([orgId])
+}
+
+model MaintenanceMode {
+  id         String   @id @default(cuid())
+  isActive   Boolean  @default(false)
+  message    String?
+  allowedIps String?  // JSON list of exempt IPs
+  updatedAt  DateTime @updatedAt
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  orgId     String
+  projectId String?
+  targetUrl String
+  secret    String
+  events    String   // Comma-separated or JSON of events
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// EMAIL CONFIGURATION & NOTIFICATION TEMPLATES
+// -------------------------------------------------------------
+model SystemEmailConfig {
+  id          String   @id @default(cuid())
+  senderEmail String   @default("cocofbd@gmail.com")
+  senderName  String   @default("Zenith WorkOS")
+  smtpHost    String?  @default("smtp.gmail.com")
+  smtpPort    Int?     @default(587)
+  smtpUser    String?  @default("cocofbd@gmail.com")
+  smtpPass    String?
+  isSecure    Boolean  @default(false)
+  isEnabled   Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  key         String   @unique // WELCOME, ISSUE_ASSIGNED, MENTION, COMMENT_ADDED, SPRINT_STARTED, STATUS_CHANGED, PASSWORD_RESET
+  name        String
+  description String?
+  subject     String
+  bodyHtml    String
+  variables   String?  // JSON array of available variables e.g. ["userName", "issueKey", "issueTitle", "actionUrl"]
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  to          String
+  from        String
+  subject     String
+  bodySnippet String?
+  templateKey String?
+  status      String   @default("SENT") // SENT, MOCKED, FAILED
+  error       String?
+  createdAt   DateTime @default(now())
+}

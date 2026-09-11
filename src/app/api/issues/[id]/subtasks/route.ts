@@ -1,0 +1,93 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { logAuditEvent } from "@/lib/audit-logger";
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: parentIssueId } = await params;
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const parentIssue = await prisma.issue.findUnique({
+      where: { id: parentIssueId },
+      select: {
+        id: true,
+        issueKey: true,
+        projectId: true,
+        project: { select: { workspace: { select: { orgId: true } } } },
+      },
+    });
+    if (!parentIssue) {
+      return NextResponse.json({ error: "Parent issue not found" }, { status: 404 });
+    }
+
+    let access: any;
+    try {
+      access = await assertProjectPermission(parentIssue.projectId, "tasks:create");
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
+    }
+
+    const { title, assigneeId, estimateHours, dueDate } = await req.json();
+    if (!title?.trim()) {
+      return NextResponse.json({ error: "Subtask title is required" }, { status: 400 });
+    }
+
+    const subtask = await prisma.subtask.create({
+      data: {
+        parentIssueId,
+        title: title.trim(),
+        assigneeId: assigneeId || null,
+        estimateHours: estimateHours ? Number(estimateHours) : null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        status: "TO_DO",
+      },
+      include: {
+        assignee: true,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        issueId: parentIssueId,
+        actorId: user.id,
+        actionType: "ADDED_SUBTASK",
+        newValue: title.trim(),
+      },
+    });
+
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: "SUBTASK_CREATED",
+      category: "ISSUE",
+      severity: "INFO",
+      status: "SUCCESS",
+      targetResource: `issue:${parentIssue.issueKey}:subtask:${subtask.id}`,
+      orgId: parentIssue.project?.workspace?.orgId || undefined,
+      newState: {
+        id: subtask.id,
+        title: subtask.title,
+        assigneeId: subtask.assigneeId,
+        estimateHours: subtask.estimateHours,
+        dueDate: subtask.dueDate,
+        status: subtask.status,
+      },
+      details: {
+        parentIssueId,
+        parentIssueKey: parentIssue.issueKey,
+        subtaskId: subtask.id,
+        title: subtask.title,
+      },
+      req,
+    });
+
+    return NextResponse.json({ subtask }, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+

@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { assertOrgAccess } from "@/lib/tenant";
+import { pbacEngine, PBAC_PERMISSION_CATEGORIES, ALL_PBAC_PERMISSION_KEYS } from "@/lib/pbac-engine";
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id: orgId } = await params;
+    await assertOrgAccess(orgId, ["OWNER", "ADMIN", "MEMBER"]);
+
+    const roles = await pbacEngine.getRoles(orgId);
+    const usersResult = await pbacEngine.getUsersWithRoles(orgId, { limit: "all" });
+
+    return NextResponse.json({
+      categories: PBAC_PERMISSION_CATEGORIES,
+      allKeys: ALL_PBAC_PERMISSION_KEYS,
+      roles,
+      members: usersResult.users,
+      totalRecords: usersResult.totalRecords,
+    });
+  } catch (error: any) {
+    console.error("Fetch roles error:", error);
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id: orgId } = await params;
+    await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
+
+    const body = await req.json();
+    const { name, description, scope, permissions } = body;
+
+    if (!name?.trim()) {
+      return NextResponse.json({ error: "Role name is required" }, { status: 400 });
+    }
+
+    const actor = {
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+      email: user.email,
+    };
+
+    const role = await pbacEngine.saveRole(
+      orgId,
+      {
+        name: name.trim(),
+        description: description?.trim(),
+        scope: scope || "ORGANIZATION",
+        permissions: Array.isArray(permissions) ? permissions : [],
+      },
+      actor
+    );
+
+    return NextResponse.json({ role }, { status: 201 });
+  } catch (error: any) {
+    console.error("Create role error:", error);
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+  }
+}
+
