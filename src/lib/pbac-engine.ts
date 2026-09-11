@@ -1070,14 +1070,15 @@ class UnifiedPBACEngine {
               userRoles.add(`role_${orgId}_org-admin`);
             } else if (projMember?.role === 'PROJECT_ADMIN') {
               userRoles.add(`role_${orgId}_project-admin`);
-            } else if (projMember?.role === 'VIEWER' || (dbUser.jobTitle || '').toLowerCase().includes('viewer')) {
-              userRoles.add(`role_${orgId}_viewer`);
             } else if (
+              projMember?.role === 'PROJECT_MANAGER' ||
               (dbUser.jobTitle || '').toLowerCase().includes('manager') ||
               (dbUser.jobTitle || '').toLowerCase().includes('lead') ||
               (dbUser.jobTitle || '').toLowerCase().includes('pm')
             ) {
               userRoles.add(`role_${orgId}_project-manager`);
+            } else if (projMember?.role === 'VIEWER' || (dbUser.jobTitle || '').toLowerCase().includes('viewer')) {
+              userRoles.add(`role_${orgId}_viewer`);
             } else {
               userRoles.add(`role_${orgId}_member`);
             }
