@@ -109,16 +109,31 @@ export function RolesTab({
 
   // Filtered Roles
   const filteredRoles = useMemo(() => {
+    if (!Array.isArray(roles)) return [];
+    const searchLower = (search || '').toLowerCase().trim();
+
     return roles.filter((r) => {
+      if (!r || typeof r !== 'object') return false;
+
+      const roleName = String(r.name || '').toLowerCase();
+      const roleDesc = String(r.description || '').toLowerCase();
+      const permissions = Array.isArray(r.permissions) ? r.permissions : [];
+
       const matchQuery =
-        r.name.toLowerCase().includes(search.toLowerCase()) ||
-        (r.description || '').toLowerCase().includes(search.toLowerCase()) ||
-        (r.permissions || []).some((p: string) => p.toLowerCase().includes(search.toLowerCase()));
+        !searchLower ||
+        roleName.includes(searchLower) ||
+        roleDesc.includes(searchLower) ||
+        permissions.some((p: any) => {
+          if (!p) return false;
+          if (typeof p === 'string') return p.toLowerCase().includes(searchLower);
+          if (typeof p === 'object' && p.key) return String(p.key).toLowerCase().includes(searchLower);
+          return false;
+        });
 
       const matchScope = scopeFilter === 'ALL' || r.scope === scopeFilter;
       const matchStatus = statusFilter === 'ALL' || r.status === statusFilter;
 
-      return matchQuery && matchScope && matchStatus;
+      return Boolean(matchQuery && matchScope && matchStatus);
     });
   }, [roles, search, scopeFilter, statusFilter]);
 
@@ -724,11 +739,13 @@ export function RolesTab({
               ) : (
                 existingUsers
                   .filter((u) => {
-                    const matchQ =
-                      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-                      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-                      u.id.toLowerCase().includes(userSearch.toLowerCase());
-                    return matchQ;
+                    if (!u) return false;
+                    const searchLower = (userSearch || '').toLowerCase().trim();
+                    if (!searchLower) return true;
+                    const userName = String(u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || '').toLowerCase();
+                    const userEmail = String(u.email || '').toLowerCase();
+                    const userId = String(u.id || '').toLowerCase();
+                    return userName.includes(searchLower) || userEmail.includes(searchLower) || userId.includes(searchLower);
                   })
                   .map((u) => {
                     const isAlreadyAssigned = u.assignedRoles?.some((r: any) => r.id === addUserModalRole.id);
@@ -1245,11 +1262,16 @@ export function RolesTab({
                   {/* Categories Accordions */}
                   <div className="space-y-3 pt-1">
                     {categories.map((cat) => {
-                      const matchingPerms = cat.permissions.filter(
-                        (p: any) =>
-                          p.label.toLowerCase().includes(editorSearch.toLowerCase()) ||
-                          p.key.toLowerCase().includes(editorSearch.toLowerCase()) ||
-                          (p.description || '').toLowerCase().includes(editorSearch.toLowerCase())
+                      const searchLower = (editorSearch || '').toLowerCase().trim();
+                      const matchingPerms = (cat.permissions || []).filter(
+                        (p: any) => {
+                          if (!p) return false;
+                          if (!searchLower) return true;
+                          const label = String(p.label || '').toLowerCase();
+                          const key = String(p.key || '').toLowerCase();
+                          const desc = String(p.description || '').toLowerCase();
+                          return label.includes(searchLower) || key.includes(searchLower) || desc.includes(searchLower);
+                        }
                       );
 
                       if (matchingPerms.length === 0 && editorSearch) return null;

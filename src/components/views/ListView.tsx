@@ -141,8 +141,8 @@ export function ListView({
     if (filterType && i.issueType !== filterType) return false;
     if (
       searchTerm &&
-      !i.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !i.issueKey.toLowerCase().includes(searchTerm.toLowerCase())
+      !String(i.title || '').toLowerCase().includes(searchTerm.toLowerCase()) &&
+      !String(i.issueKey || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
       return false;
     return true;
