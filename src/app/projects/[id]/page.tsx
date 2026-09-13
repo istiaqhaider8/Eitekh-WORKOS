@@ -121,9 +121,28 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     orderBy: { name: "asc" },
   });
 
+  let capabilities: string[] = [];
+  if (user.isSuperAdmin) {
+    const { ALL_PBAC_PERMISSION_KEYS } = await import("@/lib/pbac-engine");
+    capabilities = [...ALL_PBAC_PERMISSION_KEYS];
+  } else {
+    try {
+      const { pbacEngine } = await import("@/lib/pbac-engine");
+      const caps = await pbacEngine.getUserCapabilities(project.workspace.orgId, user.id);
+      capabilities = Array.from(caps);
+    } catch (e) {
+      console.error("Error resolving user capabilities in page.tsx:", e);
+    }
+  }
+
+  const currentUserWithCaps = {
+    ...user,
+    capabilities,
+  };
+
   return (
     <ProjectClient
-      currentUser={user}
+      currentUser={currentUserWithCaps}
       currentOrg={project.workspace.organization}
       project={project}
       allProjects={allProjects}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,10 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { role } = await assertProjectAccess(id);
-    if (!["PROJECT_ADMIN", "PROJECT_MANAGER", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ error: "Forbidden: You need project administrator permissions" }, { status: 403 });
-    }
+    await assertProjectPermission(id, "projects:edit");
     
     const body = await req.json();
     const data: any = {};
@@ -77,7 +74,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    const status = error.message?.includes("Unauthorized") ? 401 : (error.message?.includes("Forbidden") ? 403 : 400);
+    return NextResponse.json({ error: error.message }, { status });
   }
 }
 

@@ -68,6 +68,32 @@ export function ProjectClient({
   const [teams, setTeams] = useState<any[]>([]);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
 
+  const userMember = members.find((m: any) => m.userId === currentUser?.id);
+  const userRoleInProject = userMember?.role || (project.ownerId === currentUser?.id ? "PROJECT_ADMIN" : "MEMBER");
+  const isProjectAdminRole = currentUser?.isSuperAdmin || userRoleInProject === "PROJECT_ADMIN" || userRoleInProject === "PROJECT_MANAGER";
+  
+  const canEditProject = currentUser?.isSuperAdmin || (
+    Array.isArray(currentUser?.capabilities)
+      ? currentUser.capabilities.includes("projects:edit")
+      : isProjectAdminRole
+  );
+
+  const canAccessView = (viewId: string) => {
+    if (!currentUser || currentUser?.isSuperAdmin || !Array.isArray(currentUser?.capabilities)) return true;
+    const permMap: Record<string, string> = {
+      board: "kanban:view",
+      list: "list:view",
+      scrum: "backlog:view",
+      timeline: "timeline:view",
+      calendar: "calendar:view",
+      workload: "workload:view",
+      charts: "analytics:view",
+      dashboard: "reports:view",
+    };
+    const perm = permMap[viewId];
+    return perm ? currentUser.capabilities.includes(perm) : true;
+  };
+
   useEffect(() => {
     if (project?.id) {
       localStorage.setItem("zenith_last_project_id", project.id);
@@ -815,6 +841,7 @@ export function ProjectClient({
           activeView={activeView}
           onSelectView={handleViewChange}
           onCreateProjectClick={() => setShowCreateProjectModal(true)}
+          currentUser={currentUser}
         />
 
         {/* View Content Area */}
@@ -915,31 +942,33 @@ export function ProjectClient({
                 </button>
 
                 {/* Project Settings Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditName(currentProject.name || "");
-                    setEditDesc(currentProject.description || "");
-                    setEditStatus(currentProject.status || "ACTIVE");
-                    setEditPriority(currentProject.priority || "MEDIUM");
-                    setEditStartDate(
-                      currentProject.startDate
-                        ? new Date(currentProject.startDate).toISOString().split("T")[0]
-                        : ""
-                    );
-                    setEditTargetDate(
-                      currentProject.targetDate
-                        ? new Date(currentProject.targetDate).toISOString().split("T")[0]
-                        : ""
-                    );
-                    setShowEditProjectModal(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
-                  title="Edit project details and settings"
-                >
-                  <Settings className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-transform group-hover:rotate-45" />
-                  <span>Settings</span>
-                </button>
+                {canEditProject && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditName(currentProject.name || "");
+                      setEditDesc(currentProject.description || "");
+                      setEditStatus(currentProject.status || "ACTIVE");
+                      setEditPriority(currentProject.priority || "MEDIUM");
+                      setEditStartDate(
+                        currentProject.startDate
+                          ? new Date(currentProject.startDate).toISOString().split("T")[0]
+                          : ""
+                      );
+                      setEditTargetDate(
+                        currentProject.targetDate
+                          ? new Date(currentProject.targetDate).toISOString().split("T")[0]
+                          : ""
+                      );
+                      setShowEditProjectModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
+                    title="Edit project details and settings"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-transform group-hover:rotate-45" />
+                    <span>Settings</span>
+                  </button>
+                )}
 
                 {/* Teams Management Button */}
                 <button
@@ -1052,144 +1081,152 @@ export function ProjectClient({
           </div>
 
           {/* Active View Rendering */}
-          {activeView === "board" && (
-            <KanbanBoardView
-              statuses={statuses}
-              priorities={projectPriorities}
-              issues={displayedIssues}
-              members={members}
-              teams={teams}
-              sprints={sprints}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onUpdateIssueStatus={handleUpdateIssueStatus}
-              onQuickCreateIssue={handleQuickCreateIssue}
-              onOpenCreateModal={(statusId, title) => {
-                if (statusId) setNewStatusId(statusId);
-                if (title) setNewTitle(title);
-                setShowCreateIssueModal(true);
-              }}
-            />
-          )}
+          {!canAccessView(activeView) ? (
+            <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-950">
+              <div className="max-w-md w-full text-center space-y-4 bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+                  🔒
+                </div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">View Access Restricted</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Your PBAC permissions do not allow viewing this section (<strong>{activeView}</strong>). Contact your organization administrator to update your role permissions.
+                </p>
+                <button
+                  onClick={() => setActiveView("board")}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-2xs"
+                >
+                  Return to Kanban Board
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeView === "board" && (
+                <KanbanBoardView
+                  issues={displayedIssues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onUpdateIssueStatus={handleUpdateIssueStatus}
+                  onQuickCreateIssue={handleQuickCreateIssue}
+                />
+              )}
 
-          {activeView === "list" && (
-            <ListView
-              issues={displayedIssues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              members={members}
-              teams={teams}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onUpdateIssueStatus={handleUpdateIssueStatus}
-              onUpdateIssuePriority={handleUpdateIssuePriority}
-              onQuickCreateIssue={handleQuickCreateIssue}
-              onOpenCreateModal={(statusId, title) => {
-                if (statusId) setNewStatusId(statusId);
-                if (title) setNewTitle(title);
-                setShowCreateIssueModal(true);
-              }}
-            />
-          )}
+              {activeView === "list" && (
+                <ListView
+                  issues={displayedIssues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  members={members}
+                  teams={teams}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onUpdateIssueStatus={handleUpdateIssueStatus}
+                  onUpdateIssuePriority={handleUpdateIssuePriority}
+                />
+              )}
 
-          {activeView === "scrum" && (
-            <ScrumBacklogView
-              projectId={project.id}
-              sprints={sprints}
-              issues={displayedIssues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              members={members}
-              teams={teams}
-              currentUser={currentUser}
-              isProjectAdmin={isProjectAdmin}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onUpdateStatus={handleUpdateIssueStatus}
-              onRefresh={refreshIssues}
-            />
-          )}
+              {activeView === "scrum" && (
+                <ScrumBacklogView
+                  projectId={project.id}
+                  sprints={sprints}
+                  issues={displayedIssues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  members={members}
+                  teams={teams}
+                  currentUser={currentUser}
+                  isProjectAdmin={isProjectAdmin}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onUpdateStatus={handleUpdateIssueStatus}
+                  onRefresh={refreshIssues}
+                />
+              )}
 
-          {activeView === "timeline" && (
-            <TimelineGanttView
-              issues={displayedIssues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onRefresh={refreshIssues}
-            />
-          )}
+              {activeView === "timeline" && (
+                <TimelineGanttView
+                  issues={displayedIssues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onRefresh={refreshIssues}
+                />
+              )}
 
-          {activeView === "calendar" && (
-            <CalendarView
-              issues={issues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              members={members}
-              teams={teams}
-              sprints={sprints}
-              projects={allProjects}
-              projectId={currentProject.id}
-              projectName={currentProject.name}
-              currentUser={currentUser}
-              onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onRefresh={refreshIssues}
-            />
-          )}
+              {activeView === "calendar" && (
+                <CalendarView
+                  issues={issues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  members={members}
+                  teams={teams}
+                  sprints={sprints}
+                  projects={allProjects}
+                  projectId={currentProject.id}
+                  projectName={currentProject.name}
+                  currentUser={currentUser}
+                  onSelectProject={(pId) => router.push(`/projects/${pId}`)}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onRefresh={refreshIssues}
+                />
+              )}
 
-          {activeView === "workload" && (
-            <WorkloadView
-              issues={issues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              members={members}
-              teams={teams}
-              sprints={sprints}
-              projects={allProjects}
-              projectId={currentProject.id}
-              projectName={currentProject.name}
-              currentUser={currentUser}
-              onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onRefresh={refreshIssues}
-            />
-          )}
+              {activeView === "workload" && (
+                <WorkloadView
+                  issues={issues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  members={members}
+                  teams={teams}
+                  sprints={sprints}
+                  projects={allProjects}
+                  projectId={currentProject.id}
+                  projectName={currentProject.name}
+                  currentUser={currentUser}
+                  onSelectProject={(pId) => router.push(`/projects/${pId}`)}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onRefresh={refreshIssues}
+                />
+              )}
 
-          {activeView === "charts" && (
-            <AnalyticsChartsView
-              issues={issues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              sprints={sprints}
-              teams={teams}
-              members={members}
-              projects={allProjects}
-              projectId={currentProject.id}
-              projectName={currentProject.name}
-              currentUserId={currentUser?.id}
-              onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onRefresh={refreshIssues}
-            />
-          )}
+              {activeView === "charts" && (
+                <AnalyticsChartsView
+                  issues={issues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  sprints={sprints}
+                  teams={teams}
+                  members={members}
+                  projects={allProjects}
+                  projectId={currentProject.id}
+                  projectName={currentProject.name}
+                  currentUserId={currentUser?.id}
+                  onSelectProject={(pId) => router.push(`/projects/${pId}`)}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onRefresh={refreshIssues}
+                />
+              )}
 
-          {activeView === "dashboard" && (
-            <DashboardView
-              issues={issues}
-              statuses={statuses}
-              priorities={projectPriorities}
-              sprints={sprints}
-              teams={teams}
-              members={members}
-              projects={allProjects}
-              projectId={currentProject.id}
-              projectName={currentProject.name}
-              currentUser={currentUser}
-              onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-              onOpenCharts={() => setActiveView("charts")}
-              onCreateIssue={() => setShowCreateIssueModal(true)}
-              onSelectView={setActiveView}
-              onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-              onRefresh={refreshIssues}
-            />
+              {activeView === "dashboard" && (
+                <DashboardView
+                  issues={issues}
+                  statuses={statuses}
+                  priorities={projectPriorities}
+                  sprints={sprints}
+                  teams={teams}
+                  members={members}
+                  projects={allProjects}
+                  projectId={currentProject.id}
+                  projectName={currentProject.name}
+                  currentUser={currentUser}
+                  onSelectProject={(pId) => router.push(`/projects/${pId}`)}
+                  onOpenCharts={() => setActiveView("charts")}
+                  onCreateIssue={() => setShowCreateIssueModal(true)}
+                  onSelectView={setActiveView}
+                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onRefresh={refreshIssues}
+                />
+              )}
+            </>
           )}
         </main>
       </div>

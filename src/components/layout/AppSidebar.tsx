@@ -25,6 +25,7 @@ interface AppSidebarProps {
   activeView: string;
   onSelectView: (view: string) => void;
   onCreateProjectClick?: () => void;
+  currentUser?: any;
 }
 
 export function AppSidebar({
@@ -33,6 +34,7 @@ export function AppSidebar({
   activeView,
   onSelectView,
   onCreateProjectClick,
+  currentUser,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -53,16 +55,22 @@ export function AppSidebar({
     localStorage.setItem("zenith_sidebar_collapsed", String(newValue));
   };
 
+  const isSuperAdmin = currentUser?.isSuperAdmin;
+  const capabilities = currentUser?.capabilities;
+
   const views = [
-    { id: "board", label: "Kanban Board", icon: Kanban },
-    { id: "list", label: "List View", icon: ListTodo },
-    { id: "scrum", label: "Scrum & Backlog", icon: Layers },
-    { id: "timeline", label: "Timeline (Gantt)", icon: Clock },
-    { id: "calendar", label: "Calendar", icon: Calendar },
-    { id: "workload", label: "Team Workload", icon: Users },
-    { id: "charts", label: "Charts & Analytics", icon: PieChart },
-    { id: "dashboard", label: "Project Reports", icon: BarChart3 },
-  ];
+    { id: "board", label: "Kanban Board", icon: Kanban, permission: "kanban:view" },
+    { id: "list", label: "List View", icon: ListTodo, permission: "list:view" },
+    { id: "scrum", label: "Scrum & Backlog", icon: Layers, permission: "backlog:view" },
+    { id: "timeline", label: "Timeline (Gantt)", icon: Clock, permission: "timeline:view" },
+    { id: "calendar", label: "Calendar", icon: Calendar, permission: "calendar:view" },
+    { id: "workload", label: "Team Workload", icon: Users, permission: "workload:view" },
+    { id: "charts", label: "Charts & Analytics", icon: PieChart, permission: "analytics:view" },
+    { id: "dashboard", label: "Project Reports", icon: BarChart3, permission: "reports:view" },
+  ].filter((v) => {
+    if (!currentUser || isSuperAdmin || !Array.isArray(capabilities)) return true;
+    return capabilities.includes(v.permission);
+  });
 
   if (!isMounted) {
     return <aside className="w-60 border-r border-slate-300 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col justify-between shrink-0 h-[calc(100vh-3.5rem)] select-none hidden md:flex" />;
