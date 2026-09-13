@@ -701,7 +701,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: data.id ? 'ROLE_UPDATED' : 'ROLE_CREATED',
       entityType: 'ROLE',
       entityId: id,
@@ -759,7 +759,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'ROLE_CLONED',
       entityType: 'ROLE',
       entityId: id,
@@ -794,7 +794,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: status === 'ACTIVE' ? 'ROLE_ACTIVATED' : 'ROLE_DEACTIVATED',
       entityType: 'ROLE',
       entityId: roleId,
@@ -830,7 +830,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'ROLE_DELETED',
       entityType: 'ROLE',
       entityId: roleId,
@@ -874,7 +874,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'USER_ADDED_TO_ROLE',
       entityType: 'USER_ROLE',
       entityId: `${userId}_${roleId}`,
@@ -907,7 +907,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'USER_REMOVED_FROM_ROLE',
       entityType: 'USER_ROLE',
       entityId: `${userId}_${roleId}`,
@@ -953,7 +953,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'BULK_USERS_ADDED_TO_ROLE',
       entityType: 'USER_ROLE',
       entityId: roleId,
@@ -993,7 +993,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'BULK_USERS_REMOVED_FROM_ROLE',
       entityType: 'USER_ROLE',
       entityId: roleId,
@@ -1024,7 +1024,7 @@ class UnifiedPBACEngine {
       orgId,
       actorId: actor?.id || 'system',
       actorName: actor?.name || 'Administrator',
-      actorEmail: actor?.email || 'admin@zenith.local',
+      actorEmail: actor?.email || 'admin@eitekh.local',
       action: 'USER_ROLES_REPLACED',
       entityType: 'USER_ROLE',
       entityId: userId,
@@ -1680,7 +1680,7 @@ class UnifiedPBACEngine {
 
       return {
         contentType: format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv',
-        filename: `zenith-access-matrix-${Date.now()}.${format === 'excel' ? 'csv' : 'csv'}`,
+        filename: `eitekh-access-matrix-${Date.now()}.${format === 'excel' ? 'csv' : 'csv'}`,
         data: [headers.join(','), ...rows].join('\n'),
       };
     }
@@ -1690,7 +1690,7 @@ class UnifiedPBACEngine {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Zenith WorkOS — Access Governance & PBAC Audit Report</title>
+  <title>Eitekh WorkOS — Access Governance & PBAC Audit Report</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 24px; color: #1e293b; }
     h1 { font-size: 20px; margin-bottom: 4px; color: #0f172a; }
@@ -1704,7 +1704,7 @@ class UnifiedPBACEngine {
   </style>
 </head>
 <body>
-  <h1>Zenith WorkOS — Access Governance & PBAC Matrix</h1>
+  <h1>Eitekh WorkOS — Access Governance & PBAC Matrix</h1>
   <div class="subtitle">Generated on ${new Date().toUTCString()} | Organization ID: ${orgId}</div>
   <table>
     <thead>
@@ -1729,14 +1729,14 @@ class UnifiedPBACEngine {
         .join('')}
     </tbody>
   </table>
-  <div class="footer">Certified PBAC Deterministic Access Resolution — Zenith WorkOS</div>
+  <div class="footer">Certified PBAC Deterministic Access Resolution — Eitekh WorkOS</div>
 </body>
 </html>`;
 
     const res = {
       contentType: 'text/html',
       mimeType: 'text/html',
-      filename: `zenith-access-governance-report-${Date.now()}.html`,
+      filename: `eitekh-access-governance-report-${Date.now()}.html`,
       data: htmlReport,
       content: htmlReport,
     };

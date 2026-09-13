@@ -1,5 +1,5 @@
 /**
- * Zenith WorkOS Asynchronous Background Job Engine
+ * Eitekh WorkOS Asynchronous Background Job Engine
  * Handles non-blocking background tasks (heavy exports, bulk updates, aggregations)
  */
 

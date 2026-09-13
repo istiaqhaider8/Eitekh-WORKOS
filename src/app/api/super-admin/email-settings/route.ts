@@ -37,7 +37,7 @@ export async function PATCH(req: Request) {
       config = await prisma.systemEmailConfig.create({
         data: {
           senderEmail: senderEmail || "cocofbd@gmail.com",
-          senderName: senderName || "Zenith WorkOS",
+          senderName: senderName || "Eitekh WorkOS",
           smtpHost: smtpHost || "smtp.gmail.com",
           smtpPort: Number(smtpPort) || 587,
           smtpUser: smtpUser || senderEmail || "cocofbd@gmail.com",

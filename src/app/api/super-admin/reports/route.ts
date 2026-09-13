@@ -136,7 +136,7 @@ export async function GET(request: Request) {
         status: 200,
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="zenith_${reportType.toLowerCase()}_${period}_${Date.now()}.csv"`,
+          'Content-Disposition': `attachment; filename="eitekh_${reportType.toLowerCase()}_${period}_${Date.now()}.csv"`,
         },
       });
     }

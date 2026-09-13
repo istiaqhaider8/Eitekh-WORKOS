@@ -195,7 +195,7 @@ export async function POST(req: Request) {
       variables: {
         userName: newUser.firstName + " " + newUser.lastName,
         userEmail: newUser.email,
-        organizationName: targetOrg?.name || "Zenith WorkOS Enterprise",
+        organizationName: targetOrg?.name || "Eitekh WorkOS Enterprise",
         actionUrl: (process.env.NEXTAUTH_URL || "http://localhost:3000") + "/login",
       },
     }).catch(() => {});

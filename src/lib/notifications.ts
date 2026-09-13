@@ -1,5 +1,5 @@
 /**
- * Zenith WorkOS Enterprise Notification & Asynchronous Email Engine
+ * Eitekh WorkOS Enterprise Notification & Asynchronous Email Engine
  * Handles In-App, Real-Time SSE, and Queued Email dispatch with deduplication,
  * intelligent grouping, retries, and PBAC project boundaries.
  */
@@ -147,7 +147,7 @@ class NotificationEngine {
         },
         actor: {
           id: actorId || 'system',
-          email: options.actorEmail || 'system@zenith.local',
+          email: options.actorEmail || 'system@eitekh.local',
           name: actorName || 'System',
         },
       });

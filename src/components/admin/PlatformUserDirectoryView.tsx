@@ -147,7 +147,7 @@ export function PlatformUserDirectoryView({
     const numbers = '0123456789';
     const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     const lowers = 'abcdefghijkmnpqrstuvwxyz';
-    let pwd = 'Zenith#';
+    let pwd = 'Eitekh#';
     for (let i = 0; i < 4; i++) pwd += numbers[Math.floor(Math.random() * numbers.length)];
     pwd += specials[Math.floor(Math.random() * specials.length)];
     for (let i = 0; i < 3; i++) pwd += uppers[Math.floor(Math.random() * uppers.length)];
@@ -836,7 +836,7 @@ export function PlatformUserDirectoryView({
                   <button
                     type="button"
                     onClick={() => {
-                      const pwd = 'Zenith#' + Math.floor(1000 + Math.random() * 9000) + '!kL';
+                      const pwd = 'Eitekh#' + Math.floor(1000 + Math.random() * 9000) + '!kL';
                       setCreateForm({ ...createForm, password: pwd });
                     }}
                     className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
@@ -847,7 +847,7 @@ export function PlatformUserDirectoryView({
                 </div>
                 <input
                   type="text"
-                  placeholder="e.g. Zenith#9482!kL"
+                  placeholder="e.g. Eitekh#9482!kL"
                   value={createForm.password}
                   onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 font-mono outline-none focus:border-indigo-500"

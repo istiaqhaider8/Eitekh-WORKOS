@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           status: 200,
           headers: {
             "Content-Type": "application/json; charset=utf-8",
-            "Content-Disposition": 'attachment; filename="zenith_audit_ledger_' + Date.now() + '.json"',
+            "Content-Disposition": 'attachment; filename="eitekh_audit_ledger_' + Date.now() + '.json"',
           },
         });
       }
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": 'attachment; filename="zenith_audit_ledger_' + Date.now() + '.csv"',
+          "Content-Disposition": 'attachment; filename="eitekh_audit_ledger_' + Date.now() + '.csv"',
         },
       });
     }

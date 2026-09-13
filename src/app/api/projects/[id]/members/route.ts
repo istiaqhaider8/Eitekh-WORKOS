@@ -81,16 +81,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           variables: {
             userName: `${user.firstName} ${user.lastName}`.trim(),
             userEmail: email,
-            organizationName: project.workspace.organization?.name || "Zenith WorkOS",
+            organizationName: project.workspace.organization?.name || "Eitekh WorkOS",
             actionUrl: `${baseUrl}/projects/${project.id}`,
           },
-          customSubject: `You've been invited to ${project.name} on Zenith WorkOS! 🚀`,
+          customSubject: `You've been invited to ${project.name} on Eitekh WorkOS! 🚀`,
           customHtml: `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
   <div style="text-align: center; margin-bottom: 24px;">
     <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">Z</div>
     <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin-top: 12px; margin-bottom: 4px;">Project Invitation</h1>
-    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Zenith WorkOS</p>
+    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Eitekh WorkOS</p>
   </div>
   <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
     <p style="color: #f1f5f9; font-size: 14px; margin-top: 0;">Hi <strong>${user.firstName}</strong>,</p>

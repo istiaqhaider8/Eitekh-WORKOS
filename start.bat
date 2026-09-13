@@ -1,7 +1,7 @@
 @echo off
-title Zenith WorkOS Server
+title Eitekh WorkOS Server
 echo ===================================================
-echo           Starting Zenith WorkOS System            
+echo           Starting Eitekh WorkOS System            
 echo ===================================================
 echo.
 cd /d "%~dp0"

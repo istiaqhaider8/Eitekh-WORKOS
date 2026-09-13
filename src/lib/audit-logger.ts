@@ -89,7 +89,7 @@ function inferSeverity(action: string, status?: string): AuditSeverity {
 
 /**
  * Enterprise Audit Logger
- * Ensures every action across Zenith WorkOS is logged with structured metadata,
+ * Ensures every action across Eitekh WorkOS is logged with structured metadata,
  * actor identity, target resource, and zero sensitive secrets.
  */
 export async function logAuditEvent(params: LogAuditParams) {
@@ -115,7 +115,7 @@ export async function logAuditEvent(params: LogAuditParams) {
     // Default to System Provisioning if still no actor
     actorId = actorId || 'system';
     actorName = actorName || (actorId === 'system' ? 'System Service' : 'Platform User');
-    actorEmail = actorEmail || (actorId === 'system' ? 'system@zenith.local' : '');
+    actorEmail = actorEmail || (actorId === 'system' ? 'system@eitekh.local' : '');
 
     const category = params.category || inferCategory(params.action);
     const severity = params.severity || inferSeverity(params.action, params.status);

@@ -1,4 +1,4 @@
-# Zenith WorkOS: Calendar & Schedule System Documentation
+# Eitekh WorkOS: Calendar & Schedule System Documentation
 
 > **Module:** Project Management & Scheduling Subsystem  
 > **Document Version:** 2.0.0-ENTERPRISE  
@@ -44,7 +44,7 @@
 
 ## 1. Executive Overview & Philosophy
 
-The **Zenith WorkOS Calendar & Schedule System** transforms project task management into an intuitive, time-aware visual planning environment. While Kanban boards capture workflow states and Gantt charts visualize critical path dependencies, the Calendar View answers the single most pressing operational question: **"What is due when, who is delivering it, and are we on track?"**
+The **Eitekh WorkOS Calendar & Schedule System** transforms project task management into an intuitive, time-aware visual planning environment. While Kanban boards capture workflow states and Gantt charts visualize critical path dependencies, the Calendar View answers the single most pressing operational question: **"What is due when, who is delivering it, and are we on track?"**
 
 ### Core Design Pillars
 1. **100% Real Database Grounding**: The calendar renders exclusively real issues stored in SQLite/Prisma. There are zero mock, synthetic, or random fallback dates.
@@ -106,7 +106,7 @@ flowchart TB
 
 A recurring vulnerability in web-based project management calendars is the **UTC Midnight Boundary Problem**: a date stored as `2026-09-15T00:00:00.000Z` parses in Western Hemisphere timezones (e.g. UTC-5) as `2026-09-14 19:00`, causing tasks to inexplicably jump to the previous day.
 
-Zenith WorkOS resolves this with dedicated local date parsing and serialization routines:
+Eitekh WorkOS resolves this with dedicated local date parsing and serialization routines:
 
 ```typescript
 // Safe local date parser to avoid UTC shifting
@@ -280,7 +280,7 @@ Each task is represented by a sleek chip card:
 
 ## 7. Due Date Lifecycle & Countdown Engine
 
-Zenith WorkOS evaluates deadlines dynamically relative to the current local date (`12:00:00` normalized):
+Eitekh WorkOS evaluates deadlines dynamically relative to the current local date (`12:00:00` normalized):
 
 ```mermaid
 stateDiagram-v2
@@ -451,7 +451,7 @@ The Calendar and Scheduling Subsystem is strictly covered by automated integrati
 
 ## 12. Summary & Operational Status
 
-The **Zenith WorkOS Calendar & Schedule System** is an enterprise-grade, real-time scheduling engine providing:
+The **Eitekh WorkOS Calendar & Schedule System** is an enterprise-grade, real-time scheduling engine providing:
 - Safe, timezone-immune date management.
 - Fluid drag-and-drop planning across Month and Week views.
 - Deep bi-directional synchronization with Kanban boards, Gantt timelines, capacity matrices, and executive reports.

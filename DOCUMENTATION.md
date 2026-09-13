@@ -1,4 +1,4 @@
-# Zenith WorkOS: Master System Architecture & Platform Documentation
+# Eitekh WorkOS: Master System Architecture & Platform Documentation
 
 > **Version:** 2.0.0-PROD  
 > **Classification:** Enterprise Platform Architecture & Technical Reference  
@@ -34,7 +34,7 @@
 ## 1. Executive Summary & High-Level Architecture
 
 ### 1.1 Platform Vision
-**Zenith WorkOS** is an enterprise-grade, modern work operating system designed for software engineering teams, product managers, scrum masters, and executive leadership. It provides end-to-end orchestration of agile software development—from epic roadmapping and backlog grooming to sprint execution, resource capacity forecasting, real-time analytics, and automated compliance auditing.
+**Eitekh WorkOS** is an enterprise-grade, modern work operating system designed for software engineering teams, product managers, scrum masters, and executive leadership. It provides end-to-end orchestration of agile software development—from epic roadmapping and backlog grooming to sprint execution, resource capacity forecasting, real-time analytics, and automated compliance auditing.
 
 ### 1.2 Core Architectural Principles
 1. **100% Real Database Integrity**: Zero mock, dummy, static, or randomly generated analytics data. Every metric, progress bar, chart segment, burndown trend, and report export is computed directly from live relational database records in SQLite/Prisma.
@@ -101,11 +101,11 @@ flowchart TB
 
 ## 2. Multi-Tenant Hierarchy & Access Control (RBAC)
 
-Zenith WorkOS implements a 4-tier structural hierarchy ensuring strict organizational data boundary enforcement:
+Eitekh WorkOS implements a 4-tier structural hierarchy ensuring strict organizational data boundary enforcement:
 
 ```mermaid
 graph TD
-    Platform["Zenith WorkOS Platform (Super Admin)"]
+    Platform["Eitekh WorkOS Platform (Super Admin)"]
     Platform --> Org["Organization (e.g., Acme Corp)"]
     Org --> WS["Workspace (e.g., Engineering, Marketing)"]
     WS --> Team["Team (e.g., Frontend Core, Platform DevOps)"]
@@ -251,11 +251,11 @@ All platform logs pass through `src/lib/logger.ts`:
 
 ## 5. Core Project Management: The 7 Comprehensive Views
 
-Zenith WorkOS provides 7 dedicated, real-time synchronized project views catering to every agile workflow discipline:
+Eitekh WorkOS provides 7 dedicated, real-time synchronized project views catering to every agile workflow discipline:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        THE 7 CORE ZENITH WORKOS PROJECT VIEWS                          │
+│                        THE 7 CORE EITEKH WORKOS PROJECT VIEWS                          │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1. [Kanban Board]           Visual drag-and-drop workflow status pipeline with WIP     │
 │ 2. [Interactive List]       Spreadsheet-style multi-column table with inline edits     │
@@ -537,7 +537,7 @@ The centralized platform management cockpit:
 
 ### 12.1 Automated Quality Assurance Results
 
-Zenith WorkOS is validated by an extensive suite of automated end-to-end integration and regression tests:
+Eitekh WorkOS is validated by an extensive suite of automated end-to-end integration and regression tests:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -622,4 +622,4 @@ The platform is accessible at `http://localhost:3000`.
 
 ## 13. Conclusion
 
-**Zenith WorkOS** delivers an enterprise-grade project management experience that rivals industry leaders. By unifying strict multi-tenant isolation, 100% real database data calculation, interactive visual analytics with click-to-drilldown, 7 specialized project views, smart resource capacity rebalancing, and automated compliance auditing, Zenith WorkOS provides an uncompromising, reliable, and scalable foundation for modern engineering organizations.
+**Eitekh WorkOS** delivers an enterprise-grade project management experience that rivals industry leaders. By unifying strict multi-tenant isolation, 100% real database data calculation, interactive visual analytics with click-to-drilldown, 7 specialized project views, smart resource capacity rebalancing, and automated compliance auditing, Eitekh WorkOS provides an uncompromising, reliable, and scalable foundation for modern engineering organizations.

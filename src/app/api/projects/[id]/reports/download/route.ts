@@ -637,7 +637,7 @@ export async function GET(
 </head>
 <body>
   <div class="no-print" style="margin-bottom: 16px; background: #eff6ff; padding: 10px 14px; border-radius: 8px; border: 1px solid #bfdbfe; display: flex; justify-content: space-between; align-items: center;">
-    <div><strong>Zenith WorkOS Enterprise Report:</strong> Click below to print or save as official PDF.</div>
+    <div><strong>Eitekh WorkOS Enterprise Report:</strong> Click below to print or save as official PDF.</div>
     <button onclick="window.print()" style="background: #2563eb; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">Print / Save as PDF</button>
   </div>
 
@@ -649,7 +649,7 @@ export async function GET(
       <div style="font-size: 10px; color: #64748b; margin-top: 3px;">${reportDescription}</div>
     </div>
     <div style="text-align: right;">
-      <div style="font-size: 16px; font-weight: 900; color: #2563eb;">ZENITH WORKOS</div>
+      <div style="font-size: 16px; font-weight: 900; color: #2563eb;">EITEKH WORKOS</div>
       <div style="font-size: 9px; color: #94a3b8;">Enterprise Project Management</div>
     </div>
   </div>
@@ -900,7 +900,7 @@ export async function GET(
 
   <div class="footer">
     <div>Confidential &amp; Proprietary • ${project.name} (${project.key})</div>
-    <div>Complete Multi-Page Audit Record (${totalCount} deliverables) • Zenith WorkOS Reporting System</div>
+    <div>Complete Multi-Page Audit Record (${totalCount} deliverables) • Eitekh WorkOS Reporting System</div>
   </div>
 </body>
 </html>`;

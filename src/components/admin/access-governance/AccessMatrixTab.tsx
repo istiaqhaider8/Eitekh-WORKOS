@@ -112,7 +112,7 @@ export function AccessMatrixTab({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `zenith-access-matrix-${Date.now()}.${format === 'pdf' ? 'html' : 'csv'}`;
+      a.download = `eitekh-access-matrix-${Date.now()}.${format === 'pdf' ? 'html' : 'csv'}`;
       document.body.appendChild(a);
       a.click();
       a.remove();

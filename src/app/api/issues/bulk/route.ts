@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
 export async function PATCH(req: Request) {
   try {
@@ -37,12 +37,13 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "One or more issues not found" }, { status: 404 });
     }
 
-    // Group by project to check access strictly
+    // Group by project to check access and PBAC permission strictly
     const projectIds = Array.from(new Set(issues.map((i) => i.projectId)));
     for (const projectId of projectIds) {
-      const tenantCtx = await assertProjectAccess(projectId);
-      if (tenantCtx.role === "VIEWER") {
-        return NextResponse.json({ error: "Viewers cannot modify issues" }, { status: 403 });
+      try {
+        await assertProjectPermission(projectId, "issues:bulk_edit");
+      } catch (err: any) {
+        return NextResponse.json({ error: err.message || "Forbidden: Cannot perform bulk edit on project" }, { status: 403 });
       }
     }
 

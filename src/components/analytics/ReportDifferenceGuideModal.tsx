@@ -149,10 +149,10 @@ export function ReportDifferenceGuideModal({
               <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  How Zenith WorkOS Eliminates Report Duplication
+                  How Eitekh WorkOS Eliminates Report Duplication
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Instead of generating 25+ generic tables, Zenith organizes reporting into <strong>10 specialized domain reports</strong>. Each report queries live database records with tailored filters (e.g. Sprint Performance isolates active sprint items, Quality Defect isolates bugs, Team Capacity maps individual member workloads).
+                  Instead of generating 25+ generic tables, Eitekh WorkOS organizes reporting into <strong>10 specialized domain reports</strong>. Each report queries live database records with tailored filters (e.g. Sprint Performance isolates active sprint items, Quality Defect isolates bugs, Team Capacity maps individual member workloads).
                 </p>
               </div>
             </div>
@@ -249,7 +249,7 @@ export function ReportDifferenceGuideModal({
 
         {/* Modal Footer */}
         <div className="px-6 py-3 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-          <span>Zenith WorkOS Enterprise Analytics Engine</span>
+          <span>Eitekh WorkOS Enterprise Analytics Engine</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-background border border-border hover:bg-muted transition cursor-pointer"

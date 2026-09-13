@@ -10,8 +10,8 @@ export async function GET(req: Request) {
 
     const isCalendar = doc.toLowerCase() === 'calendar';
     const baseName = isCalendar
-      ? 'Zenith_WorkOS_Calendar_Schedule_Documentation'
-      : 'Zenith_WorkOS_Master_Documentation';
+      ? 'Eitekh_WorkOS_Calendar_Schedule_Documentation'
+      : 'Eitekh_WorkOS_Master_Documentation';
     const filePath = isCalendar
       ? path.resolve(process.cwd(), 'CALENDAR_DOCUMENTATION.md')
       : path.resolve(process.cwd(), 'DOCUMENTATION.md');

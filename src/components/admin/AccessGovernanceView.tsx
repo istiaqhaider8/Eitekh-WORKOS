@@ -242,7 +242,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <Shield className="w-5 h-5 text-indigo-400" />
-              Zenith WorkOS — Access Governance & PBAC
+              Eitekh WorkOS — Access Governance & PBAC
             </h2>
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-950/70 border border-emerald-800/80 rounded-full text-[10px] text-emerald-400 font-semibold">
               <span className="relative flex h-1.5 w-1.5">

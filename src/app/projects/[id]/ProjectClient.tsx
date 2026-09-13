@@ -248,8 +248,11 @@ export function ProjectClient({
 
   const statuses = currentProject.workflows?.[0]?.statuses || project.workflows?.[0]?.statuses || [];
 
-  // Hotkey listener for 'C', '/', 'Ctrl+K', and 'Escape'
+  // Hotkey listener for 'C', '/', 'G+B', 'G+L', 'G+S', 'Ctrl+K', and 'Escape'
   useEffect(() => {
+    let lastKey = "";
+    let lastKeyTime = 0;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Allow Escape to close modals even if focused on an input
       if (e.key === "Escape") {
@@ -264,7 +267,23 @@ export function ProjectClient({
         return;
       }
       
-      if (e.key.toLowerCase() === "c") {
+      const now = Date.now();
+      const key = e.key.toLowerCase();
+
+      if (lastKey === "g" && (now - lastKeyTime < 1000)) {
+        if (key === "b") { e.preventDefault(); setActiveView("board"); lastKey = ""; return; }
+        if (key === "l") { e.preventDefault(); setActiveView("list"); lastKey = ""; return; }
+        if (key === "s") { e.preventDefault(); setActiveView("backlog"); lastKey = ""; return; }
+      }
+
+      if (key === "g") {
+        lastKey = "g";
+        lastKeyTime = now;
+      } else {
+        lastKey = "";
+      }
+
+      if (key === "c") {
         e.preventDefault();
         setShowCreateIssueModal(true);
       }
@@ -274,7 +293,7 @@ export function ProjectClient({
         setShowCommandPalette(true);
       }
       
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if ((e.ctrlKey || e.metaKey) && key === "k") {
         e.preventDefault();
         setShowCommandPalette((prev) => !prev);
       }
@@ -1053,7 +1072,42 @@ export function ProjectClient({
                 <option value="BUG" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Bug</option>
                 <option value="STORY" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Story</option>
                 <option value="EPIC" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Epic</option>
-                <option value="FEATURE" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Feature</option>
+              </select>
+
+              <select
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "MY_ISSUES") {
+                    setOnlyMyIssues(true);
+                    setPriorityFilter("ALL");
+                    setStatusFilter("ALL");
+                    setTypeFilter("ALL");
+                  } else if (val === "HIGH_PRIORITY") {
+                    setOnlyMyIssues(false);
+                    setPriorityFilter("HIGH");
+                    setStatusFilter("ALL");
+                    setTypeFilter("ALL");
+                  } else if (val === "CRITICAL_PRIORITY") {
+                    setOnlyMyIssues(false);
+                    setPriorityFilter("CRITICAL");
+                    setStatusFilter("ALL");
+                    setTypeFilter("ALL");
+                  } else if (val === "CLEAR") {
+                    setOnlyMyIssues(false);
+                    setPriorityFilter("ALL");
+                    setStatusFilter("ALL");
+                    setTypeFilter("ALL");
+                    setSearchFilter("");
+                  }
+                }}
+                aria-label="Quick filter presets"
+                className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+              >
+                <option value="">Presets</option>
+                <option value="MY_ISSUES">My Assigned Issues</option>
+                <option value="HIGH_PRIORITY">High Priority Items</option>
+                <option value="CRITICAL_PRIORITY">Critical Bugs & Incidents</option>
+                <option value="CLEAR">Clear Presets</option>
               </select>
 
               {hasActiveFilters && (
@@ -1620,7 +1674,7 @@ export function ProjectClient({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Zenith Core Platform"
+                  placeholder="e.g. Eitekh Core Platform"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"

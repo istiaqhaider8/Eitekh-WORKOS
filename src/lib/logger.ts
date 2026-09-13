@@ -1,5 +1,5 @@
 // src/lib/logger.ts
-// Production-grade sanitized structured logging utility for Zenith WorkOS
+// Production-grade sanitized structured logging utility for Eitekh WorkOS
 
 type LogLevel = "INFO" | "WARN" | "ERROR" | "SECURITY" | "AUDIT";
 

@@ -15,11 +15,11 @@ export async function POST(req: Request) {
 
     const result = await sendEmail({
       to: targetEmail,
-      customSubject: `[Test] Zenith WorkOS Email Test via ${config.senderEmail}`,
+      customSubject: `[Test] Eitekh WorkOS Email Test via ${config.senderEmail}`,
       customHtml: `
 <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #0f172a; color: #fff; border-radius: 12px;">
   <h2 style="color: #38bdf8; margin-top: 0;">Email Delivery Verification</h2>
-  <p style="font-size: 14px; color: #cbd5e1;">This is a test notification dispatched from Zenith WorkOS.</p>
+  <p style="font-size: 14px; color: #cbd5e1;">This is a test notification dispatched from Eitekh WorkOS.</p>
   <div style="background: #1e293b; padding: 14px; border-radius: 8px; font-size: 12px; color: #94a3b8; margin: 16px 0;">
     <div><strong>Sender Address:</strong> ${config.senderEmail}</div>
     <div><strong>Sender Display Name:</strong> ${config.senderName}</div>

@@ -107,7 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       variables: {
         userName: `${user.firstName} ${user.lastName}`,
         userEmail: user.email,
-        organizationName: org?.name || "Zenith WorkOS Organization",
+        organizationName: org?.name || "Eitekh WorkOS Organization",
         actionUrl: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`,
       }
     }).catch((err) => console.error("Failed to send welcome email:", err));
