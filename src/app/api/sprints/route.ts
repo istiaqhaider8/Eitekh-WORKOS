@@ -97,7 +97,7 @@ export async function PATCH(req: Request) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate } = body;
+    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes } = body;
     if (!sprintId) {
       return NextResponse.json({ error: "sprintId is required" }, { status: 400 });
     }
@@ -133,22 +133,53 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // Ensure only one active sprint per project/team
+    if (status === "ACTIVE" && sprint.status !== "ACTIVE") {
+      const existingActive = await prisma.sprint.findFirst({
+        where: {
+          projectId: sprint.projectId,
+          teamId: sprint.teamId || null,
+          status: "ACTIVE",
+          id: { not: sprintId },
+        },
+      });
+      if (existingActive) {
+        return NextResponse.json(
+          { error: `Sprint "${existingActive.name}" is already active in this project. Complete it before starting a new sprint.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateData: any = {};
+
+    // When starting a sprint, snapshot initial planned points and timestamps
+    if (status === "ACTIVE" && sprint.status !== "ACTIVE") {
+      const primaryIssues = sprint.issues.filter((i) => i.parentIssueId === null);
+      updateData.plannedPoints = primaryIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+      if (!sprint.startDate && !startDate) {
+        updateData.startDate = new Date();
+      }
+    }
 
     // Snapshot velocity and rollover incomplete issues if completing a sprint
     if (status === "COMPLETED") {
       const primaryIssues = sprint.issues.filter((i) => i.parentIssueId === null);
-      const plannedPoints = primaryIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+      const currentPlannedPoints = primaryIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
       const completedIssues = primaryIssues.filter(
         (i) => i.status?.category === "DONE" && !i.status?.name?.toLowerCase().includes("cancel")
       );
       const completedPoints = completedIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
 
-      updateData.plannedPoints = plannedPoints;
+      // Preserve existing plannedPoints if set at start, otherwise record current planned
+      updateData.plannedPoints = sprint.plannedPoints ?? currentPlannedPoints;
       updateData.completedPoints = completedPoints;
       updateData.completedAt = new Date();
       if (!sprint.endDate && !endDate) {
         updateData.endDate = new Date();
+      }
+      if (retrospectiveNotes !== undefined) {
+        updateData.retrospectiveNotes = retrospectiveNotes ? retrospectiveNotes.trim() : null;
       }
 
       const incompleteIssues = sprint.issues.filter((i) => i.status?.category !== "DONE");
@@ -165,8 +196,8 @@ export async function PATCH(req: Request) {
     if (goal !== undefined) updateData.goal = goal ? goal.trim() : null;
     if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
-    if (status === "ACTIVE" && !sprint.startDate && !startDate) {
-      updateData.startDate = new Date();
+    if (retrospectiveNotes !== undefined && status !== "COMPLETED") {
+      updateData.retrospectiveNotes = retrospectiveNotes ? retrospectiveNotes.trim() : null;
     }
 
     const updatedSprint = await prisma.sprint.update({
