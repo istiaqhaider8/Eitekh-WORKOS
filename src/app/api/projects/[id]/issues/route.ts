@@ -192,31 +192,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
       }
 
+      const issueData: any = {
+        project: { connect: { id: projectId } },
+        keyNumber,
+        issueKey,
+        title: title.trim(),
+        description: description || null,
+        issueType,
+        priority: priority || "MEDIUM",
+        status: { connect: { id: finalStatusId } },
+        reporter: { connect: { id: user.id } },
+        securityLevel: securityLevel || "PUBLIC",
+        estimatePoints: estimatePoints ? Number(estimatePoints) : null,
+        estimateHours: estimateHours ? Number(estimateHours) : null,
+        remainingHours: estimateHours ? Number(estimateHours) : null,
+        timeSpentHours: timeSpentHours ? Number(timeSpentHours) : 0,
+        startDate: finalStartDate,
+        dueDate: finalDueDate,
+      };
+
+      if (assigneeId) issueData.assignee = { connect: { id: assigneeId } };
+      if (teamId) issueData.team = { connect: { id: teamId } };
+      if (epicId) issueData.epic = { connect: { id: epicId } };
+      if (sprintId) issueData.sprint = { connect: { id: sprintId } };
+      if (parentIssueId) issueData.parentIssue = { connect: { id: parentIssueId } };
+      if (componentId) issueData.component = { connect: { id: componentId } };
+
       const createdIssue = await tx.issue.create({
-        data: {
-          projectId,
-          keyNumber,
-          issueKey,
-          title: title.trim(),
-          description: description || null,
-          issueType,
-          priority: priority || "MEDIUM",
-          statusId: finalStatusId,
-          reporterId: user.id,
-          assigneeId: assigneeId || null,
-          teamId: teamId || null,
-          epicId: epicId || null,
-          sprintId: sprintId || null,
-          parentIssueId: parentIssueId || null,
-          componentId: componentId || null,
-          securityLevel: securityLevel || null,
-          estimatePoints: estimatePoints ? Number(estimatePoints) : null,
-          estimateHours: estimateHours ? Number(estimateHours) : null,
-          remainingHours: estimateHours ? Number(estimateHours) : null,
-          timeSpentHours: timeSpentHours ? Number(timeSpentHours) : 0,
-          startDate: finalStartDate,
-          dueDate: finalDueDate,
-        },
+        data: issueData,
         include: {
           status: true,
           assignee: true,
