@@ -539,10 +539,10 @@ export default function SuperAdminCommandCenterPage() {
 
   if (loading && !stats) {
     return (
-      <div className="min-h-screen bg-[#080c14] text-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-[#080c14] text-slate-900 dark:text-slate-100 flex items-center justify-center">
         <div className="text-center space-y-3">
           <RefreshCw className="w-10 h-10 animate-spin mx-auto text-indigo-500" />
-          <h2 className="text-sm font-bold text-slate-300">Initializing Eitekh Platform Command Center...</h2>
+          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300">Initializing Eitekh Platform Command Center...</h2>
           <p className="text-xs text-slate-500">Loading governance, security telemetry, threat queues, and sync engines</p>
         </div>
       </div>
@@ -574,7 +574,7 @@ export default function SuperAdminCommandCenterPage() {
                 }
                 router.push("/");
               }}
-              className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-300 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
               title="Return to Workspace / Previous Page"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -599,14 +599,14 @@ export default function SuperAdminCommandCenterPage() {
           {/* Search & Actions */}
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-72">
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-300">
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-700 dark:text-slate-300">
                 <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                 <input
                   type="text"
                   placeholder="Global platform search..."
                   value={globalSearch}
                   onChange={(e) => handleGlobalSearch(e.target.value)}
-                  className="bg-transparent border-none outline-none w-full text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                  className="bg-transparent border-none outline-none w-full text-slate-900 dark:text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
                 />
                 {searchLoading && <RefreshCw className="w-3 h-3 animate-spin text-indigo-500 dark:text-indigo-400" />}
               </div>
@@ -615,8 +615,8 @@ export default function SuperAdminCommandCenterPage() {
               {searchResults && (
                 <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3 z-50 max-h-96 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Search Results</span>
-                    <button onClick={() => setSearchResults(null)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-600 dark:text-slate-400">Search Results</span>
+                    <button onClick={() => setSearchResults(null)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-700 dark:text-slate-300 text-xs">
                       <X className="w-3 h-3" />
                     </button>
                   </div>
@@ -631,7 +631,7 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveTab("orgs");
                             setSearchResults(null);
                           }}
-                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
                         >
                           <span>{o.name}</span>
                           <span className="text-[10px] text-slate-500">/{o.slug}</span>
@@ -650,7 +650,7 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveTab("users");
                             setSearchResults(null);
                           }}
-                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
                         >
                           <span>{u.firstName} {u.lastName}</span>
                           <span className="text-[10px] text-slate-500">{u.email}</span>
@@ -669,7 +669,7 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveTab("pbac");
                             setSearchResults(null);
                           }}
-                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
                         >
                           <span>{p.name}</span>
                           <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">[{p.key}]</span>
@@ -702,7 +702,7 @@ export default function SuperAdminCommandCenterPage() {
                 setRefreshing(true);
                 loadAllData().then(() => showSuccess("Platform telemetry synchronized"));
               }}
-              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
               title="Synchronize Platform Data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}`} />
@@ -726,7 +726,7 @@ export default function SuperAdminCommandCenterPage() {
             { label: "System Cache", value: "Active", sub: "Safe Refresh Hub", tab: "cache", color: "text-cyan-600 dark:text-cyan-400 font-bold" },
             { label: "Sync Errors", value: kpis.syncErrors || 0, sub: "0 dropped", tab: "sync", color: "text-emerald-600 dark:text-emerald-400" },
             { label: "Reports Hub", value: "15 Types", sub: "RFC CSV/PDF", tab: "reports", color: "text-indigo-600 dark:text-indigo-400" },
-            { label: "Suspended Orgs", value: kpis.suspendedOrgs, sub: "isolated", tab: "orgs", color: kpis.suspendedOrgs > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400" },
+            { label: "Suspended Orgs", value: kpis.suspendedOrgs, sub: "isolated", tab: "orgs", color: kpis.suspendedOrgs > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-600 dark:text-slate-400" },
             { label: "Subsystems", value: "16/16", sub: "Operational", tab: "health", color: "text-emerald-600 dark:text-emerald-400" },
           ].map((item, idx) => (
             <div
@@ -739,7 +739,7 @@ export default function SuperAdminCommandCenterPage() {
               }}
               className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-xs dark:shadow-sm hover:scale-[1.02]"
             >
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">{item.label}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-600 dark:text-slate-400 block">{item.label}</span>
               <div className={`text-lg font-bold ${item.color}`}>{item.value}</div>
               <p className="text-[10px] text-slate-600 dark:text-slate-500">{item.sub}</p>
             </div>
@@ -750,7 +750,7 @@ export default function SuperAdminCommandCenterPage() {
         <GlobalAlertBanner alerts={actionRequired} onNavigateTab={(t) => setActiveTab(t as any)} />
 
         {/* Navigation Tabs Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-200/80 dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-300/80 dark:border-slate-800 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-200/80 dark:bg-white dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-300/80 dark:border-slate-200 dark:border-slate-800 scrollbar-none">
           {[
             { id: "overview", label: "Command Overview", icon: Activity },
             { id: "cache", label: "System Refresh & Cache", icon: RefreshCw, badge: "Safe" },
@@ -789,7 +789,7 @@ export default function SuperAdminCommandCenterPage() {
                       : "bg-indigo-600 text-white shadow-sm"
                     : isCache
                     ? "text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-500/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
-                    : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/80"
+                    : "text-slate-700 dark:text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-100 dark:bg-slate-800/80"
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isCache ? "text-cyan-600 dark:text-cyan-400" : ""}`} />
@@ -808,8 +808,8 @@ export default function SuperAdminCommandCenterPage() {
         {activeTab === "overview" && (
           <div className="space-y-6">
             {/* Quick Actions Row */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-indigo-400" />
                 Super Admin Operational Quick Actions
               </h3>
@@ -835,35 +835,35 @@ export default function SuperAdminCommandCenterPage() {
                 </button>
                 <button
                   onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>Create User Account</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("security-threats")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
                 >
                   <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
                   <span>Threat Ops Queue</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("reports")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Enterprise Reports Hub</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("sync")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
                 >
                   <Radio className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Sync Telemetry</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("health")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700"
                 >
                   <Server className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Run Subsystem Probes</span>
@@ -874,9 +874,9 @@ export default function SuperAdminCommandCenterPage() {
             {/* Health Snapshot & Live Stream Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Health Snapshot */}
-              <div className="lg:col-span-1 bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
+              <div className="lg:col-span-1 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <Server className="w-4 h-4 text-indigo-400" />
                     Subsystems Health Snapshot
                   </h3>
@@ -887,10 +887,10 @@ export default function SuperAdminCommandCenterPage() {
 
                 <div className="space-y-2.5">
                   {(stats?.systemHealth || []).map((h: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800/80">
+                    <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        <span className="text-xs font-medium text-slate-200">{h.service}</span>
+                        <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{h.service}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
@@ -904,9 +904,9 @@ export default function SuperAdminCommandCenterPage() {
               </div>
 
               {/* Live Platform Activity Feed */}
-              <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <History className="w-4 h-4 text-indigo-400" />
                     Live Platform Activity & Audit Stream
                   </h3>
@@ -920,15 +920,15 @@ export default function SuperAdminCommandCenterPage() {
                     <div className="p-8 text-center text-xs text-slate-500">No recent activity logged</div>
                   ) : (
                     (stats?.auditLogs || []).map((log: any) => (
-                      <div key={log.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between gap-3 text-xs">
+                      <div key={log.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-3 text-xs">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-slate-800 text-indigo-300 font-semibold rounded text-[10px]">
+                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-indigo-300 font-semibold rounded text-[10px]">
                               {log.action}
                             </span>
-                            <span className="text-slate-200 font-medium">{log.targetResource}</span>
+                            <span className="text-slate-800 dark:text-slate-200 font-medium">{log.targetResource}</span>
                           </div>
-                          <p className="text-[11px] text-slate-400 font-mono">Actor: {log.actorId.slice(0, 12)}...</p>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">Actor: {log.actorId.slice(0, 12)}...</p>
                         </div>
                         <span className="text-[10px] text-slate-500 whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleTimeString()}
@@ -966,13 +966,13 @@ export default function SuperAdminCommandCenterPage() {
 
         {activeTab === "orgs" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div>
-                <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-indigo-400" />
                   Organization & Tenant Management
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Manage organization boundaries, enforce tenant suspensions, and inspect workspace hierarchies.
                 </p>
               </div>
@@ -991,13 +991,13 @@ export default function SuperAdminCommandCenterPage() {
                 return (
                   <div
                     key={o.id}
-                    className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700 transition-colors"
+                    className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:border-slate-700 transition-colors"
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="text-sm font-bold text-slate-100">{o.name}</h3>
-                          <span className="text-[11px] text-slate-400 font-mono">slug: {o.slug}</span>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{o.name}</h3>
+                          <span className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">slug: {o.slug}</span>
                         </div>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
@@ -1007,10 +1007,10 @@ export default function SuperAdminCommandCenterPage() {
                           {o.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400">Domain: {o.domain || "Not configured"}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">Domain: {o.domain || "Not configured"}</p>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                       <span className="text-[11px] text-slate-500">
                         {o._count?.members ?? o.members?.length ?? 0} members | {o._count?.workspaces ?? o.workspaces?.length ?? 0} workspaces
                       </span>
@@ -1028,7 +1028,7 @@ export default function SuperAdminCommandCenterPage() {
                             });
                             setShowEditOrgModal(true);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                           title="Edit Organization"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -1038,7 +1038,7 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveOrg(o);
                             setShowDeleteOrgModal(true);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                           title="Delete Organization"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1076,13 +1076,13 @@ export default function SuperAdminCommandCenterPage() {
 
         {activeTab === "features" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div>
-                <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Sliders className="w-5 h-5 text-indigo-400" />
                   Platform Feature Flags & Capabilities Engine
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Instantly create, configure, toggle, or delete modules and experimental capabilities globally.
                 </p>
               </div>
@@ -1102,20 +1102,20 @@ export default function SuperAdminCommandCenterPage() {
               {flags.map((flag) => (
                 <div
                   key={flag.id}
-                  className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4"
+                  className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-slate-100">{flag.key}</span>
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{flag.key}</span>
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          flag.isGlobalEnabled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-800 text-slate-400"
+                          flag.isGlobalEnabled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                         }`}
                       >
                         {flag.isGlobalEnabled ? "ENABLED" : "DISABLED"}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400">{flag.description || "Platform operational module flag"}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">{flag.description || "Platform operational module flag"}</p>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1129,7 +1129,7 @@ export default function SuperAdminCommandCenterPage() {
                         });
                         setShowEditFlagModal(true);
                       }}
-                      className="p-2 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors cursor-pointer"
+                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
                       title="Edit Feature Flag"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -1139,7 +1139,7 @@ export default function SuperAdminCommandCenterPage() {
                         setActiveFlag(flag);
                         setShowDeleteFlagModal(true);
                       }}
-                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg border border-slate-800 transition-colors cursor-pointer"
+                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
                       title="Delete Feature Flag"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1149,7 +1149,7 @@ export default function SuperAdminCommandCenterPage() {
                       className={`p-2 rounded-lg transition-colors border cursor-pointer ${
                         flag.isGlobalEnabled
                           ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-500"
-                          : "bg-slate-800 hover:bg-slate-700 text-slate-400 border-slate-700"
+                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                       }`}
                       title={flag.isGlobalEnabled ? "Disable Flag" : "Enable Flag"}
                     >
@@ -1168,47 +1168,47 @@ export default function SuperAdminCommandCenterPage() {
 
         {activeTab === "emails" && (
           <div className="space-y-6">
-            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Mail className="w-5 h-5 text-indigo-400" />
                 Email Infrastructure & Notification Templates
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Configure SMTP parameters, customize transaction templates, and test delivery pipes.
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* SMTP Config */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">SMTP Server Configuration</h3>
+              <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">SMTP Server Configuration</h3>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="text-slate-400 block mb-1">Sender Email</label>
+                    <label className="text-slate-600 dark:text-slate-400 block mb-1">Sender Email</label>
                     <input
                       type="text"
                       value={emailConfig.senderEmail}
                       onChange={(e) => setEmailConfig({ ...emailConfig, senderEmail: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-slate-400 block mb-1">SMTP Host</label>
+                      <label className="text-slate-600 dark:text-slate-400 block mb-1">SMTP Host</label>
                       <input
                         type="text"
                         value={emailConfig.smtpHost || ""}
                         onChange={(e) => setEmailConfig({ ...emailConfig, smtpHost: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-slate-400 block mb-1">SMTP Port</label>
+                      <label className="text-slate-600 dark:text-slate-400 block mb-1">SMTP Port</label>
                       <input
                         type="number"
                         value={emailConfig.smtpPort || 587}
                         onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: parseInt(e.target.value, 10) })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                       />
                     </div>
                   </div>
@@ -1237,17 +1237,17 @@ export default function SuperAdminCommandCenterPage() {
               </div>
 
               {/* Test Send */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Test Email Dispatch</h3>
+              <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Test Email Dispatch</h3>
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="text-slate-400 block mb-1">Destination Address</label>
+                    <label className="text-slate-600 dark:text-slate-400 block mb-1">Destination Address</label>
                     <input
                       type="email"
                       placeholder="recipient@example.com"
                       value={testEmail}
                       onChange={(e) => setTestEmail(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                     />
                   </div>
                   <button
@@ -1284,13 +1284,13 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Create User */}
       {showAddUserModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-indigo-400" />
                 Create New User Account
               </h3>
-              <button onClick={() => setShowAddUserModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowAddUserModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1298,55 +1298,55 @@ export default function SuperAdminCommandCenterPage() {
             <form onSubmit={handleAddUser} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">First Name *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">First Name *</label>
                   <input
                     type="text"
                     required
                     value={addUserForm.firstName}
                     onChange={(e) => setAddUserForm({ ...addUserForm, firstName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Last Name *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Last Name *</label>
                   <input
                     type="text"
                     required
                     value={addUserForm.lastName}
                     onChange={(e) => setAddUserForm({ ...addUserForm, lastName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Email Address *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Email Address *</label>
                 <input
                   type="email"
                   required
                   value={addUserForm.email}
                   onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Password *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Password *</label>
                 <input
                   type="password"
                   required
                   value={addUserForm.password}
                   onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Organization</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Organization</label>
                 <select
                   value={addUserForm.orgId}
                   onChange={(e) => setAddUserForm({ ...addUserForm, orgId: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 >
                   <option value="">No Organization (Standalone)</option>
                   {orgs.map((o) => (
@@ -1363,18 +1363,18 @@ export default function SuperAdminCommandCenterPage() {
                   id="isSuperAdmin"
                   checked={addUserForm.isSuperAdmin}
                   onChange={(e) => setAddUserForm({ ...addUserForm, isSuperAdmin: e.target.checked })}
-                  className="rounded border-slate-800 bg-slate-950"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
                 />
-                <label htmlFor="isSuperAdmin" className="text-slate-300 font-medium">
+                <label htmlFor="isSuperAdmin" className="text-slate-700 dark:text-slate-300 font-medium">
                   Grant Super Admin Authority
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddUserModal(false)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1394,20 +1394,20 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Create Org */}
       {showAddOrgModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-indigo-400" />
                 Create New Organization Tenant
               </h3>
-              <button onClick={() => setShowAddOrgModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowAddOrgModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleAddOrg} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Organization Name *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Organization Name *</label>
                 <input
                   type="text"
                   required
@@ -1418,37 +1418,37 @@ export default function SuperAdminCommandCenterPage() {
                     const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
                     setAddOrgForm({ ...addOrgForm, name, slug });
                   }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Organization Slug *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Organization Slug *</label>
                 <input
                   type="text"
                   required
                   value={addOrgForm.slug}
                   onChange={(e) => setAddOrgForm({ ...addOrgForm, slug: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none font-mono"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Domain (Optional)</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Domain (Optional)</label>
                 <input
                   type="text"
                   placeholder="acme.com"
                   value={addOrgForm.domain}
                   onChange={(e) => setAddOrgForm({ ...addOrgForm, domain: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddOrgModal(false)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1468,66 +1468,66 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Edit Org */}
       {showEditOrgModal && activeOrg && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-indigo-400" />
                 Edit Organization: {activeOrg.name}
               </h3>
-              <button onClick={() => setShowEditOrgModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowEditOrgModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleEditOrg} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Organization Name *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Organization Name *</label>
                 <input
                   type="text"
                   required
                   value={editOrgForm.name}
                   onChange={(e) => setEditOrgForm({ ...editOrgForm, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Slug *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Slug *</label>
                 <input
                   type="text"
                   required
                   value={editOrgForm.slug}
                   onChange={(e) => setEditOrgForm({ ...editOrgForm, slug: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none font-mono"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Domain</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Domain</label>
                 <input
                   type="text"
                   value={editOrgForm.domain}
                   onChange={(e) => setEditOrgForm({ ...editOrgForm, domain: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">Timezone</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Timezone</label>
                   <input
                     type="text"
                     value={editOrgForm.timezone}
                     onChange={(e) => setEditOrgForm({ ...editOrgForm, timezone: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Status</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Status</label>
                   <select
                     value={editOrgForm.status}
                     onChange={(e) => setEditOrgForm({ ...editOrgForm, status: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="SUSPENDED">SUSPENDED</option>
@@ -1535,11 +1535,11 @@ export default function SuperAdminCommandCenterPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowEditOrgModal(false)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1559,28 +1559,28 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Delete Org Confirmation */}
       {showDeleteOrgModal && activeOrg && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Permanently Delete Organization</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Permanently Delete Organization</h3>
                 <p className="text-xs text-rose-400 font-semibold">Critical Cascading Deletion</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Are you sure you want to permanently delete{" "}
               <strong className="text-white font-mono">{activeOrg.name}</strong> ({activeOrg.slug})?
               This will irreversibly delete all workspaces, projects, issues, sprints, and memberships belonging to this tenant.
             </p>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteOrgModal(false)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs"
               >
                 Cancel
               </button>
@@ -1599,38 +1599,38 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Create Feature Flag */}
       {showCreateFlagModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-indigo-400" />
                 Create New Feature Flag
               </h3>
-              <button onClick={() => setShowCreateFlagModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowCreateFlagModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateFlag} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Flag Key * (e.g. AI_ASSISTANT)</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Flag Key * (e.g. AI_ASSISTANT)</label>
                 <input
                   type="text"
                   required
                   placeholder="NEW_CAPABILITY"
                   value={flagForm.key}
                   onChange={(e) => setFlagForm({ ...flagForm, key: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none font-mono uppercase"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none font-mono uppercase"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Description</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Description</label>
                 <textarea
                   rows={2}
                   placeholder="What does this feature flag control?"
                   value={flagForm.description}
                   onChange={(e) => setFlagForm({ ...flagForm, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
@@ -1640,18 +1640,18 @@ export default function SuperAdminCommandCenterPage() {
                   id="flagGlobalEnabled"
                   checked={flagForm.isGlobalEnabled}
                   onChange={(e) => setFlagForm({ ...flagForm, isGlobalEnabled: e.target.checked })}
-                  className="rounded border-slate-800 bg-slate-950 text-indigo-600"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
                 />
-                <label htmlFor="flagGlobalEnabled" className="text-slate-300">
+                <label htmlFor="flagGlobalEnabled" className="text-slate-700 dark:text-slate-300">
                   Enable globally upon creation
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateFlagModal(false)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1671,25 +1671,25 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Edit Feature Flag */}
       {showEditFlagModal && activeFlag && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-indigo-400" />
                 Edit Feature Flag: {activeFlag.key}
               </h3>
-              <button onClick={() => setShowEditFlagModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowEditFlagModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleEditFlag} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Description</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={flagForm.description}
                   onChange={(e) => setFlagForm({ ...flagForm, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
@@ -1699,18 +1699,18 @@ export default function SuperAdminCommandCenterPage() {
                   id="editFlagGlobalEnabled"
                   checked={flagForm.isGlobalEnabled}
                   onChange={(e) => setFlagForm({ ...flagForm, isGlobalEnabled: e.target.checked })}
-                  className="rounded border-slate-800 bg-slate-950 text-indigo-600"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
                 />
-                <label htmlFor="editFlagGlobalEnabled" className="text-slate-300">
+                <label htmlFor="editFlagGlobalEnabled" className="text-slate-700 dark:text-slate-300">
                   Global Enabled
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowEditFlagModal(false)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1730,27 +1730,27 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Delete Feature Flag Confirmation */}
       {showDeleteFlagModal && activeFlag && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Delete Feature Flag</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Feature Flag</h3>
                 <p className="text-xs text-rose-400 font-semibold">Confirm Flag Removal</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Are you sure you want to delete feature flag{" "}
               <strong className="text-white font-mono">{activeFlag.key}</strong>? This will remove global control of this feature.
             </p>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteFlagModal(false)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs"
               >
                 Cancel
               </button>

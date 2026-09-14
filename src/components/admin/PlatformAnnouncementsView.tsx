@@ -183,13 +183,13 @@ export function PlatformAnnouncementsView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-indigo-400" />
             Global Platform Announcements & Broadcasts
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Publish system banners, maintenance windows, downtime alerts, and feature releases across all tenants.
           </p>
         </div>
@@ -214,7 +214,7 @@ export function PlatformAnnouncementsView() {
           </button>
           <button
             onClick={loadAnnouncements}
-            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 cursor-pointer"
+            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer"
             title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-indigo-400" : ""}`} />
@@ -223,18 +223,18 @@ export function PlatformAnnouncementsView() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-        <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 w-full sm:w-80">
+      <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300 w-full sm:w-80">
           <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
           <input
             type="text"
             placeholder="Search announcements..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-none outline-none w-full text-slate-200 placeholder-slate-500"
+            className="bg-transparent border-none outline-none w-full text-slate-800 dark:text-slate-200 placeholder-slate-500"
           />
         </div>
-        <span className="text-[11px] text-slate-400">{filtered.length} total announcements</span>
+        <span className="text-[11px] text-slate-600 dark:text-slate-400">{filtered.length} total announcements</span>
       </div>
 
       {/* Announcements List */}
@@ -245,14 +245,14 @@ export function PlatformAnnouncementsView() {
           return (
             <div
               key={item.id}
-              className={`bg-slate-900/90 border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
+              className={`bg-white dark:bg-slate-900/90 border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
                 item.isActive
                   ? isCritical
                     ? "border-rose-500/50 bg-rose-950/20"
                     : isWarning
                     ? "border-amber-500/50 bg-amber-950/20"
                     : "border-indigo-500/30"
-                  : "border-slate-800 opacity-60"
+                  : "border-slate-200 dark:border-slate-800 opacity-60"
               }`}
             >
               <div className="space-y-1.5 flex-1">
@@ -270,18 +270,18 @@ export function PlatformAnnouncementsView() {
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      item.isActive ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-800 text-slate-400"
+                      item.isActive ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                     }`}
                   >
                     {item.isActive ? "ACTIVE" : "INACTIVE"}
                   </span>
-                  <span className="text-[11px] text-slate-400">Audience: {item.targetAudience}</span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400">Audience: {item.targetAudience}</span>
                   <span className="text-[11px] text-slate-500">
                     · {new Date(item.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-slate-100">{item.title}</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">{item.message}</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{item.title}</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{item.message}</p>
                 {item.expiresAt && (
                   <p className="text-[10px] text-slate-500 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
@@ -295,7 +295,7 @@ export function PlatformAnnouncementsView() {
                   onClick={() => handleToggleStatus(item)}
                   className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
                     item.isActive
-                      ? "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-700"
                       : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
                   }`}
                 >
@@ -314,7 +314,7 @@ export function PlatformAnnouncementsView() {
                     });
                     setShowEditModal(true);
                   }}
-                  className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                   title="Edit Announcement"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -324,7 +324,7 @@ export function PlatformAnnouncementsView() {
                     setActiveItem(item);
                     setShowDeleteModal(true);
                   }}
-                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                   title="Delete Announcement"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -335,7 +335,7 @@ export function PlatformAnnouncementsView() {
         })}
 
         {filtered.length === 0 && !loading && (
-          <div className="text-center py-12 bg-slate-900/40 rounded-xl border border-slate-800 text-slate-500 text-xs">
+          <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs">
             No system announcements recorded.
           </div>
         )}
@@ -344,49 +344,49 @@ export function PlatformAnnouncementsView() {
       {/* Modal: Create Announcement */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-indigo-400" />
                 Publish Global Announcement
               </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Title *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Title *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Scheduled System Maintenance"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Message Content *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Message Content *</label>
                 <textarea
                   rows={3}
                   required
                   placeholder="Describe the platform alert or release..."
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">Severity</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Severity</label>
                   <select
                     value={form.severity}
                     onChange={(e) => setForm({ ...form, severity: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="INFO">INFO (Blue/Cyan)</option>
                     <option value="WARNING">WARNING (Amber)</option>
@@ -394,11 +394,11 @@ export function PlatformAnnouncementsView() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Target Audience</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Target Audience</label>
                   <select
                     value={form.targetAudience}
                     onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="ALL">All Platform Users</option>
                     <option value="ORGS">Organization Admins</option>
@@ -413,9 +413,9 @@ export function PlatformAnnouncementsView() {
                   id="activeBanner"
                   checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="rounded border-slate-800 bg-slate-950 text-indigo-600"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
                 />
-                <label htmlFor="activeBanner" className="text-slate-300">
+                <label htmlFor="activeBanner" className="text-slate-700 dark:text-slate-300">
                   Broadcast immediately (Active)
                 </label>
               </div>
@@ -424,7 +424,7 @@ export function PlatformAnnouncementsView() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 text-slate-400 hover:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -444,47 +444,47 @@ export function PlatformAnnouncementsView() {
       {/* Modal: Edit Announcement */}
       {showEditModal && activeItem && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-indigo-400" />
                 Edit Announcement
               </h3>
-              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowEditModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleEdit} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Title *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Title *</label>
                 <input
                   type="text"
                   required
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Message Content *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Message Content *</label>
                 <textarea
                   rows={3}
                   required
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">Severity</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Severity</label>
                   <select
                     value={form.severity}
                     onChange={(e) => setForm({ ...form, severity: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="INFO">INFO</option>
                     <option value="WARNING">WARNING</option>
@@ -492,11 +492,11 @@ export function PlatformAnnouncementsView() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Target Audience</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Target Audience</label>
                   <select
                     value={form.targetAudience}
                     onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="ALL">All Platform Users</option>
                     <option value="ORGS">Organization Admins</option>
@@ -511,9 +511,9 @@ export function PlatformAnnouncementsView() {
                   id="editActiveBanner"
                   checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="rounded border-slate-800 bg-slate-950 text-indigo-600"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
                 />
-                <label htmlFor="editActiveBanner" className="text-slate-300">
+                <label htmlFor="editActiveBanner" className="text-slate-700 dark:text-slate-300">
                   Active broadcast
                 </label>
               </div>
@@ -522,7 +522,7 @@ export function PlatformAnnouncementsView() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-3 py-1.5 text-slate-400 hover:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -542,18 +542,18 @@ export function PlatformAnnouncementsView() {
       {/* Modal: Delete Confirmation */}
       {showDeleteModal && activeItem && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Delete Announcement</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Announcement</h3>
                 <p className="text-xs text-rose-400">Irreversible Action</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Are you sure you want to permanently delete announcement{" "}
               <strong className="text-white">"{activeItem.title}"</strong>?
             </p>
@@ -562,7 +562,7 @@ export function PlatformAnnouncementsView() {
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
-                className="px-3 py-1.5 text-slate-400 hover:text-slate-200 text-xs"
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs"
               >
                 Cancel
               </button>

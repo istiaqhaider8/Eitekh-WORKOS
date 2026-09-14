@@ -309,13 +309,13 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
   return (
     <div className="space-y-6">
       {/* Header & Sub-Tabs */}
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <FolderGit2 className="w-5 h-5 text-indigo-400" />
             Platform Workspaces & Projects Authority
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Super Administrator global CRUD controls for all tenant workspaces and isolated projects.
           </p>
         </div>
@@ -363,7 +363,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
           <button
             onClick={loadData}
-            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 cursor-pointer"
+            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer"
             title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-indigo-400" : ""}`} />
@@ -372,14 +372,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       </div>
 
       {/* Filter and Switch Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSubTab("workspaces")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
               subTab === "workspaces"
                 ? "bg-indigo-600 text-white shadow-xs"
-                : "text-slate-400 hover:text-slate-200 bg-slate-800/60"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/60"
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -390,7 +390,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
               subTab === "projects"
                 ? "bg-purple-600 text-white shadow-xs"
-                : "text-slate-400 hover:text-slate-200 bg-slate-800/60"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/60"
             }`}
           >
             <FolderGit2 className="w-3.5 h-3.5" />
@@ -400,16 +400,16 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Org Filter */}
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs">
+          <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs">
             <Building2 className="w-3.5 h-3.5 text-slate-500" />
             <select
               value={selectedOrgId}
               onChange={(e) => setSelectedOrgId(e.target.value)}
-              className="bg-transparent border-none outline-none text-slate-200 cursor-pointer"
+              className="bg-transparent border-none outline-none text-slate-800 dark:text-slate-200 cursor-pointer"
             >
-              <option value="all" className="bg-slate-900">All Organizations</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Organizations</option>
               {orgs.map((o) => (
-                <option key={o.id} value={o.id} className="bg-slate-900">
+                <option key={o.id} value={o.id} className="bg-white dark:bg-slate-900">
                   {o.name}
                 </option>
               ))}
@@ -417,14 +417,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           </div>
 
           {/* Search input */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 w-48 sm:w-64">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300 w-48 sm:w-64">
             <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             <input
               type="text"
               placeholder={`Search ${subTab}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent border-none outline-none w-full text-slate-200 placeholder-slate-500"
+              className="bg-transparent border-none outline-none w-full text-slate-800 dark:text-slate-200 placeholder-slate-500"
             />
           </div>
         </div>
@@ -436,12 +436,12 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           {filteredWorkspaces.map((ws) => (
             <div
               key={ws.id}
-              className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700 transition-colors"
+              className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:border-slate-700 transition-colors"
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       {ws.name}
                       {ws.isArchived && (
                         <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold rounded">
@@ -449,16 +449,16 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                         </span>
                       )}
                     </h3>
-                    <span className="text-[11px] text-slate-400 font-mono">slug: {ws.slug}</span>
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">slug: {ws.slug}</span>
                   </div>
                   <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded text-[10px] font-semibold">
                     {ws.organization?.name || "Global"}
                   </span>
                 </div>
-                {ws.description && <p className="text-xs text-slate-400 line-clamp-2">{ws.description}</p>}
+                {ws.description && <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{ws.description}</p>}
               </div>
 
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                 <span className="text-[11px] text-slate-500">
                   {ws._count?.projects || 0} projects · {ws._count?.members || 0} members
                 </span>
@@ -475,7 +475,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       });
                       setShowEditWsModal(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Edit Workspace"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -485,7 +485,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveWs(ws);
                       setShowDeleteWsModal(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                     title="Delete Workspace Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -509,18 +509,18 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           {filteredProjects.map((p) => (
             <div
               key={p.id}
-              className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700 transition-colors"
+              className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:border-slate-700 transition-colors"
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       <span>{p.name}</span>
                       <span className="px-1.5 py-0.2 bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono rounded">
                         [{p.key}]
                       </span>
                     </h3>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400">
                       {p.workspace?.name} · {p.workspace?.organization?.name}
                     </span>
                   </div>
@@ -530,20 +530,20 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                         ? "bg-emerald-500/20 text-emerald-300"
                         : p.status === "COMPLETED"
                         ? "bg-blue-500/20 text-blue-300"
-                        : "bg-slate-800 text-slate-400"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                     }`}
                   >
                     {p.status}
                   </span>
                 </div>
-                {p.description && <p className="text-xs text-slate-400 line-clamp-2">{p.description}</p>}
-                <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                  <span className="px-1.5 py-0.5 bg-slate-800 rounded">{p.template}</span>
-                  <span className="px-1.5 py-0.5 bg-slate-800 rounded">{p.priority}</span>
+                {p.description && <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{p.description}</p>}
+                <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400">
+                  <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{p.template}</span>
+                  <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{p.priority}</span>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                 <span className="text-[11px] text-slate-500">
                   {p._count?.issues || 0} issues · {p._count?.members || 0} members
                 </span>
@@ -552,7 +552,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                     href={`/projects/${p.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Open Project"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -573,7 +573,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       });
                       setShowEditProjModal(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-purple-300 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-purple-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Edit Project"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -583,7 +583,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveProj(p);
                       setShowDeleteProjModal(true);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                     title="Delete Project Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -604,25 +604,25 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Create Workspace */}
       {showCreateWsModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Plus className="w-4 h-4 text-indigo-400" />
                 Create New Workspace
               </h3>
-              <button onClick={() => setShowCreateWsModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowCreateWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateWorkspace} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Organization *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Organization *</label>
                 <select
                   required
                   value={wsForm.orgId}
                   onChange={(e) => setWsForm({ ...wsForm, orgId: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 >
                   <option value="">Select Organization</option>
                   {orgs.map((o) => (
@@ -634,35 +634,35 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Workspace Name *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Workspace Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Core Engineering"
                   value={wsForm.name}
                   onChange={(e) => setWsForm({ ...wsForm, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Slug (URL-friendly)</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Slug (URL-friendly)</label>
                 <input
                   type="text"
                   placeholder="Leave blank to auto-generate"
                   value={wsForm.slug}
                   onChange={(e) => setWsForm({ ...wsForm, slug: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Description</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={wsForm.description}
                   onChange={(e) => setWsForm({ ...wsForm, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
@@ -670,7 +670,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowCreateWsModal(false)}
-                  className="px-3 py-1.5 text-slate-400 hover:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -690,46 +690,46 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Edit Workspace */}
       {showEditWsModal && activeWs && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-indigo-400" />
                 Edit Workspace: {activeWs.name}
               </h3>
-              <button onClick={() => setShowEditWsModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowEditWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleEditWorkspace} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Workspace Name *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Workspace Name *</label>
                 <input
                   type="text"
                   required
                   value={wsForm.name}
                   onChange={(e) => setWsForm({ ...wsForm, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Slug</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Slug</label>
                 <input
                   type="text"
                   value={wsForm.slug}
                   onChange={(e) => setWsForm({ ...wsForm, slug: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Description</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={wsForm.description}
                   onChange={(e) => setWsForm({ ...wsForm, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
@@ -739,9 +739,9 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                   id="archiveWs"
                   checked={wsForm.isArchived}
                   onChange={(e) => setWsForm({ ...wsForm, isArchived: e.target.checked })}
-                  className="rounded border-slate-800 bg-slate-950 text-indigo-600"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
                 />
-                <label htmlFor="archiveWs" className="text-slate-300">
+                <label htmlFor="archiveWs" className="text-slate-700 dark:text-slate-300">
                   Archive this workspace
                 </label>
               </div>
@@ -750,7 +750,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowEditWsModal(false)}
-                  className="px-3 py-1.5 text-slate-400 hover:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -770,18 +770,18 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Delete Workspace Confirmation */}
       {showDeleteWsModal && activeWs && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Delete Workspace Permanently</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Workspace Permanently</h3>
                 <p className="text-xs text-rose-400 font-semibold">Irreversible Platform Action</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Are you sure you want to permanently delete workspace{" "}
               <strong className="text-white font-mono">{activeWs.name}</strong>? This will cascade and delete all
               associated projects, tasks, issues, and memberships under this workspace.
@@ -791,7 +791,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               <button
                 type="button"
                 onClick={() => setShowDeleteWsModal(false)}
-                className="px-3 py-1.5 text-slate-400 hover:text-slate-200 text-xs"
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs"
               >
                 Cancel
               </button>
@@ -810,25 +810,25 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Create Project */}
       {showCreateProjModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Plus className="w-4 h-4 text-purple-400" />
                 Create New Project
               </h3>
-              <button onClick={() => setShowCreateProjModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowCreateProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateProject} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Target Workspace *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Target Workspace *</label>
                 <select
                   required
                   value={projForm.workspaceId}
                   onChange={(e) => setProjForm({ ...projForm, workspaceId: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 >
                   <option value="">Select Workspace</option>
                   {workspaces.map((w) => (
@@ -841,18 +841,18 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <label className="text-slate-400 block mb-1">Project Name *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Project Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. NextGen Mobile App"
                     value={projForm.name}
                     onChange={(e) => setProjForm({ ...projForm, name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Key *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Key *</label>
                   <input
                     type="text"
                     required
@@ -860,29 +860,29 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                     placeholder="e.g. MOB"
                     value={projForm.key}
                     onChange={(e) => setProjForm({ ...projForm, key: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none font-mono uppercase"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none font-mono uppercase"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">Template</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Template</label>
                   <select
                     value={projForm.template}
                     onChange={(e) => setProjForm({ ...projForm, template: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="SCRUM">Scrum (Sprints & Backlog)</option>
                     <option value="KANBAN">Kanban (Continuous Flow)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Priority</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Priority</label>
                   <select
                     value={projForm.priority}
                     onChange={(e) => setProjForm({ ...projForm, priority: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="CRITICAL">Critical</option>
                     <option value="HIGH">High</option>
@@ -893,13 +893,13 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Description</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Description</label>
                 <textarea
                   rows={2}
                   placeholder="Project purpose, scope, and objectives"
                   value={projForm.description}
                   onChange={(e) => setProjForm({ ...projForm, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
@@ -907,7 +907,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowCreateProjModal(false)}
-                  className="px-3 py-1.5 text-slate-400 hover:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -927,13 +927,13 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Edit Project */}
       {showEditProjModal && activeProj && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-purple-400" />
                 Edit Project: {activeProj.name}
               </h3>
-              <button onClick={() => setShowEditProjModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowEditProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -941,35 +941,35 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
             <form onSubmit={handleEditProject} className="space-y-3 text-xs">
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <label className="text-slate-400 block mb-1">Project Name *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Project Name *</label>
                   <input
                     type="text"
                     required
                     value={projForm.name}
                     onChange={(e) => setProjForm({ ...projForm, name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Key *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Key *</label>
                   <input
                     type="text"
                     required
                     maxLength={10}
                     value={projForm.key}
                     onChange={(e) => setProjForm({ ...projForm, key: e.target.value.toUpperCase() })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none font-mono uppercase"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none font-mono uppercase"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-slate-400 block mb-1">Status</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Status</label>
                   <select
                     value={projForm.status}
                     onChange={(e) => setProjForm({ ...projForm, status: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="PLANNING">PLANNING</option>
@@ -979,11 +979,11 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Priority</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Priority</label>
                   <select
                     value={projForm.priority}
                     onChange={(e) => setProjForm({ ...projForm, priority: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="CRITICAL">Critical</option>
                     <option value="HIGH">High</option>
@@ -994,12 +994,12 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Description</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={projForm.description}
                   onChange={(e) => setProjForm({ ...projForm, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
                 />
               </div>
 
@@ -1007,7 +1007,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowEditProjModal(false)}
-                  className="px-3 py-1.5 text-slate-400 hover:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -1027,18 +1027,18 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Delete Project Confirmation */}
       {showDeleteProjModal && activeProj && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100">Delete Project Permanently</h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Project Permanently</h3>
                 <p className="text-xs text-rose-400 font-semibold">Irreversible Platform Action</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Are you sure you want to permanently delete project{" "}
               <strong className="text-white font-mono">
                 {activeProj.name} [{activeProj.key}]
@@ -1050,7 +1050,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               <button
                 type="button"
                 onClick={() => setShowDeleteProjModal(false)}
-                className="px-3 py-1.5 text-slate-400 hover:text-slate-200 text-xs"
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs"
               >
                 Cancel
               </button>

@@ -31,7 +31,7 @@ export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerPr
   }
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3 shadow-lg">
+    <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2.5 w-2.5">
@@ -42,7 +42,7 @@ export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerPr
             Action Required ({alerts.length})
           </h3>
         </div>
-        <span className="text-[11px] text-slate-400">Immediate attention recommended</span>
+        <span className="text-[11px] text-slate-600 dark:text-slate-400">Immediate attention recommended</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -73,8 +73,8 @@ export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerPr
                     {alert.severity}
                   </span>
                 </div>
-                <h4 className="text-xs font-semibold text-slate-200 line-clamp-1">{alert.title}</h4>
-                <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{alert.description}</p>
+                <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{alert.title}</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">{alert.description}</p>
               </div>
 
               <div className="pt-2 flex items-center justify-between text-[11px] font-medium text-blue-400 group-hover:text-blue-300">

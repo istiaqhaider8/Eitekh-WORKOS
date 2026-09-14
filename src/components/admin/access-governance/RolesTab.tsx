@@ -498,13 +498,13 @@ export function RolesTab({
   return (
     <div className="space-y-6">
       {/* Top Header & Actions */}
-      <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-indigo-400" />
             Permission Roles ({filteredRoles.length})
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Define role capabilities across 18 canonical permission modules and assign existing users directly.
           </p>
         </div>
@@ -515,7 +515,7 @@ export function RolesTab({
               setSelectedCompareRoleIds(roles.slice(0, 3).map((r) => r.id));
               setIsCompareOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
           >
             <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-400" />
             <span>Compare Roles</span>
@@ -532,7 +532,7 @@ export function RolesTab({
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
@@ -540,35 +540,35 @@ export function RolesTab({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search roles by name, description, or permission key..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Scope:</span>
             <select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value)}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer"
             >
-              <option value="ALL" className="bg-slate-900">All Scopes</option>
-              <option value="PROJECT" className="bg-slate-900">Project</option>
-              <option value="WORKSPACE" className="bg-slate-900">Workspace</option>
-              <option value="ORG" className="bg-slate-900">Organization</option>
+              <option value="ALL" className="bg-white dark:bg-slate-900">All Scopes</option>
+              <option value="PROJECT" className="bg-white dark:bg-slate-900">Project</option>
+              <option value="WORKSPACE" className="bg-white dark:bg-slate-900">Workspace</option>
+              <option value="ORG" className="bg-white dark:bg-slate-900">Organization</option>
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer"
             >
-              <option value="ALL" className="bg-slate-900">All Statuses</option>
-              <option value="ACTIVE" className="bg-slate-900">Active</option>
-              <option value="INACTIVE" className="bg-slate-900">Inactive</option>
+              <option value="ALL" className="bg-white dark:bg-slate-900">All Statuses</option>
+              <option value="ACTIVE" className="bg-white dark:bg-slate-900">Active</option>
+              <option value="INACTIVE" className="bg-white dark:bg-slate-900">Inactive</option>
             </select>
           </div>
         </div>
@@ -576,9 +576,9 @@ export function RolesTab({
 
       {/* Role Cards Grid */}
       {filteredRoles.length === 0 ? (
-        <div className="text-center py-12 bg-slate-900/40 rounded-xl border border-slate-800/80 space-y-3">
+        <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/80 space-y-3">
           <KeyRound className="w-8 h-8 text-slate-600 mx-auto" />
-          <h4 className="text-sm font-bold text-slate-300">No Permission Roles Found</h4>
+          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">No Permission Roles Found</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             No roles matched your search or filters. Create a new Permission Role to get started.
           </p>
@@ -596,21 +596,21 @@ export function RolesTab({
             return (
               <div
                 key={role.id}
-                className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-xl p-4.5 flex flex-col justify-between gap-4 transition-all shadow-xs"
+                className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:border-slate-700 rounded-xl p-4.5 flex flex-col justify-between gap-4 transition-all shadow-xs"
               >
                 <div className="space-y-3">
                   {/* Title & Badges */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-100">{role.name}</h4>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{role.name}</h4>
                         {role.isSystem && (
-                          <span className="px-1.5 py-0.5 bg-slate-800 text-slate-400 font-mono text-[9px] font-bold rounded">
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono text-[9px] font-bold rounded">
                             SYSTEM
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {role.description || 'No description provided.'}
                       </p>
                     </div>
@@ -635,13 +635,13 @@ export function RolesTab({
 
                     <button
                       onClick={() => handleOpenViewUsers(role)}
-                      className="px-2 py-0.5 bg-slate-800 hover:bg-slate-750 text-slate-300 font-semibold rounded-md border border-slate-700 flex items-center gap-1 cursor-pointer transition-colors"
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-md border border-slate-300 dark:border-slate-700 flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Users className="w-3 h-3 text-blue-400" />
                       {role.assignedUserCount || 0} Users
                     </button>
 
-                    <span className="px-2 py-0.5 bg-slate-800/80 text-slate-400 font-mono text-[10px] rounded-md">
+                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 font-mono text-[10px] rounded-md">
                       Scope: {role.scope}
                     </span>
 
@@ -650,7 +650,7 @@ export function RolesTab({
                         🎯 {role.projectName || 'Scoped Project'}
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 bg-slate-800/80 text-slate-400 font-mono text-[10px] rounded-md">
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 font-mono text-[10px] rounded-md">
                         🌐 All Projects
                       </span>
                     )}
@@ -665,7 +665,7 @@ export function RolesTab({
                 </div>
 
                 {/* Card Footer Actions */}
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
                   <button
                     onClick={() => handleOpenAddUsers(role)}
                     className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 rounded-lg text-xs font-semibold transition-all"
@@ -678,7 +678,7 @@ export function RolesTab({
                     <button
                       onClick={() => handleOpenClone(role)}
                       title="Clone Role"
-                      className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -686,7 +686,7 @@ export function RolesTab({
                     <button
                       onClick={() => handleOpenEdit(role)}
                       title="Edit Role & Permissions"
-                      className="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -695,7 +695,7 @@ export function RolesTab({
                       <button
                         onClick={() => handleToggleStatus(role)}
                         title={role.status === 'ACTIVE' ? 'Deactivate Role' : 'Activate Role'}
-                        className="p-1.5 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-amber-300 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
                       >
                         {role.status === 'ACTIVE' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                       </button>
@@ -704,7 +704,7 @@ export function RolesTab({
                     <button
                       onClick={() => handleOpenDelete(role)}
                       title="Delete Permission Role"
-                      className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -719,27 +719,27 @@ export function RolesTab({
       {/* 1. ADD EXISTING USERS TO ROLE MODAL */}
       {addUserModalRole && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-indigo-400" />
                   Add Existing Users to Role: <span className="text-indigo-300">{addUserModalRole.name}</span>
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Select existing registered users to grant this Permission Role.
                 </p>
               </div>
               <button
                 onClick={() => setAddUserModalRole(null)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Filter Bar in Modal */}
-            <div className="p-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -747,7 +747,7 @@ export function RolesTab({
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   placeholder="Search by name, email, or User ID..."
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -760,14 +760,14 @@ export function RolesTab({
                       .map((u) => u.id);
                     setSelectedUserIds(assignable);
                   }}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs"
+                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs"
                 >
                   Select All Assignable
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedUserIds([])}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded text-xs"
+                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 rounded text-xs"
                 >
                   Clear
                 </button>
@@ -804,10 +804,10 @@ export function RolesTab({
                         }}
                         className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs transition-all ${
                           isAlreadyAssigned
-                            ? 'bg-slate-950/40 border-slate-900 opacity-60 cursor-not-allowed'
+                            ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-900 opacity-60 cursor-not-allowed'
                             : isSelected
                             ? 'bg-indigo-600/10 border-indigo-500/50 cursor-pointer'
-                            : 'bg-slate-950 border-slate-800 hover:border-slate-700 cursor-pointer'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:border-slate-700 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -816,11 +816,11 @@ export function RolesTab({
                             disabled={isAlreadyAssigned}
                             checked={isSelected || isAlreadyAssigned}
                             onChange={() => {}}
-                            className="rounded bg-slate-900 border-slate-700 text-indigo-600 cursor-pointer"
+                            className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
                           />
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-200">{u.name}</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{u.name}</span>
                               <span className="text-slate-500 text-[11px]">({u.email})</span>
                               {u.status === 'SUSPENDED' && (
                                 <span className="px-1.5 py-0.2 bg-rose-500/20 text-rose-300 text-[9px] rounded font-bold">
@@ -828,7 +828,7 @@ export function RolesTab({
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                            <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400">
                               <span>ID: <span className="font-mono text-slate-500">{u.id.slice(0, 8)}...</span></span>
                               <span>•</span>
                               <span>Role: {u.jobTitle || 'Member'}</span>
@@ -839,7 +839,7 @@ export function RolesTab({
                         </div>
 
                         {isAlreadyAssigned && (
-                          <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded text-[10px] font-semibold">
+                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[10px] font-semibold">
                             Already Assigned
                           </span>
                         )}
@@ -850,8 +850,8 @@ export function RolesTab({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
-              <div className="text-xs text-slate-400">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
                 Selected: <span className="font-bold text-indigo-400">{selectedUserIds.length}</span> Users
               </div>
 
@@ -859,7 +859,7 @@ export function RolesTab({
                 <button
                   type="button"
                   onClick={() => setAddUserModalRole(null)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
                 >
                   Cancel
                 </button>
@@ -880,20 +880,20 @@ export function RolesTab({
       {/* 2. VIEW ASSIGNED ROLE USERS MODAL */}
       {viewUsersRole && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-400" />
                   Assigned Users: <span className="text-indigo-300">{viewUsersRole.name}</span>
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   {roleAssignedUsers.length} total user(s) currently hold this Permission Role.
                 </p>
               </div>
               <button
                 onClick={() => setViewUsersRole(null)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -922,7 +922,7 @@ export function RolesTab({
                 roleAssignedUsers.map((u) => (
                   <div
                     key={u.id}
-                    className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                    className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-3">
                       <input
@@ -933,11 +933,11 @@ export function RolesTab({
                             e.target.checked ? [...prev, u.id] : prev.filter((id) => id !== u.id)
                           );
                         }}
-                        className="rounded bg-slate-900 border-slate-700 text-indigo-600 cursor-pointer"
+                        className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
                       />
                       <div>
-                        <div className="font-bold text-slate-200">{u.firstName} {u.lastName}</div>
-                        <div className="text-slate-400 text-[11px]">{u.email} • {u.jobTitle || 'Member'}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200">{u.firstName} {u.lastName}</div>
+                        <div className="text-slate-600 dark:text-slate-400 text-[11px]">{u.email} • {u.jobTitle || 'Member'}</div>
                       </div>
                     </div>
 
@@ -952,7 +952,7 @@ export function RolesTab({
               )}
             </div>
 
-            <div className="p-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between">
               <button
                 onClick={() => {
                   setViewUsersRole(null);
@@ -966,7 +966,7 @@ export function RolesTab({
 
               <button
                 onClick={() => setViewUsersRole(null)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Close
               </button>
@@ -980,54 +980,54 @@ export function RolesTab({
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <form
             onSubmit={handleCloneSubmit}
-            className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-5 space-y-4"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-5 space-y-4"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Copy className="w-4 h-4 text-indigo-400" />
                 Clone Role: {cloneModalRole.name}
               </h4>
               <button
                 type="button"
                 onClick={() => setCloneModalRole(null)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               This will create a new Permission Role with all <span className="font-bold text-indigo-400">{cloneModalRole.permissions?.length || 0} permissions</span> copied from '{cloneModalRole.name}'. The original role will not be modified.
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">New Role Name *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">New Role Name *</label>
                 <input
                   type="text"
                   required
                   value={cloneName}
                   onChange={(e) => setCloneName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Description</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={cloneDescription}
                   onChange={(e) => setCloneDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setCloneModalRole(null)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Cancel
               </button>
@@ -1046,28 +1046,28 @@ export function RolesTab({
       {/* 4. ROLE COMPARISON MODAL */}
       {isCompareOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <ArrowLeftRight className="w-4 h-4 text-indigo-400" />
                   Permission Role Comparison Matrix
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Side-by-side comparison across all 18 canonical modules.
                 </p>
               </div>
               <button
                 onClick={() => setIsCompareOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Select Roles to Compare */}
-            <div className="p-3 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-bold text-slate-400">Compare Roles:</span>
+            <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold text-slate-600 dark:text-slate-400">Compare Roles:</span>
               {roles.map((r) => {
                 const isSelected = selectedCompareRoleIds.includes(r.id);
                 return (
@@ -1081,7 +1081,7 @@ export function RolesTab({
                     className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all border ${
                       isSelected
                         ? 'bg-indigo-600 text-white border-indigo-500'
-                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:text-slate-800 dark:text-slate-200'
                     }`}
                   >
                     {r.name}
@@ -1097,12 +1097,12 @@ export function RolesTab({
               ) : (
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950 sticky top-0">
-                      <th className="p-2.5 text-slate-300 font-bold w-1/3">Permission Module & Capability</th>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 sticky top-0">
+                      <th className="p-2.5 text-slate-700 dark:text-slate-300 font-bold w-1/3">Permission Module & Capability</th>
                       {compareRoles.map((r) => (
-                        <th key={r.id} className="p-2.5 text-center text-slate-200 font-bold border-l border-slate-800">
+                        <th key={r.id} className="p-2.5 text-center text-slate-800 dark:text-slate-200 font-bold border-l border-slate-200 dark:border-slate-800">
                           {r.name}
-                          <span className="block text-[10px] text-slate-400 font-normal">
+                          <span className="block text-[10px] text-slate-600 dark:text-slate-400 font-normal">
                             ({r.permissions?.length || 0} perms)
                           </span>
                         </th>
@@ -1112,21 +1112,21 @@ export function RolesTab({
                   <tbody className="divide-y divide-slate-800/60">
                     {categories.map((cat) => (
                       <React.Fragment key={cat.id}>
-                        <tr className="bg-slate-950/90 font-bold text-indigo-300 text-[11px]">
+                        <tr className="bg-slate-50 dark:bg-slate-950/90 font-bold text-indigo-300 text-[11px]">
                           <td colSpan={compareRoles.length + 1} className="p-2 pl-3">
                             {cat.name}
                           </td>
                         </tr>
                         {cat.permissions.map((p: any) => (
                           <tr key={p.key} className="hover:bg-slate-850/50">
-                            <td className="p-2 pl-6 text-slate-300">
+                            <td className="p-2 pl-6 text-slate-700 dark:text-slate-300">
                               <div className="font-medium">{p.label}</div>
                               <div className="text-[10px] text-slate-500 font-mono">{p.key}</div>
                             </td>
                             {compareRoles.map((r) => {
                               const has = (r.permissions || []).includes(p.key);
                               return (
-                                <td key={r.id} className="p-2 text-center border-l border-slate-800/60">
+                                <td key={r.id} className="p-2 text-center border-l border-slate-200 dark:border-slate-800/60">
                                   {has ? (
                                     <CheckCircle2 className="w-4 h-4 text-emerald-400 mx-auto" />
                                   ) : (
@@ -1144,10 +1144,10 @@ export function RolesTab({
               )}
             </div>
 
-            <div className="p-3 border-t border-slate-800 bg-slate-950 text-right">
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-right">
               <button
                 onClick={() => setIsCompareOpen(false)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium"
+                className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium"
               >
                 Close Comparison
               </button>
@@ -1159,20 +1159,20 @@ export function RolesTab({
       {/* 5. CREATE / EDIT ROLE DRAWER */}
       {isEditorOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end">
-          <div className="bg-slate-900 border-l border-slate-800 w-full max-w-2xl h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-200">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+          <div className="bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 w-full max-w-2xl h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
               <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <KeyRound className="w-4 h-4 text-indigo-400" />
                   {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Permission Role'}
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Configure role attributes and select capabilities across 18 canonical modules.
                 </p>
               </div>
               <button
                 onClick={() => setIsEditorOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1181,37 +1181,37 @@ export function RolesTab({
             <form onSubmit={handleSaveRole} className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-5 space-y-5">
                 {/* Role Details */}
-                <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div className="space-y-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">Role Name *</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Role Name *</label>
                     <input
                       type="text"
                       required
                       value={roleForm.name}
                       onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
                       placeholder="e.g. Lead Product Designer"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">Description</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
                     <textarea
                       rows={2}
                       value={roleForm.description}
                       onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
                       placeholder="Summary of responsibilities and intended access..."
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Scope</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Scope</label>
                       <select
                         value={roleForm.scope}
                         onChange={(e) => setRoleForm({ ...roleForm, scope: e.target.value as any })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                       >
                         <option value="PROJECT">Project Level</option>
                         <option value="WORKSPACE">Workspace Level</option>
@@ -1220,11 +1220,11 @@ export function RolesTab({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Status</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status</label>
                       <select
                         value={roleForm.status}
                         onChange={(e) => setRoleForm({ ...roleForm, status: e.target.value as any })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                       >
                         <option value="ACTIVE">ACTIVE</option>
                         <option value="INACTIVE">INACTIVE</option>
@@ -1234,7 +1234,7 @@ export function RolesTab({
 
                   {roleForm.scope === 'PROJECT' && (
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">Target Project (Project-Wise Scoping)</label>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Project (Project-Wise Scoping)</label>
                       <select
                         value={roleForm.projectId || 'ALL'}
                         onChange={(e) => {
@@ -1246,7 +1246,7 @@ export function RolesTab({
                             setRoleForm({ ...roleForm, projectId: val, projectName: proj ? proj.name : null });
                           }
                         }}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 font-medium"
                       >
                         <option value="ALL">🌐 All Projects (Org-Wide)</option>
                         {projects.map((p) => (
@@ -1261,13 +1261,13 @@ export function RolesTab({
 
                 {/* 18 Permission Categories Section */}
                 <div className="space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                         Role Permissions ({roleForm.permissions.length} Selected)
                       </h4>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400">
                         18 canonical modules (68 total backend capabilities)
                       </p>
                     </div>
@@ -1286,7 +1286,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('ADMIN')}
-                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
                       >
                         Admin Preset
                       </button>
@@ -1294,7 +1294,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('MEMBER')}
-                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
                       >
                         Member Preset
                       </button>
@@ -1302,7 +1302,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('VIEWER')}
-                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
                       >
                         Viewer Preset
                       </button>
@@ -1310,7 +1310,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={handleClearAllPerms}
-                        className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium rounded-lg border border-slate-800 transition-colors"
+                        className="px-2.5 py-1.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 transition-colors"
                       >
                         Clear All
                       </button>
@@ -1325,7 +1325,7 @@ export function RolesTab({
                       value={editorSearch}
                       onChange={(e) => setEditorSearch(e.target.value)}
                       placeholder="Filter permissions by keyword..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
@@ -1353,11 +1353,11 @@ export function RolesTab({
                       return (
                         <div
                           key={cat.id}
-                          className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden"
+                          className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden"
                         >
-                          <div className="p-3 bg-slate-900/60 flex items-center justify-between border-b border-slate-800/80">
+                          <div className="p-3 bg-white dark:bg-slate-900/60 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80">
                             <div>
-                              <span className="text-xs font-bold text-slate-200">{cat.name}</span>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{cat.name}</span>
                               <span className="ml-2 text-[10px] text-slate-500">
                                 ({selectedCount}/{cat.permissions.length} active)
                               </span>
@@ -1366,7 +1366,7 @@ export function RolesTab({
                             <button
                               type="button"
                               onClick={() => toggleCategory(cat)}
-                              className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-300 rounded"
+                              className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-[10px] font-semibold text-slate-700 dark:text-slate-300 rounded"
                             >
                               {allSelected ? 'Deselect Category' : 'Select Category'}
                             </button>
@@ -1382,19 +1382,19 @@ export function RolesTab({
                                   key={p.key}
                                   className={`p-2.5 rounded-lg border flex items-start gap-2.5 cursor-pointer transition-all ${
                                     checked
-                                      ? 'bg-indigo-600/10 border-indigo-500/40 text-slate-200'
-                                      : 'bg-slate-900/40 border-slate-800/60 hover:border-slate-700 text-slate-400'
+                                      ? 'bg-indigo-600/10 border-indigo-500/40 text-slate-800 dark:text-slate-200'
+                                      : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 hover:border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                                   }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={checked}
                                     onChange={() => togglePermission(p.key)}
-                                    className="mt-0.5 rounded bg-slate-900 border-slate-700 text-indigo-600 cursor-pointer"
+                                    className="mt-0.5 rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
                                   />
                                   <div className="space-y-0.5 text-xs">
                                     <div className="flex items-center gap-1.5">
-                                      <span className="font-semibold text-slate-200">{p.label}</span>
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200">{p.label}</span>
                                       {isHighRisk && (
                                         <span className="px-1 py-0.2 bg-rose-500/20 text-rose-300 text-[8px] font-bold rounded">
                                           {p.riskLevel}
@@ -1417,9 +1417,9 @@ export function RolesTab({
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-3">
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-slate-600 dark:text-slate-400">
                     <span className="font-bold text-indigo-400">{roleForm.permissions.length}</span> Permissions Selected
                   </div>
 
@@ -1439,7 +1439,7 @@ export function RolesTab({
                   <button
                     type="button"
                     onClick={() => setIsEditorOpen(false)}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
                   >
                     Cancel
                   </button>
@@ -1460,33 +1460,33 @@ export function RolesTab({
       {/* 6. DELETE ROLE CONFIRMATION MODAL */}
       {deleteModalRole && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3">
               <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-slate-100">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Delete Permission Role?
                 </h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Are you sure you want to permanently delete <span className="text-slate-200 font-bold">'{deleteModalRole.name}'</span>? This action cannot be undone.
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Are you sure you want to permanently delete <span className="text-slate-800 dark:text-slate-200 font-bold">'{deleteModalRole.name}'</span>? This action cannot be undone.
                 </p>
               </div>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-400">
+            <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Scope:</span>
-                <span className="font-semibold text-slate-200">{deleteModalRole.scope}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{deleteModalRole.scope}</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Assigned Users:</span>
                 <span className="font-semibold text-indigo-300">{deleteModalRole.assignedUserCount || 0} user(s)</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Permission Count:</span>
-                <span className="font-semibold text-slate-200">{deleteModalRole.permissionCount || (deleteModalRole.permissions || []).length} perms</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{deleteModalRole.permissionCount || (deleteModalRole.permissions || []).length} perms</span>
               </div>
             </div>
 
@@ -1512,7 +1512,7 @@ export function RolesTab({
               <button
                 type="button"
                 onClick={() => setDeleteModalRole(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Cancel
               </button>

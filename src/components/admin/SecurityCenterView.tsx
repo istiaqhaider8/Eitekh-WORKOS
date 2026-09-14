@@ -69,7 +69,7 @@ export function SecurityCenterView() {
     return (
       <div className="py-20 text-center">
         <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-500 mb-2" />
-        <p className="text-sm font-semibold text-slate-400">Loading Platform Security Center...</p>
+        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Loading Platform Security Center...</p>
       </div>
     );
   }
@@ -82,13 +82,13 @@ export function SecurityCenterView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-rose-400" />
             Platform Security & Threat Operations Center
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Real-time threat detection, multi-factor adoption enforcement, active session telemetry, and account locks.
           </p>
         </div>
@@ -96,7 +96,7 @@ export function SecurityCenterView() {
         <div className="flex items-center gap-3">
           <button
             onClick={loadData}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Rescan Threats</span>
@@ -106,37 +106,37 @@ export function SecurityCenterView() {
 
       {/* Security KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase">MFA Adoption Rate</span>
-          <div className="text-lg font-bold text-slate-100">{metrics.mfaAdoptionPct}%</div>
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
+          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">MFA Adoption Rate</span>
+          <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{metrics.mfaAdoptionPct}%</div>
           <p className="text-[10px] text-slate-500">{metrics.mfaUsersCount} of {metrics.totalUsers} users</p>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase">Active Sessions</span>
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
+          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Active Sessions</span>
           <div className="text-lg font-bold text-indigo-400">{metrics.activeSessionsCount}</div>
           <p className="text-[10px] text-slate-500">Live JWT authenticated tokens</p>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase">Suspended Accounts</span>
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
+          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Suspended Accounts</span>
           <div className="text-lg font-bold text-rose-400">{metrics.suspendedUsersCount}</div>
           <p className="text-[10px] text-slate-500">Locked out accounts</p>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase">Cross-Project Leaks</span>
+        <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
+          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Cross-Project Leaks</span>
           <div className="text-lg font-bold text-emerald-400">0</div>
           <p className="text-[10px] text-slate-500">Zero data breach record</p>
         </div>
       </div>
 
       {/* Real-time Security Alerts */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-400" />
           Active Security Alerts ({alerts.length})
         </h3>
 
         {alerts.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-500 bg-slate-950 rounded-xl">
+          <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-950 rounded-xl">
             No active security threats or anomalies detected.
           </div>
         ) : (
@@ -152,7 +152,7 @@ export function SecurityCenterView() {
                       ? 'bg-rose-950/20 border-rose-500/30 text-rose-200'
                       : isHigh
                       ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
-                      : 'bg-slate-950 border-slate-800 text-slate-200'
+                      : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   <div className="space-y-1">
@@ -168,9 +168,9 @@ export function SecurityCenterView() {
                       >
                         {al.severity}
                       </span>
-                      <h4 className="text-xs font-bold text-slate-100">{al.title}</h4>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">{al.title}</h4>
                     </div>
-                    <p className="text-[11px] text-slate-400">{al.description}</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">{al.description}</p>
                   </div>
                   <span className="text-[10px] text-slate-500 font-mono shrink-0">
                     {new Date(al.timestamp).toLocaleTimeString()}
@@ -183,15 +183,15 @@ export function SecurityCenterView() {
       </div>
 
       {/* Active Device Sessions Telemetry */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <Monitor className="w-4 h-4 text-indigo-400" />
           Active Device Sessions & Token Registry ({sessions.length})
         </h3>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="p-3">User</th>
                 <th className="p-3">IP Address</th>
@@ -203,15 +203,15 @@ export function SecurityCenterView() {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {sessions.map((s: any) => (
-                <tr key={s.id} className="hover:bg-slate-800/40">
+                <tr key={s.id} className="hover:bg-slate-100 dark:bg-slate-800/40">
                   <td className="p-3">
-                    <div className="font-semibold text-slate-100">{s.userName}</div>
-                    <div className="text-[10px] text-slate-400">{s.userEmail}</div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">{s.userName}</div>
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400">{s.userEmail}</div>
                   </td>
                   <td className="p-3 font-mono text-[11px] text-indigo-300">{s.ipAddress}</td>
-                  <td className="p-3 text-slate-300">{s.browser} on {s.os}</td>
-                  <td className="p-3 text-slate-400">{s.location}</td>
-                  <td className="p-3 text-slate-400">{new Date(s.lastActiveAt).toLocaleTimeString()}</td>
+                  <td className="p-3 text-slate-700 dark:text-slate-300">{s.browser} on {s.os}</td>
+                  <td className="p-3 text-slate-600 dark:text-slate-400">{s.location}</td>
+                  <td className="p-3 text-slate-600 dark:text-slate-400">{new Date(s.lastActiveAt).toLocaleTimeString()}</td>
                   <td className="p-3 text-right">
                     <button
                       onClick={() => handleSecurityAction({ action: 'REVOKE_SESSION', sessionId: s.id })}

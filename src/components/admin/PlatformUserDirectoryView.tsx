@@ -412,10 +412,10 @@ export function PlatformUserDirectoryView({
   return (
     <div className="space-y-4">
       {/* Top Header & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-800 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-400" />
               Platform User Directory & Identity Governance
             </h2>
@@ -423,7 +423,7 @@ export function PlatformUserDirectoryView({
               {totalRecords} Accounts
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Global identity administration, user lifecycle management, administrative password resets, and role governance.
           </p>
         </div>
@@ -431,7 +431,7 @@ export function PlatformUserDirectoryView({
         <div className="flex items-center gap-2.5">
           <button
             onClick={onRefresh}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh</span>
@@ -447,7 +447,7 @@ export function PlatformUserDirectoryView({
       </div>
 
       {/* Filter & Search Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
@@ -458,13 +458,13 @@ export function PlatformUserDirectoryView({
               setPage(1);
             }}
             placeholder="Search by name, email, job title, company..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Role Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Authority:</span>
             <select
               value={roleFilter}
@@ -472,16 +472,16 @@ export function PlatformUserDirectoryView({
                 setRoleFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-200 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900">All Roles</option>
-              <option value="admin" className="bg-slate-900">Super Admin Only</option>
-              <option value="user" className="bg-slate-900">Standard User Only</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Roles</option>
+              <option value="admin" className="bg-white dark:bg-slate-900">Super Admin Only</option>
+              <option value="user" className="bg-white dark:bg-slate-900">Standard User Only</option>
             </select>
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Status:</span>
             <select
               value={statusFilter}
@@ -489,16 +489,16 @@ export function PlatformUserDirectoryView({
                 setStatusFilter(e.target.value as any);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-200 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900">All Statuses</option>
-              <option value="ACTIVE" className="bg-slate-900">Active Only</option>
-              <option value="SUSPENDED" className="bg-slate-900">Suspended Only</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Statuses</option>
+              <option value="ACTIVE" className="bg-white dark:bg-slate-900">Active Only</option>
+              <option value="SUSPENDED" className="bg-white dark:bg-slate-900">Suspended Only</option>
             </select>
           </div>
 
           {/* Org Filter */}
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <Building2 className="w-3.5 h-3.5 text-slate-500" />
             <select
               value={orgFilter}
@@ -506,11 +506,11 @@ export function PlatformUserDirectoryView({
                 setOrgFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-200 font-semibold outline-none cursor-pointer max-w-[140px] truncate"
+              className="bg-transparent text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer max-w-[140px] truncate"
             >
-              <option value="all" className="bg-slate-900">All Tenants</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Tenants</option>
               {orgs.map((o) => (
-                <option key={o.id} value={o.id} className="bg-slate-900">
+                <option key={o.id} value={o.id} className="bg-white dark:bg-slate-900">
                   {o.name}
                 </option>
               ))}
@@ -518,7 +518,7 @@ export function PlatformUserDirectoryView({
           </div>
 
           {/* Page Size */}
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500">Rows:</span>
             <select
               value={pageSize}
@@ -526,23 +526,23 @@ export function PlatformUserDirectoryView({
                 setPageSize(e.target.value as any);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-200 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
             >
-              <option value="10" className="bg-slate-900">10</option>
-              <option value="25" className="bg-slate-900">25</option>
-              <option value="50" className="bg-slate-900">50</option>
-              <option value="100" className="bg-slate-900">100</option>
-              <option value="all" className="bg-slate-900">All</option>
+              <option value="10" className="bg-white dark:bg-slate-900">10</option>
+              <option value="25" className="bg-white dark:bg-slate-900">25</option>
+              <option value="50" className="bg-white dark:bg-slate-900">50</option>
+              <option value="100" className="bg-white dark:bg-slate-900">100</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Main Directory Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="p-3.5">User / Identity</th>
                 <th className="p-3.5">Email</th>
@@ -567,7 +567,7 @@ export function PlatformUserDirectoryView({
                   const initials = `${(u.firstName || '')[0] || ''}${(u.lastName || '')[0] || ''}`.toUpperCase() || 'U';
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={u.id} className="hover:bg-slate-100 dark:bg-slate-800/40 transition-colors">
                       {/* Name & Identity */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2.5">
@@ -575,7 +575,7 @@ export function PlatformUserDirectoryView({
                             {initials}
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-100 flex items-center gap-1.5">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                               <span>{u.firstName} {u.lastName}</span>
                               {u.id === currentUserId && (
                                 <span className="text-[9px] px-1 bg-indigo-500/20 text-indigo-300 rounded font-normal">
@@ -593,10 +593,10 @@ export function PlatformUserDirectoryView({
                       {/* Email */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-slate-300 font-mono text-[11px]">{u.email}</span>
+                          <span className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">{u.email}</span>
                           <button
                             onClick={() => copyEmail(u.email, u.id)}
-                            className="text-slate-500 hover:text-slate-300 transition-colors"
+                            className="text-slate-500 hover:text-slate-700 dark:text-slate-300 transition-colors"
                             title="Copy email"
                           >
                             {copiedEmailId === u.id ? (
@@ -616,7 +616,7 @@ export function PlatformUserDirectoryView({
                             SUPER ADMIN
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-medium border border-slate-700/50">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[10px] font-medium border border-slate-300 dark:border-slate-700/50">
                             USER
                           </span>
                         )}
@@ -631,7 +631,7 @@ export function PlatformUserDirectoryView({
                             (u.orgMemberships || []).map((m: any) => (
                               <span
                                 key={m.id}
-                                className="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-medium border border-slate-700 truncate max-w-[130px]"
+                                className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded text-[10px] font-medium border border-slate-300 dark:border-slate-700 truncate max-w-[130px]"
                                 title={`${m.organization?.name} (${m.role})`}
                               >
                                 {m.organization?.name}
@@ -673,7 +673,7 @@ export function PlatformUserDirectoryView({
                           {/* Set Password Button */}
                           <button
                             onClick={() => handleOpenPassword(u)}
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-medium border border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                             title="Set or Reset Password"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ export function PlatformUserDirectoryView({
                           {/* Edit User Button */}
                           <button
                             onClick={() => handleOpenEdit(u)}
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 rounded-lg text-xs font-medium border border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                             title="Edit User Details"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -705,7 +705,7 @@ export function PlatformUserDirectoryView({
                           <button
                             onClick={() => handleOpenDelete(u)}
                             disabled={u.id === currentUserId}
-                            className="p-1.5 bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 rounded-lg text-xs font-medium border border-slate-700 disabled:opacity-30 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-900/40 text-slate-600 dark:text-slate-400 hover:text-rose-300 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 disabled:opacity-30 transition-colors"
                             title={u.id === currentUserId ? 'Cannot delete current session' : 'Delete Account'}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -722,28 +722,28 @@ export function PlatformUserDirectoryView({
 
         {/* Pagination Footer */}
         {totalRecords > 0 && (
-          <div className="flex items-center justify-between p-3.5 bg-slate-950 border-t border-slate-800 text-xs text-slate-400">
+          <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
             <div>
-              Showing <span className="font-semibold text-slate-200">{Math.min(totalRecords, (page - 1) * currentLimit + 1)}</span> to{' '}
-              <span className="font-semibold text-slate-200">{Math.min(totalRecords, page * currentLimit)}</span> of{' '}
-              <span className="font-semibold text-slate-200">{totalRecords}</span> users
+              Showing <span className="font-semibold text-slate-800 dark:text-slate-200">{Math.min(totalRecords, (page - 1) * currentLimit + 1)}</span> to{' '}
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{Math.min(totalRecords, page * currentLimit)}</span> of{' '}
+              <span className="font-semibold text-slate-800 dark:text-slate-200">{totalRecords}</span> users
             </div>
 
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30"
+                className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-30"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="px-2 py-0.5 text-xs text-slate-300 font-mono">
+              <span className="px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300 font-mono">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30"
+                className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-30"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -757,13 +757,13 @@ export function PlatformUserDirectoryView({
       {/* ========================================================================= */}
       {isCreateOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-indigo-400" />
                 Create New Platform User Account
               </h3>
-              <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setIsCreateOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -771,60 +771,60 @@ export function PlatformUserDirectoryView({
             <form onSubmit={handleCreateSubmit} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">First Name *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">First Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="John"
                     value={createForm.firstName}
                     onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Last Name *</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Last Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="Doe"
                     value={createForm.lastName}
                     onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Email Address *</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Email Address *</label>
                 <input
                   type="email"
                   required
                   placeholder="john.doe@company.com"
                   value={createForm.email}
                   onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Job Title</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Job Title</label>
                   <input
                     type="text"
                     placeholder="Senior Developer"
                     value={createForm.jobTitle}
                     onChange={(e) => setCreateForm({ ...createForm, jobTitle: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Company</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Company</label>
                   <input
                     type="text"
                     placeholder="Acme Corp"
                     value={createForm.company}
                     onChange={(e) => setCreateForm({ ...createForm, company: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
@@ -832,7 +832,7 @@ export function PlatformUserDirectoryView({
               {/* Initial Password */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-slate-400">Initial Password (Optional — auto-generated if blank)</label>
+                  <label className="text-slate-600 dark:text-slate-400">Initial Password (Optional — auto-generated if blank)</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -850,18 +850,18 @@ export function PlatformUserDirectoryView({
                   placeholder="e.g. Eitekh#9482!kL"
                   value={createForm.password}
                   onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 font-mono outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 font-mono outline-none focus:border-indigo-500"
                 />
               </div>
 
               {/* Organization Tenant & Role */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Tenant Organization</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Tenant Organization</label>
                   <select
                     value={createForm.orgId}
                     onChange={(e) => setCreateForm({ ...createForm, orgId: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="">None (Standalone Account)</option>
                     {orgs.map((o) => (
@@ -873,12 +873,12 @@ export function PlatformUserDirectoryView({
                 </div>
 
                 <div>
-                  <label className="text-slate-400 block mb-1">Tenant Role</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Tenant Role</label>
                   <select
                     value={createForm.role}
                     onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
                     disabled={!createForm.orgId}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500 cursor-pointer disabled:opacity-40"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer disabled:opacity-40"
                   >
                     <option value="MEMBER">MEMBER</option>
                     <option value="ADMIN">ADMIN</option>
@@ -889,16 +889,16 @@ export function PlatformUserDirectoryView({
               </div>
 
               {/* Authority & Status */}
-              <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="createSuperAdmin"
                     checked={createForm.isSuperAdmin}
                     onChange={(e) => setCreateForm({ ...createForm, isSuperAdmin: e.target.checked })}
-                    className="rounded border-slate-800 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label htmlFor="createSuperAdmin" className="text-slate-200 font-semibold cursor-pointer">
+                  <label htmlFor="createSuperAdmin" className="text-slate-800 dark:text-slate-200 font-semibold cursor-pointer">
                     Grant Platform Super Admin Authority
                   </label>
                 </div>
@@ -907,11 +907,11 @@ export function PlatformUserDirectoryView({
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -934,13 +934,13 @@ export function PlatformUserDirectoryView({
       {/* ========================================================================= */}
       {isEditOpen && selectedUser && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-indigo-400" />
                 Edit User: {selectedUser.firstName} {selectedUser.lastName}
               </h3>
-              <button onClick={() => setIsEditOpen(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setIsEditOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -948,102 +948,102 @@ export function PlatformUserDirectoryView({
             <form onSubmit={handleEditSubmit} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">First Name</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">First Name</label>
                   <input
                     type="text"
                     required
                     value={editForm.firstName}
                     onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Last Name</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Last Name</label>
                   <input
                     type="text"
                     required
                     value={editForm.lastName}
                     onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Email Address</label>
+                <label className="text-slate-600 dark:text-slate-400 block mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Job Title</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Job Title</label>
                   <input
                     type="text"
                     value={editForm.jobTitle}
                     onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Company</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Company</label>
                   <input
                     type="text"
                     value={editForm.company}
                     onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 block mb-1">Account Status</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Account Status</label>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
                   >
                     <option value="ACTIVE">ACTIVE</option>
                     <option value="SUSPENDED">SUSPENDED</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-400 block mb-1">Timezone</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Timezone</label>
                   <input
                     type="text"
                     value={editForm.timezone}
                     onChange={(e) => setEditForm({ ...editForm, timezone: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-200 outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="editSuperAdmin"
                     checked={editForm.isSuperAdmin}
                     onChange={(e) => setEditForm({ ...editForm, isSuperAdmin: e.target.checked })}
-                    className="rounded border-slate-800 bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label htmlFor="editSuperAdmin" className="text-slate-200 font-semibold cursor-pointer">
+                  <label htmlFor="editSuperAdmin" className="text-slate-800 dark:text-slate-200 font-semibold cursor-pointer">
                     Super Admin Authority
                   </label>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
-                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -1066,30 +1066,30 @@ export function PlatformUserDirectoryView({
       {/* ========================================================================= */}
       {isPasswordOpen && selectedUser && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-amber-400" />
                 Set / Reset User Password
               </h3>
-              <button onClick={() => setIsPasswordOpen(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setIsPasswordOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Target User Info */}
-            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-1">
-              <div className="text-xs font-semibold text-slate-200">
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1">
+              <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 {selectedUser.firstName} {selectedUser.lastName}
               </div>
-              <div className="text-[11px] text-slate-400 font-mono">{selectedUser.email}</div>
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">{selectedUser.email}</div>
             </div>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
               {/* Password Input & Generator */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-slate-400 font-medium">New Password *</label>
+                  <label className="text-slate-600 dark:text-slate-400 font-medium">New Password *</label>
                   <button
                     type="button"
                     onClick={generateStrongPassword}
@@ -1107,7 +1107,7 @@ export function PlatformUserDirectoryView({
                     placeholder="Enter or generate password..."
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-20 py-2 text-slate-200 font-mono outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-3 pr-20 py-2 text-slate-800 dark:text-slate-200 font-mono outline-none focus:border-amber-500"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     {newPassword && (
@@ -1119,7 +1119,7 @@ export function PlatformUserDirectoryView({
                           setTimeout(() => setCopiedPassword(false), 2000);
                           showSuccess('Password copied to clipboard');
                         }}
-                        className="p-1 text-slate-400 hover:text-slate-200"
+                        className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                         title="Copy to clipboard"
                       >
                         {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1128,7 +1128,7 @@ export function PlatformUserDirectoryView({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="p-1 text-slate-400 hover:text-slate-200"
+                      className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                     >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -1140,9 +1140,9 @@ export function PlatformUserDirectoryView({
                   <div className="space-y-1 pt-1">
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-slate-500">Password Strength:</span>
-                      <span className="font-semibold text-slate-300">{strength.label}</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{strength.label}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden flex gap-1">
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex gap-1">
                       <div className={`h-full flex-1 rounded-full ${strength.score >= 1 ? strength.color : 'bg-transparent'}`}></div>
                       <div className={`h-full flex-1 rounded-full ${strength.score >= 2 ? strength.color : 'bg-transparent'}`}></div>
                       <div className={`h-full flex-1 rounded-full ${strength.score >= 3 ? strength.color : 'bg-transparent'}`}></div>
@@ -1152,24 +1152,24 @@ export function PlatformUserDirectoryView({
               </div>
 
               {/* Revoke Active Sessions */}
-              <div className="flex items-center gap-2 p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+              <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
                 <input
                   type="checkbox"
                   id="revokeSessionsCheck"
                   checked={revokeSessions}
                   onChange={(e) => setRevokeSessions(e.target.checked)}
-                  className="rounded border-slate-800 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-amber-500 focus:ring-amber-500"
                 />
-                <label htmlFor="revokeSessionsCheck" className="text-slate-300 font-medium cursor-pointer">
+                <label htmlFor="revokeSessionsCheck" className="text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
                   Revoke all active browser sessions immediately
                 </label>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsPasswordOpen(false)}
-                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -1192,29 +1192,29 @@ export function PlatformUserDirectoryView({
       {/* ========================================================================= */}
       {isDeleteOpen && selectedUser && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400" />
                 Delete User Account Permanently
               </h3>
-              <button onClick={() => setIsDeleteOpen(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setIsDeleteOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-700 dark:text-slate-300">
               Are you sure you want to permanently delete user account <strong className="text-white">{selectedUser.email}</strong>?
             </p>
             <p className="text-xs text-rose-400/90 bg-rose-950/40 p-2.5 rounded-lg border border-rose-900/50">
               Warning: This action is irreversible. All sessions, workspace memberships, and project bindings will be removed.
             </p>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2 text-xs">
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => setIsDeleteOpen(false)}
-                className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium"
+                className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
               >
                 Cancel
               </button>

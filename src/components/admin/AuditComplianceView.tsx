@@ -199,7 +199,7 @@ export function AuditComplianceView() {
       case 'INFO':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
             <Info className="w-3 h-3" />
             INFO
           </span>
@@ -216,9 +216,9 @@ export function AuditComplianceView() {
       SECURITY: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
       CACHE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
       SETTINGS: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-      SYSTEM: 'bg-slate-700 text-slate-300 border-slate-600',
+      SYSTEM: 'bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-600',
     };
-    const style = colors[category] || 'bg-slate-800 text-slate-400 border-slate-700';
+    const style = colors[category] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700';
     return (
       <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${style}`}>
         {category}
@@ -232,14 +232,14 @@ export function AuditComplianceView() {
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
             <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
               <History className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-100 tracking-tight flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 Unified Audit Ledger & Compliance Engine
                 {autoRefresh && (
                   <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 animate-pulse">
@@ -248,7 +248,7 @@ export function AuditComplianceView() {
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Cryptographically tracked, immutable record of all lifecycle events, security mutations, PBAC modifications, and data access.
               </p>
             </div>
@@ -266,7 +266,7 @@ export function AuditComplianceView() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               autoRefresh
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+                : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:text-slate-800 dark:text-slate-200'
             }`}
           >
             <Radio className={`w-3.5 h-3.5 ${autoRefresh ? 'text-emerald-400 animate-pulse' : ''}`} />
@@ -276,7 +276,7 @@ export function AuditComplianceView() {
           {/* Export CSV */}
           <button
             onClick={() => handleExport('csv')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-xs transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-indigo-400" />
             <span>CSV</span>
@@ -285,7 +285,7 @@ export function AuditComplianceView() {
           {/* Export JSON */}
           <button
             onClick={() => handleExport('json')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-xs transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-purple-400" />
             <span>JSON</span>
@@ -305,12 +305,12 @@ export function AuditComplianceView() {
 
       {/* KPI Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Total Logged Events
             </span>
-            <span className="text-2xl font-black text-slate-100">
+            <span className="text-2xl font-black text-slate-900 dark:text-slate-100">
               {stats.totalEvents.toLocaleString()}
             </span>
           </div>
@@ -319,9 +319,9 @@ export function AuditComplianceView() {
           </div>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Today's Activity
             </span>
             <span className="text-2xl font-black text-emerald-400">
@@ -333,9 +333,9 @@ export function AuditComplianceView() {
           </div>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Critical & High Risk
             </span>
             <span className="text-2xl font-black text-rose-400">
@@ -347,9 +347,9 @@ export function AuditComplianceView() {
           </div>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Active Actors (Page)
             </span>
             <span className="text-2xl font-black text-cyan-400">
@@ -376,7 +376,7 @@ export function AuditComplianceView() {
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800/80 hover:bg-slate-800'
+                  : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:bg-slate-800'
               }`}
             >
               {cat.label}
@@ -386,9 +386,9 @@ export function AuditComplianceView() {
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Search */}
-        <div className="flex items-center gap-2 w-full md:w-96 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus-within:border-indigo-500/60 transition-colors">
+        <div className="flex items-center gap-2 w-full md:w-96 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus-within:border-indigo-500/60 transition-colors">
           <Search className="w-4 h-4 text-slate-500 shrink-0" />
           <input
             type="text"
@@ -398,7 +398,7 @@ export function AuditComplianceView() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="bg-transparent border-none outline-none w-full text-slate-200 placeholder-slate-500"
+            className="bg-transparent border-none outline-none w-full text-slate-800 dark:text-slate-200 placeholder-slate-500"
           />
           {search && (
             <button
@@ -406,7 +406,7 @@ export function AuditComplianceView() {
                 setSearch('');
                 setPage(1);
               }}
-              className="text-slate-500 hover:text-slate-300 text-xs"
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-300 text-xs"
             >
               ✕
             </button>
@@ -416,18 +416,18 @@ export function AuditComplianceView() {
         {/* Filters Group */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           {/* Severity Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5">
-            <Shield className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5">
+            <Shield className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 shrink-0" />
             <select
               value={severityFilter}
               onChange={(e) => {
                 setSeverityFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent border-none outline-none text-xs text-slate-200 cursor-pointer"
+              className="bg-transparent border-none outline-none text-xs text-slate-800 dark:text-slate-200 cursor-pointer"
             >
               {SEVERITIES.map((s) => (
-                <option key={s.id} value={s.id} className="bg-slate-900 text-slate-200">
+                <option key={s.id} value={s.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                   {s.label}
                 </option>
               ))}
@@ -435,21 +435,21 @@ export function AuditComplianceView() {
           </div>
 
           {/* Action Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 max-w-[200px]">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 max-w-[200px]">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 shrink-0" />
             <select
               value={actionFilter}
               onChange={(e) => {
                 setActionFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent border-none outline-none text-xs text-slate-200 cursor-pointer truncate"
+              className="bg-transparent border-none outline-none text-xs text-slate-800 dark:text-slate-200 cursor-pointer truncate"
             >
-              <option value="ALL" className="bg-slate-900 text-slate-200">
+              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                 All Actions ({totalCount})
               </option>
               {actionTypes.map((a) => (
-                <option key={a.action} value={a.action} className="bg-slate-900 text-slate-200">
+                <option key={a.action} value={a.action} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                   {a.action} ({a.count})
                 </option>
               ))}
@@ -457,7 +457,7 @@ export function AuditComplianceView() {
           </div>
 
           {/* Rows per page */}
-          <div className="flex items-center gap-1 text-xs text-slate-400">
+          <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
             <span>Show:</span>
             <select
               value={limit}
@@ -465,7 +465,7 @@ export function AuditComplianceView() {
                 setLimit(Number(e.target.value));
                 setPage(1);
               }}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200 outline-none"
             >
               <option value="25">25</option>
               <option value="50">50</option>
@@ -476,10 +476,10 @@ export function AuditComplianceView() {
       </div>
 
       {/* Main Audit Ledger Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/90 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800 tracking-wider">
+          <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-950/90 text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 tracking-wider">
               <tr>
                 <th className="p-3.5">Timestamp</th>
                 <th className="p-3.5">Category</th>
@@ -497,14 +497,14 @@ export function AuditComplianceView() {
                 <tr>
                   <td colSpan={9} className="p-12 text-center text-slate-500">
                     <RefreshCw className="w-7 h-7 animate-spin mx-auto text-indigo-400 mb-2" />
-                    <p className="text-xs font-semibold text-slate-400">Loading audit ledger entries...</p>
+                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Loading audit ledger entries...</p>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-12 text-center text-slate-500">
                     <History className="w-8 h-8 mx-auto text-slate-600 mb-2" />
-                    <p className="text-sm font-semibold text-slate-400">No matching audit records found</p>
+                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">No matching audit records found</p>
                     <p className="text-xs text-slate-500 mt-1">Try adjusting your search query, category, or severity filter.</p>
                   </td>
                 </tr>
@@ -514,11 +514,11 @@ export function AuditComplianceView() {
                   const isSuccess = log.status === 'SUCCESS';
 
                   return (
-                    <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={log.id} className="hover:bg-slate-100 dark:bg-slate-800/40 transition-colors">
                       {/* Timestamp */}
-                      <td className="p-3.5 text-slate-400 text-[11px] whitespace-nowrap font-mono">
+                      <td className="p-3.5 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap font-mono">
                         <div className="flex flex-col">
-                          <span className="text-slate-200 font-semibold">{date.toLocaleTimeString()}</span>
+                          <span className="text-slate-800 dark:text-slate-200 font-semibold">{date.toLocaleTimeString()}</span>
                           <span className="text-[10px] text-slate-500">{date.toLocaleDateString()}</span>
                         </div>
                       </td>
@@ -531,7 +531,7 @@ export function AuditComplianceView() {
 
                       {/* Action */}
                       <td className="p-3.5 whitespace-nowrap">
-                        <span className="inline-block font-mono font-bold text-slate-100 bg-slate-950/80 border border-slate-800 px-2 py-0.5 rounded text-[11px]">
+                        <span className="inline-block font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded text-[11px]">
                           {log.action}
                         </span>
                       </td>
@@ -547,11 +547,11 @@ export function AuditComplianceView() {
                             )}
                           </div>
                           <div className="truncate">
-                            <span className="font-semibold text-slate-200 block truncate text-[11px]" title={log.actorName}>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate text-[11px]" title={log.actorName}>
                               {log.actorName || 'System'}
                             </span>
                             {log.actorEmail && (
-                              <span className="text-[10px] text-slate-400 block truncate" title={log.actorEmail}>
+                              <span className="text-[10px] text-slate-600 dark:text-slate-400 block truncate" title={log.actorEmail}>
                                 {log.actorEmail}
                               </span>
                             )}
@@ -570,7 +570,7 @@ export function AuditComplianceView() {
                       </td>
 
                       {/* IP Address */}
-                      <td className="p-3.5 text-slate-400 text-[11px] font-mono whitespace-nowrap">
+                      <td className="p-3.5 text-slate-600 dark:text-slate-400 text-[11px] font-mono whitespace-nowrap">
                         {log.ipAddress || '127.0.0.1'}
                       </td>
 
@@ -593,7 +593,7 @@ export function AuditComplianceView() {
                       <td className="p-3.5 text-right whitespace-nowrap">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-[11px] font-semibold border border-slate-700 transition-colors shadow-xs"
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 hover:text-white rounded-lg text-[11px] font-semibold border border-slate-300 dark:border-slate-700 transition-colors shadow-xs"
                         >
                           <Eye className="w-3 h-3 inline mr-1 text-indigo-400" />
                           Inspect
@@ -608,12 +608,12 @@ export function AuditComplianceView() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-3.5 bg-slate-950/80 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <span>
-              Showing <strong className="text-slate-200">{logs.length > 0 ? (page - 1) * limit + 1 : 0}</strong> to{' '}
-              <strong className="text-slate-200">{Math.min(page * limit, totalCount)}</strong> of{' '}
-              <strong className="text-slate-200">{totalCount.toLocaleString()}</strong> events
+              Showing <strong className="text-slate-800 dark:text-slate-200">{logs.length > 0 ? (page - 1) * limit + 1 : 0}</strong> to{' '}
+              <strong className="text-slate-800 dark:text-slate-200">{Math.min(page * limit, totalCount)}</strong> of{' '}
+              <strong className="text-slate-800 dark:text-slate-200">{totalCount.toLocaleString()}</strong> events
             </span>
           </div>
 
@@ -621,25 +621,25 @@ export function AuditComplianceView() {
             <button
               onClick={() => setPage(1)}
               disabled={page <= 1}
-              className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-slate-900 transition-colors"
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-white dark:bg-slate-900 transition-colors"
             >
               First
             </button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-slate-900 transition-colors flex items-center gap-0.5"
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-white dark:bg-slate-900 transition-colors flex items-center gap-0.5"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               Prev
             </button>
-            <span className="px-2 text-slate-300 font-semibold font-mono">
+            <span className="px-2 text-slate-700 dark:text-slate-300 font-semibold font-mono">
               {page} / {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-slate-900 transition-colors flex items-center gap-0.5"
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-white dark:bg-slate-900 transition-colors flex items-center gap-0.5"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5" />
@@ -647,7 +647,7 @@ export function AuditComplianceView() {
             <button
               onClick={() => setPage(totalPages)}
               disabled={page >= totalPages}
-              className="px-2.5 py-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-slate-900 transition-colors"
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40 disabled:hover:bg-white dark:bg-slate-900 transition-colors"
             >
               Last
             </button>
@@ -658,21 +658,21 @@ export function AuditComplianceView() {
       {/* Audit Detail & Visual Diff Inspector Drawer/Modal */}
       {selectedLog && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     Audit Event Inspector
-                    <span className="font-mono text-xs font-semibold text-indigo-400 bg-slate-800 px-2 py-0.5 rounded">
+                    <span className="font-mono text-xs font-semibold text-indigo-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                       {selectedLog.action}
                     </span>
                   </h3>
-                  <span className="text-[11px] text-slate-400 font-mono">
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
                     ID: {selectedLog.id} • {new Date(selectedLog.createdAt).toISOString()}
                   </span>
                 </div>
@@ -681,14 +681,14 @@ export function AuditComplianceView() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={copyLogJson}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium border border-slate-700 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                 >
                   {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedId ? 'Copied' : 'Copy JSON'}</span>
                 </button>
                 <button
                   onClick={() => setSelectedLog(null)}
-                  className="text-slate-400 hover:text-slate-200 text-sm px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 transition-colors"
+                  className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-sm px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 transition-colors"
                 >
                   ✕
                 </button>
@@ -699,15 +699,15 @@ export function AuditComplianceView() {
             <div className="p-5 space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]">
               {/* Metadata Cards Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
                   <span className="text-slate-500 block mb-1">Category</span>
                   {getCategoryBadge(selectedLog.category)}
                 </div>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
                   <span className="text-slate-500 block mb-1">Severity</span>
                   {getSeverityBadge(selectedLog.severity)}
                 </div>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
                   <span className="text-slate-500 block mb-1">Execution Status</span>
                   {selectedLog.status === 'SUCCESS' ? (
                     <span className="font-bold text-emerald-400 flex items-center gap-1">
@@ -719,16 +719,16 @@ export function AuditComplianceView() {
                     </span>
                   )}
                 </div>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+                <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
                   <span className="text-slate-500 block mb-1">Source IP</span>
-                  <span className="font-mono text-slate-200">{selectedLog.ipAddress || '127.0.0.1'}</span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200">{selectedLog.ipAddress || '127.0.0.1'}</span>
                 </div>
               </div>
 
               {/* Actor & Target Resource */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
                     Authenticated Actor
                   </span>
                   <div className="flex items-center gap-2.5 pt-1">
@@ -736,15 +736,15 @@ export function AuditComplianceView() {
                       {selectedLog.actorName?.charAt(0) || 'U'}
                     </div>
                     <div>
-                      <span className="font-bold text-slate-100 block text-xs">{selectedLog.actorName || 'System'}</span>
-                      <span className="text-slate-400 font-mono text-[11px] block">{selectedLog.actorEmail}</span>
+                      <span className="font-bold text-slate-900 dark:text-slate-100 block text-xs">{selectedLog.actorName || 'System'}</span>
+                      <span className="text-slate-600 dark:text-slate-400 font-mono text-[11px] block">{selectedLog.actorEmail}</span>
                       <span className="text-slate-600 font-mono text-[10px] block">UID: {selectedLog.actorId}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 space-y-1.5">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
                     Target Resource Identifier
                   </span>
                   <div className="pt-1">
@@ -762,9 +762,9 @@ export function AuditComplianceView() {
 
               {/* Visual Change / Diff Inspector (if previousState or newState or changes exist) */}
               {(selectedLog.previousState || selectedLog.newState || selectedLog.changes) && (
-                <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 space-y-2.5">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-indigo-400" />
                       Visual Mutation Diff (Before vs After)
                     </span>
@@ -802,10 +802,10 @@ export function AuditComplianceView() {
 
               {/* Raw JSON Payload */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
                   Complete Structured Details Payload
                 </span>
-                <pre className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-indigo-300 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">
+                <pre className="p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-indigo-300 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">
                   {JSON.stringify(selectedLog.details || {}, null, 2)}
                 </pre>
               </div>

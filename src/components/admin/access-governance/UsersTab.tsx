@@ -338,13 +338,13 @@ export function UsersTab({
   return (
     <div className="space-y-4">
       {/* Top Header & Search */}
-      <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Users className="w-4 h-4 text-indigo-400" />
             Existing Users Directory ({totalRecords})
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             View existing accounts, manage multiple Permission Roles per user, and perform bulk role assignments.
           </p>
         </div>
@@ -360,7 +360,7 @@ export function UsersTab({
             </button>
             <button
               onClick={() => setSelectedUserIds([])}
-              className="px-2 py-1 text-slate-400 hover:text-slate-200"
+              className="px-2 py-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
             >
               Clear
             </button>
@@ -369,7 +369,7 @@ export function UsersTab({
       </div>
 
       {/* Filter & Pagination Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
@@ -380,12 +380,12 @@ export function UsersTab({
               setPage(1);
             }}
             placeholder="Search by name, email, or User ID..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Role:</span>
             <select
               value={roleFilter}
@@ -393,18 +393,18 @@ export function UsersTab({
                 setRoleFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer max-w-[140px]"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer max-w-[140px]"
             >
-              <option value="all" className="bg-slate-900">All Roles</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Roles</option>
               {activeRoles.map((r) => (
-                <option key={r.id} value={r.id} className="bg-slate-900">
+                <option key={r.id} value={r.id} className="bg-white dark:bg-slate-900">
                   {r.name}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Status:</span>
             <select
               value={statusFilter}
@@ -412,15 +412,15 @@ export function UsersTab({
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900">All Statuses</option>
-              <option value="ACTIVE" className="bg-slate-900">ACTIVE</option>
-              <option value="SUSPENDED" className="bg-slate-900">SUSPENDED</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Statuses</option>
+              <option value="ACTIVE" className="bg-white dark:bg-slate-900">ACTIVE</option>
+              <option value="SUSPENDED" className="bg-white dark:bg-slate-900">SUSPENDED</option>
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Page Size:</span>
             <select
               value={limit}
@@ -428,40 +428,40 @@ export function UsersTab({
                 setLimit(e.target.value as any);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer"
             >
-              <option value="25" className="bg-slate-900">25</option>
-              <option value="50" className="bg-slate-900">50</option>
-              <option value="100" className="bg-slate-900">100</option>
-              <option value="150" className="bg-slate-900">150</option>
-              <option value="250" className="bg-slate-900">250</option>
-              <option value="500" className="bg-slate-900">500</option>
-              <option value="all" className="bg-slate-900">All</option>
+              <option value="25" className="bg-white dark:bg-slate-900">25</option>
+              <option value="50" className="bg-white dark:bg-slate-900">50</option>
+              <option value="100" className="bg-white dark:bg-slate-900">100</option>
+              <option value="150" className="bg-white dark:bg-slate-900">150</option>
+              <option value="250" className="bg-white dark:bg-slate-900">250</option>
+              <option value="500" className="bg-white dark:bg-slate-900">500</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[10px]">
                 <th className="p-3 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={users.length > 0 && users.every((u) => selectedUserIds.includes(u.id))}
                     onChange={handleSelectPage}
-                    className="rounded bg-slate-900 border-slate-700 text-indigo-600 cursor-pointer"
+                    className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
                   />
                 </th>
-                <th className="p-3 font-bold text-slate-300">User Details</th>
-                <th className="p-3 font-bold text-slate-300">Assigned Permission Roles</th>
-                <th className="p-3 font-bold text-slate-300">Effective Perms</th>
-                <th className="p-3 font-bold text-slate-300">Projects</th>
-                <th className="p-3 font-bold text-slate-300">Status</th>
-                <th className="p-3 font-bold text-slate-300 text-right">Actions</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">User Details</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Assigned Permission Roles</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Effective Perms</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Projects</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300">Status</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -497,13 +497,13 @@ export function UsersTab({
                               e.target.checked ? [...prev, u.id] : prev.filter((id) => id !== u.id)
                             );
                           }}
-                          className="rounded bg-slate-900 border-slate-700 text-indigo-600 cursor-pointer"
+                          className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
                         />
                       </td>
 
                       <td className="p-3">
-                        <div className="font-bold text-slate-200">{u.name}</div>
-                        <div className="text-[11px] text-slate-400">{u.email}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200">{u.name}</div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400">{u.email}</div>
                         <div className="text-[10px] text-slate-500 font-mono">
                           ID: {u.id.slice(0, 10)}... • {u.jobTitle}
                         </div>
@@ -544,8 +544,8 @@ export function UsersTab({
 
                             {/* Inline Role Selector Dropdown */}
                             {inlineDropdownUserId === u.id && (
-                              <div className="absolute left-0 top-full mt-1 z-40 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 min-w-[200px] space-y-1">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800">
+                              <div className="absolute left-0 top-full mt-1 z-40 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl p-2 min-w-[200px] space-y-1">
+                                <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-200 dark:border-slate-800">
                                   Assign Permission Role
                                 </div>
                                 {(() => {
@@ -557,7 +557,7 @@ export function UsersTab({
                                     <button
                                       key={r.id}
                                       onClick={() => handleAssignRoleInline(u.id, r.id)}
-                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-600/20 hover:text-indigo-200 text-slate-300 rounded text-xs flex items-center justify-between transition-colors"
+                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-600/20 hover:text-indigo-200 text-slate-700 dark:text-slate-300 rounded text-xs flex items-center justify-between transition-colors"
                                     >
                                       <span className="font-semibold">{r.name}</span>
                                       <span className="text-[10px] text-slate-500 font-mono">
@@ -566,10 +566,10 @@ export function UsersTab({
                                     </button>
                                   ));
                                 })()}
-                                <div className="pt-1 border-t border-slate-800 flex justify-end">
+                                <div className="pt-1 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                                   <button
                                     onClick={() => setInlineDropdownUserId(null)}
-                                    className="text-[10px] text-slate-400 hover:text-slate-200 px-2 py-0.5"
+                                    className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 px-2 py-0.5"
                                   >
                                     Close
                                   </button>
@@ -588,7 +588,7 @@ export function UsersTab({
                       </td>
 
                       <td className="p-3">
-                        <div className="text-slate-300 font-medium">{u.projects?.length || 0} Projects</div>
+                        <div className="text-slate-700 dark:text-slate-300 font-medium">{u.projects?.length || 0} Projects</div>
                         <div className="text-[10px] text-slate-500">{u.workspaces?.length || 0} Workspaces</div>
                       </td>
 
@@ -616,7 +616,7 @@ export function UsersTab({
                           <button
                             onClick={() => onInspectUser(u.id)}
                             title="Inspect Access Provenance"
-                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium border border-slate-700 flex items-center gap-1"
+                            className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-medium border border-slate-300 dark:border-slate-700 flex items-center gap-1"
                           >
                             <Eye className="w-3.5 h-3.5 text-indigo-400" />
                             Inspect Provenance
@@ -632,10 +632,10 @@ export function UsersTab({
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
           <div>
-            Showing <span className="font-bold text-slate-200">{users.length}</span> of{' '}
-            <span className="font-bold text-slate-200">{totalRecords}</span> users
+            Showing <span className="font-bold text-slate-800 dark:text-slate-200">{users.length}</span> of{' '}
+            <span className="font-bold text-slate-800 dark:text-slate-200">{totalRecords}</span> users
           </div>
 
           {limit !== 'all' && totalPages > 1 && (
@@ -643,33 +643,33 @@ export function UsersTab({
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(1)}
-                className="px-2 py-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 First
               </button>
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <span className="px-3 py-1 font-semibold text-slate-200">
+              <span className="px-3 py-1 font-semibold text-slate-800 dark:text-slate-200">
                 Page {page} of {totalPages}
               </span>
 
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(totalPages)}
-                className="px-2 py-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 Last
               </button>
@@ -681,20 +681,20 @@ export function UsersTab({
       {/* 1. BULK ROLE ASSIGNMENT & PRE-FLIGHT PREVIEW MODAL */}
       {isBulkAssignOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-xl shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-indigo-400" />
                   Bulk Assign Permission Role
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Assign an existing Permission Role to {selectedUserIds.length} selected users.
                 </p>
               </div>
               <button
                 onClick={() => setIsBulkAssignOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -702,17 +702,17 @@ export function UsersTab({
 
             {/* Select Role */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-300">Select Existing Permission Role *</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Select Existing Permission Role *</label>
               <select
                 value={bulkRoleId}
                 onChange={(e) => {
                   setBulkRoleId(e.target.value);
                   runSimulation(e.target.value);
                 }}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-semibold"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 font-semibold"
               >
                 {activeRoles.map((r) => (
-                  <option key={r.id} value={r.id} className="bg-slate-900">
+                  <option key={r.id} value={r.id} className="bg-white dark:bg-slate-900">
                     {r.name} ({r.permissions?.length || r.permissionCount || 0} permissions)
                   </option>
                 ))}
@@ -720,33 +720,33 @@ export function UsersTab({
             </div>
 
             {/* Pre-Flight Impact Preview */}
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 <span>Pre-Flight Impact Assessment</span>
                 {simulating && <span className="text-indigo-400 text-[10px]">Calculating...</span>}
               </div>
 
               {simulation ? (
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
                     <div className="text-lg font-bold text-emerald-400">
                       {simulation.newAssignments}
                     </div>
-                    <span className="text-[10px] text-slate-400">New Assignments</span>
+                    <span className="text-[10px] text-slate-600 dark:text-slate-400">New Assignments</span>
                   </div>
 
-                  <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                    <div className="text-lg font-bold text-slate-300">
+                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <div className="text-lg font-bold text-slate-700 dark:text-slate-300">
                       {simulation.alreadyAssigned}
                     </div>
-                    <span className="text-[10px] text-slate-400">Already Assigned</span>
+                    <span className="text-[10px] text-slate-600 dark:text-slate-400">Already Assigned</span>
                   </div>
 
-                  <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
                     <div className="text-lg font-bold text-rose-400">
                       {simulation.cannotBeAssigned}
                     </div>
-                    <span className="text-[10px] text-slate-400">Cannot Assign</span>
+                    <span className="text-[10px] text-slate-600 dark:text-slate-400">Cannot Assign</span>
                   </div>
                 </div>
               ) : (
@@ -767,11 +767,11 @@ export function UsersTab({
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setIsBulkAssignOpen(false)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Cancel
               </button>
@@ -791,18 +791,18 @@ export function UsersTab({
       {/* 2. USER ACCESS PROFILE DRAWER */}
       {isProfileOpen && selectedUserProfile && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end">
-          <div className="bg-slate-900 border-l border-slate-800 w-full max-w-lg h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-200">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+          <div className="bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 w-full max-w-lg h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-200">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
               <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-400" />
                   User Access Profile
                 </h4>
-                <p className="text-xs text-slate-400">{selectedUserProfile.name} ({selectedUserProfile.email})</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">{selectedUserProfile.name} ({selectedUserProfile.email})</p>
               </div>
               <button
                 onClick={() => setIsProfileOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -810,9 +810,9 @@ export function UsersTab({
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {/* User Identity Info */}
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-300 text-sm">{selectedUserProfile.name}</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{selectedUserProfile.name}</span>
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       selectedUserProfile.status === 'ACTIVE'
@@ -823,18 +823,18 @@ export function UsersTab({
                     {selectedUserProfile.status}
                   </span>
                 </div>
-                <div className="text-slate-400">{selectedUserProfile.email}</div>
+                <div className="text-slate-600 dark:text-slate-400">{selectedUserProfile.email}</div>
                 <div className="text-slate-500 font-mono text-[10px]">ID: {selectedUserProfile.id}</div>
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-slate-400">
-                  <span>Job Title: <strong className="text-slate-200">{selectedUserProfile.jobTitle}</strong></span>
-                  <span>Company: <strong className="text-slate-200">{selectedUserProfile.company}</strong></span>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-slate-600 dark:text-slate-400">
+                  <span>Job Title: <strong className="text-slate-800 dark:text-slate-200">{selectedUserProfile.jobTitle}</strong></span>
+                  <span>Company: <strong className="text-slate-800 dark:text-slate-200">{selectedUserProfile.company}</strong></span>
                 </div>
               </div>
 
               {/* Assigned Roles List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                     Assigned Permission Roles ({selectedUserProfile.assignedRoles?.length || 0})
                   </h4>
                   <button
@@ -847,11 +847,11 @@ export function UsersTab({
                 </div>
 
                 {/* Add Role Picker */}
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center gap-2">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-2">
                   <select
                     value={singleRoleToAdd}
                     onChange={(e) => setSingleRoleToAdd(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                    className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">+ Select Existing Role to Assign...</option>
                     {(() => {
@@ -860,7 +860,7 @@ export function UsersTab({
                       );
                       const displayList = unassigned.length > 0 ? unassigned : activeRoles;
                       return displayList.map((r: any) => (
-                        <option key={r.id} value={r.id} className="bg-slate-900">
+                        <option key={r.id} value={r.id} className="bg-white dark:bg-slate-900">
                           {r.name} ({r.permissions?.length || r.permissionCount || 0} permissions)
                         </option>
                       ));
@@ -879,17 +879,17 @@ export function UsersTab({
                 {/* Assigned Roles List */}
                 <div className="space-y-2">
                   {(selectedUserProfile.assignedRoles || []).length === 0 ? (
-                    <div className="text-center py-6 text-xs text-slate-500 bg-slate-950/60 rounded-xl border border-slate-800">
+                    <div className="text-center py-6 text-xs text-slate-500 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
                       No Permission Roles assigned to this user.
                     </div>
                   ) : (
                     selectedUserProfile.assignedRoles.map((role: any) => (
                       <div
                         key={role.id}
-                        className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                        className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
                       >
                         <div className="space-y-0.5">
-                          <div className="font-bold text-slate-200 flex items-center gap-2">
+                          <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                             {role.name}
                             <span className="text-[10px] text-indigo-400 font-mono">
                               ({role.permissions?.length || role.permissionCount || 0} perms)
@@ -913,26 +913,26 @@ export function UsersTab({
 
               {/* Resource Access (Where User Can Do It) */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                   Resource Boundaries (Where Access is Valid)
                 </h4>
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2 text-xs">
+                <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
                   <div>
-                    <span className="font-bold text-slate-300">Projects ({selectedUserProfile.projects?.length || 0}):</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Projects ({selectedUserProfile.projects?.length || 0}):</span>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {(selectedUserProfile.projects || []).map((p: any) => (
-                        <span key={p.id} className="px-2 py-0.5 bg-slate-900 text-slate-300 rounded text-[10px] border border-slate-800 font-mono">
+                        <span key={p.id} className="px-2 py-0.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded text-[10px] border border-slate-200 dark:border-slate-800 font-mono">
                           {p.name} ({p.key})
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800">
-                    <span className="font-bold text-slate-300">Workspaces ({selectedUserProfile.workspaces?.length || 0}):</span>
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Workspaces ({selectedUserProfile.workspaces?.length || 0}):</span>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {(selectedUserProfile.workspaces || []).map((w: any) => (
-                        <span key={w.id} className="px-2 py-0.5 bg-slate-900 text-slate-300 rounded text-[10px] border border-slate-800">
+                        <span key={w.id} className="px-2 py-0.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded text-[10px] border border-slate-200 dark:border-slate-800">
                           {w.name}
                         </span>
                       ))}
@@ -942,10 +942,10 @@ export function UsersTab({
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-950 text-right">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-right">
               <button
                 onClick={() => setIsProfileOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Close
               </button>

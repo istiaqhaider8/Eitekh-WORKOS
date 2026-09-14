@@ -132,13 +132,13 @@ export function AccessMatrixTab({
   return (
     <div className="space-y-4">
       {/* Top Header & Actions */}
-      <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
             User Access Governance Matrix ({totalRecords} Governed Users)
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             Real-time matrix mapping governed existing users to assigned Permission Roles with full export capabilities.
           </p>
         </div>
@@ -146,7 +146,7 @@ export function AccessMatrixTab({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsExportOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
           >
             <Download className="w-3.5 h-3.5 text-indigo-400" />
             <span>Export Matrix</span>
@@ -155,7 +155,7 @@ export function AccessMatrixTab({
       </div>
 
       {/* Filter & Pagination Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
@@ -166,12 +166,12 @@ export function AccessMatrixTab({
               setPage(1);
             }}
             placeholder="Search by user name, email, or User ID..."
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Role:</span>
             <select
               value={roleFilter}
@@ -179,18 +179,18 @@ export function AccessMatrixTab({
                 setRoleFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer max-w-[140px]"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer max-w-[140px]"
             >
-              <option value="all" className="bg-slate-900">All Roles</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Roles</option>
               {roles.map((r) => (
-                <option key={r.id} value={r.id} className="bg-slate-900">
+                <option key={r.id} value={r.id} className="bg-white dark:bg-slate-900">
                   {r.name}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Status:</span>
             <select
               value={statusFilter}
@@ -198,15 +198,15 @@ export function AccessMatrixTab({
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900">All Statuses</option>
-              <option value="ACTIVE" className="bg-slate-900">ACTIVE</option>
-              <option value="SUSPENDED" className="bg-slate-900">SUSPENDED</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All Statuses</option>
+              <option value="ACTIVE" className="bg-white dark:bg-slate-900">ACTIVE</option>
+              <option value="SUSPENDED" className="bg-white dark:bg-slate-900">SUSPENDED</option>
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 font-medium">Rows:</span>
             <select
               value={limit}
@@ -214,32 +214,32 @@ export function AccessMatrixTab({
                 setLimit(e.target.value as any);
                 setPage(1);
               }}
-              className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer"
             >
-              <option value="25" className="bg-slate-900">25</option>
-              <option value="50" className="bg-slate-900">50</option>
-              <option value="100" className="bg-slate-900">100</option>
-              <option value="150" className="bg-slate-900">150</option>
-              <option value="250" className="bg-slate-900">250</option>
-              <option value="500" className="bg-slate-900">500</option>
-              <option value="all" className="bg-slate-900">All</option>
+              <option value="25" className="bg-white dark:bg-slate-900">25</option>
+              <option value="50" className="bg-white dark:bg-slate-900">50</option>
+              <option value="100" className="bg-white dark:bg-slate-900">100</option>
+              <option value="150" className="bg-white dark:bg-slate-900">150</option>
+              <option value="250" className="bg-white dark:bg-slate-900">250</option>
+              <option value="500" className="bg-white dark:bg-slate-900">500</option>
+              <option value="all" className="bg-white dark:bg-slate-900">All</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Matrix Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
-                <th className="p-3 font-bold text-slate-300 min-w-[200px]">User & Identity</th>
-                <th className="p-3 font-bold text-slate-300 min-w-[120px]">Account Status</th>
-                <th className="p-3 font-bold text-slate-300 min-w-[220px]">Assigned Permission Roles</th>
-                <th className="p-3 font-bold text-slate-300 min-w-[140px]">Effective Perms</th>
-                <th className="p-3 font-bold text-slate-300 min-w-[160px]">Resource Boundaries</th>
-                <th className="p-3 font-bold text-slate-300 text-right">Actions</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[10px]">
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 min-w-[200px]">User & Identity</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 min-w-[120px]">Account Status</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 min-w-[220px]">Assigned Permission Roles</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 min-w-[140px]">Effective Perms</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 min-w-[160px]">Resource Boundaries</th>
+                <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -259,8 +259,8 @@ export function AccessMatrixTab({
                 matrixUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-850/60 transition-colors">
                     <td className="p-3">
-                      <div className="font-bold text-slate-200">{u.name}</div>
-                      <div className="text-[11px] text-slate-400">{u.email}</div>
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{u.name}</div>
+                      <div className="text-[11px] text-slate-600 dark:text-slate-400">{u.email}</div>
                       <div className="text-[10px] text-slate-500">{u.jobTitle} • {u.company}</div>
                     </td>
 
@@ -301,7 +301,7 @@ export function AccessMatrixTab({
                     </td>
 
                     <td className="p-3">
-                      <div className="text-slate-300 text-xs font-medium">
+                      <div className="text-slate-700 dark:text-slate-300 text-xs font-medium">
                         {u.projects?.length || 0} Projects Active
                       </div>
                       <div className="text-[10px] text-slate-500">
@@ -312,7 +312,7 @@ export function AccessMatrixTab({
                     <td className="p-3 text-right">
                       <button
                         onClick={() => onInspectUser(u.id)}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium border border-slate-700 flex items-center gap-1.5 ml-auto"
+                        className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-medium border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 ml-auto"
                       >
                         <Eye className="w-3.5 h-3.5 text-indigo-400" />
                         <span>Inspect Provenance</span>
@@ -326,10 +326,10 @@ export function AccessMatrixTab({
         </div>
 
         {/* Pagination Controls */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
           <div>
-            Showing <span className="font-bold text-slate-200">{matrixUsers.length}</span> of{' '}
-            <span className="font-bold text-slate-200">{totalRecords}</span> governed users
+            Showing <span className="font-bold text-slate-800 dark:text-slate-200">{matrixUsers.length}</span> of{' '}
+            <span className="font-bold text-slate-800 dark:text-slate-200">{totalRecords}</span> governed users
           </div>
 
           {limit !== 'all' && totalPages > 1 && (
@@ -337,33 +337,33 @@ export function AccessMatrixTab({
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(1)}
-                className="px-2 py-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 First
               </button>
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <span className="px-3 py-1 font-semibold text-slate-200">
+              <span className="px-3 py-1 font-semibold text-slate-800 dark:text-slate-200">
                 Page {page} of {totalPages}
               </span>
 
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(totalPages)}
-                className="px-2 py-1 bg-slate-900 border border-slate-800 rounded disabled:opacity-40 hover:bg-slate-800"
+                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
               >
                 Last
               </button>
@@ -375,29 +375,29 @@ export function AccessMatrixTab({
       {/* EXPORT MODAL */}
       {isExportOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Download className="w-4 h-4 text-indigo-400" />
                 Export Access Governance Matrix
               </h4>
               <button
                 onClick={() => setIsExportOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Export will include all <strong className="text-slate-200">{totalRecords} authorized records</strong> matching the active filter, including assigned roles and effective permissions count.
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Export will include all <strong className="text-slate-800 dark:text-slate-200">{totalRecords} authorized records</strong> matching the active filter, including assigned roles and effective permissions count.
             </p>
 
             <div className="space-y-2 pt-2">
               <button
                 onClick={() => handleExport('csv')}
                 disabled={exporting}
-                className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-200 transition-all"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
               >
                 <div className="flex items-center gap-2.5">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
@@ -409,7 +409,7 @@ export function AccessMatrixTab({
               <button
                 onClick={() => handleExport('excel')}
                 disabled={exporting}
-                className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-200 transition-all"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
               >
                 <div className="flex items-center gap-2.5">
                   <FileSpreadsheet className="w-4 h-4 text-blue-400" />
@@ -421,7 +421,7 @@ export function AccessMatrixTab({
               <button
                 onClick={() => handleExport('pdf')}
                 disabled={exporting}
-                className="w-full flex items-center justify-between p-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-200 transition-all"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
               >
                 <div className="flex items-center gap-2.5">
                   <Printer className="w-4 h-4 text-purple-400" />
@@ -431,10 +431,10 @@ export function AccessMatrixTab({
               </button>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 text-right">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-right">
               <button
                 onClick={() => setIsExportOpen(false)}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Close
               </button>
