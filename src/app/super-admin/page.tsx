@@ -988,6 +988,7 @@ export default function SuperAdminCommandCenterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {orgs.map((o) => {
                 const isSuspended = o.status === "SUSPENDED";
+                const totalProjects = o.workspaces?.reduce((acc: number, w: any) => acc + (w.projects?.length || w._count?.projects || 0), 0) || 0;
                 return (
                   <div
                     key={o.id}
@@ -1008,13 +1009,56 @@ export default function SuperAdminCommandCenterPage() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400">Domain: {o.domain || "Not configured"}</p>
+
+                      {/* Workspaces & Projects Hierarchy Breakdown */}
+                      {o.workspaces && o.workspaces.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-1.5 text-[11px]">
+                          <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider block">Workspaces & Projects Hierarchy</span>
+                          {o.workspaces.map((w: any) => (
+                            <div key={w.id} className="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200/80 dark:border-slate-800/80 space-y-1">
+                              <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
+                                <span className="flex items-center gap-1">
+                                  <Layers className="w-3 h-3 text-indigo-400" />
+                                  {w.name}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono">({w.projects?.length || w._count?.projects || 0} projects)</span>
+                              </div>
+                              {w.projects && w.projects.length > 0 && (
+                                <div className="pl-3 border-l-2 border-indigo-500/30 space-y-0.5 mt-1">
+                                  {w.projects.map((p: any) => (
+                                    <div key={p.id} className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400">
+                                      <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+                                        <FolderGit2 className="w-2.5 h-2.5 text-purple-400" />
+                                        {p.name} <span className="text-purple-500 font-mono">[{p.key}]</span>
+                                      </span>
+                                      <span className="text-[9px] px-1 py-0.2 bg-slate-200 dark:bg-slate-800 rounded font-semibold uppercase">{p.status || "ACTIVE"}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-500">
-                        {o._count?.members ?? o.members?.length ?? 0} members | {o._count?.workspaces ?? o.workspaces?.length ?? 0} workspaces
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        {o._count?.members ?? o.members?.length ?? 0} members | {o._count?.workspaces ?? o.workspaces?.length ?? 0} workspaces | {totalProjects} projects
                       </span>
                       <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setActiveTab("workspaces-projects");
+                            if (typeof window !== "undefined") {
+                              window.history.replaceState(null, "", "?tab=workspaces-projects");
+                            }
+                          }}
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-400 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                          title="Manage Workspaces & Projects for this Organization"
+                        >
+                          <FolderGit2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => {
                             setActiveOrg(o);

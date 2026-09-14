@@ -30,6 +30,21 @@ export async function GET() {
                 members: true,
               },
             },
+            projects: {
+              select: {
+                id: true,
+                key: true,
+                name: true,
+                status: true,
+                template: true,
+                _count: {
+                  select: {
+                    issues: true,
+                    members: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
