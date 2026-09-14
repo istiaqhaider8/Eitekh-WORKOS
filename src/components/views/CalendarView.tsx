@@ -51,6 +51,7 @@ import { isUserOnLeave, formatLeaveRange } from '@/lib/leave-engine';
 import { AnalyticsDrillDownModal } from '@/components/analytics/AnalyticsDrillDownModal';
 
 import { ReportViewModal } from '@/components/analytics/ReportViewModal';
+import { isIssueDone, getIssueKeyClass } from '@/lib/designSystem';
 
 interface CalendarViewProps {
   issues: any[];
@@ -1279,7 +1280,7 @@ export function CalendarView({
                         isSelected ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-100'
                       } w-3 h-3`}
                     />
-                    <span className="font-mono font-bold text-[10px] text-blue-400 group-hover/card:text-blue-300">
+                    <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-[10px]")}>
                       {issue.issueKey}
                     </span>
                   </div>
@@ -2012,7 +2013,7 @@ export function CalendarView({
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-blue-400">
+                            <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-xs")}>
                               {issue.issueKey}
                             </span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-md shadow-2xs ${getPriorityBadgeClass(issue.priority)}`}>
@@ -2203,7 +2204,7 @@ export function CalendarView({
                   className="p-2 bg-white dark:bg-slate-800/70 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700/70 hover:border-amber-500/50 rounded-lg transition-all cursor-grab active:cursor-grabbing group shadow-2xs"
                 >
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono font-bold text-amber-400 group-hover:text-amber-300">
+                    <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-[10px]")}>
                       {issue.issueKey}
                     </span>
                     <span
@@ -2320,7 +2321,7 @@ export function CalendarView({
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold text-blue-400">
+                          <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-xs")}>
                             {issue.issueKey}
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-2xs">

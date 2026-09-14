@@ -21,6 +21,7 @@ import {
 import { showSuccess, showError } from "@/lib/toast";
 import { doesLeaveOverlap, formatLeaveRange } from "@/lib/leave-engine";
 import { isDelegationActive } from "@/lib/delegation-engine";
+import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 
 interface TimelineGanttViewProps {
@@ -926,7 +927,7 @@ export function TimelineGanttView({
                             style={priorityTheme.customColor ? { backgroundColor: priorityTheme.customColor } : undefined}
                             title={`Priority: ${priorityTheme.name || issue.priority}`}
                           />
-                          <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs shrink-0">
+                          <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-xs shrink-0")}>
                             {issue.issueKey}
                           </span>
                           {(() => {
@@ -1074,7 +1075,7 @@ export function TimelineGanttView({
                             {spanCols > 1 ? (
                               <span className="truncate">{issue.title}</span>
                             ) : (
-                              <span className="truncate text-[10px] font-mono opacity-90">{issue.issueKey}</span>
+                              <span className={`truncate text-[10px] font-mono opacity-90 ${isIssueDone(issue, statuses) ? "line-through" : ""}`}>{issue.issueKey}</span>
                             )}
                           </div>
 

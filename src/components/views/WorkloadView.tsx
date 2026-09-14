@@ -47,6 +47,7 @@ import { AnalyticsDrillDownModal } from '@/components/analytics/AnalyticsDrillDo
 
 import { ReportViewModal } from '@/components/analytics/ReportViewModal';
 import { SmartRebalanceModal } from '@/components/workload/SmartRebalanceModal';
+import { isIssueDone, getIssueKeyClass } from '@/lib/designSystem';
 
 interface WorkloadViewProps {
   issues: any[];
@@ -1745,11 +1746,10 @@ export function WorkloadView({
                               )}
                             </div>
 
-                            {isDone ? (
+                            {isDone && (
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            ) : (
-                              <span className="font-mono font-bold text-primary shrink-0">{issue.issueKey}</span>
                             )}
+                            <span className={getIssueKeyClass(isDone, "text-xs shrink-0")}>{issue.issueKey}</span>
 
                             <span className={`truncate max-w-[160px] font-medium text-foreground ${
                               isDone ? 'line-through text-muted-foreground' : ''
@@ -1924,7 +1924,7 @@ export function WorkloadView({
                           )}
                         </div>
 
-                        <span className="font-mono font-bold text-muted-foreground">{issue.issueKey}</span>
+                        <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-xs")}>{issue.issueKey}</span>
                         <span className="truncate max-w-[160px] text-foreground font-medium">{issue.title}</span>
 
                         {issue.status && (

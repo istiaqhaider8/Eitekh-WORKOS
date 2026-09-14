@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { isDelegationActive } from "@/lib/delegation-engine";
+import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 interface ListViewProps {
   issues: any[];
@@ -405,8 +406,10 @@ export function ListView({
                     <td className="py-3 px-3.5">{renderTypeIcon(issue.issueType)}</td>
 
                     {/* Key */}
-                    <td className="py-3 px-3 font-mono font-bold text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {issue.issueKey}
+                    <td className="py-3 px-3">
+                      <span className={getIssueKeyClass(isIssueDone(issue, statuses))}>
+                        {issue.issueKey}
+                      </span>
                     </td>
 
                     {/* Title */}

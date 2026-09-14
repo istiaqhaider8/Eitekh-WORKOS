@@ -33,9 +33,11 @@ import {
   Zap,
   Target,
   Info,
+  Bookmark,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { StartSprintModal } from "@/components/sprints/StartSprintModal";
+import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 function highlightMatch(text: string, query: string) {
   if (!text || !query.trim()) return text;
@@ -935,8 +937,17 @@ export function ScrumBacklogView({
             title={`Priority: ${getPriorityName(issue.priority)}`}
           />
 
+          {/* Issue Type Icon */}
+          {(() => {
+            const typeUpper = (issue.issueType || "TASK").toUpperCase();
+            if (typeUpper === "BUG") return <span title="Bug" className="shrink-0 flex items-center"><AlertCircle className="w-3.5 h-3.5 text-rose-500" /></span>;
+            if (typeUpper === "STORY") return <span title="Story" className="shrink-0 flex items-center"><Bookmark className="w-3.5 h-3.5 text-emerald-500" /></span>;
+            if (typeUpper === "EPIC") return <span title="Epic" className="shrink-0 flex items-center"><Zap className="w-3.5 h-3.5 text-purple-500" /></span>;
+            return <span title="Task" className="shrink-0 flex items-center"><CheckSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /></span>;
+          })()}
+
           {/* Issue Key */}
-          <span className="font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">
+          <span className={getIssueKeyClass(isDone, "shrink-0")}>
             {issue.issueKey}
           </span>
 
@@ -1470,8 +1481,17 @@ export function ScrumBacklogView({
                                 title={`Priority: ${getPriorityName(issue.priority)}`}
                               />
 
+                              {/* Issue Type Icon */}
+                              {(() => {
+                                const typeUpper = (issue.issueType || "TASK").toUpperCase();
+                                if (typeUpper === "BUG") return <span title="Bug" className="shrink-0 flex items-center"><AlertCircle className="w-3.5 h-3.5 text-rose-500" /></span>;
+                                if (typeUpper === "STORY") return <span title="Story" className="shrink-0 flex items-center"><Bookmark className="w-3.5 h-3.5 text-emerald-500" /></span>;
+                                if (typeUpper === "EPIC") return <span title="Epic" className="shrink-0 flex items-center"><Zap className="w-3.5 h-3.5 text-purple-500" /></span>;
+                                return <span title="Task" className="shrink-0 flex items-center"><CheckSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /></span>;
+                              })()}
+
                               {/* Issue Key */}
-                              <span className="font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                              <span className={getIssueKeyClass(isIssueDone(issue, statuses), "shrink-0")}>
                                 {issue.issueKey}
                               </span>
 
@@ -2822,7 +2842,7 @@ export function ScrumBacklogView({
                     sprintIssues.map((issue) => (
                       <div key={issue.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs border border-slate-200 dark:border-slate-700/80">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">{issue.issueKey}</span>
+                          <span className={getIssueKeyClass(isIssueDone(issue, statuses), "shrink-0")}>{issue.issueKey}</span>
                           <span className="truncate text-slate-800 dark:text-slate-200">{issue.title}</span>
                         </div>
                         <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 shrink-0">

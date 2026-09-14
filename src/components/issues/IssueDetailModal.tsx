@@ -41,6 +41,7 @@ import {
 import { showSuccess, showError } from "@/lib/toast";
 import { isUserOnLeave, doesLeaveOverlap, formatLeaveRange } from "@/lib/leave-engine";
 import { isDelegationActive } from "@/lib/delegation-engine";
+import { isIssueDone } from "@/lib/designSystem";
 
 
 interface IssueDetailModalProps {
@@ -1344,7 +1345,13 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Modal Header */}
         <div className="h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0">
           <div className="flex items-center gap-2.5">
-            <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/80 shadow-2xs">
+            <span
+              className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border shadow-2xs transition-all ${
+                !isCreateMode && isIssueDone(issue, projectStatuses)
+                  ? "line-through text-blue-600/75 dark:text-blue-400/75 decoration-blue-600 dark:decoration-blue-400 decoration-2 bg-blue-50/50 dark:bg-blue-950/40 border-blue-200/50 dark:border-blue-800/50"
+                  : "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 border-blue-200/80 dark:border-blue-800/80"
+              }`}
+            >
               {isCreateMode ? "NEW TASK" : issue?.issueKey || "..."}
             </span>
             <button
@@ -2787,7 +2794,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-mono font-bold text-[10px]">
                               {dep.type}
                             </span>
-                            <span className="font-mono font-semibold text-blue-600">{dep.targetIssue?.issueKey}</span>
+                            <span className={`font-mono font-semibold ${isIssueDone(dep.targetIssue) ? "line-through text-blue-600/70 dark:text-blue-400/70 decoration-blue-600" : "text-blue-600 dark:text-blue-400"}`}>{dep.targetIssue?.issueKey}</span>
                             <span className="text-slate-700 dark:text-slate-300 truncate max-w-xs">{dep.targetIssue?.title}</span>
                           </div>
                           <button
@@ -2816,7 +2823,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-mono font-bold text-[10px]">
                               {dep.type}
                             </span>
-                            <span className="font-mono font-semibold text-blue-600">{dep.sourceIssue?.issueKey}</span>
+                            <span className={`font-mono font-semibold ${isIssueDone(dep.sourceIssue) ? "line-through text-blue-600/70 dark:text-blue-400/70 decoration-blue-600" : "text-blue-600 dark:text-blue-400"}`}>{dep.sourceIssue?.issueKey}</span>
                             <span className="text-slate-700 dark:text-slate-300 truncate max-w-xs">{dep.sourceIssue?.title}</span>
                           </div>
                           <button

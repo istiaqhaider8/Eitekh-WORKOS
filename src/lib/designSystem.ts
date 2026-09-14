@@ -93,3 +93,33 @@ export function getPriorityStyle(priority: string, customPriorities: any[] = [])
     bgClass: "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900",
   };
 }
+
+/**
+ * Checks if an issue has reached a "DONE" or resolved status
+ */
+export function isIssueDone(issue: any, statuses?: any[]): boolean {
+  if (!issue) return false;
+  const statusObj = issue.status || (statuses && issue.statusId ? statuses.find((s: any) => s.id === issue.statusId) : null);
+  if (!statusObj) {
+    if (issue.statusId && typeof issue.statusId === "string" && issue.statusId.toLowerCase().includes("done")) {
+      return true;
+    }
+    return false;
+  }
+  const category = (statusObj.category || "").toUpperCase();
+  if (category === "DONE" || category === "COMPLETED" || category === "RESOLVED") return true;
+  const name = (statusObj.name || "").toLowerCase();
+  return name.includes("done") || name.includes("closed") || name.includes("resolved") || name.includes("completed");
+}
+
+/**
+ * Returns Jira-standard styling for issue keys:
+ * When completed/done, renders with strikethrough (line-through decoration-blue-600)
+ */
+export function getIssueKeyClass(isDone: boolean, extraClasses = ""): string {
+  if (isDone) {
+    return `font-mono font-bold line-through text-blue-600/75 dark:text-blue-400/75 decoration-blue-600 dark:decoration-blue-400 decoration-2 ${extraClasses}`.trim();
+  }
+  return `font-mono font-bold text-blue-600 dark:text-blue-400 hover:underline ${extraClasses}`.trim();
+}
+

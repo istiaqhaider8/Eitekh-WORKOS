@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { isDelegationActive } from "@/lib/delegation-engine";
+import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 interface KanbanBoardViewProps {
   statuses: any[];
@@ -296,7 +297,7 @@ export function KanbanBoardView({
             {typeInfo.icon && (
               <typeInfo.icon className={"w-3.5 h-3.5 " + (typeInfo.color ? typeInfo.color.split(" ")[0] : "text-blue-500")} />
             )}
-            <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <span className={getIssueKeyClass(isIssueDone(issue, statuses), "text-[11px]")}>
               {issue.issueKey}
             </span>
           </div>

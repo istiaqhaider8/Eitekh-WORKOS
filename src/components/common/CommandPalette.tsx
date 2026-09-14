@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, X, Layers, Plus, Kanban, ListTodo, Shield, LogOut, FolderGit2, MessageSquare, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -156,7 +157,7 @@ export function CommandPalette({
                     className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-left transition-colors"
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">{issue.issueKey}</span>
+                      <span className={getIssueKeyClass(isIssueDone(issue), "shrink-0")}>{issue.issueKey}</span>
                       <span className="truncate">{issue.title}</span>
                     </div>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 shrink-0">
