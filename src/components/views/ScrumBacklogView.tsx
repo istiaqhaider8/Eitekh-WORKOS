@@ -139,6 +139,11 @@ export function ScrumBacklogView({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownListRef = useRef<HTMLDivElement>(null);
 
+  const formatSprintGoal = (goal?: string | null) => {
+    if (!goal) return "";
+    return goal.replace(/^goal:\s*/i, "").trim();
+  };
+
   // Multi-Selection State
   const [selectedIssueIds, setSelectedIssueIds] = useState<Set<string>>(new Set());
   // Multi-selection state for adding existing tasks to sprint
@@ -1686,7 +1691,7 @@ export function ScrumBacklogView({
                   ACTIVE
                 </span>
                 <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                  ({sprintIssues.length} issues · {totalPoints} pts)
+                  ({sprintIssues.length} {sprintIssues.length === 1 ? "issue" : "issues"})
                 </span>
                 {renderSprintCapacityBadge(sprintIssues)}
               </div>
@@ -1705,7 +1710,7 @@ export function ScrumBacklogView({
                   onClick={() => {
                     setEditingSprint(activeSprint);
                     setEditSprintName(activeSprint.name || "");
-                    setEditSprintGoal(activeSprint.goal || "");
+                    setEditSprintGoal(formatSprintGoal(activeSprint.goal));
                     setEditSprintStatus(activeSprint.status || "ACTIVE");
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
@@ -1732,7 +1737,7 @@ export function ScrumBacklogView({
             </div>
 
             {activeSprint.goal && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 italic">Goal: {activeSprint.goal}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">Goal: {formatSprintGoal(activeSprint.goal)}</p>
             )}
 
             {renderSprintProgress(sprintIssues)}
@@ -1834,7 +1839,7 @@ export function ScrumBacklogView({
                 </button>
                 <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{sprint.name}</h3>
                 <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                  ({sprintIssues.length} issues · {totalPoints} pts)
+                  ({sprintIssues.length} {sprintIssues.length === 1 ? "issue" : "issues"})
                 </span>
                 {renderSprintCapacityBadge(sprintIssues)}
               </div>
@@ -1878,7 +1883,7 @@ export function ScrumBacklogView({
                   onClick={() => {
                     setEditingSprint(sprint);
                     setEditSprintName(sprint.name || "");
-                    setEditSprintGoal(sprint.goal || "");
+                    setEditSprintGoal(formatSprintGoal(sprint.goal));
                     setEditSprintStatus(sprint.status || "FUTURE");
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
@@ -1906,7 +1911,7 @@ export function ScrumBacklogView({
             </div>
 
             {sprint.goal && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 italic">Goal: {sprint.goal}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">Goal: {formatSprintGoal(sprint.goal)}</p>
             )}
 
             {renderSprintProgress(sprintIssues)}
@@ -2779,7 +2784,7 @@ export function ScrumBacklogView({
               {viewingSprintDetails.goal && (
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs">
                   <span className="font-bold text-slate-700 dark:text-slate-300 block mb-0.5">Sprint Goal:</span>
-                  <p className="text-slate-600 dark:text-slate-400 italic">{viewingSprintDetails.goal}</p>
+                  <p className="text-slate-600 dark:text-slate-400 italic">{formatSprintGoal(viewingSprintDetails.goal)}</p>
                 </div>
               )}
 
