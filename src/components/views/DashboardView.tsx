@@ -44,6 +44,7 @@ import {
 import { AnalyticsDrillDownModal } from "@/components/analytics/AnalyticsDrillDownModal";
 import { ReportViewModal } from "@/components/analytics/ReportViewModal";
 import { ReportDifferenceGuideModal } from "@/components/analytics/ReportDifferenceGuideModal";
+import { SprintVelocityCard } from "@/components/analytics/SprintVelocityCard";
 
 interface DashboardViewProps {
   issues?: any[];
@@ -955,6 +956,17 @@ export function DashboardView({
 
           return (
             <div className="space-y-6">
+              {/* Executive Sprint Velocity Engine Card */}
+              {projectId && (
+                <SprintVelocityCard
+                  projectId={projectId}
+                  projectName={projectName}
+                  teams={teams}
+                  onSelectIssue={onSelectIssue}
+                  onOpenDrillDown={openDrillDown}
+                />
+              )}
+
               {/* Top Sprint & Velocity KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl p-5 shadow-xs">

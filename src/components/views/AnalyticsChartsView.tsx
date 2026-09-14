@@ -46,6 +46,7 @@ import { showSuccess, showError } from '@/lib/toast';
 import { AnalyticsDrillDownModal } from '@/components/analytics/AnalyticsDrillDownModal';
 import { ReportViewModal } from '@/components/analytics/ReportViewModal';
 import { ReportDifferenceGuideModal } from '@/components/analytics/ReportDifferenceGuideModal';
+import { SprintVelocityCard } from '@/components/analytics/SprintVelocityCard';
 import { REPORT_CATALOG } from './DashboardView';
 
 interface AnalyticsChartsViewProps {
@@ -1545,8 +1546,20 @@ export function AnalyticsChartsView({
 
         {/* SECTION 1: SPRINT BURNDOWN & VELOCITY */}
         {(activeTab === 'ALL' || activeTab === 'VELOCITY') && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart 1: Real Burndown Line Chart */}
+          <div className="space-y-6">
+            {/* Sprint Velocity Engine Card */}
+            {effectiveProjectId && (
+              <SprintVelocityCard
+                projectId={effectiveProjectId}
+                projectName={effectiveProjectName}
+                teams={teams}
+                selectedTeamId={teamFilter}
+                onSelectIssue={onSelectIssue}
+                onOpenDrillDown={openDrillDown}
+              />
+            )}
+
+            {/* Sprint Burndown Line Chart */}
             <div className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -1655,83 +1668,6 @@ export function AnalyticsChartsView({
                   </span>
                 </div>
                 <span className="font-mono text-primary font-bold">{kpis.completedPoints} pts burned</span>
-              </div>
-            </div>
-
-            {/* Chart 2: Historical Sprint Velocity Bars */}
-            <div className="bg-card border border-border rounded-2xl p-5 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600">
-                      <Zap className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground">
-                        Sprint Velocity History
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground">
-                        Delivered story points completed across recent sprints
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 border border-indigo-500/20">
-                    Real Delivered Points
-                  </span>
-                </div>
-
-                {/* Sprints Bars Container */}
-                <div className="h-44 w-full flex items-end justify-around pt-6 pb-2 border-b border-l border-border px-2">
-                  {sprints.slice(0, 6).map((s: any, idx: number) => {
-                    const sIssues = issues.filter((i: any) => i.sprintId === s.id);
-                    const pts = sIssues
-                      .filter((i: any) => i.status?.category === 'DONE' || i.status?.name?.toLowerCase().includes('done'))
-                      .reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
-                    const maxPts = Math.max(...sprints.map((sp: any) => {
-                      return issues.filter((i: any) => i.sprintId === sp.id).reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
-                    }), 15);
-                    const heightPct = Math.max(8, (pts / maxPts) * 100);
-
-                    return (
-                      <div
-                        key={s.id || idx}
-                        onClick={() => {
-                          const completedSprintIssues = sIssues.filter((i: any) => i.status?.category === 'DONE' || i.status?.name?.toLowerCase().includes('done'));
-                          openDrillDown({
-                            title: `Sprint Velocity: ${s.name}`,
-                            subtitle: `Delivered ${pts} story points across ${completedSprintIssues.length} completed issues`,
-                            category: 'Sprint Velocity',
-                            metricLabel: `${pts} pts delivered`,
-                            issues: completedSprintIssues.length > 0 ? completedSprintIssues : sIssues,
-                          });
-                        }}
-                        className="flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer w-14"
-                        title={`${s.name}: ${pts} pts delivered (Click to drill down)`}
-                      >
-                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
-                          {pts}
-                        </span>
-                        <div
-                          className="w-10 rounded-t bg-indigo-500 group-hover:bg-indigo-600 transition-all duration-300 relative shadow-sm"
-                          style={{ height: `${heightPct}%` }}
-                        />
-                        <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[60px] text-center">
-                          {s.name}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {sprints.length === 0 && (
-                    <div className="flex items-center justify-center w-full h-full text-xs text-muted-foreground">
-                      No sprints created yet
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-border text-[11px] text-muted-foreground">
-                <span>{sprints.length} total sprints tracked</span>
-                <span className="font-mono text-indigo-600 font-semibold">Avg: {Math.round(kpis.completedPoints / Math.max(1, sprints.length))} pts / sprint</span>
               </div>
             </div>
           </div>

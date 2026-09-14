@@ -126,8 +126,31 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    // Rollover incomplete issues if completing a sprint
+    if (status && !["FUTURE", "ACTIVE", "COMPLETED"].includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid sprint status. Must be FUTURE, ACTIVE, or COMPLETED" },
+        { status: 400 }
+      );
+    }
+
+    const updateData: any = {};
+
+    // Snapshot velocity and rollover incomplete issues if completing a sprint
     if (status === "COMPLETED") {
+      const primaryIssues = sprint.issues.filter((i) => i.parentIssueId === null);
+      const plannedPoints = primaryIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+      const completedIssues = primaryIssues.filter(
+        (i) => i.status?.category === "DONE" && !i.status?.name?.toLowerCase().includes("cancel")
+      );
+      const completedPoints = completedIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+
+      updateData.plannedPoints = plannedPoints;
+      updateData.completedPoints = completedPoints;
+      updateData.completedAt = new Date();
+      if (!sprint.endDate && !endDate) {
+        updateData.endDate = new Date();
+      }
+
       const incompleteIssues = sprint.issues.filter((i) => i.status?.category !== "DONE");
       if (incompleteIssues.length > 0) {
         await prisma.issue.updateMany({
@@ -137,14 +160,6 @@ export async function PATCH(req: Request) {
       }
     }
 
-    if (status && !["FUTURE", "ACTIVE", "COMPLETED"].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid sprint status. Must be FUTURE, ACTIVE, or COMPLETED" },
-        { status: 400 }
-      );
-    }
-
-    const updateData: any = {};
     if (status) updateData.status = status;
     if (name !== undefined) updateData.name = name.trim();
     if (goal !== undefined) updateData.goal = goal ? goal.trim() : null;

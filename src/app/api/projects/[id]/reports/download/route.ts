@@ -989,6 +989,57 @@ export async function GET(
     // -------------------------------------------------------------------------
     // FORMAT 3: CSV (RFC 4180 Clean Tabular Data)
     // -------------------------------------------------------------------------
+    if (rawReportType === "sprint-velocity" || rawReportType === "velocity") {
+      const { calculateProjectVelocity } = await import("@/lib/velocity-engine");
+      const vData = await calculateProjectVelocity({
+        projectId,
+        teamId: teamFilter !== "ALL" ? teamFilter : null,
+        limit: 50,
+      });
+
+      const vHeaders = [
+        "Sprint Name",
+        "Status",
+        "Start Date",
+        "End Date",
+        "Planned Points",
+        "Completed Points (Velocity)",
+        "Completion %",
+        "Completed Issues",
+        "Unestimated Completed Issues",
+        "Remaining Issues",
+        "Remaining Points",
+      ];
+      const vRows = vData.historicalSprints.map((s) => [
+        `"${s.name.replace(/"/g, '""')}"`,
+        s.status,
+        s.startDate ? s.startDate.split("T")[0] : "",
+        s.endDate ? s.endDate.split("T")[0] : "",
+        s.plannedPoints,
+        s.completedPoints,
+        `${s.completionRate}%`,
+        s.completedIssues,
+        s.unestimatedCompletedIssues,
+        s.remainingIssues,
+        s.remainingPoints,
+      ].join(","));
+
+      const csvContent = [
+        `# Sprint Velocity Report - ${project.name} (${project.key})`,
+        `# Average Velocity: ${vData.averageVelocity} pts/sprint | Rolling 3-Sprint: ${vData.rolling3SprintAverage} pts | Rolling 5-Sprint: ${vData.rolling5SprintAverage} pts`,
+        `# Generated: ${now.toISOString()}`,
+        vHeaders.join(","),
+        ...vRows,
+      ].join("\n");
+
+      return new NextResponse(csvContent, {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${fileBase}-velocity.csv"`,
+        },
+      });
+    }
+
     const headers = [
       "Key",
       "Title",

@@ -247,6 +247,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         newValue: newStatus?.name || "Unknown",
       });
       updateData.statusId = body.statusId;
+      if (newStatus?.category === "DONE" || newStatus?.name?.toLowerCase().includes("done")) {
+        updateData.completedAt = new Date();
+      } else {
+        updateData.completedAt = null;
+      }
     }
 
     if (body.assigneeId !== undefined && body.assigneeId !== currentIssue.assigneeId) {

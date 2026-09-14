@@ -280,9 +280,12 @@ model Sprint {
   goal      String?
   startDate DateTime?
   endDate   DateTime?
-  status    String    @default("FUTURE") // FUTURE, ACTIVE, COMPLETED
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  status          String    @default("FUTURE") // FUTURE, ACTIVE, COMPLETED
+  plannedPoints   Int?
+  completedPoints Int?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   team    Team?   @relation(fields: [teamId], references: [id])
@@ -357,6 +360,7 @@ model Issue {
   timeSpentHours Float?    @default(0)
   startDate      DateTime?
   dueDate        DateTime?
+  completedAt    DateTime?
   securityLevel  String    @default("PUBLIC") // PUBLIC, RESTRICTED
   position       Float     @default(0)
   createdAt      DateTime  @default(now())

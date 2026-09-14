@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertProjectAccess } from "@/lib/tenant";
+import { calculateProjectVelocity } from "@/lib/velocity-engine";
 
 export async function GET(
   req: NextRequest,
@@ -600,12 +601,15 @@ export async function GET(
       }
     }
 
-    // Deduplicated historical sprints with non-zero or distinct velocity
-    const distinctCompletedSprints = allSprintsPerformance.filter((s) => s.status === "COMPLETED" || s.deliveredPts > 0);
-    const completedDeliveredList = allSprintsPerformance.filter((s) => s.status === "COMPLETED" && s.deliveredPts > 0);
-    const avgVelocity = completedDeliveredList.length > 0
-      ? Math.round(completedDeliveredList.reduce((sum, s) => sum + s.deliveredPts, 0) / completedDeliveredList.length)
-      : (activeBurnedPts || 0);
+    // Authoritative Sprint Velocity calculation via velocity engine
+    const velocityMetrics = await calculateProjectVelocity({
+      projectId,
+      teamId: teamFilter !== "ALL" ? teamFilter : null,
+      limit: 10,
+      includeActive: true,
+    });
+    const avgVelocity = velocityMetrics.averageVelocity;
+    const distinctCompletedSprints = velocityMetrics.historicalSprints;
 
     // 10. Cycle Time Bins Histogram
     const cycleBins = [
@@ -695,7 +699,11 @@ export async function GET(
         burnupPoints,
         historicalVelocity: distinctCompletedSprints,
         avgVelocity,
+        rolling3SprintAverage: velocityMetrics.rolling3SprintAverage,
+        rolling5SprintAverage: velocityMetrics.rolling5SprintAverage,
+        forecast: velocityMetrics.forecast,
       },
+      velocity: velocityMetrics,
       cycleBins,
       reports,
       filteredIssues,
