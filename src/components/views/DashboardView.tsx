@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText,
   Printer,
@@ -39,7 +39,8 @@ import {
   History,
   Eye,
   HelpCircle,
-  ShieldCheck
+  ShieldCheck,
+  Radio,
 } from "lucide-react";
 import { AnalyticsDrillDownModal } from "@/components/analytics/AnalyticsDrillDownModal";
 import { ReportViewModal } from "@/components/analytics/ReportViewModal";
@@ -63,6 +64,8 @@ interface DashboardViewProps {
   onSelectIssue?: (issue: any) => void;
   onSelectProject?: (projectId: string) => void;
   onRefresh?: () => void;
+  lastSyncTimestamp?: number;
+  syncStatus?: string;
 }
 
 type MainTab =
@@ -204,6 +207,8 @@ export function DashboardView({
   onSelectIssue,
   onSelectProject,
   onRefresh,
+  lastSyncTimestamp,
+  syncStatus = "connected",
 }: DashboardViewProps) {
   const [activeTab, setActiveTab] = useState<MainTab>("catalog");
   const [timeRange, setTimeRange] = useState<string>("ALL");
@@ -215,7 +220,24 @@ export function DashboardView({
   const [apiData, setApiData] = useState<any>(null);
   const [sprintChartMode, setSprintChartMode] = useState<"burndown" | "burnup" | "breakdown">("burndown");
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [autoSyncInterval, setAutoSyncInterval] = useState<'live' | '15s' | '30s' | '60s' | 'manual'>('live');
+  const [relativeTime, setRelativeTime] = useState<string>('just now');
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Relative time updater
+  useEffect(() => {
+    const updateRelative = () => {
+      const diffSec = Math.floor((Date.now() - lastRefreshed.getTime()) / 1000);
+      if (diffSec < 5) setRelativeTime('just now');
+      else if (diffSec < 60) setRelativeTime(`${diffSec}s ago`);
+      else if (diffSec < 3600) setRelativeTime(`${Math.floor(diffSec / 60)}m ago`);
+      else setRelativeTime(`${Math.floor(diffSec / 3600)}h ago`);
+    };
+    updateRelative();
+    const interval = setInterval(updateRelative, 5000);
+    return () => clearInterval(interval);
+  }, [lastRefreshed]);
 
   // Drill-down Modal State
   const [drillDownModal, setDrillDownModal] = useState<{
@@ -292,12 +314,38 @@ export function DashboardView({
     fetchReportData();
   }, [projectId, selectedSprintId, timeRange]);
 
-  // Derived filtered issues
-  const activeIssues = useMemo(() => {
-    if (apiData && apiData.filteredIssues) {
-      return apiData.filteredIssues;
+  // Reactive SSE Sync effect: when lastSyncTimestamp changes, debounce a background refetch
+  useEffect(() => {
+    if (!lastSyncTimestamp) return;
+    if (autoSyncInterval === 'live') {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        fetchReportData();
+      }, 600);
     }
-    return issues.filter((i: any) => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [lastSyncTimestamp, autoSyncInterval]);
+
+  // Periodic Auto-Sync Timer (15s / 30s / 60s)
+  useEffect(() => {
+    if (autoSyncInterval === 'manual' || autoSyncInterval === 'live') return;
+    const ms = autoSyncInterval === '15s' ? 15000 : autoSyncInterval === '30s' ? 30000 : 60000;
+    const timer = setInterval(() => {
+      fetchReportData();
+      if (onRefresh) onRefresh();
+    }, ms);
+    return () => clearInterval(timer);
+  }, [autoSyncInterval, onRefresh]);
+
+  // Derived filtered issues (prioritizes live issues prop for instant reactivity)
+  const activeIssues = useMemo(() => {
+    const baseList = (issues && issues.length > 0)
+      ? issues
+      : (apiData && apiData.filteredIssues ? apiData.filteredIssues : []);
+
+    return baseList.filter((i: any) => {
       if (selectedSprintId !== "ALL" && i.sprintId !== selectedSprintId) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -402,23 +450,40 @@ export function DashboardView({
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                   Project Reports Center &amp; Download Hub
                 </h1>
-                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Real Database Data
+                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-2xs">
+                  <span className={`w-1.5 h-1.5 rounded-full ${autoSyncInterval === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                  {autoSyncInterval === 'live' ? 'Live SSE Active' : `Auto-Sync: ${autoSyncInterval}`}
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center flex-wrap gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 <span className="font-medium text-slate-700 dark:text-slate-300">{projectName}</span>
                 <span>•</span>
                 <span>{totalIssues} Issues in Scope</span>
                 <span>•</span>
-                <span>Updated {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>Synced: {relativeTime} ({lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
               </div>
             </div>
           </div>
 
           {/* Actions & Project Switcher */}
           <div className="flex items-center gap-2.5 flex-wrap print:hidden">
+            {/* Auto-Sync Cadence Selector */}
+            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shadow-2xs text-xs font-semibold">
+              <Radio className={`w-3.5 h-3.5 ${autoSyncInterval === 'live' ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
+              <select
+                value={autoSyncInterval}
+                onChange={(e) => setAutoSyncInterval(e.target.value as any)}
+                className="bg-transparent text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+                title="Configure real-time report synchronization interval"
+              >
+                <option value="live">Live SSE (Instant)</option>
+                <option value="15s">Every 15s</option>
+                <option value="30s">Every 30s</option>
+                <option value="60s">Every 60s</option>
+                <option value="manual">Manual Only</option>
+              </select>
+            </div>
+
             {projects.length > 1 && onSelectProject && (
               <div className="relative">
                 <select
@@ -1822,7 +1887,7 @@ export function DashboardView({
         reportTitle={reportModal.reportTitle}
         reportCategory={reportModal.reportCategory}
         reportDescription={reportModal.reportDescription}
-        issues={reportModal.issues}
+        issues={reportModal.issues && reportModal.issues.length > 0 ? reportModal.issues : activeIssues}
         projectName={projectName}
         projectId={projectId}
         activeFilters={{
@@ -1830,6 +1895,12 @@ export function DashboardView({
           timeRange,
         }}
         onSelectIssue={onSelectIssue}
+        onRefresh={() => {
+          fetchReportData();
+          if (onRefresh) onRefresh();
+        }}
+        lastRefreshed={lastRefreshed}
+        isLiveSyncing={isLoading}
       />
 
       {/* Report Difference & Comparison Guide Modal */}

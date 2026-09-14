@@ -40,6 +40,7 @@ import {
   Info,
   ShieldCheck,
   RotateCcw,
+  RefreshCw,
 } from 'lucide-react';
 import { CANONICAL_REPORTS, CanonicalReport } from './ReportCatalogConstants';
 import { ReportDifferenceGuideModal } from './ReportDifferenceGuideModal';
@@ -76,6 +77,9 @@ export interface ReportViewModalProps {
   };
   onSelectIssue?: (issue: any) => void;
   onSelectReport?: (reportId: string, reportTitle: string) => void;
+  onRefresh?: () => void;
+  lastRefreshed?: Date;
+  isLiveSyncing?: boolean;
 }
 
 export function ReportViewModal({
@@ -101,6 +105,9 @@ export function ReportViewModal({
   activeFilters,
   onSelectIssue,
   onSelectReport,
+  onRefresh,
+  lastRefreshed,
+  isLiveSyncing,
 }: ReportViewModalProps) {
   const [currentReportId, setCurrentReportId] = useState<string>(reportType || 'project-overview');
   
@@ -832,8 +839,14 @@ export function ReportViewModal({
                     <FolderGit2 className="w-3 h-3 text-primary" />
                     {projectName}
                   </span>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    • Updated {now.toLocaleDateString()} {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-[11px] text-muted-foreground font-mono inline-flex items-center gap-1.5 bg-muted/60 px-2 py-0.5 rounded-md border border-border/50">
+                    <span className="relative flex h-2 w-2">
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLiveSyncing ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                      <span className={`relative inline-flex rounded-full h-2 w-2 ${isLiveSyncing ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                    </span>
+                    <span>
+                      {isLiveSyncing ? 'Syncing...' : `Live Synced ${(lastRefreshed || now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+                    </span>
                   </span>
                 </div>
                 <h1 className="text-lg sm:text-xl font-bold text-foreground mt-0.5">{effectiveTitle}</h1>
@@ -843,6 +856,18 @@ export function ReportViewModal({
 
             {/* Export & Action Toolbar */}
             <div className="flex items-center gap-2 shrink-0 self-end md:self-center flex-wrap">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={isLiveSyncing}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-border bg-background hover:bg-muted text-foreground transition shadow-2xs cursor-pointer disabled:opacity-50"
+                  title="Force refresh report data from live database"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-primary ${isLiveSyncing ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+              )}
+
               {/* Compare Reports / Difference Guide Button */}
               <button
                 onClick={() => setIsGuideOpen(true)}

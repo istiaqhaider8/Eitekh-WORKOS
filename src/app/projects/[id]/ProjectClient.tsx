@@ -74,6 +74,7 @@ export function ProjectClient({
   const [createInitialStatusId, setCreateInitialStatusId] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<number>(Date.now());
 
   const fetchAvailability = useCallback(async () => {
     if (!project?.id) return;
@@ -503,6 +504,7 @@ export function ProjectClient({
       } else if (event.eventType?.startsWith("LEAVE_")) {
         fetchAvailability();
       }
+      setLastSyncTimestamp(Date.now());
     },
     [project.id, refreshIssues, fetchAvailability]
   );
@@ -513,6 +515,7 @@ export function ProjectClient({
     onReconnect: () => {
       refreshIssues();
       fetchAvailability();
+      setLastSyncTimestamp(Date.now());
     },
   });
 
@@ -1455,6 +1458,8 @@ export function ProjectClient({
                   onSelectProject={(pId) => router.push(`/projects/${pId}`)}
                   onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
                   onRefresh={refreshIssues}
+                  lastSyncTimestamp={lastSyncTimestamp}
+                  syncStatus={syncStatus}
                 />
               )}
 
@@ -1476,6 +1481,8 @@ export function ProjectClient({
                   onSelectView={setActiveView}
                   onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : issue?.id || issue)}
                   onRefresh={refreshIssues}
+                  lastSyncTimestamp={lastSyncTimestamp}
+                  syncStatus={syncStatus}
                 />
               )}
             </>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   BarChart3,
   PieChart as PieIcon,
@@ -40,7 +40,10 @@ import {
   FileText,
   Eye,
   Briefcase,
-  HelpCircle
+  HelpCircle,
+  Radio,
+  SlidersHorizontal,
+  Wifi,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
 import { AnalyticsDrillDownModal } from '@/components/analytics/AnalyticsDrillDownModal';
@@ -63,6 +66,8 @@ interface AnalyticsChartsViewProps {
   onSelectProject?: (projectId: string) => void;
   onSelectIssue?: (issue: any) => void;
   onRefresh?: () => void;
+  lastSyncTimestamp?: number;
+  syncStatus?: string;
 }
 
 export function AnalyticsChartsView({
@@ -79,6 +84,8 @@ export function AnalyticsChartsView({
   onSelectProject,
   onSelectIssue,
   onRefresh,
+  lastSyncTimestamp,
+  syncStatus = 'connected',
 }: AnalyticsChartsViewProps) {
   // --- Project Selector State ---
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
@@ -142,6 +149,24 @@ export function AnalyticsChartsView({
   const [isLoadingApi, setIsLoadingApi] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date());
+  const [autoSyncInterval, setAutoSyncInterval] = useState<'live' | '15s' | '30s' | '60s' | 'manual'>('live');
+  const [relativeTime, setRelativeTime] = useState<string>('just now');
+  const [showMobileFilters, setShowMobileFilters] = useState<boolean>(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Relative time updater
+  useEffect(() => {
+    const updateRelative = () => {
+      const diffSec = Math.floor((Date.now() - lastRefreshedAt.getTime()) / 1000);
+      if (diffSec < 5) setRelativeTime('just now');
+      else if (diffSec < 60) setRelativeTime(`${diffSec}s ago`);
+      else if (diffSec < 3600) setRelativeTime(`${Math.floor(diffSec / 60)}m ago`);
+      else setRelativeTime(`${Math.floor(diffSec / 3600)}h ago`);
+    };
+    updateRelative();
+    const interval = setInterval(updateRelative, 5000);
+    return () => clearInterval(interval);
+  }, [lastRefreshedAt]);
 
   // --- Interactive Drill-Down Modal State ---
   const [reportModal, setReportModal] = useState<{
@@ -226,6 +251,31 @@ export function AnalyticsChartsView({
     fetchAnalytics();
   }, [fetchAnalytics]);
 
+  // Reactive SSE Sync effect: when lastSyncTimestamp changes, debounce a background refetch
+  useEffect(() => {
+    if (!lastSyncTimestamp) return;
+    if (autoSyncInterval === 'live') {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        fetchAnalytics();
+      }, 600);
+    }
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [lastSyncTimestamp, autoSyncInterval, fetchAnalytics]);
+
+  // Periodic Auto-Sync Timer (15s / 30s / 60s)
+  useEffect(() => {
+    if (autoSyncInterval === 'manual' || autoSyncInterval === 'live') return;
+    const ms = autoSyncInterval === '15s' ? 15000 : autoSyncInterval === '30s' ? 30000 : 60000;
+    const timer = setInterval(() => {
+      fetchAnalytics();
+      if (onRefresh) onRefresh();
+    }, ms);
+    return () => clearInterval(timer);
+  }, [autoSyncInterval, fetchAnalytics, onRefresh]);
+
   // Refresh Trigger
   const handleManualRefresh = () => {
     fetchAnalytics();
@@ -294,12 +344,11 @@ export function AnalyticsChartsView({
 
   // --- Filtered Issues Data Source ---
   const activeFilteredIssues = useMemo(() => {
-    if (apiData && Array.isArray(apiData.filteredIssues)) {
-      return apiData.filteredIssues;
-    }
+    const baseList = issues && issues.length > 0
+      ? issues
+      : (apiData && Array.isArray(apiData.filteredIssues) ? apiData.filteredIssues : []);
 
-    // Local client-side calculation fallback
-    return issues.filter((issue) => {
+    return baseList.filter((issue: any) => {
       if (selectedProjectId !== 'ALL') {
         const issueProjId = issue.projectId || (issue.project && issue.project.id);
         if (issueProjId && issueProjId !== selectedProjectId) return false;
@@ -787,8 +836,9 @@ export function AnalyticsChartsView({
             <div>
               <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 Data &amp; Visual Analytics Suite
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Live DB Data
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5 shadow-2xs">
+                  <span className={`w-2 h-2 rounded-full ${autoSyncInterval === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                  {autoSyncInterval === 'live' ? 'Live SSE Active' : `Auto-Sync: ${autoSyncInterval}`}
                 </span>
               </h1>
             </div>
@@ -812,16 +862,36 @@ export function AnalyticsChartsView({
               </div>
             )}
           </div>
-          <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <p className="text-xs text-muted-foreground flex items-center flex-wrap gap-2">
             <span>Executive metrics, sprint burndowns, velocity trends &amp; real-time task drill-down.</span>
             <span className="text-[11px] text-muted-foreground/80 font-mono">
-              • Refreshed: {lastRefreshedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              • Synced: {relativeTime} ({lastRefreshedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})
             </span>
           </p>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Auto-Sync Cadence Dropdown */}
+          <div className="flex items-center gap-1.5 bg-background border border-border rounded-xl px-2.5 py-1.5 shadow-xs text-xs font-semibold">
+            <Radio className={`w-3.5 h-3.5 ${autoSyncInterval === 'live' ? 'text-emerald-500 animate-pulse' : 'text-muted-foreground'}`} />
+            <select
+              value={autoSyncInterval}
+              onChange={(e) => {
+                setAutoSyncInterval(e.target.value as any);
+                showSuccess(`Auto-sync cadence set to ${e.target.value}`);
+              }}
+              className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+              title="Configure real-time auto-synchronization interval"
+            >
+              <option value="live">Live SSE (Instant)</option>
+              <option value="15s">Every 15s</option>
+              <option value="30s">Every 30s</option>
+              <option value="60s">Every 60s</option>
+              <option value="manual">Manual Only</option>
+            </select>
+          </div>
+
           {/* Refresh Button */}
           <button
             type="button"
@@ -922,124 +992,138 @@ export function AnalyticsChartsView({
               </select>
             </div>
 
-            {/* Assignee Filter */}
-            <div className="flex items-center gap-1.5 bg-background border border-border rounded-xl px-2.5 py-1.5">
-              <User className="w-3.5 h-3.5 text-muted-foreground" />
-              <select
-                value={assigneeFilter}
-                onChange={(e) => setAssigneeFilter(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
-                aria-label="Filter by assignee"
-              >
-                <option value="ALL">All Assignees</option>
-                {uniqueUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-                <option value="UNASSIGNED">Unassigned Only</option>
-              </select>
-            </div>
+            {/* Mobile Filter Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border rounded-xl text-xs font-semibold text-foreground cursor-pointer shadow-2xs"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
+              <span>Filters {hasActiveFilters ? '(Active)' : ''}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} />
+            </button>
 
-            {/* Status Filter */}
-            <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
-                aria-label="Filter by status"
-              >
-                <option value="ALL">All Statuses</option>
-                {statuses.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Secondary Collapsible Filters */}
+            <div className={`items-center flex-wrap gap-2 ${showMobileFilters ? 'flex w-full pt-2 border-t border-border/60' : 'hidden md:flex'}`}>
+              {/* Assignee Filter */}
+              <div className="flex items-center gap-1.5 bg-background border border-border rounded-xl px-2.5 py-1.5">
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+                <select
+                  value={assigneeFilter}
+                  onChange={(e) => setAssigneeFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  aria-label="Filter by assignee"
+                >
+                  <option value="ALL">All Assignees</option>
+                  {uniqueUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                  <option value="UNASSIGNED">Unassigned Only</option>
+                </select>
+              </div>
 
-            {/* Priority Filter */}
-            <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
-                aria-label="Filter by priority"
-              >
-                <option value="ALL">All Priorities</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGHEST">Highest</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-                <option value="LOWEST">Lowest</option>
-              </select>
-            </div>
+              {/* Status Filter */}
+              <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  aria-label="Filter by status"
+                >
+                  <option value="ALL">All Statuses</option>
+                  {statuses.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Issue Type Filter */}
-            <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
-                aria-label="Filter by type"
-              >
-                <option value="ALL">All Types</option>
-                <option value="TASK">Task</option>
-                <option value="BUG">Bug</option>
-                <option value="STORY">Story</option>
-                <option value="EPIC">Epic</option>
-                <option value="FEATURE">Feature</option>
-                <option value="INCIDENT">Incident</option>
-              </select>
-            </div>
+              {/* Priority Filter */}
+              <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  aria-label="Filter by priority"
+                >
+                  <option value="ALL">All Priorities</option>
+                  <option value="CRITICAL">Critical</option>
+                  <option value="HIGHEST">Highest</option>
+                  <option value="HIGH">High</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
+                  <option value="LOWEST">Lowest</option>
+                </select>
+              </div>
 
-            {/* Time Horizon Filter */}
-            <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
-                aria-label="Filter by date range"
-              >
-                <option value="ALL">All Time</option>
-                <option value="7D">Past 7 Days</option>
-                <option value="14D">Past 14 Days</option>
-                <option value="30D">Past 30 Days</option>
-                <option value="90D">Past 90 Days</option>
-              </select>
-            </div>
+              {/* Issue Type Filter */}
+              <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  aria-label="Filter by type"
+                >
+                  <option value="ALL">All Types</option>
+                  <option value="TASK">Task</option>
+                  <option value="BUG">Bug</option>
+                  <option value="STORY">Story</option>
+                  <option value="EPIC">Epic</option>
+                  <option value="FEATURE">Feature</option>
+                  <option value="INCIDENT">Incident</option>
+                </select>
+              </div>
 
-            {/* Reset Filters */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSprintFilter('ALL');
-                  setTeamFilter('ALL');
-                  setAssigneeFilter('ALL');
-                  setStatusFilter('ALL');
-                  setPriorityFilter('ALL');
-                  setTypeFilter('ALL');
-                  setEpicFilter('ALL');
-                  setTimeRange('ALL');
-                  setSearchQuery('');
-                }}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl font-semibold transition-colors cursor-pointer"
-                title="Clear all active filters"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
-            )}
+              {/* Time Horizon Filter */}
+              <div className="flex items-center gap-1 bg-background border border-border rounded-xl px-2.5 py-1.5">
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+                  aria-label="Filter by date range"
+                >
+                  <option value="ALL">All Time</option>
+                  <option value="7D">Past 7 Days</option>
+                  <option value="14D">Past 14 Days</option>
+                  <option value="30D">Past 30 Days</option>
+                  <option value="90D">Past 90 Days</option>
+                </select>
+              </div>
+
+              {/* Reset Filters */}
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSprintFilter('ALL');
+                    setTeamFilter('ALL');
+                    setAssigneeFilter('ALL');
+                    setStatusFilter('ALL');
+                    setPriorityFilter('ALL');
+                    setTypeFilter('ALL');
+                    setEpicFilter('ALL');
+                    setTimeRange('ALL');
+                    setSearchQuery('');
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl font-semibold transition-colors cursor-pointer"
+                  title="Clear all active filters"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Section View Tabs */}
-          <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border">
+          <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border overflow-x-auto no-scrollbar max-w-full gap-1">
             <button
               type="button"
               onClick={() => setActiveTab('ALL')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'ALL'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1050,7 +1134,7 @@ export function AnalyticsChartsView({
             <button
               type="button"
               onClick={() => setActiveTab('VELOCITY')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'VELOCITY'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1061,7 +1145,7 @@ export function AnalyticsChartsView({
             <button
               type="button"
               onClick={() => setActiveTab('DISTRIBUTION')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'DISTRIBUTION'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1072,7 +1156,7 @@ export function AnalyticsChartsView({
             <button
               type="button"
               onClick={() => setActiveTab('WORKLOAD')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'WORKLOAD'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1083,7 +1167,7 @@ export function AnalyticsChartsView({
             <button
               type="button"
               onClick={() => setActiveTab('TRENDS')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'TRENDS'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1094,7 +1178,7 @@ export function AnalyticsChartsView({
             <button
               type="button"
               onClick={() => setActiveTab('REPORTS')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'REPORTS'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
@@ -1105,13 +1189,13 @@ export function AnalyticsChartsView({
             <button
               type="button"
               onClick={() => setActiveTab('MATRIX')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'MATRIX'
                   ? 'bg-background text-primary shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Data Table
+              Traceability Matrix
             </button>
           </div>
         </div>
