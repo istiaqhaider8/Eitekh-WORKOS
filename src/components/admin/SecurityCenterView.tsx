@@ -203,7 +203,7 @@ export function SecurityCenterView() {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {sessions.map((s: any) => (
-                <tr key={s.id} className="hover:bg-slate-100 dark:bg-slate-800/40">
+                <tr key={s.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
                   <td className="p-3">
                     <div className="font-semibold text-slate-900 dark:text-slate-100">{s.userName}</div>
                     <div className="text-[10px] text-slate-600 dark:text-slate-400">{s.userEmail}</div>

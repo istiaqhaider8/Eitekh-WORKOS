@@ -553,7 +553,7 @@ export default function SuperAdminCommandCenterPage() {
   const actionRequired = stats?.actionRequired || [];
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-16 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-16 transition-colors duration-200">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3 shadow-xs dark:shadow-none transition-colors duration-200">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -574,10 +574,10 @@ export default function SuperAdminCommandCenterPage() {
                 }
                 router.push("/");
               }}
-              className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-300 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
               title="Return to Workspace / Previous Page"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               <span>Back</span>
             </button>
             <div>
@@ -586,11 +586,11 @@ export default function SuperAdminCommandCenterPage() {
                 <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   Eitekh Platform Command Center
                 </h1>
-                <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider leading-none">
+                <span className="px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider leading-none shadow-2xs">
                   ROOT
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 Centralized governance, continuous security, real-time sync operations, and intelligence.
               </p>
             </div>
@@ -599,14 +599,14 @@ export default function SuperAdminCommandCenterPage() {
           {/* Search & Actions */}
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-72">
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-700 dark:text-slate-300">
-                <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus-within:border-indigo-500 transition-colors">
+                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <input
                   type="text"
                   placeholder="Global platform search..."
                   value={globalSearch}
                   onChange={(e) => handleGlobalSearch(e.target.value)}
-                  className="bg-transparent border-none outline-none w-full text-slate-900 dark:text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                  className="bg-transparent border-none outline-none w-full text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
                 />
                 {searchLoading && <RefreshCw className="w-3 h-3 animate-spin text-indigo-500 dark:text-indigo-400" />}
               </div>
@@ -615,15 +615,15 @@ export default function SuperAdminCommandCenterPage() {
               {searchResults && (
                 <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3 z-50 max-h-96 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-600 dark:text-slate-400">Search Results</span>
-                    <button onClick={() => setSearchResults(null)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-700 dark:text-slate-300 text-xs">
-                      <X className="w-3 h-3" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Search Results</span>
+                    <button onClick={() => setSearchResults(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   {searchResults.organizations?.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Organizations</span>
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Organizations</span>
                       {searchResults.organizations.map((o: any) => (
                         <div
                           key={o.id}
@@ -631,10 +631,10 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveTab("orgs");
                             setSearchResults(null);
                           }}
-                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors"
                         >
-                          <span>{o.name}</span>
-                          <span className="text-[10px] text-slate-500">/{o.slug}</span>
+                          <span className="font-semibold">{o.name}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">/{o.slug}</span>
                         </div>
                       ))}
                     </div>
@@ -642,7 +642,7 @@ export default function SuperAdminCommandCenterPage() {
 
                   {searchResults.users?.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Users</span>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Users</span>
                       {searchResults.users.map((u: any) => (
                         <div
                           key={u.id}
@@ -650,10 +650,10 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveTab("users");
                             setSearchResults(null);
                           }}
-                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors"
                         >
-                          <span>{u.firstName} {u.lastName}</span>
-                          <span className="text-[10px] text-slate-500">{u.email}</span>
+                          <span className="font-semibold">{u.firstName} {u.lastName}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">{u.email}</span>
                         </div>
                       ))}
                     </div>
@@ -661,7 +661,7 @@ export default function SuperAdminCommandCenterPage() {
 
                   {searchResults.projects?.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase">Projects</span>
+                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Projects</span>
                       {searchResults.projects.map((p: any) => (
                         <div
                           key={p.id}
@@ -669,9 +669,9 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveTab("pbac");
                             setSearchResults(null);
                           }}
-                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                          className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors"
                         >
-                          <span>{p.name}</span>
+                          <span className="font-semibold">{p.name}</span>
                           <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">[{p.key}]</span>
                         </div>
                       ))}
@@ -690,7 +690,7 @@ export default function SuperAdminCommandCenterPage() {
                   window.history.replaceState(null, "", "?tab=cache");
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600/10 dark:bg-cyan-600/20 hover:bg-cyan-600/20 dark:hover:bg-cyan-600/30 text-cyan-700 dark:text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
               title="System Refresh & Cache Management"
             >
               <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -702,7 +702,7 @@ export default function SuperAdminCommandCenterPage() {
                 setRefreshing(true);
                 loadAllData().then(() => showSuccess("Platform telemetry synchronized"));
               }}
-              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
+              className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
               title="Synchronize Platform Data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}`} />
@@ -716,18 +716,18 @@ export default function SuperAdminCommandCenterPage() {
         {/* Top 12 Clickable Executive KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {[
-            { label: "Total Orgs", value: kpis.totalOrgs, sub: `${kpis.activeOrgs} active`, tab: "orgs", color: "text-blue-600 dark:text-blue-400" },
-            { label: "Total Users", value: kpis.totalUsers, sub: `${kpis.activeUsers} active`, tab: "users", color: "text-emerald-600 dark:text-emerald-400" },
-            { label: "Workspaces", value: kpis.totalWorkspaces, sub: "multi-tenant", tab: "workspaces-projects", color: "text-indigo-600 dark:text-indigo-400" },
-            { label: "Projects", value: kpis.totalProjects, sub: "PBAC isolated", tab: "workspaces-projects", color: "text-purple-600 dark:text-purple-400" },
-            { label: "Total Issues", value: kpis.totalIssues, sub: `${kpis.openIssues} open`, tab: "analytics", color: "text-amber-600 dark:text-amber-400" },
-            { label: "Active Sprints", value: kpis.activeSprints, sub: "in progress", tab: "analytics", color: "text-sky-600 dark:text-sky-400" },
-            { label: "Active Threats", value: kpis.securityAlerts || 0, sub: "threat queue", tab: "security-threats", color: kpis.securityAlerts > 0 ? "text-rose-600 dark:text-rose-400 font-bold" : "text-slate-700 dark:text-slate-300" },
-            { label: "System Cache", value: "Active", sub: "Safe Refresh Hub", tab: "cache", color: "text-cyan-600 dark:text-cyan-400 font-bold" },
-            { label: "Sync Errors", value: kpis.syncErrors || 0, sub: "0 dropped", tab: "sync", color: "text-emerald-600 dark:text-emerald-400" },
-            { label: "Reports Hub", value: "15 Types", sub: "RFC CSV/PDF", tab: "reports", color: "text-indigo-600 dark:text-indigo-400" },
-            { label: "Suspended Orgs", value: kpis.suspendedOrgs, sub: "isolated", tab: "orgs", color: kpis.suspendedOrgs > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-600 dark:text-slate-400" },
-            { label: "Subsystems", value: "16/16", sub: "Operational", tab: "health", color: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Total Orgs", value: kpis.totalOrgs, sub: `${kpis.activeOrgs} active`, tab: "orgs", color: "text-blue-600 dark:text-blue-400", bg: "from-blue-500/5 to-transparent" },
+            { label: "Total Users", value: kpis.totalUsers, sub: `${kpis.activeUsers} active`, tab: "users", color: "text-emerald-600 dark:text-emerald-400", bg: "from-emerald-500/5 to-transparent" },
+            { label: "Workspaces", value: kpis.totalWorkspaces, sub: "multi-tenant", tab: "workspaces-projects", color: "text-indigo-600 dark:text-indigo-400", bg: "from-indigo-500/5 to-transparent" },
+            { label: "Projects", value: kpis.totalProjects, sub: "PBAC isolated", tab: "workspaces-projects", color: "text-purple-600 dark:text-purple-400", bg: "from-purple-500/5 to-transparent" },
+            { label: "Total Issues", value: kpis.totalIssues, sub: `${kpis.openIssues} open`, tab: "analytics", color: "text-amber-600 dark:text-amber-400", bg: "from-amber-500/5 to-transparent" },
+            { label: "Active Sprints", value: kpis.activeSprints, sub: "in progress", tab: "analytics", color: "text-sky-600 dark:text-sky-400", bg: "from-sky-500/5 to-transparent" },
+            { label: "Active Threats", value: kpis.securityAlerts || 0, sub: "threat queue", tab: "security-threats", color: kpis.securityAlerts > 0 ? "text-rose-600 dark:text-rose-400 font-bold" : "text-slate-700 dark:text-slate-300", bg: "from-rose-500/5 to-transparent" },
+            { label: "System Cache", value: "Active", sub: "Safe Refresh Hub", tab: "cache", color: "text-cyan-600 dark:text-cyan-400 font-bold", bg: "from-cyan-500/5 to-transparent" },
+            { label: "Sync Errors", value: kpis.syncErrors || 0, sub: "0 dropped", tab: "sync", color: "text-emerald-600 dark:text-emerald-400", bg: "from-emerald-500/5 to-transparent" },
+            { label: "Reports Hub", value: "15 Types", sub: "RFC CSV/PDF", tab: "reports", color: "text-indigo-600 dark:text-indigo-400", bg: "from-indigo-500/5 to-transparent" },
+            { label: "Suspended Orgs", value: kpis.suspendedOrgs, sub: "isolated", tab: "orgs", color: kpis.suspendedOrgs > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400", bg: "from-rose-500/5 to-transparent" },
+            { label: "Subsystems", value: "16/16", sub: "Operational", tab: "health", color: "text-emerald-600 dark:text-emerald-400", bg: "from-emerald-500/5 to-transparent" },
           ].map((item, idx) => (
             <div
               key={idx}
@@ -737,11 +737,11 @@ export default function SuperAdminCommandCenterPage() {
                   window.history.replaceState(null, "", `?tab=${item.tab}`);
                 }
               }}
-              className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-xs dark:shadow-sm hover:scale-[1.02]"
+              className={`cursor-pointer bg-white dark:bg-slate-900/90 bg-gradient-to-br ${item.bg} hover:border-indigo-500/50 dark:hover:border-indigo-500/50 border border-slate-200 dark:border-slate-800 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-2xs dark:shadow-xs hover:scale-[1.02]`}
             >
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-600 dark:text-slate-400 block">{item.label}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">{item.label}</span>
               <div className={`text-lg font-bold ${item.color}`}>{item.value}</div>
-              <p className="text-[10px] text-slate-600 dark:text-slate-500">{item.sub}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{item.sub}</p>
             </div>
           ))}
         </div>
@@ -750,7 +750,7 @@ export default function SuperAdminCommandCenterPage() {
         <GlobalAlertBanner alerts={actionRequired} onNavigateTab={(t) => setActiveTab(t as any)} />
 
         {/* Navigation Tabs Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-200/80 dark:bg-white dark:bg-slate-900/60 p-1.5 rounded-xl border border-slate-300/80 dark:border-slate-200 dark:border-slate-800 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-200/60 dark:bg-slate-900/80 p-1.5 rounded-xl border border-slate-300/70 dark:border-slate-800 scrollbar-none">
           {[
             { id: "overview", label: "Command Overview", icon: Activity },
             { id: "cache", label: "System Refresh & Cache", icon: RefreshCw, badge: "Safe" },
@@ -785,14 +785,14 @@ export default function SuperAdminCommandCenterPage() {
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 shrink-0 cursor-pointer ${
                   isActive
                     ? isCache
-                      ? "bg-cyan-600 text-white shadow-sm font-bold"
-                      : "bg-indigo-600 text-white shadow-sm"
+                      ? "bg-cyan-600 text-white shadow-md font-bold"
+                      : "bg-indigo-600 text-white shadow-md font-bold"
                     : isCache
-                    ? "text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-500/40 hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
-                    : "text-slate-700 dark:text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-100 dark:bg-slate-800/80"
+                    ? "text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-800/80"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isCache ? "text-cyan-600 dark:text-cyan-400" : ""}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : isCache ? "text-cyan-600 dark:text-cyan-400" : "text-slate-500 dark:text-slate-400"}`} />
                 <span>{tab.label}</span>
                 {tab.badge && (
                   <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-500/40 uppercase">
@@ -808,9 +808,9 @@ export default function SuperAdminCommandCenterPage() {
         {activeTab === "overview" && (
           <div className="space-y-6">
             {/* Quick Actions Row */}
-            <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-2xs dark:shadow-xs">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-indigo-400" />
+                <Zap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                 Super Admin Operational Quick Actions
               </h3>
               <div className="flex flex-wrap items-center gap-2.5">
@@ -821,51 +821,51 @@ export default function SuperAdminCommandCenterPage() {
                       window.history.replaceState(null, "", "?tab=cache");
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 rounded-lg text-xs font-bold border border-cyan-500/40 shadow-xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/80 text-cyan-800 dark:text-cyan-300 rounded-lg text-xs font-bold border border-cyan-500/40 shadow-2xs transition-all cursor-pointer"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                  <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>System Refresh & Cache</span>
                 </button>
                 <button
                   onClick={() => setShowAddOrgModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Create Organization</span>
                 </button>
                 <button
                   onClick={() => setShowAddUserModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
+                  <UserPlus className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                   <span>Create User Account</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("security-threats")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all cursor-pointer"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                   <span>Threat Ops Queue</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("reports")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-500/30 transition-all cursor-pointer"
                 >
-                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                  <FileText className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Enterprise Reports Hub</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("sync")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded-lg text-xs font-semibold border border-emerald-500/30 transition-all cursor-pointer"
                 >
-                  <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                  <Radio className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>Sync Telemetry</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("health")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold border border-purple-500/30 transition-all cursor-pointer"
                 >
-                  <Server className="w-3.5 h-3.5 text-indigo-400" />
+                  <Server className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   <span>Run Subsystem Probes</span>
                 </button>
               </div>
@@ -874,29 +874,29 @@ export default function SuperAdminCommandCenterPage() {
             {/* Health Snapshot & Live Stream Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Health Snapshot */}
-              <div className="lg:col-span-1 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+              <div className="lg:col-span-1 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4 shadow-2xs dark:shadow-xs">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <Server className="w-4 h-4 text-indigo-400" />
+                    <Server className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                     Subsystems Health Snapshot
                   </h3>
-                  <button onClick={() => setActiveTab("health")} className="text-[11px] text-indigo-400 hover:underline">
+                  <button onClick={() => setActiveTab("health")} className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
                     View All (16) →
                   </button>
                 </div>
 
                 <div className="space-y-2.5">
                   {(stats?.systemHealth || []).map((h: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+                    <div key={idx} className="flex items-center justify-between bg-slate-50 dark:bg-slate-950/80 p-2.5 rounded-lg border border-slate-200/80 dark:border-slate-800/80 transition-colors">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{h.service}</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{h.service}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded">
                           {h.status}
                         </span>
-                        <span className="text-[10px] text-slate-500 block">{h.latencyMs} ms</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">{h.latencyMs} ms</span>
                       </div>
                     </div>
                   ))}
@@ -904,33 +904,33 @@ export default function SuperAdminCommandCenterPage() {
               </div>
 
               {/* Live Platform Activity Feed */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4 shadow-2xs dark:shadow-xs">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <History className="w-4 h-4 text-indigo-400" />
+                    <History className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                     Live Platform Activity & Audit Stream
                   </h3>
-                  <button onClick={() => setActiveTab("audit")} className="text-[11px] text-indigo-400 hover:underline">
+                  <button onClick={() => setActiveTab("audit")} className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
                     Audit Ledger →
                   </button>
                 </div>
 
                 <div className="space-y-2 max-h-[380px] overflow-y-auto">
                   {(stats?.auditLogs || []).length === 0 ? (
-                    <div className="p-8 text-center text-xs text-slate-500">No recent activity logged</div>
+                    <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400 font-medium">No recent activity logged</div>
                   ) : (
                     (stats?.auditLogs || []).map((log: any) => (
-                      <div key={log.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-3 text-xs">
+                      <div key={log.id} className="p-3 bg-slate-50 dark:bg-slate-950/80 rounded-xl border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 text-xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-indigo-300 font-semibold rounded text-[10px]">
+                            <span className="px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-bold rounded text-[10px]">
                               {log.action}
                             </span>
-                            <span className="text-slate-800 dark:text-slate-200 font-medium">{log.targetResource}</span>
+                            <span className="text-slate-800 dark:text-slate-200 font-semibold">{log.targetResource}</span>
                           </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">Actor: {log.actorId.slice(0, 12)}...</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Actor: {log.actorId.slice(0, 12)}...</p>
                         </div>
-                        <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleTimeString()}
                         </span>
                       </div>

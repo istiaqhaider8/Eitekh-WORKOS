@@ -567,7 +567,7 @@ export function PlatformUserDirectoryView({
                   const initials = `${(u.firstName || '')[0] || ''}${(u.lastName || '')[0] || ''}`.toUpperCase() || 'U';
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-100 dark:bg-slate-800/40 transition-colors">
+                    <tr key={u.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
                       {/* Name & Identity */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2.5">

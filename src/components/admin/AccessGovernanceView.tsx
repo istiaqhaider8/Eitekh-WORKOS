@@ -253,10 +253,10 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
             </div>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Deterministic Authorization: <span className="font-semibold text-slate-900 dark:text-slate-800 dark:text-slate-200">EXISTING USER</span> ➔{' '}
-            <span className="font-semibold text-slate-900 dark:text-slate-800 dark:text-slate-200">PERMISSION ROLE</span> ➔{' '}
-            <span className="font-semibold text-slate-900 dark:text-slate-800 dark:text-slate-200">PERMISSIONS (18 MODULES)</span> ➔{' '}
-            <span className="font-semibold text-slate-900 dark:text-slate-800 dark:text-slate-200">PROJECT MEMBERSHIP</span> ➔{' '}
+            Deterministic Authorization: <span className="font-semibold text-slate-800 dark:text-slate-200">EXISTING USER</span> ➔{' '}
+            <span className="font-semibold text-slate-800 dark:text-slate-200">PERMISSION ROLE</span> ➔{' '}
+            <span className="font-semibold text-slate-800 dark:text-slate-200">PERMISSIONS (18 MODULES)</span> ➔{' '}
+            <span className="font-semibold text-slate-800 dark:text-slate-200">PROJECT MEMBERSHIP</span> ➔{' '}
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">EFFECTIVE ACCESS</span>
           </p>
         </div>

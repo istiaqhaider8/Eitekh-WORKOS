@@ -309,13 +309,13 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
   return (
     <div className="space-y-6">
       {/* Header & Sub-Tabs */}
-      <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs dark:shadow-xs">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FolderGit2 className="w-5 h-5 text-indigo-400" />
+            <FolderGit2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Platform Workspaces & Projects Authority
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Super Administrator global CRUD controls for all tenant workspaces and isolated projects.
           </p>
         </div>
@@ -333,7 +333,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 });
                 setShowCreateWsModal(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create Workspace</span>
@@ -354,7 +354,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 });
                 setShowCreateProjModal(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create Project</span>
@@ -363,23 +363,23 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
           <button
             onClick={loadData}
-            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer"
+            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors"
             title="Refresh"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-indigo-400" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}`} />
           </button>
         </div>
       </div>
 
       {/* Filter and Switch Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/90 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs dark:shadow-xs">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSubTab("workspaces")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               subTab === "workspaces"
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/60"
+                ? "bg-indigo-600 text-white shadow-2xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80"
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -387,10 +387,10 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           </button>
           <button
             onClick={() => setSubTab("projects")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               subTab === "projects"
-                ? "bg-purple-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/60"
+                ? "bg-purple-600 text-white shadow-2xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80"
             }`}
           >
             <FolderGit2 className="w-3.5 h-3.5" />
@@ -400,12 +400,12 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Org Filter */}
-          <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs">
-            <Building2 className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs">
+            <Building2 className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={selectedOrgId}
               onChange={(e) => setSelectedOrgId(e.target.value)}
-              className="bg-transparent border-none outline-none text-slate-800 dark:text-slate-200 cursor-pointer"
+              className="bg-transparent border-none outline-none text-slate-800 dark:text-slate-200 font-medium cursor-pointer"
             >
               <option value="all" className="bg-white dark:bg-slate-900">All Organizations</option>
               {orgs.map((o) => (
@@ -417,14 +417,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           </div>
 
           {/* Search input */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300 w-48 sm:w-64">
-            <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 w-48 sm:w-64 focus-within:border-indigo-500 transition-colors">
+            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <input
               type="text"
               placeholder={`Search ${subTab}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent border-none outline-none w-full text-slate-800 dark:text-slate-200 placeholder-slate-500"
+              className="bg-transparent border-none outline-none w-full text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
             />
           </div>
         </div>

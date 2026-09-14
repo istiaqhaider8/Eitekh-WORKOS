@@ -216,7 +216,7 @@ export function AuditComplianceView() {
       SECURITY: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
       CACHE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
       SETTINGS: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-      SYSTEM: 'bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-600',
+      SYSTEM: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700',
     };
     const style = colors[category] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700';
     return (
