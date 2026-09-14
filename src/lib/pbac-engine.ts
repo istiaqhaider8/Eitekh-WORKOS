@@ -320,7 +320,7 @@ class UnifiedPBACEngine {
   private isSaving: boolean = false;
   private savePending: boolean = false;
 
-  private saveToDisk() {
+  private async saveToDisk() {
     if (this.isSaving) {
       this.savePending = true;
       return;
@@ -342,17 +342,17 @@ class UnifiedPBACEngine {
         auditLogs: this.auditLogs.slice(0, 2000),
         initializedOrgs: Array.from(this.initializedOrgs),
       };
-      fs.promises.writeFile(this.storeFilePath, JSON.stringify(data), 'utf-8')
-        .catch((e) => console.error('Error saving PBAC store to disk:', e))
-        .finally(() => {
-          this.isSaving = false;
-          if (this.savePending) {
-            this.saveToDisk();
-          }
-        });
+      const tmpPath = `${this.storeFilePath}.tmp`;
+      const jsonStr = JSON.stringify(data, null, 2);
+      await fs.promises.writeFile(tmpPath, jsonStr, 'utf-8');
+      await fs.promises.rename(tmpPath, this.storeFilePath);
     } catch (e) {
+      console.error('Error saving PBAC store atomically to disk:', e);
+    } finally {
       this.isSaving = false;
-      console.error('Error serializing PBAC store data:', e);
+      if (this.savePending) {
+        this.saveToDisk();
+      }
     }
   }
 
@@ -519,8 +519,9 @@ class UnifiedPBACEngine {
         });
         storeUpdated = true;
       } else if (existingRole.isSystem) {
-        if (r.slug === 'member' && existingRole.permissions.length < r.permissions.length) {
-          existingRole.permissions = Array.from(new Set([...existingRole.permissions, ...r.permissions]));
+        const mergedPerms = Array.from(new Set([...existingRole.permissions, ...r.permissions]));
+        if (mergedPerms.length > existingRole.permissions.length || (r.slug === 'super-admin' && existingRole.permissions.length !== r.permissions.length)) {
+          existingRole.permissions = r.permissions;
           storeUpdated = true;
         }
       }
@@ -558,20 +559,6 @@ class UnifiedPBACEngine {
               userRoles.add(superAdminRoleId);
               userRoles.add(orgAdminRoleId);
               userRoles.add(projectAdminRoleId);
-            } else if ((u.jobTitle || '').toLowerCase().includes('admin')) {
-              userRoles.add(orgAdminRoleId);
-            } else if (
-              (u.jobTitle || '').toLowerCase().includes('product') ||
-              (u.jobTitle || '').toLowerCase().includes('pm') ||
-              (u.jobTitle || '').toLowerCase().includes('manager') ||
-              (u.jobTitle || '').toLowerCase().includes('lead')
-            ) {
-              userRoles.add(pmRoleId);
-            } else if (
-              (u.jobTitle || '').toLowerCase().includes('viewer') ||
-              (u.jobTitle || '').toLowerCase().includes('guest')
-            ) {
-              userRoles.add(viewerRoleId);
             } else {
               userRoles.add(memberRoleId);
             }

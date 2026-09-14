@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
 export async function GET(
   req: Request,
@@ -47,7 +47,7 @@ export async function PATCH(
     const component = await prisma.component.findUnique({ where: { id } });
     if (!component) return NextResponse.json({ error: "Component not found" }, { status: 404 });
 
-    await assertProjectAccess(component.projectId);
+    await assertProjectPermission(component.projectId, "projects:edit");
 
     const updatedComponent = await prisma.component.update({
       where: { id },
@@ -94,7 +94,7 @@ export async function DELETE(
     const component = await prisma.component.findUnique({ where: { id } });
     if (!component) return NextResponse.json({ error: "Component not found" }, { status: 404 });
 
-    await assertProjectAccess(component.projectId);
+    await assertProjectPermission(component.projectId, "projects:edit");
 
     // Unlink issues first
     await prisma.issue.updateMany({

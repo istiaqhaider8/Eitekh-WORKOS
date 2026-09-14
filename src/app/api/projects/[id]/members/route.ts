@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
@@ -24,10 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { role, project, user: currentUser } = await assertProjectAccess(id);
-    if (role === "VIEWER") {
-      return NextResponse.json({ error: "Forbidden: Viewers cannot invite or assign project members" }, { status: 403 });
-    }
+    const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
     
     const body = await req.json();
     let targetUserId = body.userId;
@@ -185,10 +182,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { role, project, user: currentUser } = await assertProjectAccess(id);
-    if (!["PROJECT_ADMIN", "PROJECT_MANAGER", "SUPER_ADMIN", "OWNER", "ADMIN"].includes(role) && project.ownerId !== currentUser.id && project.members.length > 1) {
-      return NextResponse.json({ error: "Forbidden: You need admin permissions to manage project member roles" }, { status: 403 });
-    }
+    const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
     const body = await req.json();
     const updated = await prisma.projectMember.update({
       where: { projectId_userId: { projectId: id, userId: body.userId } },
@@ -231,10 +225,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { role, project, user: currentUser } = await assertProjectAccess(id);
-    if (!["PROJECT_ADMIN", "PROJECT_MANAGER", "SUPER_ADMIN", "OWNER", "ADMIN"].includes(role) && project.ownerId !== currentUser.id && project.members.length > 1) {
-      return NextResponse.json({ error: "Forbidden: You need admin permissions to manage project members" }, { status: 403 });
-    }
+    const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
     const body = await req.json();
     await prisma.projectMember.delete({
       where: { projectId_userId: { projectId: id, userId: body.userId } }

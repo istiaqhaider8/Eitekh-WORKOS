@@ -94,6 +94,11 @@ export async function POST(req: NextRequest) {
         where: { projectId, userId },
       });
 
+      try {
+        const { pbacEngine } = await import('@/lib/pbac-engine');
+        pbacEngine.invalidateUserCache(userId);
+      } catch (e) {}
+
       await prisma.platformAuditLog.create({
         data: {
           actorId: user.id,
@@ -122,10 +127,24 @@ export async function POST(req: NextRequest) {
         role: memberRole,
       },
       include: {
-        project: { select: { id: true, name: true, key: true } },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            workspace: { select: { orgId: true } },
+          },
+        },
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
       },
     });
+
+    try {
+      const { pbacEngine } = await import('@/lib/pbac-engine');
+      await pbacEngine.syncProjectMemberRole(membership.project.workspace.orgId, userId, memberRole, projectId);
+    } catch (pbacErr) {
+      console.error('Failed to sync classic project role with PBAC engine:', pbacErr);
+    }
 
     await prisma.platformAuditLog.create({
       data: {

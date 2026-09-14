@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
@@ -8,13 +9,18 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId') || user.orgMemberships?.[0]?.orgId;
+    
+    if (!orgId) {
+      return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
+    }
 
-    // Find workspaces in this org, then projects
+    // Strict Tenant Access Enforcement
+    await assertOrgAccess(orgId);
+
+    // Find projects strictly bounded by orgId
     const projects = await prisma.project.findMany({
-      where: orgId && orgId !== 'default-org'
-        ? { workspace: { orgId } }
-        : undefined,
+      where: { workspace: { orgId } },
       select: {
         id: true,
         name: true,
@@ -41,6 +47,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ projects, count: projects.length });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch projects' }, { status: 500 });
+    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
+    return NextResponse.json({ error: e.message || 'Failed to fetch projects' }, { status });
   }
 }

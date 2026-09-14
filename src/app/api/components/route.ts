@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
 export async function GET(req: Request) {
   try {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    await assertProjectAccess(projectId);
+    await assertProjectPermission(projectId, "projects:edit");
 
     const component = await prisma.component.create({
       data: {

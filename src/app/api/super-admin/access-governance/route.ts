@@ -150,50 +150,19 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    const permissionRoles = [
-      {
-        role: "SUPERADMIN",
-        level: "Platform",
-        description: "Full platform governance, security controls, cross-tenant administration, system settings",
-        permissions: ["ALL_ACCESS", "SYSTEM_SETTINGS", "TENANT_MANAGEMENT", "GLOBAL_SECURITY", "FEATURE_FLAGS", "AUDIT_EXPORT"],
-      },
-      {
-        role: "OWNER (Org)",
-        level: "Organization",
-        description: "Organization ownership, billing, domain settings, member invitation, workspace creation",
-        permissions: ["ORG_UPDATE", "ORG_INVITE", "WORKSPACE_CREATE", "BILLING_MANAGE", "ORG_AUDIT"],
-      },
-      {
-        role: "WORKSPACE_ADMIN",
-        level: "Workspace",
-        description: "Manage workspace settings, teams, and initiate projects within the workspace",
-        permissions: ["WORKSPACE_UPDATE", "TEAM_CREATE", "PROJECT_CREATE", "WORKSPACE_MEMBERS"],
-      },
-      {
-        role: "PROJECT_ADMIN",
-        level: "Project",
-        description: "Full administrative control of project issues, workflows, components, epics, and settings",
-        permissions: ["PROJECT_UPDATE", "MEMBER_MANAGE", "WORKFLOW_EDIT", "ISSUE_DELETE", "SPRINT_MANAGE", "EXPORT_DATA"],
-      },
-      {
-        role: "PROJECT_MANAGER",
-        level: "Project",
-        description: "Sprint lifecycle management, backlog grooming, issue assignment, and milestone tracking",
-        permissions: ["SPRINT_START_COMPLETE", "ISSUE_CREATE_EDIT", "ESTIMATES_EDIT", "REPORTS_VIEW"],
-      },
-      {
-        role: "MEMBER",
-        level: "Project",
-        description: "Create, comment, update assigned issues, log work, and participate in active sprints",
-        permissions: ["ISSUE_CREATE", "ISSUE_EDIT_ASSIGNED", "COMMENT_ADD", "TIME_TRACK", "ATTACH_FILES"],
-      },
-      {
-        role: "VIEWER",
-        level: "Project",
-        description: "Read-only access to project issues, boards, calendar, and timeline views",
-        permissions: ["READ_ONLY", "COMMENT_VIEW", "EXPORT_VIEW"],
-      },
-    ];
+    const { pbacEngine, PBAC_PERMISSION_CATEGORIES } = await import("@/lib/pbac-engine");
+    const firstOrg = orgHierarchy[0]?.id || "default-org";
+    const systemRoles = await pbacEngine.getRoles(firstOrg);
+
+    const permissionRoles = systemRoles.map((r: any) => ({
+      role: r.name,
+      slug: r.slug,
+      level: r.scope,
+      description: r.description,
+      isSystem: r.isSystem,
+      permissions: r.permissions,
+      permissionCount: r.permissions.length,
+    }));
 
     return NextResponse.json({
       summary: {
@@ -205,6 +174,7 @@ export async function GET(request: Request) {
       },
       roleDistribution: roleDistribution.map((r) => ({ role: r.role, count: r._count.role })),
       permissionRoles,
+      permissionCategories: PBAC_PERMISSION_CATEGORIES,
       unauthorizedAccessLogs,
       orgHierarchy,
     });
