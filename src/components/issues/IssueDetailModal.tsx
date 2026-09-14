@@ -1422,10 +1422,10 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         if (e.target === e.currentTarget) handleCancelAndClose();
       }}
     >
-      <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col border-l border-slate-300 dark:border-white/[0.08] animate-in slide-in-from-right duration-200">
+      <div className="w-full max-w-3xl md:max-w-4xl xl:max-w-5xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col border-l border-slate-300 dark:border-white/[0.08] animate-in slide-in-from-right duration-200">
         {/* Modal Header */}
-        <div className="min-h-[56px] h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 overflow-hidden">
-          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden mr-2">
+        <div className="min-h-[56px] h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
             <span
               className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border shadow-2xs transition-all shrink-0 ${
                 !isCreateMode && isIssueDone(issue, projectStatuses)
@@ -1457,11 +1457,11 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 }}
               />
               <span>{draftIssueType || issue?.issueType || "TASK"}</span>
-              <ChevronDown className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
+              <ChevronDown className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100 shrink-0" />
             </button>
             {issue?.sprint && (
               <span
-                className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900/60 shadow-2xs max-w-[130px] lg:max-w-[170px] shrink-0 whitespace-nowrap overflow-hidden"
+                className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900/60 shadow-2xs min-w-0 max-w-[130px] lg:max-w-[170px] shrink truncate"
                 title={`Sprint: ${issue?.sprint?.name}`}
               >
                 <GitBranch className="w-3 h-3 text-indigo-500 shrink-0" />
@@ -1473,19 +1473,19 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               if (!currentEpic) return null;
               return (
                 <div
-                  className="hidden lg:inline-flex items-center gap-1.5 shrink-0 max-w-[160px] xl:max-w-[210px] overflow-hidden"
-                  title={`Epic: ${currentEpic.name} (${currentEpic.status || 'ACTIVE'})`}
+                  className="hidden md:inline-flex items-center gap-1.5 min-w-0 max-w-[150px] lg:max-w-[220px] shrink"
+                  title={`Epic: ${currentEpic.name}${currentEpic.status ? ` (${currentEpic.status})` : ""}`}
                 >
                   <span
-                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white shadow-2xs truncate whitespace-nowrap"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white shadow-2xs truncate min-w-0 max-w-full"
                     style={{ backgroundColor: currentEpic.color || "#8b5cf6" }}
                   >
                     <Zap className="w-2.5 h-2.5 shrink-0" />
-                    <span className="truncate max-w-[100px] xl:max-w-[140px]">{currentEpic.name}</span>
+                    <span className="truncate">{currentEpic.name}</span>
                   </span>
                   {currentEpic.status && (
                     <span
-                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs shrink-0 whitespace-nowrap"
+                      className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs shrink-0 whitespace-nowrap"
                     >
                       {currentEpic.status}
                     </span>
@@ -1495,13 +1495,12 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
             })()}
           </div>
 
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {canDelete && !isCreateMode && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer border border-rose-200/70 dark:border-rose-900/60 shadow-2xs"
+                className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer border border-rose-200/70 dark:border-rose-900/60 shadow-2xs shrink-0"
                 title="Delete issue permanently"
                 aria-label="Delete issue"
               >
@@ -1511,13 +1510,13 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
             <button
               type="button"
               onClick={handleCancelAndClose}
-              className="btn-secondary px-3.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer"
+              className="hidden lg:inline-flex btn-secondary px-3 py-1.5 text-xs font-semibold rounded-xl cursor-pointer shrink-0"
               title="Cancel changes and close window"
             >
               Cancel
             </button>
             {isViewer ? (
-              <span className="px-3 py-1 text-[11px] font-bold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80">
+              <span className="px-3 py-1 text-[11px] font-bold rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80 shrink-0">
                 Read-Only
               </span>
             ) : (
@@ -1525,7 +1524,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 type="button"
                 disabled={isSaving}
                 onClick={handleSaveAndClose}
-                className="btn-primary flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-xl disabled:opacity-50 cursor-pointer"
+                className="btn-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl disabled:opacity-50 cursor-pointer shadow-xs shadow-blue-500/20 shrink-0"
                 title="Save changes and close window"
               >
                 <Check className="w-3.5 h-3.5" />
@@ -1535,19 +1534,19 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
             {!isCreateMode && (
               <button
                 onClick={handleToggleWatcher}
-                className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl cursor-pointer"
-                title="Watch / Unwatch issue notifications"
+                className="btn-secondary flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer shrink-0"
+                title={issue?.watchers?.some((w: any) => w.userId === currentUser?.id) ? "Unwatch issue" : "Watch issue"}
               >
-                <Eye className="w-3.5 h-3.5 text-blue-500" />
-                <span>Watch</span>
+                <Eye className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span className="hidden xl:inline">Watch</span>
                 {issue?.watchers?.length > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-[10px]">
-                    {issue?.watchers?.length || 0}
+                  <span className="px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-[10px]">
+                    {issue?.watchers?.length}
                   </span>
                 )}
               </button>
             )}
-            <button onClick={handleCancelAndClose} aria-label="Close modal" className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer ml-1">
+            <button onClick={handleCancelAndClose} aria-label="Close modal" className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer shrink-0 ml-0.5">
               <X className="w-5 h-5" />
             </button>
           </div>
