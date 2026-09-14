@@ -237,14 +237,14 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
   return (
     <div className="space-y-6">
       {/* Top Banner & Multi-Tenant Org Selector */}
-      <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs dark:shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               Eitekh WorkOS — Access Governance & PBAC
             </h2>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-950/70 border border-emerald-800/80 rounded-full text-[10px] text-emerald-400 font-semibold">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800/80 rounded-full text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
@@ -252,25 +252,25 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
               <span>LIVE SYNCED</span>
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Deterministic Authorization: <span className="font-semibold text-slate-200">EXISTING USER</span> ➔{' '}
-            <span className="font-semibold text-slate-200">PERMISSION ROLE</span> ➔{' '}
-            <span className="font-semibold text-slate-200">PERMISSIONS (18 MODULES)</span> ➔{' '}
-            <span className="font-semibold text-slate-200">PROJECT MEMBERSHIP</span> ➔{' '}
-            <span className="font-semibold text-emerald-400">EFFECTIVE ACCESS</span>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Deterministic Authorization: <span className="font-semibold text-slate-900 dark:text-slate-200">EXISTING USER</span> ➔{' '}
+            <span className="font-semibold text-slate-900 dark:text-slate-200">PERMISSION ROLE</span> ➔{' '}
+            <span className="font-semibold text-slate-900 dark:text-slate-200">PERMISSIONS (18 MODULES)</span> ➔{' '}
+            <span className="font-semibold text-slate-900 dark:text-slate-200">PROJECT MEMBERSHIP</span> ➔{' '}
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">EFFECTIVE ACCESS</span>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Real-time Status Badge */}
-          <div className="flex items-center gap-2 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 text-[11px]">
-            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span className="text-slate-400">Synced:</span>
-            <span className="text-slate-200 font-mono font-medium">{lastSyncTime}</span>
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px]">
+            <Radio className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+            <span className="text-slate-500 dark:text-slate-400">Synced:</span>
+            <span className="text-slate-800 dark:text-slate-200 font-mono font-medium">{lastSyncTime}</span>
             <button
               onClick={() => setAutoSync(!autoSync)}
               className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all ${
-                autoSync ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50' : 'bg-slate-800 text-slate-400'
+                autoSync ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
               }`}
               title={autoSync ? 'Auto-sync active (click to pause)' : 'Auto-sync paused (click to resume)'}
             >
@@ -279,21 +279,21 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
           </div>
 
           {/* Org Selector */}
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <Building2 className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="text-slate-400 font-medium">Tenant Org:</span>
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
+            <Building2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Tenant Org:</span>
             <select
               value={selectedOrgId}
               onChange={(e) => setSelectedOrgId(e.target.value)}
-              className="bg-transparent text-slate-200 font-semibold outline-none cursor-pointer"
+              className="bg-transparent text-slate-900 dark:text-slate-200 font-semibold outline-none cursor-pointer"
             >
               {orgs.length === 0 ? (
-                <option value="default-org" className="bg-slate-900 text-slate-200">
+                <option value="default-org" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                   Primary Organization
                 </option>
               ) : (
                 orgs.map((o) => (
-                  <option key={o.id} value={o.id} className="bg-slate-900 text-slate-200">
+                  <option key={o.id} value={o.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                     {o.name}
                   </option>
                 ))
@@ -302,19 +302,19 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
           </div>
 
           {/* Project Selecting Option (Project-wise Permission Scoping) */}
-          <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <FolderGit2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-slate-400 font-medium">Project:</span>
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
+            <FolderGit2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Project:</span>
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="bg-transparent text-slate-200 font-semibold outline-none cursor-pointer max-w-[220px] truncate"
+              className="bg-transparent text-slate-900 dark:text-slate-200 font-semibold outline-none cursor-pointer max-w-[220px] truncate"
             >
-              <option value="ALL" className="bg-slate-900 text-slate-200 font-medium">
+              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-medium">
                 🌐 All Projects (Global Scope)
               </option>
               {projects.map((p) => (
-                <option key={p.id} value={p.id} className="bg-slate-900 text-slate-200 font-medium">
+                <option key={p.id} value={p.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-medium">
                   🎯 {p.name} ({p.key})
                 </option>
               ))}
@@ -324,16 +324,16 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
           <button
             onClick={handleFullRefresh}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600 dark:text-indigo-400' : ''}`} />
             <span>Sync Now</span>
           </button>
         </div>
       </div>
 
       {/* 6-Tab Streamlined Navigation */}
-      <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800 overflow-x-auto">
+      <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-300/80 dark:border-slate-800 overflow-x-auto">
         {navTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -344,7 +344,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -352,7 +352,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
               {tab.badge && (
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                    isActive ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-800 text-slate-400'
+                    isActive ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-300 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
                   }`}
                 >
                   {tab.badge}
