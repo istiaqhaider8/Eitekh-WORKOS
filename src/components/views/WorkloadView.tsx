@@ -941,7 +941,8 @@ export function WorkloadView({
       </div>
 
       {/* 2. Executive KPI Dashboard (8 Real Database Metrics) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+      {/* 2. Executive KPI Dashboard (8 Real Database Metrics) */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3 sm:gap-3.5">
         {/* 1. Total Capacity */}
         <div
           onClick={() => openDrillDown({
@@ -951,15 +952,15 @@ export function WorkloadView({
             metricLabel: `${summaryKPIs.totalCapacity} ${getUnitLabel(metricUnit)} total capacity`,
             issues: scopedIssues.filter((i) => i.assigneeId),
           })}
-          className="bg-card border border-border p-3 rounded-xl shadow-2xs cursor-pointer hover:border-primary/60 hover:shadow-xs transition-all group"
+          className="bg-card border border-border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:border-primary/60 hover:shadow-xs transition-all group"
           title="Click to view all team tasks"
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className="truncate group-hover:text-primary transition-colors">Total Capacity</span>
-            <Users className="w-3.5 h-3.5 text-primary shrink-0" />
+            <Users className="w-4 h-4 text-primary shrink-0 ml-1" />
           </div>
-          <p className="text-xl font-black text-foreground mt-1">{summaryKPIs.totalCapacity}</p>
-          <span className="text-[10px] text-muted-foreground font-mono">{getUnitLabel(metricUnit)} across {memberAggregates.length} devs</span>
+          <p className="text-xl sm:text-2xl font-black text-foreground mt-1">{summaryKPIs.totalCapacity}</p>
+          <span className="text-[11px] text-muted-foreground font-mono truncate block">{getUnitLabel(metricUnit)} across {memberAggregates.length} devs</span>
         </div>
 
         {/* 2. Allocated Workload */}
@@ -972,15 +973,15 @@ export function WorkloadView({
             percentage: summaryKPIs.totalUtilization,
             issues: scopedIssues.filter((i) => i.assigneeId),
           })}
-          className="bg-card border border-border p-3 rounded-xl shadow-2xs cursor-pointer hover:border-blue-500/60 hover:shadow-xs transition-all group"
+          className="bg-card border border-border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:border-blue-500/60 hover:shadow-xs transition-all group"
           title="Click to inspect allocated work"
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className="truncate group-hover:text-blue-500 transition-colors">Allocated Work</span>
-            <Zap className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <Zap className="w-4 h-4 text-blue-500 shrink-0 ml-1" />
           </div>
-          <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">{summaryKPIs.totalAssigned}</p>
-          <span className="text-[10px] text-blue-600 font-bold">{getUnitLabel(metricUnit)} active</span>
+          <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{summaryKPIs.totalAssigned}</p>
+          <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold truncate block">{getUnitLabel(metricUnit)} active</span>
         </div>
 
         {/* 3. Available Capacity */}
@@ -997,28 +998,28 @@ export function WorkloadView({
               issues: availableIssues,
             });
           }}
-          className="bg-card border border-border p-3 rounded-xl shadow-2xs cursor-pointer hover:border-emerald-500/60 hover:shadow-xs transition-all group"
+          className="bg-card border border-border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:border-emerald-500/60 hover:shadow-xs transition-all group"
           title="Click to view work on available devs"
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-            <span className="truncate group-hover:text-emerald-500 transition-colors">Available Cap</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="truncate group-hover:text-emerald-500 transition-colors">Available Capacity</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 ml-1" />
           </div>
-          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{summaryKPIs.availableCapacity}</p>
-          <span className="text-[10px] text-emerald-600 font-bold">{getUnitLabel(metricUnit)} buffer</span>
+          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{summaryKPIs.availableCapacity}</p>
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold truncate block">{getUnitLabel(metricUnit)} buffer</span>
         </div>
 
         {/* 4. Utilization % */}
         <div
           onClick={() => setActiveTab('MATRIX')}
-          className="bg-card border border-border p-3 rounded-xl shadow-2xs cursor-pointer hover:border-primary/60 hover:shadow-xs transition-all group"
+          className="bg-card border border-border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:border-primary/60 hover:shadow-xs transition-all group"
           title="Click to view capacity vs workload matrix"
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className="truncate group-hover:text-foreground transition-colors">Utilization %</span>
-            <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
+            <TrendingUp className="w-4 h-4 text-primary shrink-0 ml-1" />
           </div>
-          <p className={`text-xl font-black mt-1 ${
+          <p className={`text-xl sm:text-2xl font-black mt-1 ${
             summaryKPIs.totalUtilization > 100
               ? 'text-rose-600 dark:text-rose-400'
               : summaryKPIs.totalUtilization >= 80
@@ -1027,7 +1028,7 @@ export function WorkloadView({
           }`}>
             {summaryKPIs.totalUtilization}%
           </p>
-          <span className="text-[10px] text-muted-foreground font-semibold">
+          <span className="text-[11px] text-muted-foreground font-semibold truncate block">
             {summaryKPIs.totalUtilization > 100 ? 'Over limit' : summaryKPIs.totalUtilization >= 80 ? 'Optimal load' : 'Under capacity'}
           </span>
         </div>
@@ -1046,7 +1047,7 @@ export function WorkloadView({
               issues: overloadedIssues,
             });
           }}
-          className={`bg-card border p-3 rounded-xl shadow-2xs cursor-pointer hover:shadow-xs transition-all group ${
+          className={`bg-card border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:shadow-xs transition-all group ${
             summaryKPIs.overloadedCount > 0
               ? 'border-rose-300 dark:border-rose-900 bg-rose-50/20 dark:bg-rose-950/10'
               : 'border-border'
@@ -1055,12 +1056,12 @@ export function WorkloadView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={`truncate ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600 font-bold' : ''}`}>Overloaded</span>
-            <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
+            <AlertTriangle className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
           </div>
-          <p className={`text-xl font-black mt-1 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
+          <p className={`text-xl sm:text-2xl font-black mt-1 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {summaryKPIs.overloadedCount}
           </p>
-          <span className={`text-[10px] font-semibold ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
+          <span className={`text-[11px] font-semibold truncate block ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
             {summaryKPIs.criticalOverloadedCount > 0 ? `${summaryKPIs.criticalOverloadedCount} critical` : 'Members >100%'}
           </span>
         </div>
@@ -1074,15 +1075,15 @@ export function WorkloadView({
             metricLabel: `${summaryKPIs.unassignedCount} tasks (${summaryKPIs.unassignedTotal} ${getUnitLabel(metricUnit)})`,
             issues: unassignedIssues,
           })}
-          className="bg-card border border-border p-3 rounded-xl shadow-2xs cursor-pointer hover:border-amber-500/60 hover:shadow-xs transition-all group"
+          className="bg-card border border-border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:border-amber-500/60 hover:shadow-xs transition-all group"
           title="Click to inspect unassigned work"
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className="truncate group-hover:text-amber-500 transition-colors">Unassigned</span>
-            <Layers className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <Layers className="w-4 h-4 text-amber-500 shrink-0 ml-1" />
           </div>
-          <p className="text-xl font-black text-foreground mt-1">{summaryKPIs.unassignedCount}</p>
-          <span className="text-[10px] text-amber-600 font-bold font-mono">{summaryKPIs.unassignedTotal} {getUnitLabel(metricUnit)}</span>
+          <p className="text-xl sm:text-2xl font-black text-foreground mt-1">{summaryKPIs.unassignedCount}</p>
+          <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold font-mono truncate block">{summaryKPIs.unassignedTotal} {getUnitLabel(metricUnit)}</span>
         </div>
 
         {/* 7. Overdue Work */}
@@ -1094,7 +1095,7 @@ export function WorkloadView({
             metricLabel: `${summaryKPIs.overdueCount} overdue`,
             issues: summaryKPIs.overdueIssues,
           })}
-          className={`bg-card border p-3 rounded-xl shadow-2xs cursor-pointer hover:shadow-xs transition-all group ${
+          className={`bg-card border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:shadow-xs transition-all group ${
             summaryKPIs.overdueCount > 0
               ? 'border-rose-300 dark:border-rose-900 bg-rose-50/20 dark:bg-rose-950/10'
               : 'border-border'
@@ -1103,12 +1104,12 @@ export function WorkloadView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={`truncate ${summaryKPIs.overdueCount > 0 ? 'text-rose-600 font-bold' : ''}`}>Overdue</span>
-            <Clock className={`w-3.5 h-3.5 shrink-0 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
+            <Clock className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
           </div>
-          <p className={`text-xl font-black mt-1 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
+          <p className={`text-xl sm:text-2xl font-black mt-1 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {summaryKPIs.overdueCount}
           </p>
-          <span className={`text-[10px] font-semibold ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
+          <span className={`text-[11px] font-semibold truncate block ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
             {summaryKPIs.overdueTotal} {getUnitLabel(metricUnit)} pending
           </span>
         </div>
@@ -1122,7 +1123,7 @@ export function WorkloadView({
             metricLabel: `${summaryKPIs.criticalUnassignedCount} critical tasks`,
             issues: summaryKPIs.criticalUnassignedIssues,
           })}
-          className={`bg-card border p-3 rounded-xl shadow-2xs cursor-pointer hover:shadow-xs transition-all group ${
+          className={`bg-card border p-3.5 rounded-2xl shadow-2xs cursor-pointer hover:shadow-xs transition-all group ${
             summaryKPIs.criticalUnassignedCount > 0
               ? 'border-rose-400 dark:border-rose-800 bg-rose-50/30 dark:bg-rose-950/20'
               : 'border-border'
@@ -1131,23 +1132,23 @@ export function WorkloadView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={`truncate ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600 font-bold' : ''}`}>Critical Unassigned</span>
-            <ShieldAlert className={`w-3.5 h-3.5 shrink-0 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
+            <ShieldAlert className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
           </div>
-          <p className={`text-xl font-black mt-1 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
+          <p className={`text-xl sm:text-2xl font-black mt-1 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {summaryKPIs.criticalUnassignedCount}
           </p>
-          <span className={`text-[10px] font-semibold ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
+          <span className={`text-[11px] font-semibold truncate block ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
             {summaryKPIs.criticalUnassignedCount > 0 ? 'Urgent triage' : 'None pending'}
           </span>
         </div>
       </div>
 
       {/* 3. Multi-Dimensional Navigation Tabs */}
-      <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border flex-wrap gap-1">
+      <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border overflow-x-auto no-scrollbar gap-1 shrink-0">
         <button
           type="button"
           onClick={() => setActiveTab('PLANNER')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === 'PLANNER'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -1158,7 +1159,7 @@ export function WorkloadView({
         <button
           type="button"
           onClick={() => setActiveTab('MATRIX')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === 'MATRIX'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -1169,7 +1170,7 @@ export function WorkloadView({
         <button
           type="button"
           onClick={() => setActiveTab('RISKS')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
             activeTab === 'RISKS'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -1183,7 +1184,7 @@ export function WorkloadView({
         <button
           type="button"
           onClick={() => setActiveTab('FORECAST')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === 'FORECAST'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -1194,7 +1195,7 @@ export function WorkloadView({
         <button
           type="button"
           onClick={() => setActiveTab('TRENDS')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === 'TRENDS'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -1205,7 +1206,7 @@ export function WorkloadView({
         <button
           type="button"
           onClick={() => setActiveTab('REPORTS')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === 'REPORTS'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
@@ -1216,7 +1217,7 @@ export function WorkloadView({
         <button
           type="button"
           onClick={() => setActiveTab('AUDIT')}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shrink-0 ${
             activeTab === 'AUDIT'
               ? 'bg-background text-primary shadow-2xs'
               : 'text-muted-foreground hover:text-foreground'
