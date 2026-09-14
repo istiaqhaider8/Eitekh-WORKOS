@@ -688,7 +688,7 @@ export function TimelineGanttView({
   };
 
   return (
-    <div className="flex-1 p-6 space-y-4 overflow-hidden flex flex-col min-h-0 select-none">
+    <div className="flex-1 p-3 sm:p-4 md:p-6 space-y-4 overflow-hidden flex flex-col min-h-0 select-none">
       {/* Top Header & Interactive Filter Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>

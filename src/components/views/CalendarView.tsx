@@ -1344,11 +1344,11 @@ export function CalendarView({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-900 dark:text-slate-100 select-none overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 select-none overflow-hidden">
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP SCHEDULE TOOLBAR (SLEEK 2-TIER ENTERPRISE DECK)        */}
       {/* ------------------------------------------------------------- */}
-      <header className="px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 shrink-0 space-y-2.5 z-20 shadow-2xs">
+      <header className="px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 shrink-0 space-y-2.5 z-20 shadow-2xs">
         {/* Tier 1: Period Navigation, Views, & Action Hub */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           {/* Left: Navigation Controls */}
@@ -1358,7 +1358,7 @@ export function CalendarView({
               <button
                 type="button"
                 onClick={handlePrev}
-                className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
                 title="Previous (Left Arrow)"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -1366,7 +1366,7 @@ export function CalendarView({
               <button
                 type="button"
                 onClick={handleToday}
-                className="px-2.5 py-0.5 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-800 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
+                className="px-2.5 py-0.5 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors cursor-pointer"
                 title="Jump to Today (T)"
               >
                 Today

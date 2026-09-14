@@ -1363,6 +1363,7 @@ export function ProjectClient({
                   onUpdateIssueStatus={handleUpdateIssueStatus}
                   onUpdateIssuePriority={handleUpdateIssuePriority}
                   onQuickCreateIssue={handleQuickCreateIssue}
+                  onRefresh={refreshIssues}
                 />
               )}
 

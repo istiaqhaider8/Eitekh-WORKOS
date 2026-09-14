@@ -578,9 +578,9 @@ export function KanbanBoardView({
                         {status.name}
                       </span>
                       <span
-                        className={"px-2 py-0.5 rounded-full text-[10px] font-bold border " + (
+                        className={"px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors " + (
                           isOverWip
-                            ? "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-900 dark:text-rose-300 dark:border-rose-800"
+                            ? "bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800 animate-pulse"
                             : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
                         )}
                       >
@@ -603,6 +603,18 @@ export function KanbanBoardView({
                   {/* Issues List */}
                   <div className="p-2.5 space-y-2.5 overflow-y-auto flex-1">
                     {columnIssues.map(renderIssueCard)}
+
+                    {isDragOver && (
+                      <div className="h-16 rounded-xl border-2 border-dashed border-blue-500/80 dark:border-blue-400/80 bg-blue-50/50 dark:bg-blue-950/40 flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-400 animate-pulse transition-all">
+                        Drop issue to move here
+                      </div>
+                    )}
+
+                    {columnIssues.length === 0 && !isDragOver && (
+                      <div className="h-24 border-2 border-dashed border-slate-300/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 italic">
+                        No issues
+                      </div>
+                    )}
 
                     {userCanCreate && (
                       <button

@@ -21,8 +21,11 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Square,
+  MinusSquare,
 } from "lucide-react";
 
+import { showSuccess, showError } from "@/lib/toast";
 import { isDelegationActive } from "@/lib/delegation-engine";
 import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
@@ -50,6 +53,7 @@ interface ListViewProps {
     dueDate?: string;
   }) => Promise<void> | void;
   onOpenCreateModal?: (defaultStatusId?: string, defaultTitle?: string) => void;
+  onRefresh?: () => void;
 }
 
 const DEFAULT_PRIORITIES = [
@@ -86,6 +90,7 @@ export function ListView({
   onUpdateIssuePriority,
   onQuickCreateIssue,
   onOpenCreateModal,
+  onRefresh,
 }: ListViewProps) {
   const userCanCreate = canCreateIssue !== false && (
     currentUser?.isSuperAdmin ||
@@ -95,6 +100,10 @@ export function ListView({
   const [filterType, setFilterType] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [filterPriority, setFilterPriority] = useState<string>("");
+
+  // Bulk Selection State
+  const [selectedIssueIds, setSelectedIssueIds] = useState<Set<string>>(new Set());
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   // Inline Task Creation State
   const [isAddingTask, setIsAddingTask] = useState(false);
@@ -114,12 +123,83 @@ export function ListView({
   const [sortField, setSortField] = useState<SortField>("key");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
+  const handleSelectAll = () => {
+    if (selectedIssueIds.size === filteredIssues.length && filteredIssues.length > 0) {
+      setSelectedIssueIds(new Set());
+    } else {
+      setSelectedIssueIds(new Set(filteredIssues.map((i) => i.id)));
+    }
+  };
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
       setSortDirection("asc");
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIssueIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkStatusChange = async (statusId: string) => {
+    if (selectedIssueIds.size === 0) return;
+    setIsBulkUpdating(true);
+    try {
+      const res = await fetch("/api/issues/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issueIds: Array.from(selectedIssueIds),
+          updates: { statusId },
+        }),
+      });
+      if (res.ok) {
+        showSuccess(`Updated status for ${selectedIssueIds.size} issues`);
+        setSelectedIssueIds(new Set());
+        if (onRefresh) onRefresh();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showError(err.error || "Failed to update issues");
+      }
+    } catch {
+      showError("Error updating issues");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleBulkPriorityChange = async (priority: string) => {
+    if (selectedIssueIds.size === 0) return;
+    setIsBulkUpdating(true);
+    try {
+      const res = await fetch("/api/issues/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issueIds: Array.from(selectedIssueIds),
+          updates: { priority },
+        }),
+      });
+      if (res.ok) {
+        showSuccess(`Updated priority for ${selectedIssueIds.size} issues`);
+        setSelectedIssueIds(new Set());
+        if (onRefresh) onRefresh();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showError(err.error || "Failed to update issues");
+      }
+    } catch {
+      showError("Error updating issues");
+    } finally {
+      setIsBulkUpdating(false);
     }
   };
 
@@ -332,6 +412,15 @@ export function ListView({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider select-none">
+                <th className="py-3 px-3 w-10 text-center select-none">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all issues"
+                    checked={filteredIssues.length > 0 && selectedIssueIds.size === filteredIssues.length}
+                    onChange={handleSelectAll}
+                    className="rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
+                  />
+                </th>
                 <th onClick={() => handleSort("type")} className="py-3 px-2.5 sm:px-3.5 w-16 sm:w-24 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   <div className="flex items-center gap-1">
                     <span>Type</span>
@@ -391,7 +480,7 @@ export function ListView({
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 font-normal">
               {filteredIssues.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 italic">
+                  <td colSpan={10} className="py-12 text-center text-slate-400 italic">
                     No issues match your current filters.
                   </td>
                 </tr>
@@ -400,8 +489,20 @@ export function ListView({
                   <tr
                     key={issue.id}
                     onClick={() => onSelectIssue(issue)}
-                    className="hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                    className={`hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group ${
+                      selectedIssueIds.has(issue.id) ? "bg-blue-50/60 dark:bg-blue-950/30" : ""
+                    }`}
                   >
+                    {/* Checkbox */}
+                    <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select issue ${issue.issueKey}`}
+                        checked={selectedIssueIds.has(issue.id)}
+                        onChange={() => handleToggleSelect(issue.id)}
+                        className="rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
+                      />
+                    </td>
                     {/* Type */}
                     <td className="py-3 px-3.5">{renderTypeIcon(issue.issueType)}</td>
 
@@ -568,6 +669,69 @@ export function ListView({
           </table>
         </div>
       </div>
+
+      {/* Floating Bulk Actions Bar */}
+      {selectedIssueIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-2.5 bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-slate-700/60 transition-all animate-in fade-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+            <span className="w-6 h-6 rounded-full bg-blue-600 text-xs font-bold flex items-center justify-center">
+              {selectedIssueIds.size}
+            </span>
+            <span className="text-xs font-semibold text-slate-200">Selected</span>
+          </div>
+
+          {/* Status Change */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-slate-400 font-medium">Status:</span>
+            <select
+              disabled={isBulkUpdating}
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkStatusChange(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              defaultValue=""
+              className="bg-slate-800 dark:bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+            >
+              <option value="" disabled>Change Status...</option>
+              {statuses.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority Change */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-slate-400 font-medium">Priority:</span>
+            <select
+              disabled={isBulkUpdating}
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkPriorityChange(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              defaultValue=""
+              className="bg-slate-800 dark:bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+            >
+              <option value="" disabled>Change Priority...</option>
+              {priorityList.map((p) => (
+                <option key={p.value || p.name} value={p.value || p.name}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Deselect / Cancel */}
+          <button
+            type="button"
+            onClick={() => setSelectedIssueIds(new Set())}
+            className="ml-2 text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+          >
+            Deselect
+          </button>
+        </div>
+      )}
     </div>
   );
 }

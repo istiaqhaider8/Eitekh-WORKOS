@@ -56,7 +56,9 @@ export function AppSidebar({
   useEffect(() => {
     setIsMounted(true);
     const stored = localStorage.getItem("zenith_sidebar_collapsed");
-    if (stored === "true") {
+    if (stored !== null) {
+      setIsCollapsed(stored === "true");
+    } else if (typeof window !== "undefined" && window.innerWidth >= 768 && window.innerWidth <= 1024) {
       setIsCollapsed(true);
     }
   }, []);

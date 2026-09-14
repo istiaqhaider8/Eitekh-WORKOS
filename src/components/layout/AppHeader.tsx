@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -54,6 +54,21 @@ export function AppHeader({
   const [notificationTab, setNotificationTab] = useState<"all" | "unread" | "mentions" | "assignments" | "system">("all");
   const [notificationSearch, setNotificationSearch] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -286,7 +301,7 @@ export function AppHeader({
         <ThemeToggle />
 
         {/* Notifications Bell */}
-        <div className="relative">
+        <div className="relative" ref={notificationsRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             aria-label="Notifications"
@@ -300,7 +315,7 @@ export function AppHeader({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-[-2.5rem] sm:right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[32rem]">
+            <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-14 sm:top-auto sm:mt-2 w-auto sm:w-96 max-w-sm sm:max-w-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[calc(100vh-5rem)] sm:max-h-[32rem]">
               <div className="flex items-center justify-between pb-2 border-b border-slate-300 dark:border-slate-800">
                 <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
                   Notifications
@@ -444,7 +459,7 @@ export function AppHeader({
         )}
 
         {/* User Avatar Menu */}
-        <div className="relative">
+        <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             aria-label="User menu"

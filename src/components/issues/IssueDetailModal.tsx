@@ -2298,7 +2298,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               >
                 <span>Dependencies</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px]">
-                  {(issue.incomingDeps?.length || 0) + (issue.outgoingDeps?.length || 0)}
+                  {(issue?.incomingDeps?.length || 0) + (issue?.outgoingDeps?.length || 0)}
                 </span>
               </button>
               <button
