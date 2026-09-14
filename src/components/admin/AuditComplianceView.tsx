@@ -144,7 +144,7 @@ export function AuditComplianceView() {
     if (autoRefresh) {
       autoRefreshTimerRef.current = setInterval(() => {
         loadLogs(true);
-      }, 10000);
+      }, 30000);
     } else {
       if (autoRefreshTimerRef.current) clearInterval(autoRefreshTimerRef.current);
     }

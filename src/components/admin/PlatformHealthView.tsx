@@ -44,7 +44,7 @@ export function PlatformHealthView() {
 
   useEffect(() => {
     loadHealth();
-    const interval = setInterval(loadHealth, 8000);
+    const interval = setInterval(loadHealth, 30000);
     return () => clearInterval(interval);
   }, []);
 

@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 .pnp
 .pnp.js
@@ -37,6 +37,8 @@ pnpm-debug.log*
 .idea/
 *.suo
 *.ntvs*
+# Local scratch scripts
+scratch/
 *.njsproj
 *.sln
 *.sw?

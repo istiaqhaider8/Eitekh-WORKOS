@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
+
+function validateWebhookUrl(targetUrl: string): boolean {
+  try {
+    const parsed = new URL(targetUrl);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -12,6 +22,17 @@ export async function GET(request: Request) {
 
   if (!orgId && !projectId) {
     return NextResponse.json({ error: "Missing orgId or projectId" }, { status: 400 });
+  }
+
+  try {
+    if (projectId) {
+      await assertProjectAccess(projectId);
+    } else if (orgId) {
+      await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
+    }
+  } catch (error: any) {
+    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
+    return NextResponse.json({ error: error.message || "Forbidden" }, { status });
   }
 
   const where: any = {};
@@ -33,6 +54,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    if (!validateWebhookUrl(targetUrl)) {
+      return NextResponse.json({ error: "Invalid target URL. Must be a valid HTTP/HTTPS URL" }, { status: 400 });
+    }
+
+    await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
+    if (projectId) {
+      await assertProjectAccess(projectId);
+    }
+
     const webhook = await prisma.webhook.create({
       data: {
         orgId,
@@ -45,7 +75,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(webhook, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
   }
 }

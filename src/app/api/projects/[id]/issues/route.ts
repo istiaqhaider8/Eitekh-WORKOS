@@ -124,8 +124,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       teamId,
       epicId,
       sprintId,
+      parentIssueId,
+      componentId,
+      securityLevel,
       estimatePoints,
       estimateHours,
+      timeSpentHours,
       startDate,
       dueDate,
       labels = [],
@@ -135,47 +139,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    // Atomic update of project issueCounter to generate guaranteed sequential key (e.g. CP-1, CP-2)
-    const maxIssue = await prisma.issue.findFirst({
-      where: { projectId },
-      orderBy: { keyNumber: "desc" },
-      select: { keyNumber: true },
-    });
-    const maxExistingKey = maxIssue?.keyNumber || 0;
-
-    let project = await prisma.project.update({
-      where: { id: projectId },
-      data: {
-        issueCounter: { increment: 1 },
-      },
-      include: {
-        workflows: {
-          include: { statuses: { orderBy: { position: "asc" } } },
-        },
-      },
-    });
-
-    let keyNumber = project.issueCounter;
-    if (keyNumber <= maxExistingKey) {
-      keyNumber = maxExistingKey + 1;
-      await prisma.project.update({
-        where: { id: projectId },
-        data: { issueCounter: keyNumber },
-      });
-    }
-    const issueKey = `${project.key}-${keyNumber}`;
-
-    // Resolve target status: either provided statusId or first status in project workflow
-    let finalStatusId = statusId;
-    if (!finalStatusId) {
-      const defaultWorkflow = project.workflows[0];
-      if (defaultWorkflow && defaultWorkflow.statuses.length > 0) {
-        finalStatusId = defaultWorkflow.statuses[0].id;
-      } else {
-        return NextResponse.json({ error: "No workflow statuses defined for this project" }, { status: 400 });
-      }
-    }
-
     if (startDate && dueDate && new Date(dueDate) < new Date(startDate)) {
       return NextResponse.json({ error: "Due Date cannot be earlier than Start Date" }, { status: 400 });
     }
@@ -183,49 +146,101 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const finalStartDate = startDate ? new Date(startDate) : new Date();
     const finalDueDate = dueDate ? new Date(dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    const issue = await prisma.issue.create({
-      data: {
-        projectId,
-        keyNumber,
-        issueKey,
-        title: title.trim(),
-        description: description || null,
-        issueType,
-        priority: priority || "MEDIUM",
-        statusId: finalStatusId,
-        reporterId: user.id,
-        assigneeId: assigneeId || null,
-        teamId: teamId || null,
-        epicId: epicId || null,
-        sprintId: sprintId || null,
-        estimatePoints: estimatePoints ? Number(estimatePoints) : null,
-        estimateHours: estimateHours ? Number(estimateHours) : null,
-        remainingHours: estimateHours ? Number(estimateHours) : null,
-        startDate: finalStartDate,
-        dueDate: finalDueDate,
-      },
-      include: {
-        status: true,
-        assignee: true,
-        team: {
-          include: {
-            members: {
-              include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } }
-            }
-          }
-        },
-        reporter: true,
-      },
-    });
+    // Atomic update of project issueCounter and issue creation in a single transaction
+    const { issue, project } = await prisma.$transaction(async (tx) => {
+      const maxIssue = await tx.issue.findFirst({
+        where: { projectId },
+        orderBy: { keyNumber: "desc" },
+        select: { keyNumber: true },
+      });
+      const maxExistingKey = maxIssue?.keyNumber || 0;
 
-    // Create activity log
-    await prisma.activityLog.create({
-      data: {
-        issueId: issue.id,
-        actorId: user.id,
-        actionType: "CREATED",
-        newValue: `Created ${issue.issueKey}`,
-      },
+      let prj = await tx.project.update({
+        where: { id: projectId },
+        data: {
+          issueCounter: { increment: 1 },
+        },
+        include: {
+          workflows: {
+            include: { statuses: { orderBy: { position: "asc" } } },
+          },
+        },
+      });
+
+      let keyNumber = prj.issueCounter;
+      if (keyNumber <= maxExistingKey) {
+        keyNumber = maxExistingKey + 1;
+        prj = await tx.project.update({
+          where: { id: projectId },
+          data: { issueCounter: keyNumber },
+          include: {
+            workflows: {
+              include: { statuses: { orderBy: { position: "asc" } } },
+            },
+          },
+        });
+      }
+      const issueKey = `${prj.key}-${keyNumber}`;
+
+      let finalStatusId = statusId;
+      if (!finalStatusId) {
+        const defaultWorkflow = prj.workflows[0];
+        if (defaultWorkflow && defaultWorkflow.statuses.length > 0) {
+          finalStatusId = defaultWorkflow.statuses[0].id;
+        } else {
+          throw new Error("No workflow statuses defined for this project");
+        }
+      }
+
+      const createdIssue = await tx.issue.create({
+        data: {
+          projectId,
+          keyNumber,
+          issueKey,
+          title: title.trim(),
+          description: description || null,
+          issueType,
+          priority: priority || "MEDIUM",
+          statusId: finalStatusId,
+          reporterId: user.id,
+          assigneeId: assigneeId || null,
+          teamId: teamId || null,
+          epicId: epicId || null,
+          sprintId: sprintId || null,
+          parentIssueId: parentIssueId || null,
+          componentId: componentId || null,
+          securityLevel: securityLevel || null,
+          estimatePoints: estimatePoints ? Number(estimatePoints) : null,
+          estimateHours: estimateHours ? Number(estimateHours) : null,
+          remainingHours: estimateHours ? Number(estimateHours) : null,
+          timeSpentHours: timeSpentHours ? Number(timeSpentHours) : 0,
+          startDate: finalStartDate,
+          dueDate: finalDueDate,
+        },
+        include: {
+          status: true,
+          assignee: true,
+          team: {
+            include: {
+              members: {
+                include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } }
+              }
+            }
+          },
+          reporter: true,
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          issueId: createdIssue.id,
+          actorId: user.id,
+          actionType: "CREATED",
+          newValue: `Created ${createdIssue.issueKey}`,
+        },
+      });
+
+      return { issue: createdIssue, project: prj };
     });
 
     // Enterprise Audit Log
@@ -329,6 +344,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
+    // Fetch fully hydrated issue with all relations for complete client rendering
+    const fullIssue = await prisma.issue.findUnique({
+      where: { id: issue.id },
+      include: {
+        status: true,
+        assignee: {
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true, email: true },
+        },
+        reporter: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        subtasks: true,
+        labels: {
+          include: { label: true },
+        },
+        epic: true,
+        sprint: true,
+        team: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { comments: true, attachments: true, subtasks: true },
+        },
+      },
+    });
+
+    const issueToReturn = fullIssue || issue;
+
     // REAL-TIME DATA SYNCHRONIZATION:
     // Broadcast project-scoped event immediately upon database commit
     try {
@@ -338,7 +381,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         eventType: "ISSUE_CREATED",
         entityId: issue.id,
         entityType: "ISSUE",
-        data: issue,
+        data: issueToReturn,
         actor: {
           id: user.id,
           email: user.email,
@@ -362,7 +405,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       console.error("Real-time sync event error:", syncErr);
     }
 
-    return NextResponse.json({ issue }, { status: 201 });
+    return NextResponse.json({ issue: issueToReturn }, { status: 201 });
   } catch (error: any) {
     console.error("Create issue error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

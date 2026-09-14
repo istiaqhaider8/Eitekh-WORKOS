@@ -103,6 +103,10 @@ export function RolesTab({
   const [cloneDescription, setCloneDescription] = useState('');
   const [cloning, setCloning] = useState(false);
 
+  // Delete Role Modal
+  const [deleteModalRole, setDeleteModalRole] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Role Comparison Modal
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [selectedCompareRoleIds, setSelectedCompareRoleIds] = useState<string[]>([]);
@@ -203,12 +207,40 @@ export function RolesTab({
     });
   };
 
-  // Select All / Clear All Permissions
+  // Select All / Presets / Clear All Permissions
   const handleSelectAllPerms = () => {
-    setRoleForm((prev) => ({ ...prev, permissions: [...allKeys] }));
+    const keysFromCats = (categories || []).flatMap((c: any) => (c.permissions || []).map((p: any) => p.key));
+    const combined = Array.from(new Set([...(allKeys || []), ...keysFromCats]));
+    setRoleForm((prev) => ({ ...prev, permissions: combined }));
+    showSuccess(`Added all ${combined.length} permissions to role`);
   };
+
   const handleClearAllPerms = () => {
     setRoleForm((prev) => ({ ...prev, permissions: [] }));
+    showSuccess('Cleared all permissions');
+  };
+
+  const handleApplyPreset = (presetType: 'ADMIN' | 'MEMBER' | 'VIEWER') => {
+    let keys: string[] = [];
+    if (presetType === 'ADMIN') {
+      keys = (categories || []).flatMap((c: any) => (c.permissions || []).map((p: any) => p.key));
+    } else if (presetType === 'MEMBER') {
+      keys = [
+        'projects:view',
+        'issues:view', 'issues:create', 'issues:edit', 'issues:transition', 'issues:assign', 'issues:comment',
+        'tasks:view', 'tasks:create', 'tasks:edit', 'tasks:delete',
+        'epics:view', 'sprints:view', 'backlog:view', 'backlog:estimate',
+        'kanban:view', 'list:view', 'calendar:view', 'timeline:view', 'workload:view', 'reports:view', 'analytics:view', 'teams:view', 'export:csv'
+      ];
+    } else if (presetType === 'VIEWER') {
+      keys = [
+        'projects:view', 'issues:view', 'tasks:view', 'epics:view', 'sprints:view', 'backlog:view',
+        'kanban:view', 'list:view', 'calendar:view', 'timeline:view', 'workload:view', 'reports:view', 'analytics:view'
+      ];
+    }
+
+    setRoleForm((prev) => ({ ...prev, permissions: Array.from(new Set(keys)) }));
+    showSuccess(`Applied ${presetType} preset (${keys.length} permissions)`);
   };
 
   // Save Role
@@ -425,12 +457,18 @@ export function RolesTab({
     }
   };
 
-  // Delete Role
-  const handleDeleteRole = async (role: any) => {
-    if (!confirm(`Are you sure you want to permanently delete the role '${role.name}'?`)) return;
+  // Open Delete Role Modal
+  const handleOpenDelete = (role: any) => {
+    setDeleteModalRole(role);
+  };
 
+  // Confirm Delete Role
+  const handleConfirmDeleteRole = async (force: boolean = false) => {
+    if (!deleteModalRole) return;
+
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/pbac/roles/${role.id}?orgId=${orgId}`, {
+      const res = await fetch(`/api/pbac/roles/${deleteModalRole.id}?orgId=${orgId}${force ? '&force=true' : ''}`, {
         method: 'DELETE',
       });
 
@@ -439,10 +477,16 @@ export function RolesTab({
         throw new Error(err.error || 'Failed to delete role');
       }
 
-      showSuccess(`Role '${role.name}' deleted`);
+      showSuccess(`Role '${deleteModalRole.name}' deleted successfully`);
+      setDeleteModalRole(null);
+      if (editingRole?.id === deleteModalRole.id) {
+        setIsEditorOpen(false);
+      }
       onRefresh();
     } catch (e: any) {
       showError(e.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -657,15 +701,13 @@ export function RolesTab({
                       </button>
                     )}
 
-                    {!role.isSystem && (
-                      <button
-                        onClick={() => handleDeleteRole(role)}
-                        title="Delete Role"
-                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleOpenDelete(role)}
+                      title="Delete Permission Role"
+                      className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1219,28 +1261,56 @@ export function RolesTab({
 
                 {/* 18 Permission Categories Section */}
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                         Role Permissions ({roleForm.permissions.length} Selected)
                       </h4>
                       <p className="text-[11px] text-slate-400">
-                        Real backend permissions registry categorized by 18 modules.
+                        18 canonical modules (68 total backend capabilities)
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Presets & Quick Select Bar */}
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         onClick={handleSelectAllPerms}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded"
+                        className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
                       >
-                        Select All
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Add Every Permission</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('ADMIN')}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                      >
+                        Admin Preset
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('MEMBER')}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                      >
+                        Member Preset
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset('VIEWER')}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                      >
+                        Viewer Preset
+                      </button>
+
                       <button
                         type="button"
                         onClick={handleClearAllPerms}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs font-semibold rounded"
+                        className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium rounded-lg border border-slate-800 transition-colors"
                       >
                         Clear All
                       </button>
@@ -1347,9 +1417,22 @@ export function RolesTab({
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
-                <div className="text-xs text-slate-400">
-                  <span className="font-bold text-indigo-400">{roleForm.permissions.length}</span> Permissions Selected
+              <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-slate-400">
+                    <span className="font-bold text-indigo-400">{roleForm.permissions.length}</span> Permissions Selected
+                  </div>
+
+                  {editingRole && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDelete(editingRole)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Role</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1370,6 +1453,90 @@ export function RolesTab({
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. DELETE ROLE CONFIRMATION MODAL */}
+      {deleteModalRole && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-slate-100">
+                  Delete Permission Role?
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Are you sure you want to permanently delete <span className="text-slate-200 font-bold">'{deleteModalRole.name}'</span>? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-400">
+                <span>Scope:</span>
+                <span className="font-semibold text-slate-200">{deleteModalRole.scope}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Assigned Users:</span>
+                <span className="font-semibold text-indigo-300">{deleteModalRole.assignedUserCount || 0} user(s)</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Permission Count:</span>
+                <span className="font-semibold text-slate-200">{deleteModalRole.permissionCount || (deleteModalRole.permissions || []).length} perms</span>
+              </div>
+            </div>
+
+            {deleteModalRole.isSystem && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-start gap-2 text-xs text-rose-300">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                <span>
+                  <strong>System-Defined Role:</strong> Deleting <strong className="text-rose-200">{deleteModalRole.name}</strong> will remove default system role capabilities for this organization.
+                </span>
+              </div>
+            )}
+
+            {(deleteModalRole.assignedUserCount || 0) > 0 && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2 text-xs text-amber-300">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  This role is currently assigned to <strong className="text-amber-200">{deleteModalRole.assignedUserCount} user(s)</strong>. Selecting "Force Delete & Unassign Users" will remove this role from all assigned members before deleting it.
+                </span>
+              </div>
+            )}
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalRole(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium"
+              >
+                Cancel
+              </button>
+
+              {(deleteModalRole.assignedUserCount || 0) > 0 || deleteModalRole.isSystem ? (
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => handleConfirmDeleteRole(true)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  {deleting ? 'Deleting...' : 'Force Delete Role'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => handleConfirmDeleteRole(false)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  {deleting ? 'Deleting...' : 'Delete Role'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

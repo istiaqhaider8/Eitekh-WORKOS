@@ -22,6 +22,24 @@ export async function PATCH(req: Request) {
         timezone,
         language,
       },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        jobTitle: true,
+        company: true,
+        timezone: true,
+        language: true,
+        isSuperAdmin: true,
+        isSupportAdmin: true,
+        status: true,
+        mfaEnabled: true,
+        emailVerifiedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json({ user: updatedUser }, { status: 200 });

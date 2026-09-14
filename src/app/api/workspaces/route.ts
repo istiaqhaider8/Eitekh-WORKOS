@@ -3,6 +3,39 @@ import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { getCurrentUser } from "@/lib/auth";
 
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const orgId = searchParams.get("orgId");
+
+    const where: any = { isArchived: false };
+    if (orgId) {
+      await assertOrgAccess(orgId);
+      where.orgId = orgId;
+    }
+
+    if (!user.isSuperAdmin) {
+      where.members = { some: { userId: user.id } };
+    }
+
+    const workspaces = await prisma.workspace.findMany({
+      where,
+      include: {
+        _count: { select: { projects: true, members: true } }
+      },
+      orderBy: { name: "asc" }
+    });
+
+    return NextResponse.json(workspaces);
+  } catch (error: any) {
+    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
+    return NextResponse.json({ error: error.message }, { status });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();

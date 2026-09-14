@@ -48,7 +48,13 @@ model User {
   notifications        Notification[]
   activityLogs         ActivityLog[]
   attachments          Attachment[]
+  leaves               Leave[]
+  originalDelegations  TaskDelegation[]    @relation("DelegationOriginalAssignee")
+  receivedDelegations  TaskDelegation[]    @relation("DelegationDelegateUser")
+  createdDelegations   TaskDelegation[]    @relation("DelegationCreator")
+  delegationHistories  DelegationHistory[]
 }
+
 
 model Session {
   id           String    @id @default(cuid())
@@ -89,6 +95,7 @@ model Organization {
   members    OrganizationMember[]
   workspaces Workspace[]
   webhooks   Webhook[]
+  leaves     Leave[]
 }
 
 model OrganizationMember {
@@ -375,6 +382,8 @@ model Issue {
   customFieldValues CustomFieldValue[]
   outgoingDeps      IssueDependency[]   @relation("SourceDep")
   incomingDeps      IssueDependency[]   @relation("TargetDep")
+  delegations       TaskDelegation[]
+
 
   @@unique([projectId, keyNumber])
   @@index([issueKey])
@@ -705,3 +714,68 @@ model EmailLog {
   error       String?
   createdAt   DateTime @default(now())
 }
+
+model Leave {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  startDate      DateTime
+  endDate        DateTime
+  leaveType      String       @default("Annual Leave") // Annual Leave, Sick Leave, Personal, Other
+  status         String       @default("ACTIVE") // ACTIVE, CANCELLED, COMPLETED
+  note           String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  delegations  TaskDelegation[]
+
+  @@index([userId, startDate, endDate])
+  @@index([organizationId, startDate, endDate])
+}
+
+model TaskDelegation {
+  id                 String    @id @default(cuid())
+  leaveId            String?
+  issueId            String
+  originalAssigneeId String
+  delegateUserId     String
+  startDate          DateTime
+  endDate            DateTime
+  status             String    @default("ACTIVE") // ACTIVE, ENDED, CANCELLED
+  reason             String?
+  createdBy          String
+  createdAt          DateTime  @default(now())
+  endedAt            DateTime?
+
+  leave            Leave?              @relation(fields: [leaveId], references: [id], onDelete: SetNull)
+  issue            Issue               @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  originalAssignee User                @relation("DelegationOriginalAssignee", fields: [originalAssigneeId], references: [id], onDelete: Cascade)
+  delegateUser     User                @relation("DelegationDelegateUser", fields: [delegateUserId], references: [id], onDelete: Cascade)
+  creator          User                @relation("DelegationCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  history          DelegationHistory[]
+
+  @@index([issueId, status])
+  @@index([originalAssigneeId, startDate, endDate])
+  @@index([delegateUserId, startDate, endDate])
+  @@index([leaveId])
+  @@index([status])
+}
+
+model DelegationHistory {
+  id           String   @id @default(cuid())
+  delegationId String
+  actorId      String
+  action       String   // DELEGATED, ACCEPTED, WORKED_ON, UPDATED, COMPLETED, ENDED, CANCELLED
+  details      String?
+  timestamp    DateTime @default(now())
+
+  delegation TaskDelegation @relation(fields: [delegationId], references: [id], onDelete: Cascade)
+  actor      User           @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([delegationId])
+  @@index([timestamp])
+}
+
+

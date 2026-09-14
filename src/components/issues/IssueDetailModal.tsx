@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   X,
   Clock,
@@ -36,19 +36,27 @@ import {
   Image as ImageIcon,
   Sparkles,
   AlertCircle,
+  Zap,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
+import { isUserOnLeave, doesLeaveOverlap, formatLeaveRange } from "@/lib/leave-engine";
+import { isDelegationActive } from "@/lib/delegation-engine";
+
 
 interface IssueDetailModalProps {
   issueId: string | null;
+  projectId?: string;
+  currentUser?: any;
+  initialStatusId?: string | null;
   onClose: () => void;
   onIssueUpdated: () => void;
 }
 
-export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDetailModalProps) {
+export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentUser, initialStatusId, onClose, onIssueUpdated }: IssueDetailModalProps) {
+  const isCreateMode = issueId === "new" || issueId === "create";
   const [issue, setIssue] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "subtasks" | "attachments" | "comments" | "activity" | "time" | "deps" | "custom">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "subtasks" | "attachments" | "comments" | "activity" | "time" | "deps" | "custom" | "delegation">("details");
 
   // Draft edit states for Issue properties
   const [draftTitle, setDraftTitle] = useState("");
@@ -82,6 +90,8 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
   const [draftDueDate, setDraftDueDate] = useState("");
   const [draftSprintId, setDraftSprintId] = useState<string | null>(null);
   const [projectSprints, setProjectSprints] = useState<any[]>([]);
+  const [draftEpicId, setDraftEpicId] = useState<string | null>(null);
+  const [projectEpics, setProjectEpics] = useState<any[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -133,9 +143,48 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [creatingField, setCreatingField] = useState(false);
 
-  // Project context state (members, statuses, current user, teams)
+  // Project context state (members, statuses, current user, teams, leaves)
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [leaves, setLeaves] = useState<any[]>([]);
   const [projectStatuses, setProjectStatuses] = useState<any[]>([]);
+
+  const assigneeLeaveDetails = React.useMemo(() => {
+    if (!draftAssigneeId) return null;
+    const userLeaves = leaves.filter((l) => l.userId === draftAssigneeId);
+    if (userLeaves.length === 0) return null;
+
+    const firstLeave = userLeaves[0];
+    const formattedRange = formatLeaveRange(firstLeave.startDate, firstLeave.endDate);
+    
+    // Check if issue dates overlap
+    const start = draftStartDate || draftDueDate || new Date().toISOString().split("T")[0];
+    const end = draftDueDate || draftStartDate || start;
+    const res = doesLeaveOverlap(userLeaves, start, end);
+
+    // Extract delegate user info
+    let delegateName = "";
+    let delegateEmail = "";
+    const delUser = (firstLeave as any).delegations?.[0]?.delegateUser || (firstLeave as any).delegateUser;
+    if (delUser) {
+      delegateName = delUser.firstName ? `${delUser.firstName} ${delUser.lastName || ""}`.trim() : (delUser.email || "");
+      delegateEmail = delUser.email || "";
+    }
+
+    return {
+      formattedRange,
+      leaveType: firstLeave.leaveType || "Leave",
+      note: firstLeave.note || null,
+      hasOverlap: res.hasOverlap,
+      delegateName,
+      delegateEmail,
+    };
+  }, [draftAssigneeId, draftStartDate, draftDueDate, leaves]);
+
+  const activeDelegation = React.useMemo(() => {
+    if (!issue?.delegations || !Array.isArray(issue.delegations)) return null;
+    return issue.delegations.find((d: any) => isDelegationActive(d) && d.status === "ACTIVE") || null;
+  }, [issue?.delegations]);
+
   const [projectWorkflowId, setProjectWorkflowId] = useState<string | null>(null);
   const [projectPriorities, setProjectPriorities] = useState<any[]>([
     { name: "Critical", value: "CRITICAL", color: "#f43f5e" },
@@ -146,7 +195,13 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
     { name: "Lowest", value: "LOWEST", color: "#64748b" },
   ]);
   const [teams, setTeams] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(propCurrentUser || null);
+
+  useEffect(() => {
+    if (propCurrentUser) {
+      setCurrentUser(propCurrentUser);
+    }
+  }, [propCurrentUser]);
 
   // New Project Status Modal state
   const [showAddStatusModal, setShowAddStatusModal] = useState(false);
@@ -180,13 +235,120 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
     Boolean(currentUser?.capabilities?.includes("issues:delete"));
   const canEdit = !isViewer;
 
+  const loadProjectContext = useCallback(async (pId: string) => {
+    if (!pId) return;
+    try {
+      const [sRes, cfRes, mRes, aRes, wfRes, tRes, pRes, tmRes, epRes] = await Promise.all([
+        fetch(`/api/sprints?projectId=${pId}`),
+        fetch(`/api/custom-fields?projectId=${pId}`),
+        fetch(`/api/projects/${pId}/members`),
+        fetch(`/api/projects/${pId}/availability`),
+        fetch(`/api/workflows?projectId=${pId}`),
+        fetch(`/api/projects/${pId}/types`),
+        fetch(`/api/projects/${pId}/priorities`),
+        fetch(`/api/teams?projectId=${pId}`),
+        fetch(`/api/epics?projectId=${pId}`),
+      ]);
+
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        const sps = Array.isArray(sData.sprints) ? sData.sprints : Array.isArray(sData) ? sData : [];
+        setProjectSprints(sps);
+        if (sps.length > 0) {
+          const activeS = sps.find((s: any) => s.status === "ACTIVE") || sps[0];
+          setDraftSprintId((prev) => prev || activeS?.id || null);
+        }
+      }
+
+      if (cfRes.ok) {
+        const cfData = await cfRes.json();
+        if (Array.isArray(cfData.customFields)) setCustomFields(cfData.customFields);
+      }
+
+      if (mRes.ok) {
+        const mList = await mRes.json();
+        if (Array.isArray(mList)) setProjectMembers(mList);
+      }
+
+      if (aRes.ok) {
+        const aData = await aRes.json();
+        if (Array.isArray(aData.leaves)) setLeaves(aData.leaves);
+      }
+
+      if (wfRes.ok) {
+        const wfList = await wfRes.json();
+        if (Array.isArray(wfList) && wfList.length > 0) {
+          setProjectWorkflowId(wfList[0].id);
+          const stList = wfList[0].statuses || [];
+          setProjectStatuses(stList);
+          if (stList.length > 0) {
+            setDraftStatusId((prev) => prev || stList[0].id);
+          }
+        }
+      }
+
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        if (Array.isArray(tData.types) && tData.types.length > 0) setProjectTypes(tData.types);
+      }
+
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        if (Array.isArray(pData.priorities) && pData.priorities.length > 0) setProjectPriorities(pData.priorities);
+      }
+
+      if (tmRes.ok) {
+        const tmData = await tmRes.json();
+        if (Array.isArray(tmData.teams)) setTeams(tmData.teams);
+        else if (Array.isArray(tmData)) setTeams(tmData);
+      }
+
+      if (epRes && epRes.ok) {
+        const epData = await epRes.json();
+        if (Array.isArray(epData)) setProjectEpics(epData);
+      }
+    } catch (e) {
+      console.error("Error loading project context for issue creation", e);
+    }
+  }, []);
+
   useEffect(() => {
-    if (issueId) {
+    if (isCreateMode) {
+      const targetProjId = projectId || issue?.projectId || "";
+      setIssue({
+        id: "new",
+        issueKey: "NEW TASK",
+        title: "",
+        description: "",
+        projectId: targetProjId,
+        customFieldValues: [],
+      });
+      setActiveTab("details");
+      setDraftTitle("");
+      setDraftDescription("");
+      setDraftStatusId(initialStatusId || "");
+      setDraftPriority("MEDIUM");
+      setDraftIssueType("TASK");
+      setDraftAssigneeId(null);
+      setDraftTeamId(null);
+      setDraftSprintId(null);
+      setDraftEpicId(null);
+      setDraftPoints("");
+      const today = new Date().toISOString().split("T")[0];
+      const defaultDue = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+      setDraftStartDate(today);
+      setDraftDueDate(defaultDue);
+      setHasChanges(false);
+
+      if (targetProjId) {
+        loadProjectContext(targetProjId);
+      }
+    } else if (issueId) {
       fetchIssueDetails();
     } else {
       setIssue(null);
     }
-  }, [issueId]);
+  }, [issueId, projectId, isCreateMode]);
 
   useEffect(() => {
     let interval: any = null;
@@ -218,6 +380,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
         setDraftAssigneeId(data.issue?.assigneeId || data.issue?.assignee?.id || null);
         setDraftTeamId(data.issue?.teamId || data.issue?.team?.id || null);
         setDraftSprintId(data.issue?.sprintId || data.issue?.sprint?.id || null);
+        setDraftEpicId(data.issue?.epicId || data.issue?.epic?.id || null);
         setDraftPoints(
           data.issue?.estimatePoints !== null && data.issue?.estimatePoints !== undefined
             ? String(data.issue.estimatePoints)
@@ -271,6 +434,16 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
             })
             .catch(() => {});
 
+          fetch(`/api/projects/${data.issue.projectId}/availability`)
+            .then((r) => r.json())
+            .then((aData) => {
+              if (Array.isArray(aData.leaves)) {
+                setLeaves(aData.leaves);
+              }
+            })
+            .catch(() => {});
+
+
           fetch(`/api/workflows?projectId=${data.issue.projectId}`)
             .then((r) => r.json())
             .then((wfList) => {
@@ -305,6 +478,15 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
             .then((tList) => {
               if (Array.isArray(tList)) {
                 setTeams(tList);
+              }
+            })
+            .catch(() => {});
+
+          fetch(`/api/epics?projectId=${data.issue.projectId}`)
+            .then((r) => r.json())
+            .then((epList) => {
+              if (Array.isArray(epList)) {
+                setProjectEpics(epList);
               }
             })
             .catch(() => {});
@@ -735,24 +917,73 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
   const handleSaveAndClose = async () => {
     if (!issueId) return;
 
-    if (!draftStatusId) {
+    const finalTitle = draftTitle?.trim();
+    if (!finalTitle) {
+      showError("Issue Title is mandatory");
+      return;
+    }
+    const finalStatusId = draftStatusId || (projectStatuses.length > 0 ? projectStatuses[0].id : "");
+    if (!finalStatusId) {
       showError("Status is a mandatory field");
       return;
     }
-    if (!draftPriority || !draftPriority.trim()) {
-      showError("Priority is a mandatory field");
-      return;
-    }
-    if (!draftStartDate) {
-      showError("Start Date is a mandatory field");
-      return;
-    }
-    if (!draftDueDate) {
-      showError("Due Date is a mandatory field");
-      return;
-    }
-    if (new Date(draftDueDate) < new Date(draftStartDate)) {
+    const finalPriority = draftPriority?.trim() || "MEDIUM";
+    const finalStartDate = draftStartDate || new Date().toISOString().split("T")[0];
+    const finalDueDate = draftDueDate || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+
+    if (new Date(finalDueDate) < new Date(finalStartDate)) {
       showError("Due Date cannot be earlier than Start Date");
+      return;
+    }
+
+    if (isCreateMode) {
+      const targetProjId = projectId || issue?.projectId;
+      if (!targetProjId) {
+        showError("Project ID missing for task creation");
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const payload: any = {
+          projectId: targetProjId,
+          title: finalTitle,
+          description: draftDescription || null,
+          statusId: finalStatusId,
+          priority: finalPriority,
+          issueType: draftIssueType || "TASK",
+          assigneeId: draftAssigneeId || null,
+          teamId: draftTeamId || null,
+          sprintId: draftSprintId || null,
+          epicId: draftEpicId || null,
+          estimatePoints: draftPoints !== "" ? Number(draftPoints) : null,
+          startDate: new Date(finalStartDate).toISOString(),
+          dueDate: new Date(finalDueDate).toISOString(),
+        };
+
+        const res = await fetch(`/api/projects/${targetProjId}/issues`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          showSuccess("Task created successfully!");
+          setHasChanges(false);
+          if (typeof onIssueUpdated === "function") {
+            onIssueUpdated();
+          }
+          onClose();
+        } else {
+          const d = await res.json().catch(() => ({}));
+          showError(d.error || "Failed to create task");
+        }
+      } catch (err: any) {
+        console.error(err);
+        showError("Error creating task");
+      } finally {
+        setIsSaving(false);
+      }
       return;
     }
 
@@ -767,6 +998,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
         assigneeId: draftAssigneeId || null,
         teamId: draftTeamId || null,
         sprintId: draftSprintId || null,
+        epicId: draftEpicId || null,
         estimatePoints: draftPoints !== "" ? Number(draftPoints) : null,
         startDate: draftStartDate ? new Date(draftStartDate).toISOString() : null,
         dueDate: draftDueDate ? new Date(draftDueDate).toISOString() : null,
@@ -1045,6 +1277,59 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
 
   if (!issueId) return null;
 
+  if (!issue) {
+    return (
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-100"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleCancelAndClose();
+        }}
+      >
+        <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col items-center justify-center p-6 border-l border-slate-300 dark:border-white/[0.08]">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs font-semibold text-slate-500">Preparing task form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentIssue = issue || (isCreateMode ? {
+    id: "new",
+    issueKey: "NEW TASK",
+    title: draftTitle,
+    description: draftDescription,
+    projectId: projectId || "",
+    customFieldValues: [],
+    subtasks: [],
+    attachments: [],
+    comments: [],
+    incomingDeps: [],
+    outgoingDeps: [],
+    activityLogs: [],
+    delegations: [],
+    watchers: [],
+  } : null);
+
+  if (!currentIssue) {
+    return (
+      <div 
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-100"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleCancelAndClose();
+        }}
+      >
+        <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col items-center justify-center p-6 border-l border-slate-300 dark:border-white/[0.08]">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs font-semibold text-slate-500">Loading task details...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-100"
@@ -1057,10 +1342,10 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
     >
       <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col border-l border-slate-300 dark:border-white/[0.08] animate-in slide-in-from-right duration-200">
         {/* Modal Header */}
-        <div className="h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
+        <div className="h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/80 shadow-2xs">
-              {issue?.issueKey || "..."}
+              {isCreateMode ? "NEW TASK" : issue?.issueKey || "..."}
             </span>
             <button
               type="button"
@@ -1089,13 +1374,37 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
             {issue?.sprint && (
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900/60 shadow-2xs">
                 <GitBranch className="w-3 h-3 text-indigo-500" />
-                <span>{issue.sprint.name}</span>
+                <span>{issue?.sprint?.name}</span>
               </span>
             )}
+            {(draftEpicId || issue?.epic || issue?.epicId) && (() => {
+              const currentEpic = projectEpics.find((e) => e.id === (draftEpicId || issue?.epicId)) || issue?.epic;
+              if (!currentEpic) return null;
+              return (
+                <div className="hidden sm:inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white shadow-2xs"
+                    style={{ backgroundColor: currentEpic.color || "#8b5cf6" }}
+                    title={`Epic: ${currentEpic.name}`}
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    <span className="truncate max-w-[160px]">{currentEpic.name}</span>
+                  </span>
+                  {currentEpic.status && (
+                    <span
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs"
+                      title={`Epic Status: ${currentEpic.status}`}
+                    >
+                      {currentEpic.status}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-2">
-            {canDelete && (
+            {canDelete && !isCreateMode && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -1127,22 +1436,24 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                 title="Save changes and close window"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>{isSaving ? "Saving..." : "Save"}</span>
+                <span>{isSaving ? "Saving..." : isCreateMode ? "Save & Close" : "Save"}</span>
               </button>
             )}
-            <button
-              onClick={handleToggleWatcher}
-              className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl cursor-pointer"
-              title="Watch / Unwatch issue notifications"
-            >
-              <Eye className="w-3.5 h-3.5 text-blue-500" />
-              <span>Watch</span>
-              {issue?.watchers?.length > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-[10px]">
-                  {issue.watchers.length}
-                </span>
-              )}
-            </button>
+            {!isCreateMode && (
+              <button
+                onClick={handleToggleWatcher}
+                className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl cursor-pointer"
+                title="Watch / Unwatch issue notifications"
+              >
+                <Eye className="w-3.5 h-3.5 text-blue-500" />
+                <span>Watch</span>
+                {issue?.watchers?.length > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 font-bold text-[10px]">
+                    {issue?.watchers?.length || 0}
+                  </span>
+                )}
+              </button>
+            )}
             <button onClick={handleCancelAndClose} aria-label="Close modal" className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer ml-1">
               <X className="w-5 h-5" />
             </button>
@@ -1156,10 +1467,10 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
           </div>
         )}
 
-        {loading || !issue ? (
+        {loading || (!issue && !isCreateMode) ? (
           <div className="flex-1 flex items-center justify-center text-sm text-slate-400">Loading issue details...</div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
             {/* Title & Status */}
             <div>
               <label htmlFor="issue-modal-title" className="block text-[11px] font-semibold text-slate-400 mb-1">
@@ -1184,11 +1495,63 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
             {/* Quick Meta Grid */}
             {(() => {
               const activeTeam = teams.find((t) => t.id === draftTeamId) || (draftTeamId === issue?.teamId ? issue?.team : null);
+
+              const assigneeLeaveDetails = (() => {
+                if (!draftAssigneeId) return null;
+                const userLeaves = leaves.filter((l: any) => l.userId === draftAssigneeId && l.status !== "CANCELLED");
+                if (userLeaves.length === 0) return null;
+
+                const now = new Date();
+                const activeLeave = userLeaves.find((l: any) => {
+                  const s = new Date(l.startDate);
+                  const e = new Date(l.endDate);
+                  return now >= s && now <= e;
+                }) || userLeaves[0];
+
+                if (!activeLeave) return null;
+
+                const formattedRange = formatLeaveRange(activeLeave.startDate, activeLeave.endDate);
+                const delegateUser = (activeLeave as any).delegations?.[0]?.delegateUser || (activeLeave as any).delegateUser;
+                let delegateName = "";
+                let delegateEmail = "";
+                if (delegateUser) {
+                  delegateName = delegateUser.firstName ? `${delegateUser.firstName} ${delegateUser.lastName || ""}`.trim() : (delegateUser.email || "");
+                  delegateEmail = delegateUser.email || "";
+                }
+
+                let hasOverlap = false;
+                if (draftStartDate || draftDueDate) {
+                  const overlapRes = doesLeaveOverlap(userLeaves, draftStartDate || now, draftDueDate || draftStartDate || now);
+                  hasOverlap = overlapRes.hasOverlap;
+                }
+
+                return {
+                  formattedRange,
+                  leaveType: activeLeave.leaveType || "Leave",
+                  delegateName,
+                  delegateEmail,
+                  hasOverlap,
+                  activeLeave,
+                };
+              })();
+
+              const activeDelegation = (() => {
+                if (!assigneeLeaveDetails?.activeLeave) return null;
+                const del = (assigneeLeaveDetails.activeLeave as any).delegations?.[0];
+                if (!del) return null;
+                return {
+                  startDate: del.startDate || assigneeLeaveDetails.activeLeave.startDate,
+                  endDate: del.endDate || assigneeLeaveDetails.activeLeave.endDate,
+                  originalAssignee: (assigneeLeaveDetails.activeLeave as any).user || issue?.assignee,
+                  delegateUser: del.delegateUser,
+                };
+              })();
+
               return (
                 <>
-                  <div className="bg-slate-50/70 dark:bg-slate-800/40 p-3.5 sm:p-4 rounded-xl border border-slate-300 dark:border-slate-800 space-y-3.5 text-xs">
-                    {/* Row 1: Workflow & Ownership */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  <div className="bg-slate-50/70 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 text-xs shadow-2xs">
+                    {/* Row 1: Workflow Attributes, Team & Epic (5 Columns) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
                       {/* Type Field */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
@@ -1249,6 +1612,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                         </select>
                       </div>
 
+                      {/* Status Field */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5">
@@ -1301,12 +1665,13 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                             </option>
                           </select>
                         ) : (
-                          <span className="inline-block font-semibold px-2 py-1 rounded text-[11px]" style={{ backgroundColor: `${issue.status?.color}20`, color: issue.status?.color }}>
-                            {issue.status?.name}
+                          <span className="inline-block font-semibold px-2 py-1 rounded text-[11px]" style={{ backgroundColor: `${issue?.status?.color || "#3b82f6"}20`, color: issue?.status?.color || "#3b82f6" }}>
+                            {issue?.status?.name || "Status"}
                           </span>
                         )}
                       </div>
 
+                      {/* Priority Field */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5">
@@ -1373,52 +1738,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                         </select>
                       </div>
 
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px]">Assignee</label>
-                          {!isViewer && currentUser && (draftAssigneeId !== currentUser.id) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDraftAssigneeId(currentUser.id);
-                                setHasChanges(true);
-                              }}
-                              className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
-                            >
-                              Assign to me
-                            </button>
-                          )}
-                        </div>
-                        <select
-                          disabled={isViewer}
-                          value={draftAssigneeId || ""}
-                          onChange={(e) => {
-                            setDraftAssigneeId(e.target.value || null);
-                            setHasChanges(true);
-                          }}
-                          className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs text-xs ${
-                            isViewer ? "cursor-not-allowed opacity-80" : "cursor-pointer"
-                          }`}
-                        >
-                          <option value="">Unassigned</option>
-                          {projectMembers.map((pm) => {
-                            const u = pm.user || pm;
-                            const uId = u.id || pm.userId;
-                            const uName = u.firstName ? `${u.firstName} ${u.lastName || ""}`.trim() : (u.email || "Member");
-                            return (
-                              <option key={uId} value={uId}>
-                                {uName}
-                              </option>
-                            );
-                          })}
-                          {issue.assignee && !projectMembers.some(pm => (pm.user?.id || pm.userId || pm.id) === issue.assignee?.id) && (
-                            <option value={issue.assignee.id}>
-                              {`${issue.assignee.firstName} ${issue.assignee.lastName || ""}`.trim()}
-                            </option>
-                          )}
-                        </select>
-                      </div>
-
+                      {/* Team Field */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px]">Team</label>
@@ -1448,12 +1768,215 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                               {t.name} ({t._count?.members ?? t.members?.length ?? 0})
                             </option>
                           ))}
-                          {issue.team && !teams.some((t) => t.id === issue.team.id) && (
-                            <option value={issue.team.id}>{issue.team.name}</option>
+                          {issue?.team && !teams.some((t) => t.id === issue?.team?.id) && (
+                            <option value={issue?.team?.id}>{issue?.team?.name}</option>
                           )}
                         </select>
                       </div>
+
+                      {/* Epic Field */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3 h-3 text-purple-500" />
+                            <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px]">Epic</label>
+                          </div>
+                          {draftEpicId && (
+                            <span
+                              className="w-2 h-2 rounded-full shadow-xs shrink-0"
+                              style={{ backgroundColor: projectEpics.find((e) => e.id === draftEpicId)?.color || "#8b5cf6" }}
+                            />
+                          )}
+                        </div>
+                        <select
+                          disabled={isViewer}
+                          value={draftEpicId || ""}
+                          onChange={(e) => {
+                            setDraftEpicId(e.target.value || null);
+                            setHasChanges(true);
+                          }}
+                          className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs text-xs ${
+                            isViewer ? "cursor-not-allowed opacity-80" : "cursor-pointer"
+                          }`}
+                        >
+                          <option value="">None (No Epic)</option>
+                          {projectEpics.map((ep) => (
+                            <option key={ep.id} value={ep.id}>
+                              {ep.name} {ep.status ? `(${ep.status})` : ""}
+                            </option>
+                          ))}
+                          {issue?.epic && !projectEpics.some((e) => e.id === issue?.epic?.id) && (
+                            <option value={issue?.epic?.id}>
+                              {issue?.epic?.name} {issue?.epic?.status ? `(${issue?.epic?.status})` : ""}
+                            </option>
+                          )}
+                        </select>
+
+                        {(() => {
+                          const selectedEpic = projectEpics.find((e) => e.id === draftEpicId) || (draftEpicId === issue?.epicId ? issue?.epic : null);
+                          if (!selectedEpic || !selectedEpic.status) return null;
+                          return (
+                            <div className="mt-1.5 flex items-center justify-between text-[11px] px-2 py-1 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60">
+                              <span className="text-slate-500 dark:text-slate-400 font-medium">Epic Status:</span>
+                              <span className="font-bold text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                {selectedEpic.status}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
+
+                    <div className="h-px bg-slate-200/70 dark:bg-slate-800/80" />
+
+                    {/* Row 2: Ownership & Task Delegation (2 Columns) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Assignee (Original) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px]">Assignee (Original)</label>
+                          {!isViewer && currentUser && (draftAssigneeId !== currentUser.id) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDraftAssigneeId(currentUser.id);
+                                setHasChanges(true);
+                              }}
+                              className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                            >
+                              Assign to me
+                            </button>
+                          )}
+                        </div>
+                        <select
+                          disabled={isViewer}
+                          value={draftAssigneeId || ""}
+                          onChange={(e) => {
+                            setDraftAssigneeId(e.target.value || null);
+                            setHasChanges(true);
+                          }}
+                          className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs text-xs ${
+                            isViewer ? "cursor-not-allowed opacity-80" : "cursor-pointer"
+                          }`}
+                        >
+                          <option value="">Unassigned</option>
+                          {projectMembers.map((pm) => {
+                            const u = pm.user || pm;
+                            const uId = u.id || pm.userId;
+                            const uName = u.firstName ? `${u.firstName} ${u.lastName || ""}`.trim() : (u.email || "Member");
+                            const uLeaves = leaves.filter((l) => l.userId === uId && l.status !== "CANCELLED");
+
+                            const overlapCheck = (draftStartDate || draftDueDate)
+                              ? doesLeaveOverlap(uLeaves, draftStartDate || draftDueDate, draftDueDate || draftStartDate)
+                              : { hasOverlap: false, overlappingLeaves: [] };
+
+                            const todayCheck = isUserOnLeave(uLeaves, new Date());
+
+                            const targetLeave = overlapCheck.hasOverlap && overlapCheck.overlappingLeaves[0]
+                              ? overlapCheck.overlappingLeaves[0]
+                              : todayCheck.onLeave && todayCheck.leave
+                              ? todayCheck.leave
+                              : uLeaves.length > 0
+                              ? uLeaves[0]
+                              : null;
+
+                            let delegateBadge = "";
+                            if (targetLeave) {
+                              const dUser = (targetLeave as any).delegations?.[0]?.delegateUser || (targetLeave as any).delegateUser;
+                              if (dUser) {
+                                const dName = dUser.firstName ? `${dUser.firstName} ${dUser.lastName || ""}`.trim() : (dUser.email || "");
+                                if (dName) delegateBadge = ` ➔ Delegated to: ${dName}`;
+                              }
+                            }
+                            return (
+                              <option key={uId} value={uId}>
+                                {uName} {targetLeave ? `🔴 (On Leave${delegateBadge})` : ""}
+                              </option>
+                            );
+                          })}
+                          {issue?.assignee && !projectMembers.some(pm => (pm.user?.id || pm.userId || pm.id) === issue?.assignee?.id) && (
+                            <option value={issue?.assignee?.id}>
+                              {`${issue?.assignee?.firstName || ""} ${issue?.assignee?.lastName || ""}`.trim()}
+                            </option>
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Delegate User (Temporary) Field */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px]">
+                            Delegate User (Temporary)
+                          </label>
+                          {assigneeLeaveDetails?.delegateName && (
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-0.5">
+                              ↗ Active
+                            </span>
+                          )}
+                        </div>
+                        <div className={`w-full bg-white dark:bg-slate-900 font-semibold p-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs flex items-center justify-between shadow-2xs ${
+                          assigneeLeaveDetails?.delegateName ? "text-indigo-900 dark:text-indigo-200 border-indigo-300 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/30" : "text-slate-500 dark:text-slate-400"
+                        }`}>
+                          <span className="truncate font-semibold">
+                            {assigneeLeaveDetails?.delegateName
+                              ? assigneeLeaveDetails.delegateName
+                              : activeDelegation?.delegateUser
+                              ? `${activeDelegation.delegateUser.firstName} ${activeDelegation.delegateUser.lastName || ""}`.trim()
+                              : "No Delegate"}
+                          </span>
+                          {assigneeLeaveDetails?.delegateName ? (
+                            <span className="px-2 py-0.5 rounded-lg bg-indigo-600 text-white text-[10px] font-bold shrink-0 ml-2 shadow-2xs">
+                              ↗ Active
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic shrink-0 ml-2">None</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Leave Alert Banner (Full-Width Row below Assignee & Delegate) */}
+                    {assigneeLeaveDetails && (
+                      <div className="p-3 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 rounded-xl text-amber-900 dark:text-amber-200 text-xs font-semibold space-y-2 animate-in fade-in duration-150">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                            <span className="font-bold">
+                              On Leave: {assigneeLeaveDetails.formattedRange}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-amber-200/90 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200 text-[10px] font-bold">
+                              {assigneeLeaveDetails.leaveType}
+                            </span>
+                          </div>
+                          {assigneeLeaveDetails.hasOverlap && (
+                            <span className="px-2.5 py-0.5 rounded-lg bg-rose-600 text-white text-[10px] font-extrabold uppercase tracking-wide shadow-2xs">
+                              Date Overlap
+                            </span>
+                          )}
+                        </div>
+
+                        {assigneeLeaveDetails.delegateName && (
+                          <div className="pt-2 border-t border-amber-200/80 dark:border-amber-800/50 flex flex-wrap items-center justify-between gap-2 text-xs text-indigo-950 dark:text-indigo-200 font-medium">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[10px] font-bold">
+                                ↗ Task Delegate
+                              </span>
+                              <span className="font-bold text-indigo-800 dark:text-indigo-200">
+                                {assigneeLeaveDetails.delegateName}
+                              </span>
+                              {assigneeLeaveDetails.delegateEmail && (
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  ({assigneeLeaveDetails.delegateEmail})
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-semibold uppercase tracking-wider">
+                              Active Task Delegation
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="h-px bg-slate-200/60 dark:bg-slate-800/80" />
 
@@ -1490,8 +2013,8 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                               {sp.name} {sp.status === "ACTIVE" ? "(Active)" : sp.status === "COMPLETED" ? "(Completed)" : "(Planned)"}
                             </option>
                           ))}
-                          {issue.sprint && !projectSprints.some((s) => s.id === issue.sprint.id) && (
-                            <option value={issue.sprint.id}>{issue.sprint.name}</option>
+                          {issue?.sprint && !projectSprints.some((s) => s.id === issue?.sprint?.id) && (
+                            <option value={issue?.sprint?.id}>{issue?.sprint?.name}</option>
                           )}
                         </select>
                       </div>
@@ -1607,7 +2130,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
               >
                 <span>Subtasks</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px]">
-                  {issue.subtasks?.length || 0}
+                  {issue?.subtasks?.length || 0}
                 </span>
               </button>
               <button
@@ -1618,7 +2141,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
               >
                 <span>Attachments</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px]">
-                  {issue.attachments?.length || 0}
+                  {issue?.attachments?.length || 0}
                 </span>
               </button>
               <button
@@ -1653,7 +2176,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
               >
                 <span>Comments</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px]">
-                  {issue.comments?.length || 0}
+                  {issue?.comments?.length || 0}
                 </span>
               </button>
               <button
@@ -1662,7 +2185,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                   activeTab === "time" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
                 }`}
               >
-                <span>Time Tracking ({issue.timeSpentHours || 0}h)</span>
+                <span>Time Tracking ({issue?.timeSpentHours || 0}h)</span>
               </button>
               <button
                 onClick={() => setActiveTab("activity")}
@@ -1672,7 +2195,42 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
               >
                 History
               </button>
+              <button
+                onClick={() => setActiveTab("delegation")}
+                className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  activeTab === "delegation" ? "border-b-2 border-indigo-600 text-indigo-600 font-bold" : "text-slate-400 hover:text-slate-700"
+                }`}
+              >
+                <span>Delegation</span>
+                {issue?.delegations && issue.delegations.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">
+                    {issue?.delegations?.length || 0}
+                  </span>
+                )}
+              </button>
             </div>
+
+            {/* Create Mode Helper for child entity tabs */}
+            {isCreateMode && activeTab !== "details" && (
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl p-6 text-center space-y-3 my-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
+                  <CheckSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">New Task in Progress</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                    Please fill in the task details on the <strong>Description</strong> tab and click <strong>Create Issue</strong> below. Once the task is created, subtasks, attachments, comments, dependencies, and time tracking will be active.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("details")}
+                  className="btn-primary px-4 py-2 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  Return to Description
+                </button>
+              </div>
+            )}
 
             {/* TAB: Description */}
             {activeTab === "details" && (
@@ -1700,17 +2258,17 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                     <span>Git Integration</span>
                   </div>
                   <p className="text-slate-500 text-[11px]">
-                    Reference <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-600">{issue.issueKey}</code> in your commits, branches, or PRs to auto-link development activity.
+                    Reference <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-600">{issue?.issueKey || "NEW TASK"}</code> in your commits, branches, or PRs to auto-link development activity.
                   </p>
                 </div>
               </div>
             )}
 
             {/* TAB: Subtasks with Full Details */}
-            {activeTab === "subtasks" && (
+            {!isCreateMode && activeTab === "subtasks" && (
               <div className="space-y-4">
                 {/* Subtask Progress Bar */}
-                {issue.subtasks && issue.subtasks.length > 0 && (
+                {issue?.subtasks && issue.subtasks.length > 0 && (
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-800 rounded-xl space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -1718,7 +2276,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                         <span>Subtask Completion</span>
                       </span>
                       <span className="text-[11px] font-mono text-slate-500">
-                        {issue.subtasks.filter((s: any) => s.isCompleted).length} of {issue.subtasks.length} done (
+                        {issue?.subtasks?.filter((s: any) => s.isCompleted).length} of {issue.subtasks.length} done (
                         {Math.round((issue.subtasks.filter((s: any) => s.isCompleted).length / issue.subtasks.length) * 100)}%)
                       </span>
                     </div>
@@ -1826,12 +2384,12 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
 
                 {/* Subtask Items List */}
                 <div className="space-y-2">
-                  {(!issue.subtasks || issue.subtasks.length === 0) ? (
+                  {(!issue?.subtasks || issue.subtasks.length === 0) ? (
                     <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                       No subtasks added yet. Break this task into smaller actionable units above.
                     </div>
                   ) : (
-                    issue.subtasks.map((sub: any) => {
+                    issue?.subtasks?.map((sub: any) => {
                       const isEditing = editingSubtaskId === sub.id;
 
                       if (isEditing) {
@@ -2039,13 +2597,13 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
 
                 {/* Attachments List / Grid */}
                 <div className="space-y-2">
-                  {(!issue.attachments || issue.attachments.length === 0) ? (
+                  {(!issue?.attachments || issue.attachments.length === 0) ? (
                     <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                       No files attached to this task yet.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {issue.attachments.map((att: any) => {
+                      {issue?.attachments?.map((att: any) => {
                         const isImage = att.mimeType?.startsWith("image/") || att.fileUrl?.startsWith("data:image");
                         return (
                           <div
@@ -2165,7 +2723,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                 </form>
 
                 <div className="space-y-3 pt-2">
-                  {issue.comments?.map((c: any) => (
+                  {issue?.comments?.map((c: any) => (
                     <div key={c.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs space-y-1 border border-slate-300 dark:border-slate-800">
                       <div className="flex items-center justify-between text-slate-400 text-[10px]">
                         <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -2219,11 +2777,11 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                 {/* Outgoing Dependencies */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Outgoing Links ({issue.outgoingDeps?.length || 0})</span>
-                  {(!issue.outgoingDeps || issue.outgoingDeps.length === 0) ? (
+                  {(!issue?.outgoingDeps || issue.outgoingDeps.length === 0) ? (
                     <p className="text-xs text-slate-400 italic">No outgoing dependencies</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {issue.outgoingDeps.map((dep: any) => (
+                      {issue?.outgoingDeps?.map((dep: any) => (
                         <div key={dep.id} className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-300 dark:border-slate-800 flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
                             <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-mono font-bold text-[10px]">
@@ -2248,11 +2806,11 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                 {/* Incoming Dependencies */}
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Incoming Links ({issue.incomingDeps?.length || 0})</span>
-                  {(!issue.incomingDeps || issue.incomingDeps.length === 0) ? (
+                  {(!issue?.incomingDeps || issue.incomingDeps.length === 0) ? (
                     <p className="text-xs text-slate-400 italic">No incoming dependencies</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {issue.incomingDeps.map((dep: any) => (
+                      {issue?.incomingDeps?.map((dep: any) => (
                         <div key={dep.id} className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-300 dark:border-slate-800 flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
                             <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-mono font-bold text-[10px]">
@@ -2569,7 +3127,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Time Entries</span>
                   <div className="space-y-1.5 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {issue.timeEntries?.map((entry: any) => (
+                    {issue?.timeEntries?.map((entry: any) => (
                       <div key={entry.id} className="pt-1.5 flex justify-between items-center text-slate-600 dark:text-slate-300">
                         <div>
                           <span className="font-semibold text-slate-800 dark:text-slate-200">{entry.user?.firstName}: </span>
@@ -2585,7 +3143,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
 
             {/* TAB: Activity History */}
             {activeTab === "activity" && (() => {
-              const logs = (issue.activityLogs || []).filter((act: any) => {
+              const logs = (issue?.activityLogs || []).filter((act: any) => {
                 const f = act.fieldChanged || act.field;
                 if (activityFilter === "CHANGES") return f || act.actionType === "STATUS_CHANGED" || act.actionType === "ASSIGNED" || act.actionType === "PRIORITY_CHANGED";
                 if (activityFilter === "COMMENTS") return act.actionType?.includes("COMMENT");
@@ -2605,7 +3163,7 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                             : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
-                        All History ({issue.activityLogs?.length || 0})
+                        All History ({issue?.activityLogs?.length || 0})
                       </button>
                       <button
                         onClick={() => setActivityFilter("CHANGES")}
@@ -2706,6 +3264,118 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
                 </div>
               );
             })()}
+
+            {/* TAB: Task Delegation History & Details */}
+            {activeTab === "delegation" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-300 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                      Task Delegation Audit & History
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400">
+                    Permanent Record (Original Assignee Intact)
+                  </span>
+                </div>
+
+                {!issue?.delegations || issue.delegations.length === 0 ? (
+                  <div className="py-12 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-6 space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center mx-auto text-base">
+                      ↗
+                    </div>
+                    <p className="font-semibold text-slate-700 dark:text-slate-300">No delegations recorded for this task</p>
+                    <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                      When an assignee goes on leave and chooses to delegate work, temporary delegation records and audit history will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {issue?.delegations?.map((del: any) => {
+                      const isActive = isDelegationActive(del) && del.status === "ACTIVE";
+                      return (
+                        <div
+                          key={del.id}
+                          className={`p-4 rounded-2xl border space-y-3 ${
+                            isActive
+                              ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800 ring-1 ring-indigo-500/20"
+                              : "bg-slate-50/70 dark:bg-slate-800/40 border-slate-300 dark:border-slate-800"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                  isActive
+                                    ? "bg-indigo-600 text-white"
+                                    : del.status === "ENDED"
+                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300"
+                                    : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                                }`}
+                              >
+                                {isActive ? "↗ Active Delegation" : del.status}
+                              </span>
+                              <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-400">
+                                {new Date(del.startDate).toLocaleDateString()} — {new Date(del.endDate).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {del.leave && (
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Leave: {del.leave.type || "Leave"}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Original Assignee</span>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                {del.originalAssignee?.firstName} {del.originalAssignee?.lastName || ""}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Temporary Delegate</span>
+                              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                                {del.delegateUser?.firstName} {del.delegateUser?.lastName || ""}
+                              </span>
+                            </div>
+                          </div>
+
+                          {del.notes && (
+                            <p className="text-xs text-slate-600 dark:text-slate-300 italic bg-slate-100/70 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                              "{del.notes}"
+                            </p>
+                          )}
+
+                          {/* Audit Timeline */}
+                          {del.histories && del.histories.length > 0 && (
+                            <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Audit Timeline ({del.histories.length})
+                              </span>
+                              <div className="space-y-1.5">
+                                {del.histories.map((h: any) => (
+                                  <div key={h.id} className="text-[11px] flex items-center justify-between text-slate-600 dark:text-slate-400 bg-white/60 dark:bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-indigo-600 dark:text-indigo-400">{h.action}</span>
+                                      <span>by {h.actor?.firstName || "System"}</span>
+                                    </div>
+                                    <span className="text-[10px] font-mono text-slate-400">
+                                      {new Date(h.timestamp).toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -2713,7 +3383,12 @@ export function IssueDetailModal({ issueId, onClose, onIssueUpdated }: IssueDeta
         {issue && (
           <div className="border-t border-slate-300 dark:border-slate-800 px-6 py-3.5 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xs flex items-center justify-between shrink-0 shadow-lg">
             <div className="flex items-center gap-2 text-xs">
-              {hasChanges ? (
+              {isCreateMode ? (
+                <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  New task — fill in details
+                </span>
+              ) : hasChanges ? (
                 <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold">
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                   Unsaved changes

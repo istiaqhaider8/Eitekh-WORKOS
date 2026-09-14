@@ -12,15 +12,15 @@ export async function POST() {
     if (token) {
       const payload = verifyToken(token);
       if (payload?.sessionId) {
-        await prisma.session.delete({ where: { id: payload.sessionId } }).catch(() => {});
-        await logAuditEvent({
+        prisma.session.delete({ where: { id: payload.sessionId } }).catch(() => {});
+        logAuditEvent({
           actor: { id: payload.userId, email: payload.email },
           action: 'AUTH_LOGOUT',
           category: 'AUTH',
           severity: 'INFO',
           targetResource: `User:${payload.userId}`,
           details: { sessionId: payload.sessionId },
-        });
+        }).catch((err) => console.error('Failed to log logout audit event:', err));
       }
     }
 

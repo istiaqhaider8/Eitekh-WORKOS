@@ -26,6 +26,9 @@ interface AppSidebarProps {
   onSelectView: (view: string) => void;
   onCreateProjectClick?: () => void;
   currentUser?: any;
+  isMobileOpen?: boolean;
+  onToggleMobile?: () => void;
+  onCloseMobile?: () => void;
 }
 
 export function AppSidebar({
@@ -35,11 +38,20 @@ export function AppSidebar({
   onSelectView,
   onCreateProjectClick,
   currentUser,
+  isMobileOpen: controlledMobileOpen,
+  onToggleMobile,
+  onCloseMobile,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  const isMobileOpen = controlledMobileOpen !== undefined ? controlledMobileOpen : internalMobileOpen;
+  const handleCloseMobile = () => {
+    if (onCloseMobile) onCloseMobile();
+    else setInternalMobileOpen(false);
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -78,26 +90,29 @@ export function AppSidebar({
 
   return (
     <>
-      {/* Mobile Toggle Overlay */}
-      <button 
-        className="md:hidden fixed bottom-4 right-4 p-3 bg-blue-600 text-white rounded-full shadow-lg z-50"
-        onClick={() => setIsMobileOpen(true)}
-      >
-        <Menu className="w-6 h-6" />
-      </button>
+      {/* Fallback Mobile Floating Toggle Overlay only when neither controlled nor toggle provided */}
+      {controlledMobileOpen === undefined && !onToggleMobile && (
+        <button 
+          className="md:hidden fixed bottom-4 right-4 p-3 bg-blue-600 text-white rounded-full shadow-lg z-50 cursor-pointer"
+          onClick={() => setInternalMobileOpen(true)}
+          aria-label="Open sidebar navigation"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          onClick={handleCloseMobile}
         />
       )}
 
       {/* Sidebar Container */}
       <aside 
-        className={`fixed md:relative top-14 md:top-0 z-50 md:z-0 border-r border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-3.5rem)] select-none transition-all duration-300 ease-in-out shadow-2xs ${
-          isCollapsed ? "w-14" : "w-60"
+        className={`fixed md:relative top-13 md:top-0 z-50 md:z-0 border-r border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/98 backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-3.25rem)] md:h-[calc(100vh-3.5rem)] select-none transition-all duration-300 ease-in-out shadow-xl md:shadow-2xs w-72 max-w-[85vw] ${
+          isCollapsed ? "md:w-14" : "md:w-60"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div className="p-3 overflow-y-auto overflow-x-hidden flex-1 no-scrollbar">
@@ -113,10 +128,12 @@ export function AppSidebar({
           </div>
 
           {/* Close Button (Mobile only) */}
-          <div className="md:hidden flex justify-end mb-4">
+          <div className="md:hidden flex items-center justify-between mb-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Navigation</span>
             <button
-              onClick={() => setIsMobileOpen(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              onClick={handleCloseMobile}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
             </button>
@@ -195,7 +212,7 @@ export function AppSidebar({
                       key={v.id}
                       onClick={() => {
                         onSelectView(v.id);
-                        if (window.innerWidth < 768) setIsMobileOpen(false);
+                        if (typeof window !== "undefined" && window.innerWidth < 768) handleCloseMobile();
                       }}
                       title={isCollapsed ? v.label : undefined}
                       className={`w-full flex items-center gap-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer text-left relative ${

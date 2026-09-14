@@ -28,6 +28,7 @@ export const PBAC_PERMISSION_CATEGORIES: PermissionCategory[] = [
       { key: 'projects:view', label: 'View Projects', description: 'Browse and view project details', riskLevel: 'LOW' },
       { key: 'projects:create', label: 'Create Projects', description: 'Create new project boards and workspaces', riskLevel: 'MEDIUM' },
       { key: 'projects:edit', label: 'Edit Projects', description: 'Modify project configurations and metadata', riskLevel: 'MEDIUM' },
+      { key: 'projects:manage_members', label: 'Manage Members & Access', description: 'Assign project members, manage access roles, and invite users to project', riskLevel: 'CRITICAL' },
       { key: 'projects:archive', label: 'Archive Projects', description: 'Archive inactive projects', riskLevel: 'HIGH' },
       { key: 'projects:delete', label: 'Delete Projects', description: 'Permanently remove projects and boards', riskLevel: 'CRITICAL' },
     ],
@@ -316,7 +317,17 @@ class UnifiedPBACEngine {
     }
   }
 
+  private isSaving: boolean = false;
+  private savePending: boolean = false;
+
   private saveToDisk() {
+    if (this.isSaving) {
+      this.savePending = true;
+      return;
+    }
+    this.isSaving = true;
+    this.savePending = false;
+
     try {
       const data = {
         version: '1.0.0',
@@ -331,15 +342,23 @@ class UnifiedPBACEngine {
         auditLogs: this.auditLogs.slice(0, 2000),
         initializedOrgs: Array.from(this.initializedOrgs),
       };
-      fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf-8');
+      fs.promises.writeFile(this.storeFilePath, JSON.stringify(data), 'utf-8')
+        .catch((e) => console.error('Error saving PBAC store to disk:', e))
+        .finally(() => {
+          this.isSaving = false;
+          if (this.savePending) {
+            this.saveToDisk();
+          }
+        });
     } catch (e) {
-      console.error('Error saving PBAC store to disk:', e);
+      this.isSaving = false;
+      console.error('Error serializing PBAC store data:', e);
     }
   }
 
   public async ensureOrgSeeded(orgId: string) {
     this.loadFromDisk();
-    if (this.initializedOrgs.has(orgId)) return;
+    const isOrgInitialized = this.initializedOrgs.has(orgId);
     this.initializedOrgs.add(orgId);
 
     const now = new Date().toISOString();
@@ -380,7 +399,7 @@ class UnifiedPBACEngine {
         isSystem: true,
         createdBy: 'System Provisioning',
         permissions: [
-          'projects:view', 'projects:edit', 'projects:archive',
+          'projects:view', 'projects:edit', 'projects:manage_members', 'projects:archive',
           'issues:view', 'issues:create', 'issues:edit', 'issues:transition', 'issues:assign', 'issues:comment', 'issues:bulk_edit', 'issues:delete',
           'tasks:view', 'tasks:create', 'tasks:edit', 'tasks:delete',
           'epics:view', 'epics:create', 'epics:edit', 'epics:delete',
@@ -485,9 +504,12 @@ class UnifiedPBACEngine {
       },
     ];
 
+    let storeUpdated = false;
+
     for (const r of defaultRoles) {
       const id = `role_${orgId}_${r.slug}`;
-      if (!this.roles.has(id)) {
+      const existingRole = this.roles.get(id);
+      if (!existingRole) {
         this.roles.set(id, {
           ...r,
           id,
@@ -495,64 +517,76 @@ class UnifiedPBACEngine {
           createdAt: now,
           updatedAt: now,
         });
+        storeUpdated = true;
+      } else if (existingRole.isSystem) {
+        if (r.slug === 'member' && existingRole.permissions.length < r.permissions.length) {
+          existingRole.permissions = Array.from(new Set([...existingRole.permissions, ...r.permissions]));
+          storeUpdated = true;
+        }
       }
     }
 
-    // Seed realistic initial role assignments for existing database users
-    try {
-      const existingUsers = await prisma.user.findMany({
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          jobTitle: true,
-          isSuperAdmin: true,
-        },
-      });
+    if (!isOrgInitialized) {
+      // Seed realistic initial role assignments for existing database users
+      try {
+        const existingUsers = await prisma.user.findMany({
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            jobTitle: true,
+            isSuperAdmin: true,
+          },
+        });
 
-      const superAdminRoleId = `role_${orgId}_super-admin`;
-      const orgAdminRoleId = `role_${orgId}_org-admin`;
-      const projectAdminRoleId = `role_${orgId}_project-admin`;
-      const pmRoleId = `role_${orgId}_project-manager`;
-      const memberRoleId = `role_${orgId}_member`;
-      const viewerRoleId = `role_${orgId}_viewer`;
+        const superAdminRoleId = `role_${orgId}_super-admin`;
+        const orgAdminRoleId = `role_${orgId}_org-admin`;
+        const projectAdminRoleId = `role_${orgId}_project-admin`;
+        const pmRoleId = `role_${orgId}_project-manager`;
+        const memberRoleId = `role_${orgId}_member`;
+        const viewerRoleId = `role_${orgId}_viewer`;
 
-      for (const u of existingUsers) {
-        if (!this.userRoleAssignments.has(u.id)) {
-          this.userRoleAssignments.set(u.id, new Set<string>());
-        }
-        const userRoles = this.userRoleAssignments.get(u.id)!;
+        for (const u of existingUsers) {
+          if (!this.userRoleAssignments.has(u.id)) {
+            this.userRoleAssignments.set(u.id, new Set<string>());
+          }
+          const userRoles = this.userRoleAssignments.get(u.id)!;
 
-        if (userRoles.size === 0) {
-          if (u.isSuperAdmin || u.email === 'cocofbd@gmail.com') {
-            userRoles.add(superAdminRoleId);
-            userRoles.add(orgAdminRoleId);
-            userRoles.add(projectAdminRoleId);
-          } else if ((u.jobTitle || '').toLowerCase().includes('admin')) {
-            userRoles.add(orgAdminRoleId);
-          } else if (
-            (u.jobTitle || '').toLowerCase().includes('product') ||
-            (u.jobTitle || '').toLowerCase().includes('pm') ||
-            (u.jobTitle || '').toLowerCase().includes('manager') ||
-            (u.jobTitle || '').toLowerCase().includes('lead')
-          ) {
-            userRoles.add(pmRoleId);
-          } else if (
-            (u.jobTitle || '').toLowerCase().includes('viewer') ||
-            (u.jobTitle || '').toLowerCase().includes('guest')
-          ) {
-            userRoles.add(viewerRoleId);
-          } else {
-            userRoles.add(memberRoleId);
+          if (userRoles.size === 0) {
+            if (u.isSuperAdmin || u.email === 'cocofbd@gmail.com') {
+              userRoles.add(superAdminRoleId);
+              userRoles.add(orgAdminRoleId);
+              userRoles.add(projectAdminRoleId);
+            } else if ((u.jobTitle || '').toLowerCase().includes('admin')) {
+              userRoles.add(orgAdminRoleId);
+            } else if (
+              (u.jobTitle || '').toLowerCase().includes('product') ||
+              (u.jobTitle || '').toLowerCase().includes('pm') ||
+              (u.jobTitle || '').toLowerCase().includes('manager') ||
+              (u.jobTitle || '').toLowerCase().includes('lead')
+            ) {
+              userRoles.add(pmRoleId);
+            } else if (
+              (u.jobTitle || '').toLowerCase().includes('viewer') ||
+              (u.jobTitle || '').toLowerCase().includes('guest')
+            ) {
+              userRoles.add(viewerRoleId);
+            } else {
+              userRoles.add(memberRoleId);
+            }
           }
         }
+      } catch (e) {
+        console.error('Error seeding initial user roles', e);
       }
-    } catch (e) {
-      console.error('Error seeding initial user roles', e);
+      storeUpdated = true;
     }
 
-    this.saveToDisk();
+    if (storeUpdated) {
+      this.saveToDisk();
+      this.invalidateUserCache();
+    }
   }
 
   // Audit Logging
@@ -807,10 +841,12 @@ class UnifiedPBACEngine {
     return role;
   }
 
-  public async deleteRole(orgId: string, roleId: string, actor?: { id: string; name: string; email: string }) {
+  public async deleteRole(orgId: string, roleId: string, actor?: { id: string; name: string; email: string }, force: boolean = false) {
     const role = this.roles.get(roleId);
     if (!role || role.orgId !== orgId) throw new Error('Role not found');
-    if (role.isSystem) throw new Error('System-defined roles cannot be deleted.');
+    if (role.isSystem && !force) {
+      throw new Error('System-defined default roles require force deletion.');
+    }
 
     // Check if any users have this role assigned
     let assignedCount = 0;
@@ -819,7 +855,17 @@ class UnifiedPBACEngine {
     }
 
     if (assignedCount > 0) {
-      throw new Error(`Cannot delete role '${role.name}' because it is assigned to ${assignedCount} user(s). Remove all assigned users first.`);
+      if (!force) {
+        throw new Error(`Cannot delete role '${role.name}' because it is assigned to ${assignedCount} user(s). Unassign assigned users first or confirm force deletion.`);
+      }
+
+      // Unassign all users from this role
+      for (const [userId, roleSet] of this.userRoleAssignments.entries()) {
+        if (roleSet.has(roleId)) {
+          roleSet.delete(roleId);
+          this.invalidateUserCache(userId);
+        }
+      }
     }
 
     this.roles.delete(roleId);
@@ -870,6 +916,38 @@ class UnifiedPBACEngine {
     this.saveToDisk();
     this.invalidateUserCache(userId);
 
+    // Sync PostgreSQL DB membership
+    try {
+      if (role.projectId) {
+        await prisma.projectMember.upsert({
+          where: { projectId_userId: { projectId: role.projectId, userId } },
+          update: { role: role.id },
+          create: { projectId: role.projectId, userId, role: role.id },
+        });
+      } else if (role.scope === 'PROJECT') {
+        const orgProjects = await prisma.project.findMany({
+          where: { workspace: { orgId } },
+          select: { id: true },
+        });
+        for (const p of orgProjects) {
+          await prisma.projectMember.upsert({
+            where: { projectId_userId: { projectId: p.id, userId } },
+            update: { role: role.id },
+            create: { projectId: p.id, userId, role: role.id },
+          });
+        }
+      } else if (role.scope === 'ORG') {
+        const orgRole = (role.slug === 'org-admin' || role.slug === 'super-admin') ? 'ADMIN' : 'MEMBER';
+        await prisma.organizationMember.upsert({
+          where: { orgId_userId: { orgId, userId } },
+          update: { role: orgRole },
+          create: { orgId, userId, role: orgRole },
+        });
+      }
+    } catch (e) {
+      console.error('Database role sync error in addUserToRole:', e);
+    }
+
     this.recordAudit({
       orgId,
       actorId: actor?.id || 'system',
@@ -901,6 +979,28 @@ class UnifiedPBACEngine {
       this.userRoleAssignments.get(userId)!.delete(roleId);
       this.saveToDisk();
       this.invalidateUserCache(userId);
+    }
+
+    // Sync PostgreSQL DB membership
+    try {
+      if (role && role.projectId) {
+        await prisma.projectMember.updateMany({
+          where: { projectId: role.projectId, userId, role: roleId },
+          data: { role: 'MEMBER' },
+        });
+      } else if (role && role.scope === 'PROJECT') {
+        await prisma.projectMember.updateMany({
+          where: { project: { workspace: { orgId } }, userId, role: roleId },
+          data: { role: 'MEMBER' },
+        });
+      } else if (role && role.scope === 'ORG') {
+        await prisma.organizationMember.updateMany({
+          where: { orgId, userId },
+          data: { role: 'MEMBER' },
+        });
+      }
+    } catch (e) {
+      console.error('Database role sync error in removeUserFromRole:', e);
     }
 
     this.recordAudit({
@@ -941,6 +1041,25 @@ class UnifiedPBACEngine {
       if (!set.has(roleId)) {
         set.add(roleId);
         addedCount++;
+        // DB sync per user
+        try {
+          if (role.projectId) {
+            await prisma.projectMember.upsert({
+              where: { projectId_userId: { projectId: role.projectId, userId: uId } },
+              update: { role: role.id },
+              create: { projectId: role.projectId, userId: uId, role: role.id },
+            });
+          } else if (role.scope === 'ORG') {
+            const orgRole = (role.slug === 'org-admin' || role.slug === 'super-admin') ? 'ADMIN' : 'MEMBER';
+            await prisma.organizationMember.upsert({
+              where: { orgId_userId: { orgId, userId: uId } },
+              update: { role: orgRole },
+              create: { orgId, userId: uId, role: orgRole },
+            });
+          }
+        } catch (e) {
+          // ignore individual sync failure
+        }
       } else {
         skippedCount++;
       }
@@ -982,6 +1101,22 @@ class UnifiedPBACEngine {
         if (set.has(roleId)) {
           set.delete(roleId);
           removedCount++;
+          // DB sync per user
+          try {
+            if (role && role.projectId) {
+              await prisma.projectMember.updateMany({
+                where: { projectId: role.projectId, userId: uId, role: roleId },
+                data: { role: 'MEMBER' },
+              });
+            } else if (role && role.scope === 'ORG') {
+              await prisma.organizationMember.updateMany({
+                where: { orgId, userId: uId },
+                data: { role: 'MEMBER' },
+              });
+            }
+          } catch (e) {
+            // ignore individual sync failure
+          }
         }
       }
     }
@@ -1020,6 +1155,22 @@ class UnifiedPBACEngine {
     this.userRoleAssignments.set(userId, new Set(roleIds));
     this.saveToDisk();
 
+    // DB Sync
+    for (const rId of roleIds) {
+      const r = this.roles.get(rId);
+      if (r && r.projectId) {
+        try {
+          await prisma.projectMember.upsert({
+            where: { projectId_userId: { projectId: r.projectId, userId } },
+            update: { role: r.id },
+            create: { projectId: r.projectId, userId, role: r.id },
+          });
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+
     this.recordAudit({
       orgId,
       actorId: actor?.id || 'system',
@@ -1038,35 +1189,60 @@ class UnifiedPBACEngine {
     return { success: true, userId, roleIds };
   }
 
-  // Helper to map project role name to canonical PBAC role slug
+  // Helper to map project role name to canonical PBAC role slug or exact role ID
   public getRoleSlugForProjectRole(projectRole: string): string {
-    const norm = (projectRole || '').toUpperCase().trim();
-    if (norm === 'PROJECT_ADMIN' || norm === 'ADMIN') return 'project-admin';
-    if (norm === 'PROJECT_MANAGER' || norm === 'MANAGER' || norm === 'LEAD' || norm === 'PM') return 'project-manager';
-    if (norm === 'VIEWER' || norm === 'GUEST') return 'viewer';
+    if (!projectRole) return 'member';
+    const norm = projectRole.trim();
+
+    // 1. Direct match on role ID in memory
+    if (this.roles.has(norm)) {
+      return this.roles.get(norm)!.slug;
+    }
+
+    // 2. Direct match on role ID, slug or name
+    const found = Array.from(this.roles.values()).find(
+      (r) => r.id === norm || r.slug === norm || r.name.toUpperCase() === norm.toUpperCase()
+    );
+    if (found) return found.slug;
+
+    // 3. Standard fallback mappings
+    const upper = norm.toUpperCase();
+    if (upper === 'PROJECT_ADMIN' || upper === 'ADMIN') return 'project-admin';
+    if (upper === 'PROJECT_MANAGER' || upper === 'MANAGER' || upper === 'LEAD' || upper === 'PM') return 'project-manager';
+    if (upper === 'VIEWER' || upper === 'GUEST') return 'viewer';
     return 'member';
   }
 
   // Synchronize a project member's role into PBAC store and invalidate cache
   public async syncProjectMemberRole(orgId: string, userId: string, projectRole: string, projectId?: string) {
     await this.ensureOrgSeeded(orgId);
-    const targetSlug = this.getRoleSlugForProjectRole(projectRole);
-    const targetRoleId = `role_${orgId}_${targetSlug}`;
+    let targetRoleId = projectRole;
+    if (this.roles.has(projectRole)) {
+      targetRoleId = projectRole;
+    } else {
+      const targetSlug = this.getRoleSlugForProjectRole(projectRole);
+      const found = Array.from(this.roles.values()).find(
+        (r) => r.orgId === orgId && (r.id === projectRole || r.slug === targetSlug || r.slug === projectRole || r.name.toUpperCase() === projectRole.toUpperCase())
+      );
+      targetRoleId = found ? found.id : `role_${orgId}_${targetSlug}`;
+    }
 
     if (!this.userRoleAssignments.has(userId)) {
       this.userRoleAssignments.set(userId, new Set<string>());
     }
     const roleSet = this.userRoleAssignments.get(userId)!;
 
-    // Clear any canonical project roles and assign the new project role
-    const canonicalSlugs = ['project-admin', 'project-manager', 'member', 'viewer'];
-    for (const s of canonicalSlugs) {
-      roleSet.delete(`role_${orgId}_${s}`);
+    // Clear all existing project-scoped roles for this user so targetRoleId applies strictly
+    for (const rId of Array.from(roleSet)) {
+      const rObj = this.roles.get(rId);
+      if (rObj && rId !== targetRoleId && rObj.scope === 'PROJECT') {
+        roleSet.delete(rId);
+      }
     }
     roleSet.add(targetRoleId);
 
     this.saveToDisk();
-    this.invalidateUserCache(userId);
+    this.invalidateUserCache();
   }
 
   // Synchronize an org member's role into PBAC store and invalidate cache
@@ -1090,7 +1266,7 @@ class UnifiedPBACEngine {
     }
 
     this.saveToDisk();
-    this.invalidateUserCache(userId);
+    this.invalidateUserCache();
   }
 
   // High-Throughput Cached Capability Resolution for Scale (100k+ Users)
@@ -1099,6 +1275,8 @@ class UnifiedPBACEngine {
     userId: string,
     context?: { projectRole?: string; projectId?: string }
   ): Promise<Set<string>> {
+    if (!userId) return new Set<string>();
+
     const projectRole = context?.projectRole;
     const projectId = context?.projectId;
     const cacheKey = projectRole ? `${orgId}:${userId}:${projectRole}` : `${orgId}:${userId}`;
@@ -1148,27 +1326,23 @@ class UnifiedPBACEngine {
 
           if (dbUser.isSuperAdmin || dbUser.email === 'cocofbd@gmail.com') {
             userRoles.add(`role_${orgId}_super-admin`);
-            userRoles.add(`role_${orgId}_org-admin`);
-            userRoles.add(`role_${orgId}_project-admin`);
           } else {
             const orgMember = dbUser.orgMemberships[0];
             const projMember = dbUser.projectMemberships[0];
 
             if (orgMember?.role === 'OWNER' || orgMember?.role === 'ADMIN' || (dbUser.jobTitle || '').toLowerCase().includes('admin')) {
               userRoles.add(`role_${orgId}_org-admin`);
-            } else if (projMember?.role === 'PROJECT_ADMIN') {
-              userRoles.add(`role_${orgId}_project-admin`);
-            } else if (
-              projMember?.role === 'PROJECT_MANAGER' ||
-              (dbUser.jobTitle || '').toLowerCase().includes('manager') ||
-              (dbUser.jobTitle || '').toLowerCase().includes('lead') ||
-              (dbUser.jobTitle || '').toLowerCase().includes('pm')
-            ) {
-              userRoles.add(`role_${orgId}_project-manager`);
-            } else if (projMember?.role === 'VIEWER' || (dbUser.jobTitle || '').toLowerCase().includes('viewer')) {
-              userRoles.add(`role_${orgId}_viewer`);
-            } else {
-              userRoles.add(`role_${orgId}_member`);
+            }
+            if (projMember) {
+              const targetSlug = this.getRoleSlugForProjectRole(projMember.role);
+              const found = Array.from(this.roles.values()).find(
+                (r) => r.orgId === orgId && (r.id === projMember.role || r.slug === targetSlug || r.slug === projMember.role)
+              );
+              if (found) {
+                userRoles.add(found.id);
+              } else {
+                userRoles.add(`role_${orgId}_${targetSlug}`);
+              }
             }
           }
           this.saveToDisk();
@@ -1182,11 +1356,23 @@ class UnifiedPBACEngine {
 
     // If a projectRole is explicitly active in this context, enforce its permissions
     if (projectRole) {
-      const slug = this.getRoleSlugForProjectRole(projectRole);
-      const targetRoleId = `role_${orgId}_${slug}`;
-      const canonicalSlugs = ['project-admin', 'project-manager', 'member', 'viewer'];
-      for (const s of canonicalSlugs) {
-        assignedRoleIds.delete(`role_${orgId}_${s}`);
+      let targetRoleId = projectRole;
+      if (this.roles.has(projectRole)) {
+        targetRoleId = projectRole;
+      } else {
+        const targetSlug = this.getRoleSlugForProjectRole(projectRole);
+        const found = Array.from(this.roles.values()).find(
+          (r) => r.orgId === orgId && (r.id === projectRole || r.slug === targetSlug || r.slug === projectRole || r.name.toUpperCase() === projectRole.toUpperCase())
+        );
+        targetRoleId = found ? found.id : `role_${orgId}_${targetSlug}`;
+      }
+
+      // Remove existing project-scoped roles so context projectRole takes strict precedence
+      for (const rId of Array.from(assignedRoleIds)) {
+        const rObj = this.roles.get(rId);
+        if (rObj && rId !== targetRoleId && rObj.scope === 'PROJECT') {
+          assignedRoleIds.delete(rId);
+        }
       }
       assignedRoleIds.add(targetRoleId);
     }

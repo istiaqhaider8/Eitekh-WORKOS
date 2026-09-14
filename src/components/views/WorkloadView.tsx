@@ -41,7 +41,10 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
+import { isUserOnLeave, formatLeaveRange } from '@/lib/leave-engine';
+import { isDelegationActive } from '@/lib/delegation-engine';
 import { AnalyticsDrillDownModal } from '@/components/analytics/AnalyticsDrillDownModal';
+
 import { ReportViewModal } from '@/components/analytics/ReportViewModal';
 import { SmartRebalanceModal } from '@/components/workload/SmartRebalanceModal';
 
@@ -53,6 +56,8 @@ interface WorkloadViewProps {
   teams?: any[];
   sprints?: any[];
   projects?: any[];
+  leaves?: any[];
+  delegations?: any[];
   projectId?: string;
   projectName?: string;
   currentUser?: any;
@@ -60,6 +65,7 @@ interface WorkloadViewProps {
   onSelectIssue: (issue: any) => void;
   onRefresh?: () => void;
 }
+
 
 type MetricUnit = 'PTS' | 'HOURS' | 'COUNT';
 type MemberHealthTier = 'CRITICAL' | 'OVERLOADED' | 'OPTIMAL' | 'UNDER' | 'AVAILABLE';
@@ -85,8 +91,11 @@ export function WorkloadView({
   teams = [],
   sprints = [],
   projects = [],
+  leaves: propsLeaves = [],
+  delegations = [],
   projectId = 'default',
   projectName = 'Current Project',
+
   currentUser,
   onSelectProject,
   onSelectIssue,
@@ -94,6 +103,24 @@ export function WorkloadView({
 }: WorkloadViewProps) {
   // --- Active Tab State ---
   const [activeTab, setActiveTab] = useState<ActiveTab>('PLANNER');
+
+  // --- Leaves Availability State ---
+  const [fetchedLeaves, setFetchedLeaves] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (propsLeaves.length > 0) return;
+    if (projectId && projectId !== 'default') {
+      fetch(`/api/projects/${projectId}/availability`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.leaves)) setFetchedLeaves(data.leaves);
+        })
+        .catch(() => {});
+    }
+  }, [projectId, propsLeaves]);
+
+  const activeLeaves = useMemo(() => (propsLeaves.length > 0 ? propsLeaves : fetchedLeaves), [propsLeaves, fetchedLeaves]);
+
 
   // --- Interactive Drill-Down Modal State ---
   const [drillDownModal, setDrillDownModal] = useState<{
@@ -421,10 +448,19 @@ export function WorkloadView({
     });
 
     scopedIssues.forEach((issue) => {
-      if (issue.assigneeId && memberIssueMap.has(issue.assigneeId)) {
+      const activeDel = (delegations || []).find(
+        (d: any) =>
+          (d.issueId === issue.id || d.originalAssigneeId === issue.assigneeId) &&
+          isDelegationActive(d) &&
+          d.status === "ACTIVE"
+      );
+
+      const targetUserId = activeDel ? activeDel.delegateUserId : (issue.assigneeId || issue.assignee?.id);
+
+      if (targetUserId && memberIssueMap.has(targetUserId)) {
+        memberIssueMap.get(targetUserId)!.push(issue);
+      } else if (issue.assigneeId && memberIssueMap.has(issue.assigneeId)) {
         memberIssueMap.get(issue.assigneeId)!.push(issue);
-      } else if (issue.assignee && memberIssueMap.has(issue.assignee.id)) {
-        memberIssueMap.get(issue.assignee.id)!.push(issue);
       } else {
         if (teamFilter === 'ALL' || issue.teamId === teamFilter) {
           unassigned.push(issue);
@@ -464,7 +500,16 @@ export function WorkloadView({
       let healthBadgeColor = 'bg-emerald-500 text-white';
       let healthBorderColor = 'border-emerald-200 dark:border-emerald-800';
 
-      if (totalVal === 0) {
+      const memberLeaves = activeLeaves.filter((l: any) => l.userId === member.id);
+      const leaveStatus = isUserOnLeave(memberLeaves, now);
+      const isOnLeaveNow = leaveStatus.onLeave;
+      const leaveRecord = leaveStatus.leave;
+
+      if (isOnLeaveNow && leaveRecord) {
+        healthLabel = `🔴 On Leave (${formatLeaveRange(leaveRecord.startDate, leaveRecord.endDate)})`;
+        healthBadgeColor = 'bg-amber-600 text-white font-bold';
+        healthBorderColor = 'border-amber-400 dark:border-amber-700 bg-amber-50/20';
+      } else if (totalVal === 0) {
         health = 'AVAILABLE';
         healthLabel = 'No Allocation (0%)';
         healthBadgeColor = 'bg-slate-400 text-white';
@@ -493,6 +538,9 @@ export function WorkloadView({
 
       return {
         ...member,
+        isOnLeaveNow,
+        leaveRecord,
+
         issues: assigned,
         doneIssues,
         inProgressIssues,
@@ -1712,15 +1760,15 @@ export function WorkloadView({
                               <span
                                 className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                                 style={
-                                  issue.status.color
+                                  issue.status?.color
                                     ? {
-                                        backgroundColor: `${issue.status.color}15`,
-                                        color: issue.status.color,
+                                        backgroundColor: `${issue.status?.color}15`,
+                                        color: issue.status?.color,
                                       }
                                     : undefined
                                 }
                               >
-                                {issue.status.name}
+                                {issue.status?.name || 'Status'}
                               </span>
                             )}
 
@@ -1882,15 +1930,15 @@ export function WorkloadView({
                           <span
                             className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                             style={
-                              issue.status.color
+                              issue.status?.color
                                 ? {
-                                    backgroundColor: `${issue.status.color}15`,
-                                    color: issue.status.color,
+                                    backgroundColor: `${issue.status?.color}15`,
+                                    color: issue.status?.color,
                                   }
                                 : undefined
                             }
                           >
-                            {issue.status.name}
+                            {issue.status?.name || 'Status'}
                           </span>
                         )}
 

@@ -29,6 +29,7 @@ import {
   RotateCcw,
   ArrowUpRight,
   Users,
+  Zap,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 
@@ -68,6 +69,7 @@ interface ScrumBacklogViewProps {
   teams?: any[];
   currentUser?: any;
   isProjectAdmin?: boolean;
+  canCreateIssue?: boolean;
   onSelectIssue: (issue: any) => void;
   onUpdateStatus?: (issueId: string, statusId: string) => void;
   onRefresh: () => void;
@@ -83,6 +85,7 @@ export function ScrumBacklogView({
   teams = [],
   currentUser,
   isProjectAdmin = false,
+  canCreateIssue,
   onSelectIssue,
   onUpdateStatus,
   onRefresh,
@@ -139,6 +142,14 @@ export function ScrumBacklogView({
   const activeSprint = sprints.find((s) => s.status === "ACTIVE");
   const futureSprints = sprints.filter((s) => s.status === "FUTURE");
   const backlogIssues = useMemo(() => issues.filter((i) => !i.sprintId), [issues]);
+
+  const userCanCreate = canCreateIssue ?? (
+    currentUser?.isSuperAdmin || (
+      Array.isArray(currentUser?.capabilities)
+        ? currentUser.capabilities.includes("issues:create")
+        : isProjectAdmin
+    )
+  );
 
   // Priority metadata helper
   const priorityList = useMemo(() => {
@@ -848,6 +859,28 @@ export function ScrumBacklogView({
           }`}>
             {issue.title}
           </span>
+
+          {/* Epic & Epic Status */}
+          {issue.epic && (
+            <div className="hidden md:flex items-center gap-1 shrink-0 ml-1">
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-2xs"
+                style={{ backgroundColor: issue.epic.color || "#8b5cf6" }}
+                title={`Epic: ${issue.epic.name}`}
+              >
+                <Zap className="w-2.5 h-2.5" />
+                <span className="truncate max-w-[110px]">{issue.epic.name}</span>
+              </span>
+              {issue.epic.status && (
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs"
+                  title={`Epic Status: ${issue.epic.status}`}
+                >
+                  {issue.epic.status}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right: Interactive Dropdowns & Actions */}
@@ -886,9 +919,9 @@ export function ScrumBacklogView({
               style={
                 issue.status?.color
                   ? {
-                      backgroundColor: `${issue.status.color}15`,
-                      borderColor: `${issue.status.color}40`,
-                      color: issue.status.color,
+                      backgroundColor: `${issue.status?.color}15`,
+                      borderColor: `${issue.status?.color}40`,
+                      color: issue.status?.color,
                     }
                   : undefined
               }
@@ -1058,6 +1091,7 @@ export function ScrumBacklogView({
 
   // Add Task to Sprint Inline Box
   const renderSprintAddTaskBox = (sprint: any) => {
+    if (!userCanCreate) return null;
     const isAdding = inlineSprintId === sprint.id;
     const availableIssues = issues.filter((i) => i.sprintId !== sprint.id);
     const filteredIssues = availableIssues.filter((i) => {
@@ -1087,13 +1121,7 @@ export function ScrumBacklogView({
         <button
           type="button"
           onClick={() => {
-            setInlineSprintId(sprint.id);
-            setInlineMode(availableIssues.length > 0 ? "existing" : "new");
-            setInlineTitle("");
-            setIsExistingDropdownOpen(false);
-            setExistingSearchQuery("");
-            setSearchFilterTag("ALL");
-            setActiveSearchIndex(0);
+            if (onSelectIssue) onSelectIssue("new");
           }}
           className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
         >
@@ -1391,7 +1419,7 @@ export function ScrumBacklogView({
 
   return (
     <div
-      className="w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-6 pb-28 relative"
+      className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-28 relative"
       onClick={() => {
         setActiveStatusMenu(null);
         setActiveActionMenu(null);
@@ -1399,7 +1427,7 @@ export function ScrumBacklogView({
       }}
     >
       {/* Top Header & Overview Bar (Sticky) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">Sprint & Backlog Planning</h2>
@@ -1432,13 +1460,15 @@ export function ScrumBacklogView({
             </button>
           )}
 
-          <button
-            onClick={() => setShowCreateSprintModal(true)}
-            className="btn-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer shadow-2xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Create Sprint</span>
-          </button>
+          {userCanCreate && (
+            <button
+              onClick={() => setShowCreateSprintModal(true)}
+              className="btn-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create Sprint</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1676,49 +1706,51 @@ export function ScrumBacklogView({
                 )}
 
                 {/* Inline Add Task to Product Backlog */}
-                {inlineSprintId === "BACKLOG" ? (
-                  <form
-                    onSubmit={(e) => handleQuickCreateIssue(e, null)}
-                    className="flex items-center gap-2 pt-2 border-t border-slate-300 dark:border-slate-800/80"
-                  >
-                    <input
-                      type="text"
-                      autoFocus
-                      placeholder="Backlog item title... press Enter to create"
-                      value={inlineTitle}
-                      onChange={(e) => setInlineTitle(e.target.value)}
-                      className="flex-1 text-xs py-2 px-3 rounded-xl border border-blue-400 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs"
-                    />
-                    <button
-                      type="submit"
-                      disabled={inlineLoading || !inlineTitle.trim()}
-                      className="btn-primary px-3.5 py-2 text-xs font-semibold rounded-xl disabled:opacity-50 cursor-pointer shadow-2xs"
+                {userCanCreate && (
+                  inlineSprintId === "BACKLOG" ? (
+                    <form
+                      onSubmit={(e) => handleQuickCreateIssue(e, null)}
+                      className="flex items-center gap-2 pt-2 border-t border-slate-300 dark:border-slate-800/80"
                     >
-                      {inlineLoading ? "Adding..." : "+ Add"}
-                    </button>
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Backlog item title... press Enter to create"
+                        value={inlineTitle}
+                        onChange={(e) => setInlineTitle(e.target.value)}
+                        className="flex-1 text-xs py-2 px-3 rounded-xl border border-blue-400 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 shadow-2xs"
+                      />
+                      <button
+                        type="submit"
+                        disabled={inlineLoading || !inlineTitle.trim()}
+                        className="btn-primary px-3.5 py-2 text-xs font-semibold rounded-xl disabled:opacity-50 cursor-pointer shadow-2xs"
+                      >
+                        {inlineLoading ? "Adding..." : "+ Add"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInlineSprintId(null);
+                          setInlineTitle("");
+                        }}
+                        className="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => {
-                        setInlineSprintId(null);
+                        setInlineSprintId("BACKLOG");
                         setInlineTitle("");
                       }}
-                      className="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-medium"
+                      className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
                     >
-                      Cancel
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Task to Backlog</span>
                     </button>
-                  </form>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInlineSprintId("BACKLOG");
-                      setInlineTitle("");
-                    }}
-                    className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Task to Backlog</span>
-                  </button>
+                  )
                 )}
               </div>
             )}

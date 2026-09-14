@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 
 export async function GET(req: NextRequest) {
@@ -12,6 +13,9 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get('userId');
     const projectId = searchParams.get('projectId') || undefined;
 
+    // Strict Tenant Isolation Check
+    await assertOrgAccess(orgId);
+
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
@@ -21,6 +25,6 @@ export async function GET(req: NextRequest) {
       : await (pbacEngine as any).getEffectiveUserAccess(orgId, userId, projectId);
     return NextResponse.json(result);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to inspect user access' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to inspect user access' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
   }
 }

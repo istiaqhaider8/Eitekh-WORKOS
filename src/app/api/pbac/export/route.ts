@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 
 export async function GET(req: NextRequest) {
@@ -13,6 +14,9 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const roleId = searchParams.get('roleId') || 'all';
 
+    // Strict Tenant Isolation & PBAC Governance Export Check
+    await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
+
     const result = await pbacEngine.exportData(orgId, format, { search, roleId });
 
     return new NextResponse(result.content, {
@@ -23,6 +27,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Export failed' }, { status: 500 });
+    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
+    return NextResponse.json({ error: e.message || 'Export failed' }, { status });
   }
 }

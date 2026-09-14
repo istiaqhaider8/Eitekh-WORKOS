@@ -78,9 +78,14 @@ export async function POST(req: Request) {
 
     const userAgent = req.headers.get("user-agent") || undefined;
 
-    const { jwtToken } = await createSession(user.id, userAgent, ipAddress === "anonymous" ? undefined : ipAddress);
+    const { jwtToken } = await createSession(
+      user.id,
+      userAgent,
+      ipAddress === "anonymous" ? undefined : ipAddress,
+      { id: user.id, email: user.email, isSuperAdmin: user.isSuperAdmin }
+    );
 
-    await logAuditEvent({
+    logAuditEvent({
       actor: { id: user.id, name: `${user.firstName} ${user.lastName}`, email: user.email },
       action: 'AUTH_LOGIN_SUCCESS',
       category: 'AUTH',
@@ -89,7 +94,7 @@ export async function POST(req: Request) {
       targetResource: `User:${user.id} (${user.email})`,
       ipAddress: ipAddress === 'anonymous' ? '127.0.0.1' : ipAddress,
       details: { userAgent, isSuperAdmin: user.isSuperAdmin },
-    });
+    }).catch((err) => console.error('Failed to log login audit event:', err));
 
     const response = NextResponse.json({
       success: true,

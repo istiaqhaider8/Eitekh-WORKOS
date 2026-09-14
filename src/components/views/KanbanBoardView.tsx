@@ -18,11 +18,10 @@ import {
   TrendingUp,
   Users,
   MessageSquare,
-  Check,
   Calendar,
-  ExternalLink,
-  Loader2,
 } from "lucide-react";
+
+import { isDelegationActive } from "@/lib/delegation-engine";
 
 interface KanbanBoardViewProps {
   statuses: any[];
@@ -31,9 +30,13 @@ interface KanbanBoardViewProps {
   members?: any[];
   teams?: any[];
   sprints?: any[];
+  epics?: any[];
+  leaves?: any[];
+  delegations?: any[];
+  currentUser?: any;
   onSelectIssue: (issue: any) => void;
   onUpdateIssueStatus: (issueId: string, statusId: string) => void;
-  onQuickCreateIssue: (payload: {
+  onQuickCreateIssue?: (payload: {
     statusId: string;
     title: string;
     issueType?: string;
@@ -44,6 +47,7 @@ interface KanbanBoardViewProps {
     dueDate?: string;
   }) => Promise<void> | void;
   onOpenCreateModal?: (defaultStatusId?: string, defaultTitle?: string) => void;
+  canCreateIssue?: boolean;
 }
 
 type SwimlaneMode = "none" | "assignee" | "epic" | "priority";
@@ -65,6 +69,11 @@ export function KanbanBoardView({
   members = [],
   teams = [],
   sprints = [],
+  epics = [],
+  leaves = [],
+  delegations = [],
+  currentUser,
+  canCreateIssue,
   onSelectIssue,
   onUpdateIssueStatus,
   onQuickCreateIssue,
@@ -73,61 +82,31 @@ export function KanbanBoardView({
   const [swimlaneMode, setSwimlaneMode] = useState<SwimlaneMode>("none");
   const [collapsedSwimlanes, setCollapsedSwimlanes] = useState<Record<string, boolean>>({});
   
-  // Enhanced Quick Task Creator State
-  const [addingToStatusId, setAddingToStatusId] = useState<string | null>(null);
-  const [quickTitle, setQuickTitle] = useState("");
-  const [quickType, setQuickType] = useState("TASK");
-  const [quickPriority, setQuickPriority] = useState("MEDIUM");
-  const [quickAssigneeId, setQuickAssigneeId] = useState("");
-  const [quickTeamId, setQuickTeamId] = useState("");
-  const [quickPoints, setQuickPoints] = useState<number | null>(null);
-  const [quickDueDate, setQuickDueDate] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
 
   const toggleSwimlane = (id: string) => {
     setCollapsedSwimlanes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleStartQuickAdd = (statusId: string) => {
-    setAddingToStatusId(statusId);
-    setQuickTitle("");
-    setQuickType("TASK");
-    setQuickPriority("MEDIUM");
-    setQuickAssigneeId("");
-    setQuickTeamId("");
-    setQuickPoints(null);
-    setQuickDueDate("");
-  };
+  const userCanCreate = canCreateIssue !== false && (
+    currentUser?.isSuperAdmin ||
+    !Array.isArray(currentUser?.capabilities) ||
+    currentUser.capabilities.includes("issues:create")
+  );
 
-  const handleCancelQuickAdd = () => {
-    setAddingToStatusId(null);
-    setQuickTitle("");
-    setIsSubmitting(false);
-  };
-
-  const handleQuickAddSubmit = async (statusId: string) => {
-    if (!quickTitle.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await onQuickCreateIssue({
-        statusId,
-        title: quickTitle.trim(),
-        issueType: quickType,
-        priority: quickPriority,
-        assigneeId: quickAssigneeId || undefined,
-        teamId: quickTeamId || undefined,
-        estimatePoints: quickPoints != null ? quickPoints : undefined,
-        dueDate: quickDueDate || undefined,
-      });
-      setQuickTitle("");
-      setQuickPoints(null);
-      setAddingToStatusId(null);
-    } catch (err) {
-      console.error("Quick create error:", err);
-    } finally {
-      setIsSubmitting(false);
+  const handleStartQuickAdd = (statusId?: string) => {
+    if (!userCanCreate) return;
+    if (onSelectIssue) {
+      if (statusId) {
+        onSelectIssue({ id: "new", statusId });
+      } else {
+        onSelectIssue("new");
+      }
     }
   };
+
+
+
 
   const priorityList = useMemo(() => {
     return priorities.length > 0
@@ -226,7 +205,7 @@ export function KanbanBoardView({
     }
 
     if (swimlaneMode === "epic") {
-      const groups: Record<string, { id: string; title: string; color?: string; issues: any[] }> = {};
+      const groups: Record<string, { id: string; title: string; color?: string; status?: string; issues: any[] }> = {};
       
       groups["no-epic"] = {
         id: "no-epic",
@@ -234,16 +213,29 @@ export function KanbanBoardView({
         issues: [],
       };
 
+      // Populate known epics first
+      epics.forEach((ep: any) => {
+        groups[ep.id] = {
+          id: ep.id,
+          title: ep.name,
+          color: ep.color || "#8b5cf6",
+          status: ep.status,
+          issues: [],
+        };
+      });
+
       issues.forEach((issue) => {
-        if (!issue.epic) {
+        const epic = issue.epic || epics.find((e: any) => e.id === issue.epicId);
+        if (!epic) {
           groups["no-epic"].issues.push(issue);
         } else {
-          const key = issue.epic.id;
+          const key = epic.id;
           if (!groups[key]) {
             groups[key] = {
               id: key,
-              title: issue.epic.name,
-              color: issue.epic.color || "#3b82f6",
+              title: epic.name,
+              color: epic.color || "#8b5cf6",
+              status: epic.status,
               issues: [],
             };
           }
@@ -278,24 +270,33 @@ export function KanbanBoardView({
     }
 
     return [{ id: "all", title: "All Issues", issues }];
-  }, [swimlaneMode, issues, priorityList]);
+  }, [swimlaneMode, issues, priorityList, epics]);
 
   const renderIssueCard = (issue: any) => {
     const prioInfo = getPriorityInfo(issue.priority);
+    const typeInfo = ISSUE_TYPES.find((t) => t.value === (issue.issueType || "TASK")) || ISSUE_TYPES[0];
+    const activeDel = (delegations || []).find(
+      (d: any) => d.issueId === issue.id && isDelegationActive(d) && d.status === "ACTIVE"
+    );
 
     return (
       <div
         key={issue.id}
-        draggable
-        onDragStart={(e) => e.dataTransfer.setData("text/plain", issue.id)}
         onClick={() => onSelectIssue(issue)}
-        className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-300 dark:border-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-blue-500 dark:hover:border-blue-500 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group relative"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", issue.id);
+        }}
+        onDragEnd={() => setDragOverColumnId(null)}
+        className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-300 dark:border-slate-800 shadow-xs hover:shadow-md transition-all cursor-pointer group hover:border-blue-500/60 dark:hover:border-blue-500/60 active:scale-[0.99] space-y-2 relative"
       >
-        {/* Top Meta */}
-        <div className="flex items-center justify-between text-[10px] text-slate-400 mb-2">
+        {/* Top Bar: Issue Key & Priority */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            {renderTypeBadge(issue.issueType || "TASK")}
-            <span className="font-mono font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            {typeInfo.icon && (
+              <typeInfo.icon className={"w-3.5 h-3.5 " + (typeInfo.color ? typeInfo.color.split(" ")[0] : "text-blue-500")} />
+            )}
+            <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {issue.issueKey}
             </span>
           </div>
@@ -326,18 +327,31 @@ export function KanbanBoardView({
           {issue.title}
         </h4>
 
-        {/* Epic Badge */}
-        {issue.epic && (
-          <div className="mb-2">
-            <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-white shadow-2xs"
-              style={{ backgroundColor: issue.epic.color || "#8b5cf6" }}
-            >
-              <Zap className="w-2.5 h-2.5" />
-              <span className="truncate max-w-[140px]">{issue.epic.name}</span>
-            </span>
-          </div>
-        )}
+        {/* Epic Badge & Epic Status */}
+        {(() => {
+          const epic = issue.epic || epics.find((e: any) => e.id === issue.epicId);
+          if (!epic) return null;
+          return (
+            <div className="mb-2 flex items-center gap-1.5 flex-wrap">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-white shadow-2xs"
+                style={{ backgroundColor: epic.color || "#8b5cf6" }}
+                title={`Epic: ${epic.name}`}
+              >
+                <Zap className="w-2.5 h-2.5" />
+                <span className="truncate max-w-[140px]">{epic.name}</span>
+              </span>
+              {epic.status && (
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs"
+                  title={`Epic Status: ${epic.status}`}
+                >
+                  {epic.status}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Team Tag if assigned */}
         {issue.team && (
@@ -386,13 +400,21 @@ export function KanbanBoardView({
             )}
           </div>
 
-          {/* Assignee Avatar */}
-          {issue.assignee ? (
+          {/* Assignee Avatar with Delegation Support */}
+          {activeDel ? (
+            <div
+              className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/70 px-1.5 py-0.5 rounded-full border border-indigo-300 dark:border-indigo-800 text-[9px] font-bold text-indigo-700 dark:text-indigo-300"
+              title={`Original Assignee: ${issue.assignee?.firstName || "Assignee"} ↳ Temporary Delegate: ${activeDel.delegateUser?.firstName || "Delegate"}`}
+            >
+              <span>{issue.assignee?.firstName?.[0] || "U"} ↳ {activeDel.delegateUser?.firstName?.[0] || "D"}</span>
+              <span className="text-[8px] bg-indigo-600 text-white px-1 rounded uppercase tracking-tighter">↗ Delegated</span>
+            </div>
+          ) : issue.assignee ? (
             <div
               className="w-5 h-5 rounded-full ring-1 ring-white dark:ring-slate-900 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[9px] flex items-center justify-center uppercase shadow-2xs"
-              title={"Assigned to " + issue.assignee.firstName + " " + (issue.assignee.lastName || "")}
+              title={"Assigned to " + (issue.assignee.firstName || "") + " " + (issue.assignee.lastName || "")}
             >
-              {issue.assignee.firstName[0]}
+              {issue.assignee.firstName?.[0] || "U"}
             </div>
           ) : (
             <div
@@ -408,19 +430,19 @@ export function KanbanBoardView({
   };
 
   return (
-    <div className="flex-1 flex flex-col p-6 space-y-4 max-w-full overflow-hidden">
+    <div className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 max-w-full overflow-hidden">
       {/* Kanban Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-2xs backdrop-blur-xs">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-2xs backdrop-blur-xs">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
             <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            Swimlanes:
+            <span className="hidden xs:inline">Swimlanes:</span>
           </span>
 
-          <div className="inline-flex p-0.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold">
+          <div className="inline-flex p-0.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold overflow-x-auto max-w-full no-scrollbar">
             <button
               onClick={() => setSwimlaneMode("none")}
-              className={"px-3 py-1 rounded-lg transition-all cursor-pointer " + (
+              className={"px-2.5 sm:px-3 py-1 rounded-lg transition-all cursor-pointer " + (
                 swimlaneMode === "none"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold border border-slate-300 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -431,81 +453,115 @@ export function KanbanBoardView({
 
             <button
               onClick={() => setSwimlaneMode("assignee")}
-              className={"px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer " + (
+              className={"px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer " + (
                 swimlaneMode === "assignee"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold border border-slate-300 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <UserCheck className="w-3.5 h-3.5" />
-              Assignee
+              <span>Assignee</span>
             </button>
 
             <button
               onClick={() => setSwimlaneMode("epic")}
-              className={"px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer " + (
+              className={"px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer " + (
                 swimlaneMode === "epic"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold border border-slate-300 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              Epic
+              <span>Epic</span>
             </button>
 
             <button
               onClick={() => setSwimlaneMode("priority")}
-              className={"px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer " + (
+              className={"px-2.5 sm:px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer " + (
                 swimlaneMode === "priority"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs font-bold border border-slate-300 dark:border-slate-700"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <ShieldAlert className="w-3.5 h-3.5" />
-              Priority
+              <span>Priority</span>
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {onOpenCreateModal && (
+        <div className="flex items-center gap-2 justify-end">
+          {userCanCreate && (
             <button
               type="button"
-              onClick={() => onOpenCreateModal()}
-              className="btn-primary px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
+              onClick={() => onSelectIssue("new")}
+              className="btn-primary px-3 sm:px-3.5 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Task</span>
             </button>
           )}
 
-          <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs">
-            Total: <span className="font-bold text-slate-900 dark:text-white">{issues.length}</span> issues
+          <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs shrink-0">
+            Total: <span className="font-bold text-slate-900 dark:text-white">{issues.length}</span>
           </div>
         </div>
       </div>
 
+      {/* Mobile Column Quick Navigation Switcher */}
+      <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0">
+        {statuses.map((s) => {
+          const colCount = issues.filter((i) => i.statusId === s.id).length;
+          return (
+            <button
+              key={s.id}
+              onClick={() => {
+                const el = document.getElementById(`kanban-col-${s.id}`);
+                if (el) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 shrink-0 shadow-2xs cursor-pointer active:scale-95 transition-all"
+            >
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color || "#3b82f6" }} />
+              <span className="truncate max-w-[90px]">{s.name}</span>
+              <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-mono text-slate-500">
+                {colCount}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Kanban Board Container */}
-      <div className="flex-1 overflow-x-auto pb-4">
+      <div className="flex-1 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth">
         {swimlaneMode === "none" ? (
           /* Standard Columns Layout */
-          <div className="flex gap-4 min-w-max h-[calc(100vh-250px)] items-stretch">
+          <div className="flex gap-3 sm:gap-4 min-w-max h-[calc(100vh-250px)] items-stretch">
             {statuses.map((status) => {
               const columnIssues = issues.filter((i) => i.statusId === status.id);
               const isOverWip = status.wipLimit && columnIssues.length > status.wipLimit;
-              const isAdding = addingToStatusId === status.id;
+              const isDragOver = dragOverColumnId === status.id;
 
               return (
                 <div
                   key={status.id}
-                  className={"w-80 shrink-0 rounded-2xl flex flex-col transition-colors border shadow-2xs " + (
-                    isOverWip
-                      ? "bg-rose-50/70 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/50"
-                      : "bg-slate-100/90 dark:bg-slate-900/60 border-slate-300 dark:border-slate-800"
+                  id={`kanban-col-${status.id}`}
+                  className={"w-[84vw] max-w-[340px] sm:w-80 shrink-0 snap-center rounded-2xl flex flex-col transition-colors border shadow-2xs " + (
+                    isDragOver
+                      ? "bg-blue-50/70 dark:bg-blue-950/20 border-blue-400 dark:border-blue-600 ring-2 ring-blue-300/50 dark:ring-blue-700/50"
+                      : isOverWip
+                        ? "bg-rose-50/70 dark:bg-rose-950/20 border-rose-300 dark:border-rose-900/50"
+                        : "bg-slate-100/90 dark:bg-slate-900/60 border-slate-300 dark:border-slate-800"
                   )}
                   onDragOver={(e) => e.preventDefault()}
+                  onDragEnter={(e) => { e.preventDefault(); setDragOverColumnId(status.id); }}
+                  onDragLeave={(e) => {
+                    // Only clear if leaving the column entirely (not entering a child)
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setDragOverColumnId(null);
+                    }
+                  }}
                   onDrop={(e) => {
                     e.preventDefault();
+                    setDragOverColumnId(null);
                     const issueId = e.dataTransfer.getData("text/plain");
                     if (issueId) onUpdateIssueStatus(issueId, status.id);
                   }}
@@ -532,192 +588,22 @@ export function KanbanBoardView({
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleStartQuickAdd(status.id)}
-                      className="p-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-300"
-                      title="Quick add task to this column"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    {userCanCreate && (
+                      <button
+                        onClick={() => handleStartQuickAdd(status.id)}
+                        className="p-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-300"
+                        title="Quick add task to this column"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Issues List */}
                   <div className="p-2.5 space-y-2.5 overflow-y-auto flex-1">
                     {columnIssues.map(renderIssueCard)}
 
-                    {/* Rich Inline Quick Task Creator Card */}
-                    {isAdding ? (
-                      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border-2 border-blue-500/80 dark:border-blue-500/80 shadow-lg space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
-                        {/* Type & Priority Header Bar */}
-                        <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-300 dark:border-slate-800">
-                          <div className="flex items-center gap-1.5">
-                            {/* Type Selector */}
-                            <select
-                              value={quickType}
-                              onChange={(e) => setQuickType(e.target.value)}
-                              aria-label="Issue type"
-                              className="text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:border-blue-400 transition-all"
-                            >
-                              {ISSUE_TYPES.map((t) => (
-                                <option key={t.value} value={t.value}>
-                                  {t.label}
-                                </option>
-                              ))}
-                            </select>
-
-                            {/* Priority Selector */}
-                            <select
-                              value={quickPriority}
-                              onChange={(e) => setQuickPriority(e.target.value)}
-                              aria-label="Issue priority"
-                              className="text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none cursor-pointer hover:border-blue-400 transition-all"
-                              style={{ color: getPriorityInfo(quickPriority).color }}
-                            >
-                              {priorityList.map((p) => (
-                                <option key={p.value} value={p.value} className="text-slate-900 dark:text-slate-100">
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Story Points Quick Chips */}
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 5, 8].map((pts) => (
-                              <button
-                                key={pts}
-                                type="button"
-                                onClick={() => setQuickPoints(quickPoints === pts ? null : pts)}
-                                className={"w-5 h-5 rounded text-[10px] font-mono font-bold transition-all " + (
-                                  quickPoints === pts
-                                    ? "bg-blue-600 text-white shadow-2xs scale-105"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                                )}
-                                title={pts + " Story Points"}
-                              >
-                                {pts}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Title Input / Textarea */}
-                        <div>
-                          <textarea
-                            value={quickTitle}
-                            onChange={(e) => setQuickTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleQuickAddSubmit(status.id);
-                              }
-                              if (e.key === "Escape") {
-                                handleCancelQuickAdd();
-                              }
-                            }}
-                            placeholder="What needs to be done? (Enter to create)..."
-                            autoFocus
-                            rows={2}
-                            className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/80 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 resize-none font-medium"
-                          />
-                        </div>
-
-                        {/* Secondary Assignee / Team / Due Date Selectors */}
-                        <div className="grid grid-cols-2 gap-1.5 text-xs">
-                          {/* Assignee Selector */}
-                          <select
-                            value={quickAssigneeId}
-                            onChange={(e) => setQuickAssigneeId(e.target.value)}
-                            aria-label="Assignee"
-                            className="text-[11px] px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium outline-none cursor-pointer truncate"
-                          >
-                            <option value="">👤 Unassigned</option>
-                            {members.map((m: any) => {
-                              const u = m.user || m;
-                              const name = (u.firstName || "" + " " + (u.lastName || "")).trim() || u.email || "Member";
-                              return (
-                                <option key={u.id} value={u.id}>
-                                  {"👤 " + name}
-                                </option>
-                              );
-                            })}
-                          </select>
-
-                          {/* Team Selector */}
-                          <select
-                            value={quickTeamId}
-                            onChange={(e) => setQuickTeamId(e.target.value)}
-                            aria-label="Team"
-                            className="text-[11px] px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium outline-none cursor-pointer truncate"
-                          >
-                            <option value="">👥 No Team</option>
-                            {teams.map((t: any) => (
-                              <option key={t.id} value={t.id}>
-                                {"👥 " + t.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Due Date row */}
-                        <div className="flex items-center justify-between gap-1.5 pt-0.5 text-[11px]">
-                          <div className="flex items-center gap-1 text-slate-400">
-                            <Calendar className="w-3 h-3" />
-                            <input
-                              type="date"
-                              value={quickDueDate}
-                              onChange={(e) => setQuickDueDate(e.target.value)}
-                              aria-label="Due date"
-                              className="text-[10px] font-medium bg-transparent text-slate-600 dark:text-slate-300 outline-none cursor-pointer"
-                            />
-                          </div>
-
-                          {onOpenCreateModal && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onOpenCreateModal(status.id, quickTitle);
-                                handleCancelQuickAdd();
-                              }}
-                              className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 font-medium cursor-pointer"
-                            >
-                              <span>More Details</span>
-                              <ExternalLink className="w-2.5 h-2.5" />
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Action Buttons Footer */}
-                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-300 dark:border-slate-800">
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            Enter ↵ to save
-                          </span>
-
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={handleCancelQuickAdd}
-                              className="px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!quickTitle.trim() || isSubmitting}
-                              onClick={() => handleQuickAddSubmit(status.id)}
-                              className="btn-primary px-3.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
-                            >
-                              {isSubmitting ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Check className="w-3 h-3" />
-                              )}
-                              <span>Add Task</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
+                    {userCanCreate && (
                       <button
                         onClick={() => handleStartQuickAdd(status.id)}
                         className="w-full py-2 text-xs font-semibold text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 bg-white/80 hover:bg-white dark:bg-slate-800/60 dark:hover:bg-slate-800 rounded-xl flex items-center justify-center gap-1.5 transition-all border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 cursor-pointer shadow-2xs"
@@ -792,18 +678,29 @@ export function KanbanBoardView({
 
                   {/* Swimlane Grid Content */}
                   {!isCollapsed && (
-                    <div className="p-3 overflow-x-auto">
-                      <div className="flex gap-4 min-w-max">
+                    <div className="p-2 sm:p-3 overflow-x-auto snap-x snap-mandatory scroll-smooth">
+                      <div className="flex gap-3 sm:gap-4 min-w-max">
                         {statuses.map((status) => {
                           const columnIssues = lane.issues.filter((i: any) => i.statusId === status.id);
 
                           return (
                             <div
                               key={status.id}
-                              className="w-72 shrink-0 bg-slate-100/90 dark:bg-slate-900/70 rounded-xl flex flex-col p-2.5 min-h-[160px] border border-slate-300 dark:border-slate-800 shadow-2xs"
+                              className={"w-[84vw] max-w-[320px] sm:w-72 shrink-0 snap-center rounded-xl flex flex-col p-2.5 min-h-[160px] border shadow-2xs transition-colors " + (
+                                dragOverColumnId === status.id
+                                  ? "bg-blue-50/70 dark:bg-blue-950/20 border-blue-400 dark:border-blue-600 ring-2 ring-blue-300/50 dark:ring-blue-700/50"
+                                  : "bg-slate-100/90 dark:bg-slate-900/70 border-slate-300 dark:border-slate-800"
+                              )}
                               onDragOver={(e) => e.preventDefault()}
+                              onDragEnter={(e) => { e.preventDefault(); setDragOverColumnId(status.id); }}
+                              onDragLeave={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                  setDragOverColumnId(null);
+                                }
+                              }}
                               onDrop={(e) => {
                                 e.preventDefault();
+                                setDragOverColumnId(null);
                                 const issueId = e.dataTransfer.getData("text/plain");
                                 if (issueId) onUpdateIssueStatus(issueId, status.id);
                               }}

@@ -128,13 +128,20 @@ export async function PATCH(req: Request) {
 
     // Rollover incomplete issues if completing a sprint
     if (status === "COMPLETED") {
-      const incompleteIssues = sprint.issues.filter((i) => i.status.category !== "DONE");
+      const incompleteIssues = sprint.issues.filter((i) => i.status?.category !== "DONE");
       if (incompleteIssues.length > 0) {
         await prisma.issue.updateMany({
           where: { id: { in: incompleteIssues.map((i) => i.id) } },
           data: { sprintId: rolloverToSprintId || null },
         });
       }
+    }
+
+    if (status && !["FUTURE", "ACTIVE", "COMPLETED"].includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid sprint status. Must be FUTURE, ACTIVE, or COMPLETED" },
+        { status: 400 }
+      );
     }
 
     const updateData: any = {};
@@ -213,26 +220,26 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    // Unlink all issues in this sprint back to Backlog (sprintId = null)
-    await prisma.issue.updateMany({
-      where: { sprintId },
-      data: { sprintId: null },
-    });
-
-    // Delete the sprint
-    await prisma.sprint.delete({
-      where: { id: sprintId },
-    });
+    // Unlink all issues in this sprint and delete sprint in atomic transaction
+    await prisma.$transaction([
+      prisma.issue.updateMany({
+        where: { sprintId },
+        data: { sprintId: null },
+      }),
+      prisma.sprint.delete({
+        where: { id: sprintId },
+      }),
+    ]);
 
     // REAL-TIME DATA SYNCHRONIZATION:
     try {
       const { syncEngine } = await import("@/lib/sync-engine");
       syncEngine.publishProjectEvent({
         projectId: sprint.projectId,
-        eventType: "SPRINT_UPDATED",
+        eventType: "SPRINT_DELETED",
         entityId: sprintId,
         entityType: "SPRINT",
-        data: { deletedSprintId: sprintId },
+        data: { deletedSprintId: sprintId, id: sprintId },
         actor: {
           id: user.id,
           email: user.email,

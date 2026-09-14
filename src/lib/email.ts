@@ -22,7 +22,7 @@ export const DEFAULT_TEMPLATES = [
     bodyHtml: `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
   <div style="text-align: center; margin-bottom: 24px;">
-    <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">Z</div>
+    <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">E</div>
     <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin-top: 12px; margin-bottom: 4px;">Welcome to Eitekh WorkOS</h1>
     <p style="color: #94a3b8; font-size: 13px; margin: 0;">Enterprise Project Management & Issue Tracking</p>
   </div>
@@ -53,7 +53,7 @@ export const DEFAULT_TEMPLATES = [
     bodyHtml: `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
   <div style="display: flex; align-items: center; margin-bottom: 20px;">
-    <div style="display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 16px; border-radius: 8px; margin-right: 12px;">Z</div>
+    <div style="display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 16px; border-radius: 8px; margin-right: 12px;">E</div>
     <span style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase;">Eitekh WorkOS &bull; Task Assignment</span>
   </div>
 

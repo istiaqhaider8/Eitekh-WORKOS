@@ -4,6 +4,47 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
 
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const subtask = await prisma.subtask.findUnique({
+      where: { id },
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          },
+        },
+        parentIssue: {
+          select: {
+            id: true,
+            issueKey: true,
+            projectId: true,
+          },
+        },
+      },
+    });
+
+    if (!subtask) {
+      return NextResponse.json({ error: "Subtask not found" }, { status: 404 });
+    }
+
+    await assertProjectAccess(subtask.parentIssue.projectId);
+
+    return NextResponse.json({ subtask });
+  } catch (error: any) {
+    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+  }
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;

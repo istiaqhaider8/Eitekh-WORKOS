@@ -18,6 +18,7 @@ import {
   Check,
   ArrowLeft,
   RefreshCw,
+  Menu,
 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/common/Breadcrumb";
@@ -28,9 +29,11 @@ interface AppHeaderProps {
   currentOrg?: any;
   workspaces?: any[];
   breadcrumbs?: { label: string; href?: string }[];
+  canCreateIssue?: boolean;
   onCreateIssueClick?: () => void;
   onOpenCommandPalette?: () => void;
   onBack?: () => void;
+  onToggleMobileSidebar?: () => void;
 }
 
 export function AppHeader({
@@ -38,9 +41,11 @@ export function AppHeader({
   currentOrg,
   workspaces,
   breadcrumbs,
+  canCreateIssue,
   onCreateIssueClick,
   onOpenCommandPalette,
   onBack,
+  onToggleMobileSidebar,
 }: AppHeaderProps) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -172,9 +177,12 @@ export function AppHeader({
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+    window.location.href = "/login";
   };
 
   const handleDefaultBack = () => {
@@ -199,51 +207,63 @@ export function AppHeader({
   };
 
   return (
-    <header className="h-13 md:h-14 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/95 backdrop-blur-md flex items-center justify-between px-3 md:px-5 sticky top-0 z-30 transition-colors shadow-2xs">
-      {/* Left: Brand & Context */}
-      <div className="flex items-center gap-3 md:gap-4">
+    <header className="h-13 md:h-14 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/95 backdrop-blur-md flex items-center justify-between px-2.5 sm:px-4 md:px-5 sticky top-0 z-30 transition-colors shadow-2xs">
+      {/* Left: Hamburger & Brand & Context */}
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
+        {onToggleMobileSidebar && (
+          <button
+            type="button"
+            onClick={onToggleMobileSidebar}
+            aria-label="Toggle navigation menu"
+            className="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
         <Link
           href="/"
-          className="flex items-center gap-2.5 md:gap-3 py-1 px-2 -ml-1 rounded-xl font-bold text-base md:text-lg tracking-tight text-slate-900 dark:text-white hover:bg-slate-100/80 dark:hover:bg-slate-900/80 transition-all group"
+          className="flex items-center gap-2 md:gap-2.5 py-1 px-1.5 -ml-1 rounded-xl font-bold text-sm sm:text-base md:text-lg tracking-tight text-slate-900 dark:text-white hover:bg-slate-100/80 dark:hover:bg-slate-900/80 transition-all group shrink-0"
         >
           <img
             src="/leaf-logo.png"
             alt="Eitekh"
-            className="w-7 h-7 md:w-8 md:h-8 object-contain group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs"
+            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 object-contain group-hover:scale-105 transition-transform shrink-0 drop-shadow-xs"
           />
-          <span className="font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2 leading-none">
+          <span className="font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5 leading-none">
             <span>Eitekh</span>
-            <span className="text-[10px] font-bold tracking-wider uppercase text-blue-600 dark:text-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/50 px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-800/60 shadow-2xs">
+            <span className="hidden xs:inline-block text-[9px] sm:text-[10px] font-bold tracking-wider uppercase text-blue-600 dark:text-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/70 dark:to-indigo-950/50 px-1.5 sm:px-2 py-0.5 rounded-full border border-blue-300 dark:border-blue-800/60 shadow-2xs">
               WorkOS
             </span>
           </span>
         </Link>
 
         {breadcrumbs ? (
-          <div className="hidden sm:flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-800 pl-3.5 md:pl-4">
+          <div className="hidden sm:flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-800 pl-2.5 md:pl-4">
             <Breadcrumb items={breadcrumbs} />
           </div>
         ) : currentOrg && (
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 border-l border-slate-300 dark:border-slate-800 pl-3.5 md:pl-4">
-            <span className="font-semibold text-slate-800 dark:text-slate-200">{currentOrg.name}</span>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 border-l border-slate-300 dark:border-slate-800 pl-2.5 md:pl-4">
+            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[100px] md:max-w-[160px]">{currentOrg.name}</span>
             <span className="text-slate-400 dark:text-slate-600">/</span>
-            <span className="text-slate-700 dark:text-slate-400">{workspaces?.[0]?.name || "Main"}</span>
+            <span className="text-slate-700 dark:text-slate-400 truncate max-w-[80px] md:max-w-[120px]">{workspaces?.[0]?.name || "Main"}</span>
           </div>
         )}
       </div>
 
       {/* Center: Global Search & Hotkey Trigger */}
-      <div className="flex-1 max-w-md mx-2 md:mx-4">
+      <div className="flex-1 max-w-md mx-1.5 sm:mx-3 md:mx-4">
         <button
           onClick={onOpenCommandPalette}
           aria-label="Search"
-          className="w-full flex items-center justify-center md:justify-between px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-indigo-400 rounded-xl transition-all duration-150 cursor-pointer shadow-2xs group"
+          className="w-full flex items-center justify-between px-2.5 sm:px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-indigo-400 rounded-xl transition-all duration-150 cursor-pointer shadow-2xs group"
         >
-          <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-            <span className="hidden md:inline group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors font-medium">Search issues, projects, or commands...</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+            <span className="hidden md:inline group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors font-medium truncate">Search issues, projects, or commands...</span>
+            <span className="md:hidden text-[11px] text-slate-400 truncate">Search...</span>
           </div>
-          <kbd className="hidden md:inline px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md shadow-2xs">
+          <kbd className="hidden lg:inline px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md shadow-2xs shrink-0">
             Ctrl + K
           </kbd>
         </button>
@@ -251,15 +271,17 @@ export function AppHeader({
 
       {/* Right: Actions, Notifications, Profile */}
       <div className="flex items-center gap-1.5 md:gap-2.5">
-        <button
-          onClick={onCreateIssueClick}
-          aria-label="Create issue"
-          className="btn-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Create</span>
-          <kbd className="hidden sm:inline px-1 py-0.2 text-[9px] bg-white/20 rounded font-mono">C</kbd>
-        </button>
+        {(canCreateIssue !== false && (currentUser?.isSuperAdmin || !Array.isArray(currentUser?.capabilities) || currentUser.capabilities.includes("issues:create"))) && (
+          <button
+            onClick={onCreateIssueClick}
+            aria-label="Create issue"
+            className="btn-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Create</span>
+            <kbd className="hidden sm:inline px-1 py-0.2 text-[9px] bg-white/20 rounded font-mono">C</kbd>
+          </button>
+        )}
 
         <ThemeToggle />
 
@@ -278,7 +300,7 @@ export function AppHeader({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[32rem]">
+            <div className="absolute right-[-2.5rem] sm:right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[32rem]">
               <div className="flex items-center justify-between pb-2 border-b border-slate-300 dark:border-slate-800">
                 <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
                   Notifications
@@ -444,6 +466,22 @@ export function AppHeader({
                 </span>
               </div>
               <div className="py-1.5 space-y-0.5">
+                <Link
+                  href="/settings/profile"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Profile, Leaves & Delegation</span>
+                </Link>
+                <Link
+                  href="/settings/security"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  <Settings className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Security & Sessions</span>
+                </Link>
                 {currentUser?.isSuperAdmin && (
                   <Link
                     href="/super-admin?tab=cache"
@@ -454,14 +492,6 @@ export function AppHeader({
                     <span>System Refresh & Cache</span>
                   </Link>
                 )}
-                <Link
-                  href="/settings/security"
-                  onClick={() => setShowUserMenu(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                >
-                  <Settings className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Security & Sessions</span>
-                </Link>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer"

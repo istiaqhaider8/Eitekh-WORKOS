@@ -2,6 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get("workspaceId");
+
+    const where: any = {};
+    if (workspaceId) {
+      where.workspaceId = workspaceId;
+    }
+
+    if (!user.isSuperAdmin) {
+      where.OR = [
+        { ownerId: user.id },
+        { members: { some: { userId: user.id } } }
+      ];
+    }
+
+    const projects = await prisma.project.findMany({
+      where,
+      include: {
+        workspace: {
+          select: { id: true, name: true, slug: true, orgId: true }
+        },
+        _count: {
+          select: { issues: true, members: true }
+        }
+      },
+      orderBy: { updatedAt: "desc" }
+    });
+
+    return NextResponse.json(projects);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -17,8 +56,10 @@ export async function POST(req: NextRequest) {
     
     if (!user.isSuperAdmin && (!wsMember || wsMember.role === "VIEWER")) {
       const ws = await prisma.workspace.findUnique({ where: { id: workspaceId } });
+      if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+
       const orgMember = await prisma.organizationMember.findUnique({
-        where: { orgId_userId: { orgId: ws!.orgId, userId: user.id } }
+        where: { orgId_userId: { orgId: ws.orgId, userId: user.id } }
       });
       if (!orgMember || (orgMember.role !== "OWNER" && orgMember.role !== "ADMIN")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -52,7 +52,7 @@ export function SecurityThreatOperationsView() {
 
   useEffect(() => {
     loadThreats();
-    const interval = setInterval(loadThreats, 10000);
+    const interval = setInterval(loadThreats, 30000);
     return () => clearInterval(interval);
   }, [loadThreats]);
 

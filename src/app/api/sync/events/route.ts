@@ -17,25 +17,29 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const projectId = searchParams.get('projectId');
+    let projectId = searchParams.get('projectId');
 
     if (!projectId) {
-      return new Response(JSON.stringify({ error: 'Missing projectId parameter' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // STRICT PROJECT-BASED ACCESS CONTROL (PBAC):
-    // Authenticated user MUST be assigned to this project or be a Superadmin.
-    // Cross-project subscriptions are strictly rejected with 403.
-    try {
-      await assertProjectAccess(projectId);
-    } catch (err: any) {
-      return new Response(JSON.stringify({ error: err.message || 'Forbidden: Access denied to project real-time stream' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (user.isSuperAdmin) {
+        projectId = 'GLOBAL_MONITOR';
+      } else {
+        return new Response(JSON.stringify({ error: 'Missing projectId parameter' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // STRICT PROJECT-BASED ACCESS CONTROL (PBAC):
+      // Authenticated user MUST be assigned to this project or be a Superadmin.
+      // Cross-project subscriptions are strictly rejected with 403.
+      try {
+        await assertProjectAccess(projectId);
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message || 'Forbidden: Access denied to project real-time stream' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -45,6 +49,13 @@ export async function GET(req: NextRequest) {
     const encoder = new TextEncoder();
     let isRegistered = false;
 
+    const cleanup = () => {
+      if (isRegistered) {
+        isRegistered = false;
+        syncEngine.unregisterClient(clientId);
+      }
+    };
+
     const stream = new ReadableStream({
       start(controller) {
         const client: SyncClient = {
@@ -52,7 +63,7 @@ export async function GET(req: NextRequest) {
           userId: user.id,
           userEmail: user.email,
           userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-          projectId,
+          projectId: projectId!,
           isSuperAdmin: !!user.isSuperAdmin,
           controller,
           connectedAt: new Date(),
@@ -83,17 +94,11 @@ export async function GET(req: NextRequest) {
         controller.enqueue(encoder.encode(initMessage));
       },
       cancel() {
-        if (isRegistered) {
-          syncEngine.unregisterClient(clientId);
-        }
+        cleanup();
       },
     });
 
-    req.signal.addEventListener('abort', () => {
-      if (isRegistered) {
-        syncEngine.unregisterClient(clientId);
-      }
-    });
+    req.signal.addEventListener('abort', cleanup, { once: true });
 
     return new Response(stream, {
       headers: {

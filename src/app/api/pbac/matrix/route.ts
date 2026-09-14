@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine, PBAC_PERMISSION_CATEGORIES } from '@/lib/pbac-engine';
 
 export async function GET(req: NextRequest) {
@@ -17,6 +18,9 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limitParam = searchParams.get('limit') || '25';
     const limit = limitParam === 'all' ? 'all' : parseInt(limitParam, 10);
+
+    // Strict Tenant Isolation Check
+    await assertOrgAccess(orgId);
 
     const [matrixResult, roles] = await Promise.all([
       pbacEngine.getUsersWithRoles(orgId, {
@@ -37,6 +41,6 @@ export async function GET(req: NextRequest) {
       categories: PBAC_PERMISSION_CATEGORIES,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch access matrix' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to fetch access matrix' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
   }
 }

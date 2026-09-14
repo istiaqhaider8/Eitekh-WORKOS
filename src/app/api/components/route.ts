@@ -47,14 +47,31 @@ export async function POST(req: Request) {
     const component = await prisma.component.create({
       data: {
         projectId,
-        name,
-        description,
+        name: name.trim(),
+        description: description || null,
         ownerId,
       },
     });
 
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      await syncEngine.publishProjectEvent(projectId, {
+        eventId: `evt_comp_created_${Date.now()}`,
+        eventType: "COMPONENT_CREATED",
+        projectId,
+        entityId: component.id,
+        entityType: "COMPONENT",
+        data: component,
+        actor: { id: user.id, email: user.email, name: `${user.firstName || ""} ${user.lastName || ""}`.trim() },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (syncErr) {
+      console.error("Sync dispatch failed:", syncErr);
+    }
+
     return NextResponse.json(component, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    const status = error.message?.includes("Forbidden") || error.message?.includes("Unauthorized") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
   }
 }

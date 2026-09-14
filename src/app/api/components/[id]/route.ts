@@ -52,15 +52,32 @@ export async function PATCH(
     const updatedComponent = await prisma.component.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name }),
+        ...(name !== undefined && { name: name.trim() }),
         ...(description !== undefined && { description }),
         ...(ownerId !== undefined && { ownerId }),
       },
     });
 
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      await syncEngine.publishProjectEvent(component.projectId, {
+        eventId: `evt_comp_updated_${Date.now()}`,
+        eventType: "COMPONENT_UPDATED",
+        projectId: component.projectId,
+        entityId: updatedComponent.id,
+        entityType: "COMPONENT",
+        data: updatedComponent,
+        actor: { id: user.id, email: user.email, name: `${user.firstName || ""} ${user.lastName || ""}`.trim() },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (syncErr) {
+      console.error("Sync dispatch failed:", syncErr);
+    }
+
     return NextResponse.json(updatedComponent);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    const status = error.message?.includes("Forbidden") || error.message?.includes("Unauthorized") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
   }
 }
 
@@ -87,8 +104,25 @@ export async function DELETE(
 
     await prisma.component.delete({ where: { id } });
 
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      await syncEngine.publishProjectEvent(component.projectId, {
+        eventId: `evt_comp_deleted_${Date.now()}`,
+        eventType: "COMPONENT_DELETED",
+        projectId: component.projectId,
+        entityId: id,
+        entityType: "COMPONENT",
+        data: { id },
+        actor: { id: user.id, email: user.email, name: `${user.firstName || ""} ${user.lastName || ""}`.trim() },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (syncErr) {
+      console.error("Sync dispatch failed:", syncErr);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    const status = error.message?.includes("Forbidden") || error.message?.includes("Unauthorized") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
   }
 }

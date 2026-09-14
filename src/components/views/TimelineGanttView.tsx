@@ -19,14 +19,21 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
+import { doesLeaveOverlap, formatLeaveRange } from "@/lib/leave-engine";
+import { isDelegationActive } from "@/lib/delegation-engine";
+
 
 interface TimelineGanttViewProps {
   issues: any[];
   statuses?: any[];
   priorities?: any[];
+  leaves?: any[];
+  delegations?: any[];
+  projectId?: string;
   onSelectIssue: (issue: any) => void;
   onRefresh?: () => void;
 }
+
 
 interface DragState {
   issueId: string;
@@ -80,10 +87,30 @@ export function TimelineGanttView({
   issues,
   statuses = [],
   priorities = [],
+  leaves: propsLeaves = [],
+  delegations = [],
+  projectId,
   onSelectIssue,
   onRefresh,
 }: TimelineGanttViewProps) {
+  const [fetchedLeaves, setFetchedLeaves] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (propsLeaves.length > 0) return;
+    if (projectId) {
+      fetch(`/api/projects/${projectId}/availability`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.leaves)) setFetchedLeaves(data.leaves);
+        })
+        .catch(() => {});
+    }
+  }, [projectId, propsLeaves]);
+
+  const activeLeaves = useMemo(() => (propsLeaves.length > 0 ? propsLeaves : fetchedLeaves), [propsLeaves, fetchedLeaves]);
+
   const [timelineScale, setTimelineScale] = useState<TimelineScale>("day");
+
   const [isHighlightingToday, setIsHighlightingToday] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
@@ -177,15 +204,21 @@ export function TimelineGanttView({
         end = new Date(start.getTime() + (durationDays - 1) * MS_PER_DAY);
       }
 
+      const memberLeaves = (issue.assigneeId || issue.assignee?.id) ? activeLeaves.filter((l: any) => l.userId === (issue.assigneeId || issue.assignee?.id)) : [];
+      const leaveCheck = memberLeaves.length > 0 ? doesLeaveOverlap(memberLeaves, start, end) : { hasOverlap: false, warningText: undefined };
+
       return {
         ...issue,
         resolvedStart: start,
         resolvedEnd: end,
         durationDays: Math.max(1, getDaysBetween(end, start) + 1),
         isAutoScheduled,
+        hasLeaveOverlap: leaveCheck.hasOverlap,
+        leaveWarningText: leaveCheck.warningText,
       };
     });
-  }, [filteredIssues, today, dateOverrides]);
+  }, [filteredIssues, today, dateOverrides, activeLeaves]);
+
 
   // 3. Dynamic Date Range & Grid Generation for Day, Month, and Year Views
   const gridInfo = useMemo(() => {
@@ -896,6 +929,22 @@ export function TimelineGanttView({
                           <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs shrink-0">
                             {issue.issueKey}
                           </span>
+                          {(() => {
+                            const activeDel = (delegations || []).find(
+                              (d: any) => d.issueId === issue.id && isDelegationActive(d) && d.status === "ACTIVE"
+                            );
+                            if (activeDel) {
+                              return (
+                                <span
+                                  className="text-[9px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950 px-1 rounded border border-indigo-200 dark:border-indigo-800 shrink-0"
+                                  title={`Delegated to ${activeDel.delegateUser?.firstName || "Delegate"}`}
+                                >
+                                  ↗ Delegated
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           <span
                             className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                             title={issue.title}
@@ -909,17 +958,17 @@ export function TimelineGanttView({
                             <span
                               className="px-1.5 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1"
                               style={
-                                issue.status.color
+                                issue.status?.color
                                   ? {
-                                      backgroundColor: `${issue.status.color}15`,
-                                      borderColor: `${issue.status.color}40`,
-                                      color: issue.status.color,
+                                      backgroundColor: `${issue.status?.color}15`,
+                                      borderColor: `${issue.status?.color}40`,
+                                      color: issue.status?.color,
                                     }
                                   : undefined
                               }
                             >
                               {isDone && <Check className="w-2.5 h-2.5" />}
-                              <span>{issue.status.name}</span>
+                              <span>{issue.status?.name || 'Status'}</span>
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-400 font-mono">

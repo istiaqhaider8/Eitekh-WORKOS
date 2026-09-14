@@ -201,7 +201,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         loadPbacData(true);
       }
-    }, 4000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [autoSync, selectedOrgId, loadPbacData]);

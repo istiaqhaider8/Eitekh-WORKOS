@@ -34,6 +34,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         include: {
           status: true,
           assignee: true,
+          epic: true,
+          sprint: true,
+          component: true,
+          subtasks: true,
           labels: { include: { label: true } },
           team: { select: { id: true, name: true } },
           _count: { select: { subtasks: true, comments: true } },

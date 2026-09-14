@@ -47,7 +47,9 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
+import { isUserOnLeave, formatLeaveRange } from '@/lib/leave-engine';
 import { AnalyticsDrillDownModal } from '@/components/analytics/AnalyticsDrillDownModal';
+
 import { ReportViewModal } from '@/components/analytics/ReportViewModal';
 
 interface CalendarViewProps {
@@ -58,6 +60,8 @@ interface CalendarViewProps {
   teams?: any[];
   sprints?: any[];
   projects?: any[];
+  leaves?: any[];
+  delegations?: any[];
   projectId?: string;
   projectName?: string;
   currentUser?: any;
@@ -65,6 +69,7 @@ interface CalendarViewProps {
   onSelectIssue: (issue: any) => void;
   onRefresh?: () => void;
 }
+
 
 // Timezone-safe local date parser to avoid UTC shifting
 function parseLocalDate(dateStr: string | Date | null | undefined): Date | null {
@@ -158,6 +163,8 @@ export function CalendarView({
   teams = [],
   sprints = [],
   projects = [],
+  leaves: propsLeaves = [],
+  delegations = [],
   projectId = 'default',
   projectName = 'Current Project',
   currentUser,
@@ -168,9 +175,26 @@ export function CalendarView({
   // Local state for optimistic UI updates
   const [localIssues, setLocalIssues] = useState<any[]>(issues);
 
+  const [fetchedLeaves, setFetchedLeaves] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (propsLeaves.length > 0) return;
+    if (projectId && projectId !== 'default') {
+      fetch(`/api/projects/${projectId}/availability`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.leaves)) setFetchedLeaves(data.leaves);
+        })
+        .catch(() => {});
+    }
+  }, [projectId, propsLeaves]);
+
+  const activeLeaves = useMemo(() => (propsLeaves.length > 0 ? propsLeaves : fetchedLeaves), [propsLeaves, fetchedLeaves]);
+
   useEffect(() => {
     setLocalIssues(issues);
   }, [issues]);
+
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'workweek' | 'day'>('month');
@@ -553,9 +577,10 @@ export function CalendarView({
   // --- Schedule Conflict Detection Engine ---
   const scheduleConflicts = useMemo(() => {
     const conflicts: {
-      type: 'OVERLOAD' | 'DAY_BOTTLENECK' | 'SPRINT_HORIZON' | 'DEPENDENCY' | 'WEEKEND' | 'CRITICAL_NO_DATE';
+      type: 'OVERLOAD' | 'DAY_BOTTLENECK' | 'SPRINT_HORIZON' | 'DEPENDENCY' | 'WEEKEND' | 'CRITICAL_NO_DATE' | 'ON_LEAVE';
       severity: 'HIGH' | 'MEDIUM' | 'LOW';
       title: string;
+
       description: string;
       issue?: any;
       dateStr?: string;
@@ -663,8 +688,30 @@ export function CalendarView({
       }
     });
 
+    // 6. Leave Overlap Conflicts
+    scheduledIssues.forEach((i) => {
+      if (i.assigneeId && activeLeaves.length > 0) {
+        const memberLeaves = activeLeaves.filter((l: any) => l.userId === i.assigneeId);
+        const due = parseLocalDate(i.dueDate);
+        if (due && memberLeaves.length > 0) {
+          const leaveRes = isUserOnLeave(memberLeaves, due);
+          if (leaveRes.onLeave && leaveRes.leave) {
+            conflicts.push({
+              type: 'ON_LEAVE',
+              severity: 'HIGH',
+              title: `Assignee On Leave for ${i.issueKey}`,
+              description: `${i.assignee?.firstName || 'Assignee'} is on leave (${formatLeaveRange(leaveRes.leave.startDate, leaveRes.leave.endDate)}) on due date ${formatDateIso(due)}.`,
+              issue: i,
+              dateStr: formatDateIso(due),
+            });
+          }
+        }
+      }
+    });
+
     return conflicts;
-  }, [scheduledIssues, unscheduledIssues, activeSprint, isDoneStatus]);
+  }, [scheduledIssues, unscheduledIssues, activeSprint, isDoneStatus, activeLeaves]);
+
 
   // Multi-select helpers
   const handleToggleSelectIssue = (issueId: string) => {
@@ -2029,7 +2076,8 @@ export function CalendarView({
               <div className="grid grid-cols-7 border-b border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase py-2 text-center sticky top-0 z-10 shrink-0 select-none">
                 {WEEKDAY_NAMES_FULL.map((day) => (
                   <div key={day} className="truncate">
-                    {day}
+                    <span className="hidden sm:inline">{day}</span>
+                    <span className="sm:hidden">{day[0]}</span>
                   </div>
                 ))}
               </div>
@@ -2037,7 +2085,7 @@ export function CalendarView({
               {/* Scrollable Week Rows Container */}
               <div className="flex-1 flex flex-col min-h-0 overflow-y-auto divide-y divide-slate-300 dark:divide-slate-800/80 bg-slate-50 dark:bg-slate-950">
                 {monthWeeks.map((week, weekIdx) => (
-                  <div key={weekIdx} className="grid grid-cols-7 flex-1 min-h-[140px] shrink-0">
+                  <div key={weekIdx} className="grid grid-cols-7 flex-1 min-h-[100px] sm:min-h-[140px] shrink-0">
                     {week.map((cell) => renderDayCell(cell))}
                   </div>
                 ))}
@@ -2054,7 +2102,8 @@ export function CalendarView({
               >
                 {(viewMode === 'workweek' ? WEEKDAY_NAMES_WORK : WEEKDAY_NAMES_FULL).map((day) => (
                   <div key={day} className="truncate">
-                    {day}
+                    <span className="hidden sm:inline">{day}</span>
+                    <span className="sm:hidden">{day[0]}</span>
                   </div>
                 ))}
               </div>

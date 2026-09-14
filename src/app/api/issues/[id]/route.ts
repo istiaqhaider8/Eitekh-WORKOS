@@ -75,6 +75,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             uploader: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, email: true } },
           },
         },
+        delegations: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            originalAssignee: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+            delegateUser: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+            history: {
+              orderBy: { timestamp: "desc" },
+              include: {
+                actor: { select: { id: true, firstName: true, lastName: true, email: true } },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -202,7 +215,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (body.statusId !== undefined && body.statusId !== currentIssue.statusId) {
-      const newStatus = await prisma.workflowStatus.findUnique({ where: { id: body.statusId } });
+      const newStatus = await prisma.workflowStatus.findUnique({
+        where: { id: body.statusId },
+        include: { workflow: true },
+      });
+      if (!newStatus) {
+        return NextResponse.json({ error: "Workflow status not found" }, { status: 400 });
+      }
+      if (newStatus.workflow?.projectId && newStatus.workflow.projectId !== currentIssue.projectId) {
+        return NextResponse.json({ error: "Status does not belong to this project's workflow" }, { status: 400 });
+      }
       
       const workflow = await prisma.workflow.findFirst({
         where: { projectId: currentIssue.projectId, statuses: { some: { id: currentIssue.statusId } } },
@@ -358,6 +380,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.sprintId = body.sprintId || null;
     }
 
+    if (body.epicId !== undefined && body.epicId !== currentIssue.epicId) {
+      let newEpicName = "None";
+      if (body.epicId) {
+        const newEpic = await prisma.epic.findUnique({ where: { id: body.epicId } });
+        if (newEpic) newEpicName = newEpic.name;
+      }
+      activityLogs.push({
+        issueId: id,
+        actorId: user.id,
+        actionType: "UPDATED_EPIC",
+        fieldChanged: "epic",
+        oldValue: currentIssue.epic?.name || "None",
+        newValue: newEpicName,
+      });
+      updateData.epicId = body.epicId || null;
+    }
+
     if (body.estimatePoints !== undefined && body.estimatePoints !== currentIssue.estimatePoints) {
       activityLogs.push({
         issueId: id,
@@ -400,15 +439,52 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.position = Number(body.position);
     }
 
+    if (body.parentIssueId !== undefined) {
+      updateData.parentIssueId = body.parentIssueId || null;
+    }
+
+    if (body.componentId !== undefined) {
+      updateData.componentId = body.componentId || null;
+    }
+
+    if (body.estimateHours !== undefined) {
+      updateData.estimateHours = body.estimateHours !== null ? Number(body.estimateHours) : null;
+    }
+
+    if (body.remainingHours !== undefined) {
+      updateData.remainingHours = body.remainingHours !== null ? Number(body.remainingHours) : null;
+    }
+
+    if (body.timeSpentHours !== undefined) {
+      updateData.timeSpentHours = body.timeSpentHours !== null ? Number(body.timeSpentHours) : 0;
+    }
+
+    if (body.securityLevel !== undefined) {
+      updateData.securityLevel = body.securityLevel || null;
+    }
+
     const updatedIssue = await prisma.issue.update({
       where: { id },
       data: updateData,
       include: {
         status: true,
-        assignee: true,
+        assignee: {
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true, email: true },
+        },
+        reporter: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         team: true,
         sprint: true,
         epic: true,
+        component: true,
+        labels: {
+          include: { label: true },
+        },
+        subtasks: true,
+        _count: {
+          select: { comments: true, attachments: true, subtasks: true },
+        },
       },
     });
 

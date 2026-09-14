@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 
 export async function GET(req: NextRequest) {
@@ -13,9 +14,12 @@ export async function GET(req: NextRequest) {
     const action = searchParams.get('action') || 'all';
     const limit = parseInt(searchParams.get('limit') || '100', 10);
 
+    // Strict Tenant Isolation & Audit Permission Check
+    await assertOrgAccess(orgId);
+
     const logs = await pbacEngine.getAuditLedger(orgId, { search, action, limit });
     return NextResponse.json({ logs, total: logs.length });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch audit logs' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to fetch audit logs' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
   }
 }

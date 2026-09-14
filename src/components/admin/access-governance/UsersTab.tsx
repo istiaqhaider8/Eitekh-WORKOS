@@ -66,11 +66,77 @@ export function UsersTab({
   const [simulating, setSimulating] = useState(false);
   const [applyingBulk, setApplyingBulk] = useState(false);
 
-  // Single User Access Profile Drawer
+  // Single User Access Profile Drawer & Inline Role Picker
   const [selectedUserProfile, setSelectedUserProfile] = useState<any>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [assigningSingleRole, setAssigningSingleRole] = useState(false);
   const [singleRoleToAdd, setSingleRoleToAdd] = useState('');
+  const [inlineDropdownUserId, setInlineDropdownUserId] = useState<string | null>(null);
+
+  // Local Roles Fetching Fallback (Ensures roles are always available in dropdowns)
+  const [allRoles, setAllRoles] = useState<any[]>(roles && roles.length > 0 ? roles : []);
+
+  const loadAllRoles = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/pbac/roles?orgId=${orgId}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.roles) && json.roles.length > 0) {
+          setAllRoles(json.roles);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load roles in UsersTab', e);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    loadAllRoles();
+  }, [loadAllRoles]);
+
+  useEffect(() => {
+    if (roles && roles.length > 0) {
+      setAllRoles(roles);
+    }
+  }, [roles]);
+
+  const activeRoles = allRoles && allRoles.length > 0 ? allRoles : (roles || []);
+
+  // Quick Assign Role Inline
+  const handleAssignRoleInline = async (userId: string, roleId: string) => {
+    try {
+      const res = await fetch(`/api/pbac/roles/${roleId}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId, userId }),
+      });
+      if (!res.ok) throw new Error('Failed to assign role');
+      const roleObj = activeRoles.find((r) => r.id === roleId);
+      showSuccess(`Assigned role '${roleObj?.name || 'Permission Role'}'`);
+      setInlineDropdownUserId(null);
+      loadUsers();
+      onRefresh();
+    } catch (e: any) {
+      showError(e.message || 'Failed to assign role');
+    }
+  };
+
+  // Quick Unassign Role Inline
+  const handleRemoveRoleInline = async (userId: string, roleId: string, roleName: string) => {
+    try {
+      const res = await fetch(`/api/pbac/roles/${roleId}/users`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId, userId }),
+      });
+      if (!res.ok) throw new Error('Failed to remove role');
+      showSuccess(`Unassigned role '${roleName}'`);
+      loadUsers();
+      onRefresh();
+    } catch (e: any) {
+      showError(e.message || 'Failed to remove role');
+    }
+  };
 
   // Load Users
   const loadUsers = useCallback(async () => {
@@ -330,7 +396,7 @@ export function UsersTab({
               className="bg-transparent text-slate-300 font-semibold outline-none cursor-pointer max-w-[140px]"
             >
               <option value="all" className="bg-slate-900">All Roles</option>
-              {roles.map((r) => (
+              {activeRoles.map((r) => (
                 <option key={r.id} value={r.id} className="bg-slate-900">
                   {r.name}
                 </option>
@@ -443,20 +509,74 @@ export function UsersTab({
                         </div>
                       </td>
 
-                      <td className="p-3">
-                        <div className="flex flex-wrap items-center gap-1.5 max-w-xs">
+                      <td className="p-3 relative">
+                        <div className="flex flex-wrap items-center gap-1.5 max-w-sm">
                           {u.assignedRoles && u.assignedRoles.length > 0 ? (
                             u.assignedRoles.map((r: any) => (
                               <span
                                 key={r.id}
-                                className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold rounded text-[10px]"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold rounded text-[10px] group"
                               >
                                 {r.name}
+                                <button
+                                  onClick={() => handleRemoveRoleInline(u.id, r.id, r.name)}
+                                  title={`Remove ${r.name}`}
+                                  className="text-indigo-400 hover:text-rose-400 ml-0.5 font-bold"
+                                >
+                                  ×
+                                </button>
                               </span>
                             ))
                           ) : (
                             <span className="text-slate-500 text-[11px] italic">No Roles Assigned</span>
                           )}
+
+                          {/* Quick Inline + Assign Role Button */}
+                          <div className="relative inline-block">
+                            <button
+                              onClick={() =>
+                                setInlineDropdownUserId(inlineDropdownUserId === u.id ? null : u.id)
+                              }
+                              className="px-2 py-0.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded text-[10px] font-bold flex items-center gap-1 transition-colors"
+                            >
+                              + Assign Role
+                            </button>
+
+                            {/* Inline Role Selector Dropdown */}
+                            {inlineDropdownUserId === u.id && (
+                              <div className="absolute left-0 top-full mt-1 z-40 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-2 min-w-[200px] space-y-1">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800">
+                                  Assign Permission Role
+                                </div>
+                                {(() => {
+                                  const unassigned = activeRoles.filter(
+                                    (r) => !u.assignedRoles?.some((ar: any) => ar.id === r.id || ar.name === r.name)
+                                  );
+                                  const list = unassigned.length > 0 ? unassigned : activeRoles;
+                                  return list.map((r) => (
+                                    <button
+                                      key={r.id}
+                                      onClick={() => handleAssignRoleInline(u.id, r.id)}
+                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-600/20 hover:text-indigo-200 text-slate-300 rounded text-xs flex items-center justify-between transition-colors"
+                                    >
+                                      <span className="font-semibold">{r.name}</span>
+                                      <span className="text-[10px] text-slate-500 font-mono">
+                                        +{r.permissions?.length || r.permissionCount || 0}
+                                      </span>
+                                    </button>
+                                  ));
+                                })()}
+                                <div className="pt-1 border-t border-slate-800 flex justify-end">
+                                  <button
+                                    onClick={() => setInlineDropdownUserId(null)}
+                                    className="text-[10px] text-slate-400 hover:text-slate-200 px-2 py-0.5"
+                                  >
+                                    Close
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -488,16 +608,18 @@ export function UsersTab({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenProfile(u)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-medium border border-slate-700"
+                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-xs flex items-center gap-1 border border-indigo-500/50"
                           >
-                            Access Profile
+                            <UserPlus className="w-3 h-3" />
+                            Assign Roles
                           </button>
                           <button
                             onClick={() => onInspectUser(u.id)}
                             title="Inspect Access Provenance"
-                            className="p-1 text-indigo-400 hover:text-indigo-300 hover:bg-slate-800 rounded"
+                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium border border-slate-700 flex items-center gap-1"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                            Inspect Provenance
                           </button>
                         </div>
                       </td>
@@ -589,9 +711,9 @@ export function UsersTab({
                 }}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-semibold"
               >
-                {roles.map((r) => (
+                {activeRoles.map((r) => (
                   <option key={r.id} value={r.id} className="bg-slate-900">
-                    {r.name} ({r.permissions?.length || 0} permissions)
+                    {r.name} ({r.permissions?.length || r.permissionCount || 0} permissions)
                   </option>
                 ))}
               </select>
@@ -732,15 +854,17 @@ export function UsersTab({
                     className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">+ Select Existing Role to Assign...</option>
-                    {roles
-                      .filter(
-                        (r) => !selectedUserProfile.assignedRoles?.some((ar: any) => ar.id === r.id)
-                      )
-                      .map((r) => (
+                    {(() => {
+                      const unassigned = activeRoles.filter(
+                        (r) => !selectedUserProfile.assignedRoles?.some((ar: any) => ar.id === r.id || ar.name === r.name)
+                      );
+                      const displayList = unassigned.length > 0 ? unassigned : activeRoles;
+                      return displayList.map((r: any) => (
                         <option key={r.id} value={r.id} className="bg-slate-900">
-                          {r.name} ({r.permissions?.length || 0} permissions)
+                          {r.name} ({r.permissions?.length || r.permissionCount || 0} permissions)
                         </option>
-                      ))}
+                      ));
+                    })()}
                   </select>
 
                   <button

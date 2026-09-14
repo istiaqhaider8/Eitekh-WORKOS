@@ -36,6 +36,14 @@ import {
   Mail,
   Send,
   ArrowLeft,
+  Kanban,
+  ListTodo,
+  Layers,
+  Clock,
+  BarChart3,
+  PieChart,
+  ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 
@@ -58,8 +66,38 @@ export function ProjectClient({
   const [viewHistory, setViewHistory] = useState<string[]>([]);
   const [issues, setIssues] = useState<any[]>(project.issues || []);
   const [sprints, setSprints] = useState<any[]>(project.sprints || []);
+  const [epics, setEpics] = useState<any[]>(project.epics || []);
   const [members, setMembers] = useState<any[]>(project.members || []);
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [delegations, setDelegations] = useState<any[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [createInitialStatusId, setCreateInitialStatusId] = useState<string | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const fetchAvailability = useCallback(async () => {
+    if (!project?.id) return;
+    try {
+      const res = await fetch(`/api/projects/${project.id}/availability`);
+      if (res.ok) {
+        const data = await res.json();
+        setLeaves(data.leaves || []);
+      }
+      const delRes = await fetch(`/api/projects/${project.id}/delegations`);
+      if (delRes.ok) {
+        const delData = await delRes.json();
+        setDelegations(delData.delegations || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch availability & delegations", e);
+    }
+  }, [project?.id]);
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [fetchAvailability]);
+
+
   const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
@@ -76,6 +114,12 @@ export function ProjectClient({
     Array.isArray(currentUser?.capabilities)
       ? currentUser.capabilities.includes("projects:edit")
       : isProjectAdminRole
+  );
+
+  const canCreateIssue = currentUser?.isSuperAdmin || (
+    Array.isArray(currentUser?.capabilities)
+      ? currentUser.capabilities.includes("issues:create")
+      : userRoleInProject !== "VIEWER"
   );
 
   const canAccessView = (viewId: string) => {
@@ -233,6 +277,7 @@ export function ProjectClient({
   // Member management state
   const [memberTab, setMemberTab] = useState<"EXISTING" | "INVITE">("EXISTING");
   const [orgMembers, setOrgMembers] = useState<any[]>([]);
+  const [pbacRoles, setPbacRoles] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedUserRole, setSelectedUserRole] = useState("PROJECT_MEMBER");
   const [memberLoading, setMemberLoading] = useState(false);
@@ -273,7 +318,7 @@ export function ProjectClient({
       if (lastKey === "g" && (now - lastKeyTime < 1000)) {
         if (key === "b") { e.preventDefault(); setActiveView("board"); lastKey = ""; return; }
         if (key === "l") { e.preventDefault(); setActiveView("list"); lastKey = ""; return; }
-        if (key === "s") { e.preventDefault(); setActiveView("backlog"); lastKey = ""; return; }
+        if (key === "s") { e.preventDefault(); setActiveView("scrum"); lastKey = ""; return; }
       }
 
       if (key === "g") {
@@ -285,7 +330,11 @@ export function ProjectClient({
 
       if (key === "c") {
         e.preventDefault();
-        setShowCreateIssueModal(true);
+        if (canCreateIssue) {
+          setSelectedIssueId("new");
+        } else {
+          showError("You do not have permission to create issues");
+        }
       }
       
       if (e.key === "/") {
@@ -300,7 +349,7 @@ export function ProjectClient({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [canCreateIssue]);
 
   const refreshPriorities = useCallback(async () => {
     if (!project?.id) return;
@@ -351,6 +400,11 @@ export function ProjectClient({
       if (sRes.ok) {
         const sData = await sRes.json();
         setSprints(sData.sprints || []);
+      }
+      const eRes = await fetch(`/api/epics?projectId=${project.id}`);
+      if (eRes.ok) {
+        const eData = await eRes.json();
+        setEpics(eData.epics || []);
       }
       refreshPriorities();
       refreshProjectAndStatuses();
@@ -428,25 +482,38 @@ export function ProjectClient({
           return [event.data, ...prev];
         });
       } else if (event.eventType === "ISSUE_UPDATED" && event.data) {
+        const targetId = event.data.id || event.data.issueId || event.entityId;
         setIssues((prev) =>
-          prev.map((i) => (i.id === event.data.id ? { ...i, ...event.data } : i))
+          prev.map((i) => (i.id === targetId ? { ...i, ...event.data } : i))
         );
-      } else if (event.eventType === "ISSUE_DELETED" && event.entityId) {
-        setIssues((prev) => prev.filter((i) => i.id !== event.entityId));
+      } else if (event.eventType === "ISSUE_DELETED" && (event.entityId || event.data?.id)) {
+        const deletedId = event.entityId || event.data?.id;
+        setIssues((prev) => prev.filter((i) => i.id !== deletedId));
       } else if (
         event.eventType === "BULK_ISSUES_UPDATED" ||
         event.eventType?.startsWith("SPRINT_") ||
-        event.eventType?.startsWith("WORKFLOW_")
+        event.eventType?.startsWith("WORKFLOW_") ||
+        event.eventType?.startsWith("EPIC_") ||
+        event.eventType?.startsWith("COMPONENT_") ||
+        event.eventType?.startsWith("COMMENT_") ||
+        event.eventType?.startsWith("SUBTASK_") ||
+        event.eventType?.startsWith("DEPENDENCY_")
       ) {
         refreshIssues();
+      } else if (event.eventType?.startsWith("LEAVE_")) {
+        fetchAvailability();
       }
     },
-    [project.id]
+    [project.id, refreshIssues, fetchAvailability]
   );
 
   const { status: syncStatus } = useRealtimeSync({
     projectId: project.id,
     onEvent: handleRealtimeEvent,
+    onReconnect: () => {
+      refreshIssues();
+      fetchAvailability();
+    },
   });
 
   const handleCreateIssueSubmit = async (e: React.FormEvent) => {
@@ -577,12 +644,28 @@ export function ProjectClient({
     }
   }, [currentOrg?.id]);
 
+  const fetchPbacRoles = useCallback(async () => {
+    if (!currentOrg?.id) return;
+    try {
+      const res = await fetch(`/api/pbac/roles?orgId=${currentOrg.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.roles)) {
+          setPbacRoles(data.roles);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch PBAC roles", e);
+    }
+  }, [currentOrg?.id]);
+
   useEffect(() => {
     if (showProjectMembersModal) {
       fetchOrgMembers();
       refreshMembers();
+      fetchPbacRoles();
     }
-  }, [showProjectMembersModal, fetchOrgMembers, refreshMembers]);
+  }, [showProjectMembersModal, fetchOrgMembers, refreshMembers, fetchPbacRoles]);
 
   const handleEditProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -661,6 +744,13 @@ export function ProjectClient({
   };
 
   const handleUpdateMemberRole = async (userId: string, role: string) => {
+    // Optimistic UI update
+    setMembers((prev: any[]) =>
+      prev.map((m) =>
+        (m.userId === userId || m.user?.id === userId) ? { ...m, role } : m
+      )
+    );
+
     try {
       const res = await fetch(`/api/projects/${currentProject.id}/members`, {
         method: "PATCH",
@@ -673,10 +763,11 @@ export function ProjectClient({
         throw new Error(data.error || "Failed to update member role");
       }
 
-      showSuccess("Member role updated");
+      showSuccess("Member role updated successfully");
       refreshMembers();
     } catch (err: any) {
       showError(err.message || "Failed to update member role");
+      refreshMembers();
     }
   };
 
@@ -802,13 +893,13 @@ export function ProjectClient({
 
   // Computed filtered issues
   const displayedIssues = issues.filter((issue) => {
+    if (!issue) return false;
     if (searchFilter.trim()) {
       const q = searchFilter.toLowerCase();
-      const matches =
-        issue.issueKey.toLowerCase().includes(q) ||
-        issue.title.toLowerCase().includes(q) ||
-        (issue.description && issue.description.toLowerCase().includes(q));
-      if (!matches) return false;
+      const keyMatch = issue.issueKey ? issue.issueKey.toLowerCase().includes(q) : false;
+      const titleMatch = issue.title ? issue.title.toLowerCase().includes(q) : false;
+      const descMatch = issue.description ? issue.description.toLowerCase().includes(q) : false;
+      if (!keyMatch && !titleMatch && !descMatch) return false;
     }
     if (onlyMyIssues && issue.assigneeId !== currentUser?.id) {
       return false;
@@ -846,9 +937,11 @@ export function ProjectClient({
           { label: project.name, href: `/projects/${project.id}` },
           { label: activeView === "charts" ? "Charts & Analytics" : activeView.charAt(0).toUpperCase() + activeView.slice(1) }
         ]}
-        onCreateIssueClick={() => setShowCreateIssueModal(true)}
+        canCreateIssue={canCreateIssue}
+        onCreateIssueClick={() => canCreateIssue && setSelectedIssueId("new")}
         onOpenCommandPalette={() => setShowCommandPalette(true)}
         onBack={handleSmartBack}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
       />
 
       {/* Main Workspace Layout */}
@@ -861,23 +954,25 @@ export function ProjectClient({
           onSelectView={handleViewChange}
           onCreateProjectClick={() => setShowCreateProjectModal(true)}
           currentUser={currentUser}
+          isMobileOpen={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
         />
 
         {/* View Content Area */}
         <main className="flex-1 flex flex-col overflow-y-auto">
           {/* Project Title Bar & Quick Filter Toolbar */}
-          <div className="px-6 py-3.5 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/90 backdrop-blur-md flex flex-col xl:flex-row xl:items-center justify-between gap-3 sticky top-0 z-10 shadow-2xs">
-            <div className="flex items-center flex-wrap gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white font-black flex items-center justify-center text-xs shadow-md shadow-blue-500/20 ring-2 ring-blue-500/20">
+          <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/90 backdrop-blur-md flex flex-col xl:flex-row xl:items-center justify-between gap-3 sticky top-0 z-10 shadow-2xs">
+            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3.5">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 text-white font-black flex items-center justify-center text-xs shadow-md shadow-blue-500/20 ring-2 ring-blue-500/20 shrink-0">
                 {currentProject.key}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-sm font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
+              <div className="min-w-0 flex-1 sm:flex-initial">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight tracking-tight truncate max-w-[200px] sm:max-w-none">
                     {currentProject.name}
                   </h1>
                   <span
-                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider border shadow-2xs ${
+                    className={`px-2 py-0.2 sm:px-2.5 sm:py-0.5 text-[9px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider border shadow-2xs ${
                       currentProject.status === "ACTIVE"
                         ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800"
                         : currentProject.status === "COMPLETED"
@@ -892,7 +987,7 @@ export function ProjectClient({
 
                   {/* Real-time Data Synchronization Live Indicator */}
                   <div
-                    className={`hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-2xs transition-all ${
+                    className={`hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-2xs transition-all ${
                       syncStatus === "connected"
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700"
                         : syncStatus === "reconnecting"
@@ -917,17 +1012,17 @@ export function ProjectClient({
                     <span>{syncStatus === "connected" ? "LIVE SYNC" : syncStatus.toUpperCase()}</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
                   {currentProject.template} Project · Key: <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">{currentProject.key}</span>
                 </p>
               </div>
 
               {/* Members Avatar Stack & Manage People Button */}
-              <div className="flex items-center gap-2 pl-3 border-l border-slate-300 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 sm:gap-2 sm:pl-3 sm:border-l border-slate-300 dark:border-slate-800 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowProjectMembersModal(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer"
+                  className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer"
                   title="Assign and manage project members"
                 >
                   <div className="flex -space-x-1.5 overflow-hidden">
@@ -943,7 +1038,7 @@ export function ProjectClient({
                       return (
                         <div
                           key={m.id || idx}
-                          className="w-5 h-5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[9px] flex items-center justify-center uppercase shadow-2xs"
+                          className="w-4 h-4 sm:w-5 sm:h-5 rounded-full ring-2 ring-white dark:ring-slate-900 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[8px] sm:text-[9px] flex items-center justify-center uppercase shadow-2xs"
                           title={`${name} (${m.role})`}
                         >
                           {initials}
@@ -952,10 +1047,10 @@ export function ProjectClient({
                     })}
                   </div>
                   <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>
+                  <span className="hidden xs:inline">
                     {members.length} {members.length === 1 ? "Member" : "Members"}
                   </span>
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold ml-0.5 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
                     + Assign
                   </span>
                 </button>
@@ -981,11 +1076,11 @@ export function ProjectClient({
                       );
                       setShowEditProjectModal(true);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
                     title="Edit project details and settings"
                   >
                     <Settings className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-transform group-hover:rotate-45" />
-                    <span>Settings</span>
+                    <span className="hidden sm:inline">Settings</span>
                   </button>
                 )}
 
@@ -993,11 +1088,11 @@ export function ProjectClient({
                 <button
                   type="button"
                   onClick={() => setShowTeamsModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
                   title="Manage workspace teams and members"
                 >
                   <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
-                  <span>Teams</span>
+                  <span className="hidden sm:inline">Teams</span>
                   {teams.length > 0 && (
                     <span className="ml-0.5 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold border border-blue-200 dark:border-blue-800/50">
                       {teams.length}
@@ -1009,129 +1104,200 @@ export function ProjectClient({
 
             {/* Quick Filters Toolbar (Hidden on Calendar View to eliminate redundant stacked filter bars) */}
             {activeView !== "calendar" && (
-              <div className="flex items-center flex-wrap gap-2 text-xs">
-              <div className="relative flex items-center">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3" />
-                <input
-                  type="text"
-                  placeholder="Filter issues..."
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 hover:border-slate-400 dark:hover:border-slate-600 transition-all w-36 sm:w-44 shadow-2xs font-medium"
-                />
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 text-xs">
+                {/* Mobile Filter Header Toggle */}
+                <div className="md:hidden flex items-center justify-between gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Filter issues..."
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-medium"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shrink-0 cursor-pointer shadow-2xs ${
+                      hasActiveFilters
+                        ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800 font-bold"
+                        : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+                    }`}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Filters</span>
+                    {hasActiveFilters && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                    )}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showMobileFilters ? "rotate-180" : ""}`} />
+                  </button>
+                </div>
+
+                {/* Filter Controls (Collapsible on Mobile, Inline on Desktop) */}
+                <div className={`${showMobileFilters ? "flex" : "hidden"} md:flex flex-wrap items-center gap-2 pt-1 md:pt-0`}>
+                  <div className="hidden md:flex relative items-center">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3" />
+                    <input
+                      type="text"
+                      placeholder="Filter issues..."
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 hover:border-slate-400 dark:hover:border-slate-600 transition-all w-36 sm:w-44 shadow-2xs font-medium"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setOnlyMyIssues(!onlyMyIssues)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold transition-all shadow-2xs cursor-pointer ${
+                      onlyMyIssues
+                        ? "bg-blue-50 dark:bg-indigo-950/70 border-blue-500 dark:border-indigo-600 text-blue-700 dark:text-indigo-300 shadow-2xs"
+                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600"
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5 text-slate-500" />
+                    <span>My Issues</span>
+                  </button>
+
+                  <select
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value)}
+                    aria-label="Filter by priority"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+                  >
+                    <option value="ALL" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">All Priorities</option>
+                    {projectPriorities.map((p) => (
+                      <option key={p.value} value={p.value} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    aria-label="Filter by status"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+                  >
+                    <option value="ALL" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">All Statuses</option>
+                    {statuses.map((s: any) => (
+                      <option key={s.id} value={s.id} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    aria-label="Filter by type"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+                  >
+                    <option value="ALL" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">All Types</option>
+                    <option value="TASK" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Task</option>
+                    <option value="BUG" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Bug</option>
+                    <option value="STORY" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Story</option>
+                    <option value="EPIC" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Epic</option>
+                  </select>
+
+                  <select
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "MY_ISSUES") {
+                        setOnlyMyIssues(true);
+                        setPriorityFilter("ALL");
+                        setStatusFilter("ALL");
+                        setTypeFilter("ALL");
+                      } else if (val === "HIGH_PRIORITY") {
+                        setOnlyMyIssues(false);
+                        setPriorityFilter("HIGH");
+                        setStatusFilter("ALL");
+                        setTypeFilter("ALL");
+                      } else if (val === "CRITICAL_PRIORITY") {
+                        setOnlyMyIssues(false);
+                        setPriorityFilter("CRITICAL");
+                        setStatusFilter("ALL");
+                        setTypeFilter("ALL");
+                      } else if (val === "CLEAR") {
+                        setOnlyMyIssues(false);
+                        setPriorityFilter("ALL");
+                        setStatusFilter("ALL");
+                        setTypeFilter("ALL");
+                        setSearchFilter("");
+                      }
+                    }}
+                    aria-label="Quick filter presets"
+                    className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+                  >
+                    <option value="">Presets</option>
+                    <option value="MY_ISSUES">My Assigned Issues</option>
+                    <option value="HIGH_PRIORITY">High Priority Items</option>
+                    <option value="CRITICAL_PRIORITY">Critical Bugs & Incidents</option>
+                    <option value="CLEAR">Clear Presets</option>
+                  </select>
+
+                  {hasActiveFilters && (
+                    <button
+                      onClick={() => {
+                        setSearchFilter("");
+                        setOnlyMyIssues(false);
+                        setPriorityFilter("ALL");
+                        setStatusFilter("ALL");
+                        setTypeFilter("ALL");
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-semibold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer"
+                      title="Clear all filters"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Clear</span>
+                    </button>
+                  )}
+
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full ml-1 border border-slate-300 dark:border-slate-700 font-mono">
+                    {displayedIssues.length} / {issues.length}
+                  </span>
+                </div>
               </div>
+            )}
+          </div>
 
-              <button
-                onClick={() => setOnlyMyIssues(!onlyMyIssues)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold transition-all shadow-2xs cursor-pointer ${
-                  onlyMyIssues
-                    ? "bg-blue-50 dark:bg-indigo-950/70 border-blue-500 dark:border-indigo-600 text-blue-700 dark:text-indigo-300 shadow-2xs"
-                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600"
-                }`}
-              >
-                <User className="w-3.5 h-3.5 text-slate-500" />
-                <span>My Issues</span>
-              </button>
-
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                aria-label="Filter by priority"
-                className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
-              >
-                <option value="ALL" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">All Priorities</option>
-                {projectPriorities.map((p) => (
-                  <option key={p.value} value={p.value} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label="Filter by status"
-                className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
-              >
-                <option value="ALL" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">All Statuses</option>
-                {statuses.map((s: any) => (
-                  <option key={s.id} value={s.id} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                aria-label="Filter by type"
-                className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
-              >
-                <option value="ALL" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">All Types</option>
-                <option value="TASK" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Task</option>
-                <option value="BUG" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Bug</option>
-                <option value="STORY" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Story</option>
-                <option value="EPIC" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">Epic</option>
-              </select>
-
-              <select
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "MY_ISSUES") {
-                    setOnlyMyIssues(true);
-                    setPriorityFilter("ALL");
-                    setStatusFilter("ALL");
-                    setTypeFilter("ALL");
-                  } else if (val === "HIGH_PRIORITY") {
-                    setOnlyMyIssues(false);
-                    setPriorityFilter("HIGH");
-                    setStatusFilter("ALL");
-                    setTypeFilter("ALL");
-                  } else if (val === "CRITICAL_PRIORITY") {
-                    setOnlyMyIssues(false);
-                    setPriorityFilter("CRITICAL");
-                    setStatusFilter("ALL");
-                    setTypeFilter("ALL");
-                  } else if (val === "CLEAR") {
-                    setOnlyMyIssues(false);
-                    setPriorityFilter("ALL");
-                    setStatusFilter("ALL");
-                    setTypeFilter("ALL");
-                    setSearchFilter("");
-                  }
-                }}
-                aria-label="Quick filter presets"
-                className="px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold outline-none cursor-pointer hover:border-slate-400 dark:hover:border-slate-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
-              >
-                <option value="">Presets</option>
-                <option value="MY_ISSUES">My Assigned Issues</option>
-                <option value="HIGH_PRIORITY">High Priority Items</option>
-                <option value="CRITICAL_PRIORITY">Critical Bugs & Incidents</option>
-                <option value="CLEAR">Clear Presets</option>
-              </select>
-
-              {hasActiveFilters && (
+          {/* Horizontal View Switcher Tabs (Accessible on Mobile, Tablet & Desktop) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 px-3 sm:px-6 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/40 shrink-0">
+            {[
+              { id: "board", label: "Board", icon: Kanban, count: issues.length },
+              { id: "list", label: "List", icon: ListTodo },
+              { id: "scrum", label: "Backlog", icon: Layers, count: sprints.length > 0 ? sprints.length : undefined },
+              { id: "timeline", label: "Timeline", icon: Clock },
+              { id: "calendar", label: "Calendar", icon: Calendar },
+              { id: "workload", label: "Workload", icon: Users },
+              { id: "charts", label: "Analytics", icon: PieChart },
+              { id: "dashboard", label: "Reports", icon: BarChart3 },
+            ].filter((v) => canAccessView(v.id)).map((v) => {
+              const Icon = v.icon;
+              const isSelected = activeView === v.id;
+              return (
                 <button
-                  onClick={() => {
-                    setSearchFilter("");
-                    setOnlyMyIssues(false);
-                    setPriorityFilter("ALL");
-                    setStatusFilter("ALL");
-                    setTypeFilter("ALL");
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-semibold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                  title="Clear all filters"
+                  key={v.id}
+                  onClick={() => handleViewChange(v.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer shrink-0 border shadow-2xs ${
+                    isSelected
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-slate-300 dark:border-slate-700 font-bold shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent hover:bg-white/60 dark:hover:bg-slate-800/60"
+                  }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Clear</span>
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                  <span>{v.label}</span>
+                  {v.count !== undefined && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isSelected ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "bg-slate-200/60 dark:bg-slate-800 text-slate-500"
+                    }`}>
+                      {v.count}
+                    </span>
+                  )}
                 </button>
-              )}
-
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full ml-1 border border-slate-300 dark:border-slate-700 font-mono">
-                {displayedIssues.length} / {issues.length}
-              </span>
-            </div>
-          )}
+              );
+            })}
           </div>
 
           {/* Active View Rendering */}
@@ -1160,7 +1326,23 @@ export function ProjectClient({
                   issues={displayedIssues}
                   statuses={statuses}
                   priorities={projectPriorities}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  members={members}
+                  teams={teams}
+                  leaves={leaves}
+                  sprints={sprints}
+                  epics={epics}
+                  delegations={delegations}
+                  currentUser={currentUser}
+                  canCreateIssue={canCreateIssue}
+                  onSelectIssue={(issue) => {
+                    if (typeof issue === "object" && issue?.id === "new" && issue?.statusId) {
+                      setCreateInitialStatusId(issue.statusId);
+                      setSelectedIssueId("new");
+                    } else {
+                      setCreateInitialStatusId(null);
+                      setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"));
+                    }
+                  }}
                   onUpdateIssueStatus={handleUpdateIssueStatus}
                   onQuickCreateIssue={handleQuickCreateIssue}
                 />
@@ -1173,24 +1355,30 @@ export function ProjectClient({
                   priorities={projectPriorities}
                   members={members}
                   teams={teams}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  epics={epics}
+                  delegations={delegations}
+                  currentUser={currentUser}
+                  canCreateIssue={canCreateIssue}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
                   onUpdateIssueStatus={handleUpdateIssueStatus}
                   onUpdateIssuePriority={handleUpdateIssuePriority}
+                  onQuickCreateIssue={handleQuickCreateIssue}
                 />
               )}
 
               {activeView === "scrum" && (
                 <ScrumBacklogView
-                  projectId={project.id}
+                  projectId={currentProject.id}
                   sprints={sprints}
-                  issues={displayedIssues}
+                  issues={issues}
                   statuses={statuses}
                   priorities={projectPriorities}
                   members={members}
                   teams={teams}
                   currentUser={currentUser}
                   isProjectAdmin={isProjectAdmin}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  canCreateIssue={canCreateIssue}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
                   onUpdateStatus={handleUpdateIssueStatus}
                   onRefresh={refreshIssues}
                 />
@@ -1201,7 +1389,10 @@ export function ProjectClient({
                   issues={displayedIssues}
                   statuses={statuses}
                   priorities={projectPriorities}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  leaves={leaves}
+                  delegations={delegations}
+                  projectId={currentProject.id}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
                   onRefresh={refreshIssues}
                 />
               )}
@@ -1215,11 +1406,13 @@ export function ProjectClient({
                   teams={teams}
                   sprints={sprints}
                   projects={allProjects}
+                  leaves={leaves}
+                  delegations={delegations}
                   projectId={currentProject.id}
                   projectName={currentProject.name}
                   currentUser={currentUser}
                   onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
                   onRefresh={refreshIssues}
                 />
               )}
@@ -1233,12 +1426,16 @@ export function ProjectClient({
                   teams={teams}
                   sprints={sprints}
                   projects={allProjects}
+                  leaves={leaves}
+                  delegations={delegations}
                   projectId={currentProject.id}
                   projectName={currentProject.name}
                   currentUser={currentUser}
                   onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
+
                   onRefresh={refreshIssues}
+
                 />
               )}
 
@@ -1255,7 +1452,7 @@ export function ProjectClient({
                   projectName={currentProject.name}
                   currentUserId={currentUser?.id}
                   onSelectProject={(pId) => router.push(`/projects/${pId}`)}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
                   onRefresh={refreshIssues}
                 />
               )}
@@ -1274,9 +1471,9 @@ export function ProjectClient({
                   currentUser={currentUser}
                   onSelectProject={(pId) => router.push(`/projects/${pId}`)}
                   onOpenCharts={() => setActiveView("charts")}
-                  onCreateIssue={() => setShowCreateIssueModal(true)}
+                  onCreateIssue={() => canCreateIssue && setSelectedIssueId("new")}
                   onSelectView={setActiveView}
-                  onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
+                  onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : issue?.id || issue)}
                   onRefresh={refreshIssues}
                 />
               )}
@@ -1285,10 +1482,16 @@ export function ProjectClient({
         </main>
       </div>
 
-      {/* Issue Detail Modal / Drawer */}
+      {/* Issue Detail Modal / Drawer (Handles both View/Edit and Create New Task) */}
       <IssueDetailModal
         issueId={selectedIssueId}
-        onClose={() => setSelectedIssueId(null)}
+        projectId={currentProject.id}
+        currentUser={currentUser}
+        initialStatusId={createInitialStatusId}
+        onClose={() => {
+          setSelectedIssueId(null);
+          setCreateInitialStatusId(null);
+        }}
         onIssueUpdated={refreshIssues}
       />
 
@@ -1298,220 +1501,9 @@ export function ProjectClient({
         onClose={() => setShowCommandPalette(false)}
         issues={issues}
         projects={allProjects}
-        onSelectIssue={(issue) => setSelectedIssueId(issue.id)}
-        onCreateIssue={() => setShowCreateIssueModal(true)}
+        onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : issue?.id || issue)}
+        onCreateIssue={() => canCreateIssue && setSelectedIssueId("new")}
       />
-
-      {/* Global Create Issue Modal */}
-      {showCreateIssueModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <form
-            onSubmit={handleCreateIssueSubmit}
-            className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-100"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-300 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Issue in {project.key}</h3>
-              <button
-                type="button"
-                onClick={() => setShowCreateIssueModal(false)}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Issue Title <span className="text-rose-500 font-bold">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="Summary of what needs to be accomplished..."
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Status <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <select
-                    required
-                    value={newStatusId || statuses[0]?.id || ""}
-                    onChange={(e) => setNewStatusId(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium cursor-pointer outline-none focus:border-blue-500"
-                  >
-                    {statuses.map((s: any) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Priority <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <select
-                    required
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium cursor-pointer outline-none focus:border-blue-500"
-                  >
-                    {projectPriorities.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Type
-                  </label>
-                  <select
-                    value={newType}
-                    onChange={(e) => setNewType(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium cursor-pointer outline-none focus:border-blue-500"
-                  >
-                    <option value="TASK">Task</option>
-                    <option value="BUG">Bug</option>
-                    <option value="STORY">Story</option>
-                    <option value="FEATURE">Feature</option>
-                    <option value="EPIC">Epic</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Story Points
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Pts"
-                    value={newPoints}
-                    onChange={(e) => setNewPoints(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Start Date <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={newStartDate}
-                    onChange={(e) => setNewStartDate(e.target.value)}
-                    className={`w-full text-xs p-2 rounded-lg border ${
-                      !newStartDate
-                        ? "border-rose-400 dark:border-rose-600 ring-1 ring-rose-400/30"
-                        : "border-slate-300 dark:border-slate-700"
-                    } bg-white dark:bg-slate-900 outline-none focus:border-blue-500 font-medium`}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Due Date <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={newDueDate}
-                    onChange={(e) => setNewDueDate(e.target.value)}
-                    className={`w-full text-xs p-2 rounded-lg border ${
-                      !newDueDate || (newStartDate && newDueDate && newDueDate < newStartDate)
-                        ? "border-rose-400 dark:border-rose-600 ring-1 ring-rose-400/30"
-                        : "border-slate-300 dark:border-slate-700"
-                    } bg-white dark:bg-slate-900 outline-none focus:border-blue-500 font-medium`}
-                  />
-                  {newStartDate && newDueDate && newDueDate < newStartDate && (
-                    <p className="text-[10px] text-rose-500 font-semibold mt-1">Due date cannot be earlier than start date</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Assign to Member (Optional)
-                  </label>
-                  <select
-                    value={newAssigneeId}
-                    onChange={(e) => setNewAssigneeId(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="">👤 Unassigned</option>
-                    {members.map((m: any) => {
-                      const u = m.user || m;
-                      const name = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email || "Member";
-                      return (
-                        <option key={u.id || m.userId} value={u.id || m.userId}>
-                          👤 {name} ({m.role || "MEMBER"})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Assign to Team (Optional)
-                  </label>
-                  <select
-                    value={newTeamId}
-                    onChange={(e) => setNewTeamId(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="">👥 No Team Assigned (Unassigned)</option>
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        👥 {t.name} ({t._count?.members ?? t.members?.length ?? 0} members)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {newTeamId && (
-                <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 font-medium bg-blue-50 dark:bg-blue-950/60 p-1.5 rounded-md border border-blue-200/50 dark:border-blue-900/50">
-                  <span>🔔</span> All team members will receive an instant in-app and email notification.
-                </p>
-              )}
-
-              {createIssueError && (
-                <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-900/50 flex items-center gap-1.5">
-                  <span>⚠️</span>
-                  <span>{createIssueError}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-300 dark:border-slate-800/80">
-              <button
-                type="button"
-                onClick={() => setShowCreateIssueModal(false)}
-                className="btn-secondary px-3.5 py-1.5 text-xs font-semibold rounded-lg cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn-primary px-4 py-1.5 text-xs font-semibold rounded-lg cursor-pointer"
-              >
-                Create Issue
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
       {/* Create Project Modal */}
       {showCreateProjectModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -1914,12 +1906,23 @@ export function ProjectClient({
                         <select
                           value={selectedUserRole}
                           onChange={(e) => setSelectedUserRole(e.target.value)}
-                          className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                          className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
                         >
-                          <option value="PROJECT_MEMBER">Member (Read/Write)</option>
-                          <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
-                          <option value="PROJECT_ADMIN">Admin (Full Control)</option>
-                          <option value="VIEWER">Viewer (Read-Only)</option>
+                          <optgroup label="Standard Project Roles">
+                            <option value="PROJECT_MEMBER">Member (Read/Write)</option>
+                            <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
+                            <option value="PROJECT_ADMIN">Admin (Full Control)</option>
+                            <option value="VIEWER">Viewer (Read-Only)</option>
+                          </optgroup>
+                          {pbacRoles.length > 0 && (
+                            <optgroup label="Organization Permission Roles">
+                              {pbacRoles.map((r: any) => (
+                                <option key={r.id} value={r.slug || r.id}>
+                                  {r.name} {r.isSystem ? "(System)" : ""}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
                       </div>
 
@@ -1996,12 +1999,23 @@ export function ProjectClient({
                         <select
                           value={inviteRole}
                           onChange={(e) => setInviteRole(e.target.value)}
-                          className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                          className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
                         >
-                          <option value="PROJECT_MEMBER">Member (Read/Write)</option>
-                          <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
-                          <option value="PROJECT_ADMIN">Admin (Full Control)</option>
-                          <option value="VIEWER">Viewer (Read-Only)</option>
+                          <optgroup label="Standard Project Roles">
+                            <option value="PROJECT_MEMBER">Member (Read/Write)</option>
+                            <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
+                            <option value="PROJECT_ADMIN">Admin (Full Control)</option>
+                            <option value="VIEWER">Viewer (Read-Only)</option>
+                          </optgroup>
+                          {pbacRoles.length > 0 && (
+                            <optgroup label="Organization Permission Roles">
+                              {pbacRoles.map((r: any) => (
+                                <option key={r.id} value={r.slug || r.id}>
+                                  {r.name} {r.isSystem ? "(System)" : ""}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
                       </div>
                     </div>
@@ -2069,18 +2083,34 @@ export function ProjectClient({
                         <div className="flex items-center gap-2 shrink-0">
                           {isProjectAdmin ? (
                             <>
-                              <select
-                                value={member.role}
-                                onChange={(e) =>
-                                  handleUpdateMemberRole(member.userId || member.user?.id, e.target.value)
-                                }
-                                className="text-xs py-1 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium outline-none cursor-pointer focus:border-blue-500"
-                              >
-                                <option value="PROJECT_ADMIN">Admin</option>
-                                <option value="PROJECT_MANAGER">Project Manager</option>
-                                <option value="PROJECT_MEMBER">Member</option>
-                                <option value="VIEWER">Viewer</option>
-                              </select>
+                              {(() => {
+                                const normRole = member.role === "MEMBER" ? "PROJECT_MEMBER" : member.role === "ADMIN" ? "PROJECT_ADMIN" : member.role === "MANAGER" ? "PROJECT_MANAGER" : member.role;
+                                return (
+                                  <select
+                                    value={normRole}
+                                    onChange={(e) =>
+                                      handleUpdateMemberRole(member.userId || member.user?.id, e.target.value)
+                                    }
+                                    className="text-xs py-1 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold outline-none cursor-pointer focus:border-blue-500 shadow-2xs"
+                                  >
+                                    <optgroup label="Standard Project Roles">
+                                      <option value="PROJECT_ADMIN">Admin</option>
+                                      <option value="PROJECT_MANAGER">Project Manager</option>
+                                      <option value="PROJECT_MEMBER">Member</option>
+                                      <option value="VIEWER">Viewer</option>
+                                    </optgroup>
+                                    {pbacRoles.length > 0 && (
+                                      <optgroup label="Organization Permission Roles">
+                                        {pbacRoles.map((r: any) => (
+                                          <option key={r.id} value={r.slug || r.id}>
+                                            {r.name} {r.isSystem ? "(System)" : ""}
+                                          </option>
+                                        ))}
+                                      </optgroup>
+                                    )}
+                                  </select>
+                                );
+                              })()}
 
                               <button
                                 type="button"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 
 export async function GET(req: NextRequest) {
@@ -18,6 +19,9 @@ export async function GET(req: NextRequest) {
     const limitParam = searchParams.get('limit') || '25';
     const limit = limitParam === 'all' ? 'all' : parseInt(limitParam, 10);
 
+    // Tenant Isolation
+    await assertOrgAccess(orgId);
+
     const result = await pbacEngine.getUsersWithRoles(orgId, {
       search,
       roleId,
@@ -30,7 +34,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch directory users' }, { status: 500 });
+    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
+    return NextResponse.json({ error: e.message || 'Failed to fetch directory users' }, { status });
   }
 }
 
@@ -43,6 +48,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
     const { action, userIds, roleId, simulate } = body;
+
+    // Tenant Isolation (Admin or Owner required for bulk modifications)
+    await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
 
     if (!Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: 'userIds array is required' }, { status: 400 });
@@ -69,6 +77,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid bulk action' }, { status: 400 });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed bulk user operation' }, { status: 500 });
+    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
+    return NextResponse.json({ error: e.message || 'Failed bulk user operation' }, { status });
   }
 }

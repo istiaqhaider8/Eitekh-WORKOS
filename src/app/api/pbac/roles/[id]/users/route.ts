@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,12 +12,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { searchParams } = new URL(req.url);
     const orgId = searchParams.get('orgId') || 'default-org';
 
+    // Strict Tenant Isolation
+    await assertOrgAccess(orgId);
+
     const role = await pbacEngine.getRole(orgId, id);
     if (!role) return NextResponse.json({ error: 'Role not found' }, { status: 404 });
 
     return NextResponse.json({ users: role.assignedUsers || [], total: role.assignedUserCount });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch role users' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to fetch role users' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
   }
 }
 
@@ -30,6 +34,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json();
     const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
     const { userId, userIds } = body;
+
+    // Strict Tenant Isolation & Privilege Escalation Guard
+    await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
 
     const actor = {
       id: user.id,
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'userId or userIds required' }, { status: 400 });
     }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to assign role to users' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to assign role to users' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
   }
 }
 
@@ -61,6 +68,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const body = await req.json();
     const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
     const { userId, userIds } = body;
+
+    // Strict Tenant Isolation & Privilege Escalation Guard
+    await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
 
     const actor = {
       id: user.id,
@@ -78,6 +88,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'userId or userIds required' }, { status: 400 });
     }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to remove role from users' }, { status: 500 });
+    return NextResponse.json({ error: e.message || 'Failed to remove role from users' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
   }
 }

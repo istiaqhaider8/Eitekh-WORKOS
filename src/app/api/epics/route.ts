@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
     const epicsWithProgress = epics.map(epic => {
       const totalIssues = epic._count.issues;
-      const completedIssues = epic.issues.filter(i => i.status.category === "DONE").length;
+      const completedIssues = epic.issues.filter(i => i.status?.category === "DONE").length;
       const progress = totalIssues > 0 ? Math.round((completedIssues / totalIssues) * 100) : 0;
       
       const { issues, ...epicData } = epic;
@@ -65,8 +65,8 @@ export async function POST(req: Request) {
     const epic = await prisma.epic.create({
       data: {
         projectId,
-        name,
-        summary,
+        name: name.trim(),
+        summary: summary || null,
         color: color || "#3b82f6",
         ownerId,
         startDate: startDate ? new Date(startDate) : null,
@@ -74,8 +74,25 @@ export async function POST(req: Request) {
       },
     });
 
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      await syncEngine.publishProjectEvent(projectId, {
+        eventId: `evt_epic_created_${Date.now()}`,
+        eventType: "EPIC_CREATED",
+        projectId,
+        entityId: epic.id,
+        entityType: "EPIC",
+        data: epic,
+        actor: { id: user.id, email: user.email, name: `${user.firstName || ""} ${user.lastName || ""}`.trim() },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (syncErr) {
+      console.error("Sync dispatch failed:", syncErr);
+    }
+
     return NextResponse.json(epic, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    const status = error.message?.includes("Forbidden") || error.message?.includes("Unauthorized") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
   }
 }

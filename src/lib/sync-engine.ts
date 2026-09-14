@@ -9,6 +9,7 @@ export type SyncEventType =
   | 'BULK_ISSUES_UPDATED'
   | 'SPRINT_CREATED'
   | 'SPRINT_UPDATED'
+  | 'SPRINT_DELETED'
   | 'SPRINT_COMPLETED'
   | 'EPIC_CREATED'
   | 'EPIC_UPDATED'
@@ -25,7 +26,13 @@ export type SyncEventType =
   | 'SUBTASK_DELETED'
   | 'DEPENDENCY_CREATED'
   | 'DEPENDENCY_DELETED'
+  | 'LEAVE_CREATED'
+  | 'LEAVE_UPDATED'
+  | 'LEAVE_DELETED'
   | 'SYSTEM_SYNC_PING';
+
+const staticTextEncoder = new TextEncoder();
+
 
 export interface SyncClient {
   id: string;
@@ -74,11 +81,15 @@ class RealtimeSyncEngine {
   private totalEventsProcessed = 0;
   private totalEventsFailed = 0;
   private startTime = Date.now();
+  private heartbeatInterval?: any;
 
   constructor() {
     // Keep alive cleaner
     if (typeof setInterval !== 'undefined') {
-      setInterval(() => {
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+      }
+      this.heartbeatInterval = setInterval(() => {
         this.sendHeartbeats();
       }, 15000);
     }
@@ -97,6 +108,9 @@ class RealtimeSyncEngine {
   public unregisterClient(clientId: string) {
     const client = this.clients.get(clientId);
     if (client) {
+      try {
+        client.controller.close();
+      } catch (_) {}
       this.clients.delete(clientId);
       logger.info('SYNC_CLIENT_DISCONNECTED', `Client ${clientId} disconnected from project ${client.projectId}`, {
         clientId,
@@ -142,21 +156,27 @@ class RealtimeSyncEngine {
     }));
   }
 
-  public publishProjectEvent(params: {
-    projectId: string;
-    eventType: SyncEventType;
-    entityId?: string;
-    entityType?: 'ISSUE' | 'SPRINT' | 'EPIC' | 'COMPONENT' | 'WORKFLOW' | 'COMMENT' | 'SUBTASK' | 'DEPENDENCY' | 'SYSTEM';
-    changedFields?: string[];
-    data?: any;
-    actor?: {
-      id: string;
-      email: string;
-      name?: string;
-    };
-    sourceModule?: string;
-    targetModules?: string[];
-  }): SyncEventPayload {
+  public publishProjectEvent(
+    arg1:
+      | {
+          projectId: string;
+          eventType: SyncEventType;
+          entityId?: string;
+          entityType?: 'ISSUE' | 'SPRINT' | 'EPIC' | 'COMPONENT' | 'WORKFLOW' | 'COMMENT' | 'SUBTASK' | 'DEPENDENCY' | 'SYSTEM';
+          changedFields?: string[];
+          data?: any;
+          actor?: {
+            id: string;
+            email: string;
+            name?: string;
+          };
+          sourceModule?: string;
+          targetModules?: string[];
+        }
+      | string,
+    arg2?: any
+  ): SyncEventPayload {
+    const params = typeof arg1 === 'string' ? { projectId: arg1, ...arg2 } : arg1;
     const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const timestamp = new Date().toISOString();
 
@@ -188,8 +208,7 @@ class RealtimeSyncEngine {
     let deliveredCount = 0;
     let failedCount = 0;
     const sseMessage = `event: message\ndata: ${JSON.stringify(payload)}\n\n`;
-    const encoder = new TextEncoder();
-    const encoded = encoder.encode(sseMessage);
+    const encoded = staticTextEncoder.encode(sseMessage);
 
     // PROJECT-SCOPED DELIVERY ENFORCEMENT:
     // Only deliver event to clients subscribed to this exact projectId (or Superadmin observers)
@@ -204,6 +223,9 @@ class RealtimeSyncEngine {
             clientId,
             error: err.message,
           });
+          try {
+            client.controller.close();
+          } catch (_) {}
           this.clients.delete(clientId);
         }
       }
@@ -242,14 +264,16 @@ class RealtimeSyncEngine {
       activeConnections: this.clients.size,
     };
     const ssePing = `event: ping\ndata: ${JSON.stringify(pingPayload)}\n\n`;
-    const encoder = new TextEncoder();
-    const encoded = encoder.encode(ssePing);
+    const encoded = staticTextEncoder.encode(ssePing);
 
     for (const [clientId, client] of this.clients.entries()) {
       try {
         client.controller.enqueue(encoded);
         client.lastPingAt = now;
       } catch (err) {
+        try {
+          client.controller.close();
+        } catch (_) {}
         this.clients.delete(clientId);
       }
     }
@@ -348,7 +372,4 @@ const globalForSync = globalThis as unknown as {
 };
 
 export const syncEngine = globalForSync.realtimeSyncEngine || new RealtimeSyncEngine();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForSync.realtimeSyncEngine = syncEngine;
-}
+globalForSync.realtimeSyncEngine = syncEngine;

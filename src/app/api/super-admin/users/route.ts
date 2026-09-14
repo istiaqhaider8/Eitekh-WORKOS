@@ -200,8 +200,11 @@ export async function POST(req: Request) {
       },
     }).catch(() => {});
 
+    // Sanitize user object to exclude credentials
+    const { passwordHash: _ph, mfaSecret: _ms, recoveryCodes: _rc, ...safeNewUser } = newUser as any;
+
     return NextResponse.json({
-      user: newUser,
+      user: safeNewUser,
       tempPassword: userPassword,
       message: "User " + normalizedEmail + " created successfully",
     }, { status: 201 });
@@ -313,9 +316,11 @@ export async function PATCH(req: Request) {
       },
     });
 
+    const { passwordHash: _uph, mfaSecret: _ums, recoveryCodes: _urc, ...safeUpdatedUser } = updatedUser as any;
+
     return NextResponse.json({
       success: true,
-      user: updatedUser,
+      user: safeUpdatedUser,
       passwordUpdated,
       message: passwordUpdated ? "User password updated successfully" : "User updated successfully",
     });

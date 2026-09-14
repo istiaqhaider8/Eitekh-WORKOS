@@ -240,6 +240,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       where: { projectId_userId: { projectId: id, userId: body.userId } }
     });
 
+    // Data Integrity: Unassign any issues in this project previously assigned to this user
+    await prisma.issue.updateMany({
+      where: { projectId: id, assigneeId: body.userId },
+      data: { assigneeId: null },
+    });
+
     try {
       const { pbacEngine } = await import("@/lib/pbac-engine");
       pbacEngine.invalidateUserCache(body.userId);

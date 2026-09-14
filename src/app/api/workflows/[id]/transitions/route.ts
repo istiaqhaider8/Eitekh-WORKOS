@@ -1,17 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const transitions = await prisma.workflowTransition.findMany({
-    where: { workflowId: id }
-  });
+  try {
+    const workflow = await prisma.workflow.findUnique({ where: { id } });
+    if (!workflow) return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
 
-  return NextResponse.json(transitions);
+    await assertProjectAccess(workflow.projectId);
+
+    const transitions = await prisma.workflowTransition.findMany({
+      where: { workflowId: id },
+    });
+
+    return NextResponse.json(transitions);
+  } catch (error: any) {
+    const code = error.message?.includes("Forbidden") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: code });
+  }
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,8 +31,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
 
   try {
+    const workflow = await prisma.workflow.findUnique({ where: { id } });
+    if (!workflow) return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+
+    await assertProjectPermission(workflow.projectId, "projects:edit");
+
     const { fromStatusId, toStatusId, requiredRole } = await request.json();
-    
     if (!fromStatusId || !toStatusId) return NextResponse.json({ error: "Missing status IDs" }, { status: 400 });
 
     const transition = await prisma.workflowTransition.create({
@@ -29,27 +44,62 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         workflowId: id,
         fromStatusId,
         toStatusId,
-        requiredRole
-      }
+        requiredRole: requiredRole || null,
+      },
     });
 
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      await syncEngine.publishProjectEvent(workflow.projectId, {
+        eventId: `evt_wf_trans_created_${Date.now()}`,
+        eventType: "WORKFLOW_UPDATED",
+        projectId: workflow.projectId,
+        entityId: workflow.id,
+        entityType: "WORKFLOW",
+        data: { workflowId: id, transitionId: transition.id },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (_) {}
+
     return NextResponse.json(transition, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    const code = error.message?.includes("Forbidden") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: code });
   }
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
   
   try {
+    const workflow = await prisma.workflow.findUnique({ where: { id } });
+    if (!workflow) return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+
+    await assertProjectPermission(workflow.projectId, "projects:edit");
+
     const { transitionId } = await request.json();
     if (!transitionId) return NextResponse.json({ error: "Missing transitionId" }, { status: 400 });
 
     await prisma.workflowTransition.delete({ where: { id: transitionId } });
+
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      await syncEngine.publishProjectEvent(workflow.projectId, {
+        eventId: `evt_wf_trans_deleted_${Date.now()}`,
+        eventType: "WORKFLOW_UPDATED",
+        projectId: workflow.projectId,
+        entityId: workflow.id,
+        entityType: "WORKFLOW",
+        data: { workflowId: id, deletedTransitionId: transitionId },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (_) {}
+
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    const code = error.message?.includes("Forbidden") ? 403 : 500;
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: code });
   }
 }

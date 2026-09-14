@@ -34,7 +34,12 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
-export async function createSession(userId: string, userAgent?: string, ipAddress?: string) {
+export async function createSession(
+  userId: string,
+  userAgent?: string,
+  ipAddress?: string,
+  userParam?: { id: string; email: string; isSuperAdmin: boolean }
+) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -49,7 +54,7 @@ export async function createSession(userId: string, userAgent?: string, ipAddres
     },
   });
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = userParam || (await prisma.user.findUnique({ where: { id: userId } }));
   if (!user) throw new Error("User not found");
 
   const jwtToken = createToken({

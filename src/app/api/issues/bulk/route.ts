@@ -197,13 +197,10 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "One or more issues not found" }, { status: 404 });
     }
 
-    // Strict project authorization check
+    // Strict project authorization and PBAC permission check
     const projectIds = Array.from(new Set(issues.map((i) => i.projectId)));
     for (const projectId of projectIds) {
-      const tenantCtx = await assertProjectAccess(projectId);
-      if (tenantCtx.role === "VIEWER") {
-        return NextResponse.json({ error: "Viewers cannot delete issues" }, { status: 403 });
-      }
+      await assertProjectPermission(projectId, "issues:delete");
     }
 
     // Atomic cascade deletion inside a database transaction

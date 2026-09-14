@@ -25,12 +25,14 @@ export interface SyncEventPayload {
 interface UseRealtimeSyncOptions {
   projectId?: string;
   onEvent?: (event: SyncEventPayload) => void;
+  onReconnect?: () => void;
   enabled?: boolean;
 }
 
 export function useRealtimeSync({
   projectId,
   onEvent,
+  onReconnect,
   enabled = true,
 }: UseRealtimeSyncOptions) {
   const [status, setStatus] = useState<SyncConnectionStatus>('offline');
@@ -39,6 +41,8 @@ export function useRealtimeSync({
   const eventSourceRef = useRef<EventSource | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
+  const wasConnectedRef = useRef(false);
+  const isMountedRef = useRef(true);
   const processedEventsRef = useRef<Set<string>>(new Set());
 
   const onEventRef = useRef(onEvent);
@@ -46,27 +50,45 @@ export function useRealtimeSync({
     onEventRef.current = onEvent;
   }, [onEvent]);
 
+  const onReconnectRef = useRef(onReconnect);
+  useEffect(() => {
+    onReconnectRef.current = onReconnect;
+  }, [onReconnect]);
+
   const connect = useCallback(() => {
     if (!projectId || !enabled || typeof window === 'undefined') return;
+
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
 
-    setStatus('reconnecting');
+    if (isMountedRef.current) {
+      setStatus('reconnecting');
+    }
 
     try {
       const es = new EventSource(`/api/sync/events?projectId=${encodeURIComponent(projectId)}`);
       eventSourceRef.current = es;
 
       es.onopen = () => {
+        if (!isMountedRef.current) return;
         setStatus('connected');
+        if (wasConnectedRef.current && retryCountRef.current > 0) {
+          onReconnectRef.current?.();
+        }
+        wasConnectedRef.current = true;
         retryCountRef.current = 0;
         setLastSyncTime(new Date());
       };
 
       es.addEventListener('message', (e) => {
+        if (!isMountedRef.current) return;
         try {
           const payload: SyncEventPayload = JSON.parse(e.data);
           
@@ -96,15 +118,23 @@ export function useRealtimeSync({
       });
 
       es.addEventListener('ping', () => {
+        if (!isMountedRef.current) return;
         setLastSyncTime(new Date());
       });
 
-      es.onerror = (err) => {
+      es.onerror = () => {
         es.close();
         eventSourceRef.current = null;
+        if (!isMountedRef.current) return;
+
+        if (retryCountRef.current >= 8) {
+          setStatus('error');
+          return;
+        }
+
         setStatus('reconnecting');
 
-        // Exponential backoff reconnect
+        // Exponential backoff reconnect (capped at 15s)
         const nextRetry = Math.min(1000 * Math.pow(1.5, retryCountRef.current), 15000);
         retryCountRef.current += 1;
 
@@ -114,20 +144,26 @@ export function useRealtimeSync({
         }, nextRetry);
       };
     } catch (err) {
-      setStatus('error');
+      if (isMountedRef.current) {
+        setStatus('error');
+      }
     }
   }, [projectId, enabled]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     connect();
 
     return () => {
-      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+      isMountedRef.current = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      setStatus('offline');
     };
   }, [connect]);
 
