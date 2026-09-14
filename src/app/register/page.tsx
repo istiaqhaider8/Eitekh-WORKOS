@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, ArrowLeft, Lock, Mail, User, Building, Eye, EyeOff, Check, X } from "lucide-react";
+import { ArrowRight, Lock, Mail, User, Building, Eye, EyeOff, Check, X } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -63,24 +63,6 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Top Back Navigation */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== "undefined" && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push("/login");
-              }
-            }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer px-2.5 py-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back</span>
-          </button>
-        </div>
-
         <div className="text-center space-y-2.5">
           <img src="/leaf-logo.png" alt="Eitekh WorkOS" className="w-16 h-16 mx-auto object-contain drop-shadow-md mb-3" />
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
