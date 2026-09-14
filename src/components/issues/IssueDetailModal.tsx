@@ -217,6 +217,17 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
   const [newPriorityColor, setNewPriorityColor] = useState("#8b5cf6");
   const [isCreatingPriority, setIsCreatingPriority] = useState(false);
 
+  // New Project Epic Modal state
+  const [showAddEpicModal, setShowAddEpicModal] = useState(false);
+  const [epicModalTab, setEpicModalTab] = useState<"CREATE" | "MANAGE">("CREATE");
+  const [newEpicName, setNewEpicName] = useState("");
+  const [newEpicSummary, setNewEpicSummary] = useState("");
+  const [newEpicColor, setNewEpicColor] = useState("#8b5cf6");
+  const [newEpicStatus, setNewEpicStatus] = useState("ACTIVE");
+  const [newEpicTargetDate, setNewEpicTargetDate] = useState("");
+  const [isCreatingEpic, setIsCreatingEpic] = useState(false);
+  const [deletingEpicId, setDeletingEpicId] = useState<string | null>(null);
+
   // Activity filter state
   const [activityFilter, setActivityFilter] = useState<"ALL" | "CHANGES" | "COMMENTS">("ALL");
 
@@ -874,6 +885,76 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     }
   };
 
+  const handleCreateProjectEpic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetProjId = issue?.projectId || projectId;
+    if (!newEpicName.trim() || !targetProjId) return;
+
+    setIsCreatingEpic(true);
+    try {
+      const res = await fetch("/api/epics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: targetProjId,
+          name: newEpicName.trim(),
+          summary: newEpicSummary.trim() || undefined,
+          color: newEpicColor,
+          status: newEpicStatus,
+          targetDate: newEpicTargetDate || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        setProjectEpics((prev) => [...prev, created]);
+        setDraftEpicId(created.id);
+        setHasChanges(true);
+        setShowAddEpicModal(false);
+        setNewEpicName("");
+        setNewEpicSummary("");
+        setNewEpicColor("#8b5cf6");
+        setNewEpicStatus("ACTIVE");
+        setNewEpicTargetDate("");
+        showSuccess(`Epic "${created.name}" created and linked!`);
+        onIssueUpdated();
+      } else {
+        const err = await res.json();
+        showError(err.error || "Failed to create epic");
+      }
+    } catch (err: any) {
+      console.error(err);
+      showError(err.message || "Failed to create project epic");
+    } finally {
+      setIsCreatingEpic(false);
+    }
+  };
+
+  const handleDeleteProjectEpic = async (epicId: string, epicName: string) => {
+    if (!confirm(`Are you sure you want to delete Epic "${epicName}"? All linked issues will be unlinked.`)) return;
+    setDeletingEpicId(epicId);
+    try {
+      const res = await fetch(`/api/epics/${epicId}`, { method: "DELETE" });
+      if (res.ok) {
+        setProjectEpics((prev) => prev.filter((e) => e.id !== epicId));
+        if (draftEpicId === epicId) {
+          setDraftEpicId(null);
+          setHasChanges(true);
+        }
+        showSuccess(`Epic "${epicName}" deleted successfully`);
+        onIssueUpdated();
+      } else {
+        const err = await res.json();
+        showError(err.error || "Failed to delete epic");
+      }
+    } catch (err: any) {
+      console.error(err);
+      showError(err.message || "Failed to delete epic");
+    } finally {
+      setDeletingEpicId(null);
+    }
+  };
+
   const handleSaveCustomFieldValue = async (customFieldId: string, value: any, fieldType: string) => {
     if (!issueId) return;
     try {
@@ -1343,10 +1424,10 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     >
       <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col border-l border-slate-300 dark:border-white/[0.08] animate-in slide-in-from-right duration-200">
         {/* Modal Header */}
-        <div className="h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0">
-          <div className="flex items-center gap-2.5">
+        <div className="min-h-[56px] h-14 border-b border-slate-300 dark:border-white/[0.08] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 shrink-0 overflow-hidden">
+          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden mr-2">
             <span
-              className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border shadow-2xs transition-all ${
+              className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border shadow-2xs transition-all shrink-0 ${
                 !isCreateMode && isIssueDone(issue, projectStatuses)
                   ? "line-through text-blue-600/75 dark:text-blue-400/75 decoration-blue-600 dark:decoration-blue-400 decoration-2 bg-blue-50/50 dark:bg-blue-950/40 border-blue-200/50 dark:border-blue-800/50"
                   : "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 border-blue-200/80 dark:border-blue-800/80"
@@ -1361,7 +1442,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 setShowAddTypeModal(true);
               }}
               title="Click to change, add, edit, or delete issue types"
-              className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg border uppercase tracking-wider text-[10px] font-bold shadow-2xs hover:scale-105 transition-all cursor-pointer"
+              className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg border uppercase tracking-wider text-[10px] font-bold shadow-2xs hover:scale-105 transition-all cursor-pointer shrink-0"
               style={{
                 backgroundColor: `${projectTypes.find((t) => t.value === (draftIssueType || issue?.issueType))?.color || "#0ea5e9"}18`,
                 borderColor: `${projectTypes.find((t) => t.value === (draftIssueType || issue?.issueType))?.color || "#0ea5e9"}40`,
@@ -1379,28 +1460,32 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <ChevronDown className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
             </button>
             {issue?.sprint && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900/60 shadow-2xs">
-                <GitBranch className="w-3 h-3 text-indigo-500" />
-                <span>{issue?.sprint?.name}</span>
+              <span
+                className="hidden md:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900/60 shadow-2xs max-w-[130px] lg:max-w-[170px] shrink-0 whitespace-nowrap overflow-hidden"
+                title={`Sprint: ${issue?.sprint?.name}`}
+              >
+                <GitBranch className="w-3 h-3 text-indigo-500 shrink-0" />
+                <span className="truncate">{issue?.sprint?.name}</span>
               </span>
             )}
             {(draftEpicId || issue?.epic || issue?.epicId) && (() => {
               const currentEpic = projectEpics.find((e) => e.id === (draftEpicId || issue?.epicId)) || issue?.epic;
               if (!currentEpic) return null;
               return (
-                <div className="hidden sm:inline-flex items-center gap-1.5">
+                <div
+                  className="hidden lg:inline-flex items-center gap-1.5 shrink-0 max-w-[160px] xl:max-w-[210px] overflow-hidden"
+                  title={`Epic: ${currentEpic.name} (${currentEpic.status || 'ACTIVE'})`}
+                >
                   <span
-                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white shadow-2xs"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg text-white shadow-2xs truncate whitespace-nowrap"
                     style={{ backgroundColor: currentEpic.color || "#8b5cf6" }}
-                    title={`Epic: ${currentEpic.name}`}
                   >
-                    <Zap className="w-2.5 h-2.5" />
-                    <span className="truncate max-w-[160px]">{currentEpic.name}</span>
+                    <Zap className="w-2.5 h-2.5 shrink-0" />
+                    <span className="truncate max-w-[100px] xl:max-w-[140px]">{currentEpic.name}</span>
                   </span>
                   {currentEpic.status && (
                     <span
-                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs"
-                      title={`Epic Status: ${currentEpic.status}`}
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-purple-100/90 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs shrink-0 whitespace-nowrap"
                     >
                       {currentEpic.status}
                     </span>
@@ -1409,6 +1494,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               );
             })()}
           </div>
+
 
           <div className="flex items-center gap-2">
             {canDelete && !isCreateMode && (
@@ -1785,24 +1871,52 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5">
-                            <Zap className="w-3 h-3 text-purple-500" />
+                            <Zap className="w-3 h-3 text-purple-500 shrink-0" />
                             <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px]">Epic</label>
                           </div>
-                          {draftEpicId && (
-                            <span
-                              className="w-2 h-2 rounded-full shadow-xs shrink-0"
-                              style={{ backgroundColor: projectEpics.find((e) => e.id === draftEpicId)?.color || "#8b5cf6" }}
-                            />
-                          )}
+                          <div className="flex items-center gap-2">
+                            {draftEpicId && (
+                              <span
+                                className="w-2 h-2 rounded-full shadow-xs shrink-0"
+                                style={{ backgroundColor: projectEpics.find((e) => e.id === draftEpicId)?.color || "#8b5cf6" }}
+                                title="Epic color indicator"
+                              />
+                            )}
+                            {!isViewer && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEpicModalTab("CREATE");
+                                  setShowAddEpicModal(true);
+                                }}
+                                className="text-[10px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline flex items-center gap-0.5 cursor-pointer"
+                                title="Add more Epic option (project-wise)"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                                <span>Add</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <select
                           disabled={isViewer}
                           value={draftEpicId || ""}
                           onChange={(e) => {
+                            if (e.target.value === "__ADD_EPIC__") {
+                              setEpicModalTab("CREATE");
+                              setShowAddEpicModal(true);
+                              return;
+                            }
+                            if (e.target.value === "__MANAGE_EPICS__") {
+                              setEpicModalTab("MANAGE");
+                              setShowAddEpicModal(true);
+                              return;
+                            }
                             setDraftEpicId(e.target.value || null);
                             setHasChanges(true);
                           }}
-                          className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs text-xs ${
+                          title={projectEpics.find((e) => e.id === draftEpicId)?.name || "Select Epic"}
+                          className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 pr-7 rounded-xl border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all shadow-2xs text-xs truncate ${
                             isViewer ? "cursor-not-allowed opacity-80" : "cursor-pointer"
                           }`}
                         >
@@ -1817,17 +1931,43 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               {issue?.epic?.name} {issue?.epic?.status ? `(${issue?.epic?.status})` : ""}
                             </option>
                           )}
+                          <option value="__ADD_EPIC__" className="text-purple-600 font-bold">
+                            + Add more options (project-wise)...
+                          </option>
+                          {projectEpics.length > 0 && (
+                            <option value="__MANAGE_EPICS__" className="text-slate-600 dark:text-slate-400">
+                              ⚙ Manage project epics ({projectEpics.length})...
+                            </option>
+                          )}
                         </select>
 
                         {(() => {
                           const selectedEpic = projectEpics.find((e) => e.id === draftEpicId) || (draftEpicId === issue?.epicId ? issue?.epic : null);
-                          if (!selectedEpic || !selectedEpic.status) return null;
+                          if (!selectedEpic) return null;
                           return (
-                            <div className="mt-1.5 flex items-center justify-between text-[11px] px-2 py-1 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60">
-                              <span className="text-slate-500 dark:text-slate-400 font-medium">Epic Status:</span>
-                              <span className="font-bold text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                                {selectedEpic.status}
-                              </span>
+                            <div className="mt-1.5 flex items-center justify-between text-[11px] px-2.5 py-1.5 bg-purple-50/70 dark:bg-purple-950/30 rounded-xl border border-purple-200/80 dark:border-purple-900/50">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-1">
+                                <span className="w-2 h-2 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: selectedEpic.color || "#8b5cf6" }} />
+                                <span className="font-semibold text-purple-950 dark:text-purple-200 truncate" title={selectedEpic.name}>{selectedEpic.name}</span>
+                                {selectedEpic.status && (
+                                  <span className="font-bold text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shrink-0">
+                                    {selectedEpic.status}
+                                  </span>
+                                )}
+                              </div>
+                              {!isViewer && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDraftEpicId(null);
+                                    setHasChanges(true);
+                                  }}
+                                  className="text-purple-400 hover:text-rose-500 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                                  title="Unlink epic from this issue"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           );
                         })()}
@@ -3945,6 +4085,257 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Add / Manage Project Epic Modal (Project-Wide Option) */}
+        {showAddEpicModal && (
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAddEpicModal(false);
+            }}
+          >
+            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-300 dark:border-slate-800 p-5 space-y-4 max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-150">
+              <div className="flex items-start justify-between shrink-0">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                      <Zap className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Project Epics</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
+                      Project-Wide
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Manage overarching initiatives and milestones. Epics are shared across all issues in this project.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddEpicModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Navigation Tabs */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4 shrink-0 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setEpicModalTab("CREATE")}
+                  className={`pb-2 font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    epicModalTab === "CREATE"
+                      ? "border-purple-600 text-purple-600 dark:text-purple-400"
+                      : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Epic</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEpicModalTab("MANAGE")}
+                  className={`pb-2 font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    epicModalTab === "MANAGE"
+                      ? "border-purple-600 text-purple-600 dark:text-purple-400"
+                      : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span>Manage Epics</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
+                    {projectEpics.length}
+                  </span>
+                </button>
+              </div>
+
+              {epicModalTab === "CREATE" ? (
+                <form onSubmit={handleCreateProjectEpic} className="space-y-3.5 overflow-y-auto pr-1 flex-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                      Epic Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={newEpicName}
+                      onChange={(e) => setNewEpicName(e.target.value)}
+                      placeholder="e.g. Mobile Redesign, Core Data Architecture"
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                      Summary / Goals (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newEpicSummary}
+                      onChange={(e) => setNewEpicSummary(e.target.value)}
+                      placeholder="High-level objectives or deliverable description..."
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                        Status
+                      </label>
+                      <select
+                        value={newEpicStatus}
+                        onChange={(e) => setNewEpicStatus(e.target.value)}
+                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-semibold cursor-pointer"
+                      >
+                        <option value="PLANNING">Planning</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="CANCELLED">Cancelled</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                        Target Date (Optional)
+                      </label>
+                      <input
+                        type="date"
+                        value={newEpicTargetDate}
+                        onChange={(e) => setNewEpicTargetDate(e.target.value)}
+                        className="w-full text-xs p-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                      Theme Color
+                    </label>
+                    <div className="flex items-center gap-2 pt-1">
+                      {["#8b5cf6", "#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#f97316", "#f43f5e", "#ec4899"].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setNewEpicColor(c)}
+                          className={`w-5 h-5 rounded-full transition-transform cursor-pointer ${
+                            newEpicColor === c ? "scale-125 ring-2 ring-offset-1 ring-purple-500" : "hover:scale-110"
+                          }`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Preview */}
+                  <div className="p-3 bg-purple-50/50 dark:bg-purple-950/20 rounded-xl border border-purple-200/60 dark:border-purple-900/40 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 text-[11px]">Badge Preview:</span>
+                    <span
+                      className="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+                      style={{ backgroundColor: `${newEpicColor}20`, color: newEpicColor }}
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: newEpicColor }} />
+                      <span className="truncate max-w-[160px]">{newEpicName.trim() || "Epic Preview"}</span>
+                      <span className="text-[9px] uppercase px-1 rounded bg-black/10 dark:bg-white/10 ml-1">
+                        {newEpicStatus}
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddEpicModal(false)}
+                      className="px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isCreatingEpic || !newEpicName.trim()}
+                      className="px-4 py-1.5 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 cursor-pointer shadow-xs shadow-purple-500/30 flex items-center gap-1.5"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>{isCreatingEpic ? "Creating..." : "Create & Link Epic"}</span>
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-2.5 overflow-y-auto max-h-[50vh] pr-1 flex-1">
+                  {projectEpics.length === 0 ? (
+                    <div className="text-center py-8 px-4 text-slate-400">
+                      <Zap className="w-8 h-8 text-purple-400/50 mx-auto mb-2" />
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">No epics created yet</p>
+                      <p className="text-[11px] text-slate-400 mt-1">Switch to the Create tab to add your first project epic.</p>
+                    </div>
+                  ) : (
+                    projectEpics.map((ep) => (
+                      <div
+                        key={ep.id}
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
+                          draftEpicId === ep.id
+                            ? "bg-purple-50/70 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800"
+                            : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span
+                            className="w-3 h-3 rounded-full shrink-0 shadow-xs"
+                            style={{ backgroundColor: ep.color || "#8b5cf6" }}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold text-slate-900 dark:text-white truncate" title={ep.name}>
+                                {ep.name}
+                              </p>
+                              {ep.status && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
+                                  {ep.status}
+                                </span>
+                              )}
+                              {draftEpicId === ep.id && (
+                                <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 px-1.5 py-0.2 bg-purple-100 dark:bg-purple-950/80 rounded shrink-0">
+                                  Selected
+                                </span>
+                              )}
+                            </div>
+                            {ep.summary && (
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{ep.summary}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDraftEpicId(ep.id);
+                              setHasChanges(true);
+                              setShowAddEpicModal(false);
+                              showSuccess(`Selected epic: ${ep.name}`);
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-purple-950/60 text-slate-700 hover:text-purple-700 dark:text-slate-300 dark:hover:text-purple-300 transition-colors cursor-pointer"
+                          >
+                            {draftEpicId === ep.id ? "Keep" : "Select"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingEpicId === ep.id}
+                            onClick={() => handleDeleteProjectEpic(ep.id, ep.name)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                            title="Delete Epic (Unlinks issues)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

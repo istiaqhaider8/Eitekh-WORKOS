@@ -404,7 +404,7 @@ export function ProjectClient({
       const eRes = await fetch(`/api/epics?projectId=${project.id}`);
       if (eRes.ok) {
         const eData = await eRes.json();
-        setEpics(eData.epics || []);
+        setEpics(Array.isArray(eData) ? eData : eData.epics || []);
       }
       refreshPriorities();
       refreshProjectAndStatuses();
