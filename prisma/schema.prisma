@@ -281,6 +281,7 @@ model Sprint {
   startDate DateTime?
   endDate   DateTime?
   status          String    @default("FUTURE") // FUTURE, ACTIVE, COMPLETED
+  position        Int       @default(0)
   plannedPoints   Int?
   completedPoints Int?
   completedAt     DateTime?
@@ -294,6 +295,7 @@ model Sprint {
 
   @@index([projectId])
   @@index([status])
+  @@index([projectId, position])
 }
 
 model Workflow {

@@ -6,6 +6,7 @@ import {
   Play,
   CheckCircle2,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Layers,
   ArrowRight,
@@ -31,6 +32,7 @@ import {
   Users,
   Zap,
   Target,
+  Info,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { StartSprintModal } from "@/components/sprints/StartSprintModal";
@@ -111,11 +113,17 @@ export function ScrumBacklogView({
       .catch(() => {});
   }, [projectId]);
 
-  // Sprint Edit state
+  // Sprint Edit & Telemetry state
   const [editingSprint, setEditingSprint] = useState<any | null>(null);
   const [editSprintName, setEditSprintName] = useState("");
   const [editSprintGoal, setEditSprintGoal] = useState("");
+  const [editSprintStatus, setEditSprintStatus] = useState<string>("FUTURE");
   const [editLoading, setEditLoading] = useState(false);
+  const [viewingSprintDetails, setViewingSprintDetails] = useState<any | null>(null);
+
+  // Sprint Drag & Drop Reordering state
+  const [draggedSprintId, setDraggedSprintId] = useState<string | null>(null);
+  const [dragOverSprintId, setDragOverSprintId] = useState<string | null>(null);
 
   // Inline Add Task to Sprint state
   const [inlineSprintId, setInlineSprintId] = useState<string | null>(null);
@@ -155,8 +163,61 @@ export function ScrumBacklogView({
   };
 
   const activeSprint = sprints.find((s) => s.status === "ACTIVE");
-  const futureSprints = sprints.filter((s) => s.status === "FUTURE");
+  const futureSprints = useMemo(() => sprints.filter((s) => s.status === "FUTURE"), [sprints]);
+  const completedSprints = useMemo(() => sprints.filter((s) => s.status === "COMPLETED"), [sprints]);
   const backlogIssues = useMemo(() => issues.filter((i) => !i.sprintId), [issues]);
+
+  // Sprint Reordering Handler
+  const handleSprintReorder = async (reorderedSprints: any[]) => {
+    const sprintOrders = reorderedSprints.map((s, idx) => ({ id: s.id, position: idx + 1 }));
+    try {
+      const res = await fetch("/api/sprints", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, sprintOrders }),
+      });
+      if (res.ok) {
+        showSuccess("Sprint serial sequence updated");
+        onRefresh();
+      } else {
+        showError("Failed to update sprint sequence");
+      }
+    } catch (e) {
+      showError("Network error while reordering sprints");
+    }
+  };
+
+  const handleMoveSprint = async (sprintId: string, direction: "up" | "down") => {
+    const index = futureSprints.findIndex((s) => s.id === sprintId);
+    if (index === -1) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= futureSprints.length) return;
+
+    const newOrder = [...futureSprints];
+    const [moved] = newOrder.splice(index, 1);
+    newOrder.splice(targetIndex, 0, moved);
+
+    await handleSprintReorder(newOrder);
+  };
+
+  const handleReopenSprint = async (sprintId: string) => {
+    try {
+      const res = await fetch("/api/sprints", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sprintId, status: "FUTURE" }),
+      });
+      if (res.ok) {
+        showSuccess("Sprint reopened successfully to Planned status");
+        onRefresh();
+      } else {
+        const data = await res.json();
+        showError(data.error || "Failed to reopen sprint");
+      }
+    } catch (e) {
+      showError("Error reopening sprint");
+    }
+  };
 
   const userCanCreate = canCreateIssue ?? (
     currentUser?.isSuperAdmin || (
@@ -583,6 +644,7 @@ export function ScrumBacklogView({
           sprintId: editingSprint.id,
           name: editSprintName.trim(),
           goal: editSprintGoal.trim() || null,
+          status: editSprintStatus,
         }),
       });
       if (res.ok) {
@@ -1547,6 +1609,47 @@ export function ScrumBacklogView({
         </div>
       </div>
 
+      {/* SPRINT VELOCITY & CAPACITY GUIDANCE BAR */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 rounded-2xl shadow-md border border-indigo-900/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-indigo-600/30 border border-indigo-400/30 text-indigo-300">
+            <Zap className="w-5 h-5 text-indigo-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-bold text-slate-100 tracking-tight">Team Velocity &amp; Sprint Telemetry</h4>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 font-mono">
+                {velocityData?.rolling3SprintAverage || velocityData?.averageVelocity
+                  ? `${velocityData.rolling3SprintAverage || velocityData.averageVelocity} pts avg`
+                  : "Baseline Pending"}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300">
+              {completedSprints.length > 0
+                ? `Historical 3-sprint rolling velocity: ${velocityData?.rolling3SprintAverage || velocityData?.averageVelocity || 0} story points delivered.`
+                : activeSprint
+                ? `Active sprint "${activeSprint.name}" has completed tasks. Click 'Complete Sprint' to record delivered points and baseline team velocity!`
+                : "No completed sprints recorded yet. Start and complete a sprint to establish historical team velocity."}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 text-xs">
+          <div className="px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-center">
+            <span className="text-[10px] text-slate-400 block font-medium">Completed Sprints</span>
+            <span className="font-bold text-slate-100 font-mono">{completedSprints.length}</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-center">
+            <span className="text-[10px] text-slate-400 block font-medium">Active Commitment</span>
+            <span className="font-bold text-emerald-400 font-mono">
+              {activeSprint
+                ? `${issues.filter((i) => i.sprintId === activeSprint.id).reduce((s, i) => s + (i.estimatePoints || 0), 0)} pts`
+                : "0 pts"}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ACTIVE SPRINT */}
       {activeSprint && (() => {
         const sprintIssues = issues.filter((i) => i.sprintId === activeSprint.id);
@@ -1591,10 +1694,19 @@ export function ScrumBacklogView({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
+                  onClick={() => setViewingSprintDetails(activeSprint)}
+                  className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                  title="View Sprint Details & Telemetry"
+                >
+                  Details
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setEditingSprint(activeSprint);
                     setEditSprintName(activeSprint.name || "");
                     setEditSprintGoal(activeSprint.goal || "");
+                    setEditSprintStatus(activeSprint.status || "ACTIVE");
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   title="Edit Sprint details"
@@ -1643,19 +1755,45 @@ export function ScrumBacklogView({
         );
       })()}
 
-      {/* FUTURE SPRINTS */}
-      {futureSprints.map((sprint) => {
+      {/* FUTURE SPRINTS WITH SERIAL REORDERING */}
+      {futureSprints.map((sprint, index) => {
         const sprintIssues = issues.filter((i) => i.sprintId === sprint.id);
         const totalPoints = sprintIssues.reduce((acc, i) => acc + (i.estimatePoints || 0), 0);
         const isCollapsed = Boolean(collapsed[sprint.id]);
-        const isDragTarget = dragOverSectionId === sprint.id;
+        const isDragTarget = dragOverSectionId === sprint.id || dragOverSprintId === sprint.id;
 
         return (
           <div
             key={sprint.id}
-            onDragOver={(e) => handleDragOver(e, sprint.id)}
-            onDragLeave={() => handleDragLeave(sprint.id)}
-            onDrop={(e) => handleDropOnSection(e, sprint.id)}
+            onDragOver={(e) => {
+              if (draggedSprintId && draggedSprintId !== sprint.id) {
+                e.preventDefault();
+                setDragOverSprintId(sprint.id);
+              } else {
+                handleDragOver(e, sprint.id);
+              }
+            }}
+            onDragLeave={() => {
+              setDragOverSprintId(null);
+              handleDragLeave(sprint.id);
+            }}
+            onDrop={(e) => {
+              if (draggedSprintId && draggedSprintId !== sprint.id) {
+                e.preventDefault();
+                const fromIndex = futureSprints.findIndex((s) => s.id === draggedSprintId);
+                const toIndex = futureSprints.findIndex((s) => s.id === sprint.id);
+                if (fromIndex !== -1 && toIndex !== -1) {
+                  const newOrder = [...futureSprints];
+                  const [moved] = newOrder.splice(fromIndex, 1);
+                  newOrder.splice(toIndex, 0, moved);
+                  handleSprintReorder(newOrder);
+                }
+                setDraggedSprintId(null);
+                setDragOverSprintId(null);
+              } else {
+                handleDropOnSection(e, sprint.id);
+              }
+            }}
             className={`bg-white dark:bg-slate-900/90 rounded-2xl border p-4 shadow-2xs space-y-3 transition-all ${
               isDragTarget
                 ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/30 bg-blue-50/20 dark:bg-blue-950/20 shadow-md"
@@ -1664,6 +1802,26 @@ export function ScrumBacklogView({
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-300 dark:border-slate-800/80 gap-2 flex-wrap">
               <div className="flex items-center gap-2.5 min-w-0">
+                {/* Drag Handle for Sprint Serial Reordering */}
+                {isProjectAdmin && (
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      setDraggedSprintId(sprint.id);
+                      e.dataTransfer.setData("text/plain", `sprint:${sprint.id}`);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedSprintId(null);
+                      setDragOverSprintId(null);
+                    }}
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                    title="Drag handle to reorder sprint serial sequence"
+                  >
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                )}
+
                 {/* Section Checkbox */}
                 {renderSectionSelectCheckbox(sprintIssues)}
 
@@ -1682,12 +1840,46 @@ export function ScrumBacklogView({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
+                {/* 1-Click Move Up / Move Down Serial Ordering */}
+                {isProjectAdmin && (
+                  <div className="flex items-center border border-slate-200 dark:border-slate-700/80 rounded-lg overflow-hidden shrink-0">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => handleMoveSprint(sprint.id, "up")}
+                      className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                      title="Move Sprint Up in serial sequence"
+                    >
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === futureSprints.length - 1}
+                      onClick={() => handleMoveSprint(sprint.id, "down")}
+                      className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors border-l border-slate-200 dark:border-slate-700/80"
+                      title="Move Sprint Down in serial sequence"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setViewingSprintDetails(sprint)}
+                  className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                  title="View Sprint Details & Scope"
+                >
+                  Details
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
                     setEditingSprint(sprint);
                     setEditSprintName(sprint.name || "");
                     setEditSprintGoal(sprint.goal || "");
+                    setEditSprintStatus(sprint.status || "FUTURE");
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   title="Edit Sprint details"
@@ -1736,6 +1928,100 @@ export function ScrumBacklogView({
           </div>
         );
       })}
+
+      {/* COMPLETED SPRINTS HISTORY */}
+      {completedSprints.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => toggleCollapse("completed_section")}
+              className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 uppercase tracking-wider cursor-pointer"
+            >
+              {collapsed["completed_section"] ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              <span>Completed Sprints ({completedSprints.length})</span>
+            </button>
+          </div>
+
+          {!collapsed["completed_section"] && (
+            <div className="space-y-3">
+              {completedSprints.map((sprint) => {
+                const sprintIssues = issues.filter((i) => i.sprintId === sprint.id);
+                const completedIssues = sprintIssues.filter(
+                  (i) => i.status?.category === "DONE" || i.status?.name?.toLowerCase().includes("done")
+                );
+                const deliveredPoints = sprint.completedPoints ?? completedIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+                const isCollapsed = Boolean(collapsed[sprint.id]);
+
+                return (
+                  <div
+                    key={sprint.id}
+                    className="bg-slate-50/70 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 gap-2 flex-wrap">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapse(sprint.id)}
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 cursor-pointer"
+                        >
+                          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{sprint.name}</h3>
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          COMPLETED
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                          ({deliveredPoints} pts delivered · {completedIssues.length} completed)
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setViewingSprintDetails(sprint)}
+                          className="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                        >
+                          Sprint Details
+                        </button>
+                        {isProjectAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleReopenSprint(sprint.id)}
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300 rounded-lg border border-amber-200 dark:border-amber-800 transition-colors cursor-pointer"
+                            title="Reopen Sprint to Planned status"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Reopen</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {sprint.retrospectiveNotes && (
+                      <div className="text-xs p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block mb-0.5">Retrospective Notes:</span>
+                        {sprint.retrospectiveNotes}
+                      </div>
+                    )}
+
+                    {!isCollapsed && (
+                      <div className="mt-2 space-y-1.5">
+                        {sprintIssues.length === 0 ? (
+                          <div className="py-3 text-center text-xs text-slate-400">No issues linked to this completed sprint.</div>
+                        ) : (
+                          sprintIssues.map((issue) => renderIssueRow(issue))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* PRODUCT BACKLOG POOL */}
       {(() => {
@@ -2360,7 +2646,7 @@ export function ScrumBacklogView({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Edit Sprint Details</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Update sprint name, goal, or delete sprint</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Update sprint name, status, goal, or delete sprint</p>
                 </div>
               </div>
               <button
@@ -2385,6 +2671,21 @@ export function ScrumBacklogView({
                   onChange={(e) => setEditSprintName(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  Sprint Status
+                </label>
+                <select
+                  value={editSprintStatus}
+                  onChange={(e) => setEditSprintStatus(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                >
+                  <option value="FUTURE">FUTURE (Planned)</option>
+                  <option value="ACTIVE">ACTIVE (In Progress)</option>
+                  <option value="COMPLETED">COMPLETED (Finished)</option>
+                </select>
               </div>
 
               <div>
@@ -2431,6 +2732,116 @@ export function ScrumBacklogView({
           </form>
         </div>
       )}
+
+      {/* SPRINT FULL STATUS & TELEMETRY MODAL */}
+      {viewingSprintDetails && (() => {
+        const sprintIssues = issues.filter((i) => i.sprintId === viewingSprintDetails.id);
+        const completedIssues = sprintIssues.filter(
+          (i) => i.status?.category === "DONE" || i.status?.name?.toLowerCase().includes("done")
+        );
+        const totalPoints = sprintIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+        const completedPoints = completedIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
+        const completionRate = sprintIssues.length > 0 ? Math.round((completedIssues.length / sprintIssues.length) * 100) : 0;
+
+        return (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-100">
+            <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{viewingSprintDetails.name}</h3>
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                        viewingSprintDetails.status === "ACTIVE"
+                          ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-300"
+                          : viewingSprintDetails.status === "COMPLETED"
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300"
+                      }`}>
+                        {viewingSprintDetails.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">Full Telemetry, Dates &amp; Delivery Progress</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewingSprintDetails(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {viewingSprintDetails.goal && (
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-xs">
+                  <span className="font-bold text-slate-700 dark:text-slate-300 block mb-0.5">Sprint Goal:</span>
+                  <p className="text-slate-600 dark:text-slate-400 italic">{viewingSprintDetails.goal}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+                  <span className="text-[10px] text-slate-400 block font-medium">Total Scope</span>
+                  <span className="text-base font-black text-slate-900 dark:text-white font-mono">{totalPoints} pts</span>
+                  <span className="text-[10px] text-slate-400 block">{sprintIssues.length} tasks</span>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-medium">Completed</span>
+                  <span className="text-base font-black text-emerald-700 dark:text-emerald-300 font-mono">{completedPoints} pts</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block">{completedIssues.length} tasks ({completionRate}%)</span>
+                </div>
+                <div className="p-3 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60">
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 block font-medium">Planned Commitment</span>
+                  <span className="text-base font-black text-indigo-700 dark:text-indigo-300 font-mono">{viewingSprintDetails.plannedPoints ?? totalPoints} pts</span>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 block">Initial commitment</span>
+                </div>
+              </div>
+
+              {viewingSprintDetails.retrospectiveNotes && (
+                <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 text-xs">
+                  <span className="font-bold text-amber-800 dark:text-amber-300 block mb-0.5">Retrospective Notes:</span>
+                  <p className="text-slate-700 dark:text-slate-300">{viewingSprintDetails.retrospectiveNotes}</p>
+                </div>
+              )}
+
+              <div className="space-y-1.5 pt-1">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Linked Sprint Tasks ({sprintIssues.length})</span>
+                <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                  {sprintIssues.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-3 text-center">No tasks linked to this sprint.</p>
+                  ) : (
+                    sprintIssues.map((issue) => (
+                      <div key={issue.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs border border-slate-200 dark:border-slate-700/80">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">{issue.issueKey}</span>
+                          <span className="truncate text-slate-800 dark:text-slate-200">{issue.title}</span>
+                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 shrink-0">
+                          {issue.status?.name || "To Do"}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-slate-300 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setViewingSprintDetails(null)}
+                  className="btn-primary px-4 py-1.5 text-xs font-semibold rounded-lg cursor-pointer"
+                >
+                  Close Telemetry
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

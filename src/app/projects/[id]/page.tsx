@@ -28,7 +28,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       },
       epics: true,
       sprints: {
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
       },
       issues: {
         include: {

@@ -28,7 +28,7 @@ export async function GET(req: Request) {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     });
 
     return NextResponse.json({ sprints });
@@ -53,6 +53,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
+    // Determine max position for new sprint
+    const lastSprint = await prisma.sprint.findFirst({
+      where: { projectId },
+      orderBy: { position: "desc" },
+      select: { position: true },
+    });
+    const nextPosition = (lastSprint?.position ?? 0) + 1;
+
     const sprint = await prisma.sprint.create({
       data: {
         projectId,
@@ -61,6 +69,7 @@ export async function POST(req: Request) {
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         status: "FUTURE",
+        position: nextPosition,
       },
     });
 
@@ -91,13 +100,72 @@ export async function POST(req: Request) {
   }
 }
 
+// PUT /api/sprints -> Reorder Sprints Serial / Sequence
+export async function PUT(req: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { projectId, sprintOrders } = body;
+
+    if (!projectId || !Array.isArray(sprintOrders)) {
+      return NextResponse.json(
+        { error: "projectId and sprintOrders array are required" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      await assertProjectPermission(projectId, "sprints:create");
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
+    }
+
+    // Execute positions update in a single transaction
+    const updatePromises = sprintOrders.map((item: { id: string; position: number }) =>
+      prisma.sprint.update({
+        where: { id: item.id },
+        data: { position: item.position },
+      })
+    );
+
+    const updatedSprints = await prisma.$transaction(updatePromises);
+
+    // Broadcast sync event
+    try {
+      const { syncEngine } = await import("@/lib/sync-engine");
+      syncEngine.publishProjectEvent({
+        projectId,
+        eventType: "SPRINT_REORDERED",
+        entityId: projectId,
+        entityType: "SPRINT",
+        data: { sprintOrders },
+        actor: {
+          id: user.id,
+          email: user.email,
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+        },
+        sourceModule: "Sprint",
+        targetModules: ["Scrum", "Backlog", "Sprint"],
+      });
+    } catch (syncErr) {
+      console.error("Real-time sync error in sprint reorder:", syncErr);
+    }
+
+    return NextResponse.json({ success: true, sprints: updatedSprints });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes } = body;
+    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes, position } = body;
     if (!sprintId) {
       return NextResponse.json({ error: "sprintId is required" }, { status: 400 });
     }
@@ -126,9 +194,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    if (status && !["FUTURE", "ACTIVE", "COMPLETED"].includes(status)) {
+    if (status && !["FUTURE", "ACTIVE", "COMPLETED", "CANCELLED"].includes(status)) {
       return NextResponse.json(
-        { error: "Invalid sprint status. Must be FUTURE, ACTIVE, or COMPLETED" },
+        { error: "Invalid sprint status. Must be FUTURE, ACTIVE, COMPLETED, or CANCELLED" },
         { status: 400 }
       );
     }
@@ -191,11 +259,17 @@ export async function PATCH(req: Request) {
       }
     }
 
+    // Handle reopening a completed or active sprint back to FUTURE
+    if (status === "FUTURE" && sprint.status !== "FUTURE") {
+      updateData.completedAt = null;
+    }
+
     if (status) updateData.status = status;
     if (name !== undefined) updateData.name = name.trim();
     if (goal !== undefined) updateData.goal = goal ? goal.trim() : null;
     if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+    if (position !== undefined && typeof position === "number") updateData.position = position;
     if (retrospectiveNotes !== undefined && status !== "COMPLETED") {
       updateData.retrospectiveNotes = retrospectiveNotes ? retrospectiveNotes.trim() : null;
     }

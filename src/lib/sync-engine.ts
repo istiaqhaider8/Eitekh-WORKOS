@@ -11,6 +11,7 @@ export type SyncEventType =
   | 'SPRINT_UPDATED'
   | 'SPRINT_DELETED'
   | 'SPRINT_COMPLETED'
+  | 'SPRINT_REORDERED'
   | 'EPIC_CREATED'
   | 'EPIC_UPDATED'
   | 'EPIC_DELETED'
