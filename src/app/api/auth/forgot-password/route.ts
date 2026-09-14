@@ -26,16 +26,17 @@ export async function POST(req: Request) {
       where: { email: normalizedEmail },
     });
 
-    let generatedResetUrl: string | null = null;
-
     if (user && user.status !== "SUSPENDED") {
-      const resetToken = crypto.randomBytes(32).toString("hex");
+      // The raw token is emailed to the user; only its SHA-256 hash is stored,
+      // so a database or backup read cannot yield a usable reset link.
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
       const resetTokenExp = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          resetToken,
+          resetToken: tokenHash,
           resetTokenExp,
         },
       });
@@ -43,25 +44,26 @@ export async function POST(req: Request) {
       // Construct reset URL
       const host = req.headers.get("host") || "localhost:3000";
       const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-      generatedResetUrl = `${protocol}://${host}/reset-password?token=${resetToken}`;
+      const resetUrl = `${protocol}://${host}/reset-password?token=${rawToken}`;
 
-      // Dispatch password reset email via central email engine (cocofbd@gmail.com)
+      // Dispatch the reset link by email only. It is never returned in the
+      // HTTP response: doing so is an unauthenticated account-takeover primitive.
       await sendEmail({
         to: user.email,
         templateKey: "PASSWORD_RESET",
         variables: {
           userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
-          resetUrl: generatedResetUrl,
+          resetUrl,
           expiresIn: "1 hour",
         },
       });
     }
 
-    // Always return success for security (prevents user enumeration)
+    // Always return the same response regardless of whether the account exists
+    // (prevents user enumeration).
     return NextResponse.json({
       success: true,
       message: "If an account with that email exists, we've sent instructions to reset your password.",
-      ...(process.env.NODE_ENV !== "production" && generatedResetUrl ? { devResetUrl: generatedResetUrl } : {}),
     });
   } catch (error: any) {
     console.error("Forgot password error:", error);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -41,10 +42,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: strength.reason }, { status: 400 });
     }
 
-    // Find user with matching unexpired token
+    // Tokens are stored hashed; hash the incoming token to look it up.
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: tokenHash,
         resetTokenExp: {
           gt: new Date(),
         },

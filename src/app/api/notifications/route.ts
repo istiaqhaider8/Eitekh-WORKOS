@@ -164,17 +164,46 @@ export async function POST(req: Request) {
       message,
       linkUrl,
       projectId,
-      sendEmailAsync = true,
-      emailTemplateKey,
-      emailVariables,
     } = body;
 
     if (!title || !message) {
       return NextResponse.json({ error: "Title and message are required" }, { status: 400 });
     }
 
-    const recipients = recipientUserIds || [user.id];
+    const requested: string[] = Array.isArray(recipientUserIds) && recipientUserIds.length > 0
+      ? recipientUserIds
+      : [user.id];
 
+    // Only allow addressing users who share an organization with the caller.
+    // Without this, any authenticated user can send notifications — and, via
+    // the email fan-out, platform-branded emails — to any user in any tenant.
+    const callerOrgIds = (user.orgMemberships || [])
+      .map((m: any) => m.organization?.id || m.orgId)
+      .filter(Boolean);
+
+    let recipients: string[] = [user.id];
+    if (callerOrgIds.length > 0) {
+      const sameOrgMembers = await prisma.organizationMember.findMany({
+        where: { orgId: { in: callerOrgIds }, userId: { in: requested } },
+        select: { userId: true },
+      });
+      const allowed = new Set(sameOrgMembers.map((m) => m.userId));
+      allowed.add(user.id);
+      recipients = requested.filter((id) => allowed.has(id));
+    } else {
+      recipients = requested.filter((id) => id === user.id);
+    }
+
+    if (recipients.length === 0) {
+      return NextResponse.json(
+        { error: "Forbidden: recipients must belong to your organization" },
+        { status: 403 }
+      );
+    }
+
+    // Email template key/variables are NEVER accepted from the client: that
+    // allows forging a PASSWORD_RESET email with an attacker-chosen link.
+    // User-initiated notifications are in-app only.
     const result = await notificationEngine.dispatch({
       recipientUserIds: recipients,
       type: type as NotificationType,
@@ -185,9 +214,7 @@ export async function POST(req: Request) {
       actorId: user.id,
       actorName: user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
       actorEmail: user.email,
-      sendEmailAsync,
-      emailTemplateKey,
-      emailVariables,
+      sendEmailAsync: false,
     });
 
     return NextResponse.json({ success: true, ...result });

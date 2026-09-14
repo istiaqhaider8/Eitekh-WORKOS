@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
@@ -45,7 +46,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         status: "TO_DO",
       },
       include: {
-        assignee: true,
+        assignee: publicUserRelation,
       },
     });
 

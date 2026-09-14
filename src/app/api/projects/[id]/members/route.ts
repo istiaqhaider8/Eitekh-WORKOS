@@ -5,6 +5,26 @@ import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
 
+// Only these project-scoped role strings may be assigned to a ProjectMember.
+// This blocks privilege escalation via an injected org-scoped PBAC role id
+// (e.g. "role_<orgId>_org-admin"), which the engine would otherwise accept.
+const ALLOWED_PROJECT_ROLES = new Set([
+  "PROJECT_ADMIN",
+  "PROJECT_MANAGER",
+  "PROJECT_MEMBER",
+  "MEMBER",
+  "VIEWER",
+  "ADMIN",
+]);
+
+function normalizeProjectRole(role: unknown): string {
+  if (role == null || role === "") return "PROJECT_MEMBER";
+  if (typeof role !== "string" || !ALLOWED_PROJECT_ROLES.has(role)) {
+    throw new Error(`Invalid project role: ${String(role)}`);
+  }
+  return role;
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -130,15 +150,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
     }
     
+    const safeRole = normalizeProjectRole(body.role);
     const member = await prisma.projectMember.upsert({
       where: { projectId_userId: { projectId: id, userId: targetUserId } },
       create: {
         projectId: id,
         userId: targetUserId,
-        role: body.role || "PROJECT_MEMBER"
+        role: safeRole
       },
       update: {
-        role: body.role || "PROJECT_MEMBER"
+        role: safeRole
       },
       include: {
         user: { select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true } }
@@ -148,7 +169,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const orgId = project.workspace.orgId;
     try {
       const { pbacEngine } = await import("@/lib/pbac-engine");
-      await pbacEngine.syncProjectMemberRole(orgId, targetUserId, body.role || "PROJECT_MEMBER", id);
+      await pbacEngine.syncProjectMemberRole(orgId, targetUserId, safeRole, id);
     } catch (pbacErr) {
       console.error("Failed to sync project member role with PBAC:", pbacErr);
     }
@@ -184,15 +205,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
     const body = await req.json();
+    const safeRole = normalizeProjectRole(body.role);
     const updated = await prisma.projectMember.update({
       where: { projectId_userId: { projectId: id, userId: body.userId } },
-      data: { role: body.role }
+      data: { role: safeRole }
     });
 
     const orgId = project.workspace.orgId;
     try {
       const { pbacEngine } = await import("@/lib/pbac-engine");
-      await pbacEngine.syncProjectMemberRole(orgId, body.userId, body.role, id);
+      await pbacEngine.syncProjectMemberRole(orgId, body.userId, safeRole, id);
     } catch (pbacErr) {
       console.error("Failed to sync project member role with PBAC:", pbacErr);
     }

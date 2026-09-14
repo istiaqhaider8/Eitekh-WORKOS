@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
@@ -222,7 +223,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: issueData,
         include: {
           status: true,
-          assignee: true,
+          assignee: publicUserRelation,
           team: {
             include: {
               members: {
@@ -230,7 +231,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
               }
             }
           },
-          reporter: true,
+          reporter: publicUserRelation,
         },
       });
 

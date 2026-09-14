@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 
@@ -14,8 +15,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       include: {
         project: true,
         status: true,
-        assignee: true,
-        reporter: true,
+        assignee: publicUserRelation,
+        reporter: publicUserRelation,
         epic: true,
         sprint: true,
         component: true,
@@ -30,7 +31,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         },
         subtasks: {
           orderBy: { createdAt: "asc" },
-          include: { assignee: true },
+          include: { assignee: publicUserRelation },
         },
         comments: {
           orderBy: { createdAt: "asc" },
@@ -118,7 +119,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       include: {
         status: true,
-        assignee: true,
+        assignee: publicUserRelation,
         team: true,
         sprint: true,
         epic: true,

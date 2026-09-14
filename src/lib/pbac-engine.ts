@@ -555,7 +555,7 @@ class UnifiedPBACEngine {
           const userRoles = this.userRoleAssignments.get(u.id)!;
 
           if (userRoles.size === 0) {
-            if (u.isSuperAdmin || u.email === 'cocofbd@gmail.com') {
+            if (u.isSuperAdmin) {
               userRoles.add(superAdminRoleId);
               userRoles.add(orgAdminRoleId);
               userRoles.add(projectAdminRoleId);
@@ -1203,15 +1203,26 @@ class UnifiedPBACEngine {
   // Synchronize a project member's role into PBAC store and invalidate cache
   public async syncProjectMemberRole(orgId: string, userId: string, projectRole: string, projectId?: string) {
     await this.ensureOrgSeeded(orgId);
-    let targetRoleId = projectRole;
-    if (this.roles.has(projectRole)) {
-      targetRoleId = projectRole;
-    } else {
-      const targetSlug = this.getRoleSlugForProjectRole(projectRole);
-      const found = Array.from(this.roles.values()).find(
-        (r) => r.orgId === orgId && (r.id === projectRole || r.slug === targetSlug || r.slug === projectRole || r.name.toUpperCase() === projectRole.toUpperCase())
+    let targetRoleId: string;
+    // Resolve the incoming role by slug/name only — never trust a raw role id
+    // supplied by the caller, which could name an org- or super-admin role.
+    const targetSlug = this.getRoleSlugForProjectRole(projectRole);
+    const found = Array.from(this.roles.values()).find(
+      (r) => r.orgId === orgId && (r.slug === targetSlug || r.name.toUpperCase() === projectRole.toUpperCase())
+    );
+    targetRoleId = found ? found.id : `role_${orgId}_${targetSlug}`;
+
+    // Refuse to assign anything that is not a PROJECT-scoped role. This is the
+    // backstop against privilege escalation: a project membership must never
+    // grant an ORG- or SUPER-scoped role.
+    const resolved = this.roles.get(targetRoleId);
+    if (resolved && resolved.scope !== "PROJECT") {
+      throw new Error(
+        `Refusing to assign non-project role "${targetRoleId}" (scope ${resolved.scope}) via project membership`
       );
-      targetRoleId = found ? found.id : `role_${orgId}_${targetSlug}`;
+    }
+    if (resolved && resolved.orgId !== orgId) {
+      throw new Error(`Refusing to assign role from a different organization`);
     }
 
     if (!this.userRoleAssignments.has(userId)) {
@@ -1281,7 +1292,7 @@ class UnifiedPBACEngine {
         where: { id: userId },
         select: { id: true, isSuperAdmin: true, email: true },
       });
-      if (dbUser?.isSuperAdmin || dbUser?.email === 'cocofbd@gmail.com') {
+      if (dbUser?.isSuperAdmin) {
         const superPerms = new Set<string>(ALL_PBAC_PERMISSION_KEYS);
         this.capabilityCache.set(cacheKey, {
           permissions: superPerms,
@@ -1311,7 +1322,7 @@ class UnifiedPBACEngine {
           }
           const userRoles = this.userRoleAssignments.get(userId)!;
 
-          if (dbUser.isSuperAdmin || dbUser.email === 'cocofbd@gmail.com') {
+          if (dbUser.isSuperAdmin) {
             userRoles.add(`role_${orgId}_super-admin`);
           } else {
             const orgMember = dbUser.orgMemberships[0];
