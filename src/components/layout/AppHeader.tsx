@@ -207,7 +207,7 @@ export function AppHeader({
   };
 
   return (
-    <header className="h-13 md:h-14 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/95 backdrop-blur-md flex items-center justify-between px-2.5 sm:px-4 md:px-5 sticky top-0 z-30 transition-colors shadow-2xs">
+    <header className="h-13 md:h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] backdrop-blur-md flex items-center justify-between px-2.5 sm:px-4 md:px-5 sticky top-0 z-30 transition-colors shadow-2xs">
       {/* Left: Hamburger & Brand & Context */}
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
         {onToggleMobileSidebar && (

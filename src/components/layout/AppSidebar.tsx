@@ -85,7 +85,7 @@ export function AppSidebar({
   });
 
   if (!isMounted) {
-    return <aside className="w-60 border-r border-slate-300 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col justify-between shrink-0 h-[calc(100vh-3.5rem)] select-none hidden md:flex" />;
+    return <aside className="w-60 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0c1322] flex flex-col justify-between shrink-0 h-[calc(100vh-3.5rem)] select-none hidden md:flex" />;
   }
 
   return (
@@ -111,7 +111,7 @@ export function AppSidebar({
 
       {/* Sidebar Container */}
       <aside 
-        className={`fixed md:relative top-13 md:top-0 z-50 md:z-0 border-r border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950/98 backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-3.25rem)] md:h-[calc(100vh-3.5rem)] select-none transition-all duration-300 ease-in-out shadow-xl md:shadow-2xs w-72 max-w-[85vw] ${
+        className={`fixed md:relative top-13 md:top-0 z-50 md:z-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-3.25rem)] md:h-[calc(100vh-3.5rem)] select-none transition-all duration-300 ease-in-out shadow-xl md:shadow-2xs w-72 max-w-[85vw] ${
           isCollapsed ? "md:w-14" : "md:w-60"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
@@ -120,7 +120,7 @@ export function AppSidebar({
           <div className="hidden md:flex justify-end mb-4">
             <button
               onClick={toggleCollapse}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
@@ -132,7 +132,7 @@ export function AppSidebar({
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Navigation</span>
             <button
               onClick={handleCloseMobile}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -167,7 +167,7 @@ export function AppSidebar({
                     } ${
                       isActive
                         ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25 font-semibold"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80"
                     }`}
                   >
                     <div
@@ -220,7 +220,7 @@ export function AppSidebar({
                       } ${
                         isSelected
                           ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 shadow-2xs font-bold border border-blue-200 dark:border-blue-800/80 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-blue-600 before:rounded-r"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent"
                       }`}
                     >
                       <Icon className={`w-4 h-4 shrink-0 transition-colors ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
@@ -235,10 +235,10 @@ export function AppSidebar({
 
         {/* Footer info & Hotkeys hint */}
         {!isCollapsed && (
-          <div className="p-3 pb-8 border-t border-slate-300 dark:border-slate-800 text-[11px] text-slate-400 space-y-1 bg-slate-50/50 dark:bg-slate-900/40">
+          <div className="p-3 pb-8 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 space-y-1 bg-slate-50/80 dark:bg-slate-900/60">
             <div className="flex items-center justify-between">
               <span className="font-medium text-slate-500 dark:text-slate-400">Shortcuts:</span>
-              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 font-semibold bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">C (Create), / (Search)</span>
+              <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300 font-semibold bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">C (Create), / (Search)</span>
             </div>
           </div>
         )}

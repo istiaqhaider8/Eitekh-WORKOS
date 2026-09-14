@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+
 // Password strength validation helper
 function isStrongPassword(password: string): { valid: boolean; reason?: string } {
   if (password.length < 8) return { valid: false, reason: "Password must be at least 8 characters long" };
