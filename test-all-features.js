@@ -44,7 +44,7 @@ function assert(ok, name, detail) {
 // ─── Main Suite ────────────────────────────────────────────────────
 (async () => {
   console.log("╔══════════════════════════════════════════════════════════════╗");
-  console.log("║  ZENITH WORKOS — COMPREHENSIVE ALL-FEATURES TEST SUITE     ║");
+  console.log("║  EITEKH WORKOS — COMPREHENSIVE ALL-FEATURES TEST SUITE     ║");
   console.log("║  SRS Sections 1–111 Full Coverage                          ║");
   console.log("╚══════════════════════════════════════════════════════════════╝\n");
 
@@ -57,14 +57,14 @@ function assert(ok, name, detail) {
   const regRes = await req("POST", "/api/auth/register", {
     firstName: "TestUser",
     lastName: "Automation",
-    email: `testuser_${Date.now()}@zenith-test.io`,
+    email: `testuser_${Date.now()}@eitekh-test.io`,
     password: "SecurePass99!",
-    company: "Zenith QA Corp",
+    company: "Eitekh QA Corp",
     jobTitle: "QA Engineer",
   });
   assert(regRes.status === 200, "5.1  Sign Up — new user created with auto-provisioned Org + Workspace + Project");
   const regCookie = extractCookie(regRes);
-  assert(regCookie.includes("zenith_session_token"), "5.1  Sign Up — session cookie issued on registration");
+  assert(regCookie.includes("eitekh_session_token"), "5.1  Sign Up — session cookie issued on registration");
 
   // 5.2 Email verification — user has emailVerifiedAt set
   const regMeRes = await req("GET", "/api/auth/me", null, regCookie);

@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding Zenith WorkOS database...");
+  console.log("🌱 Seeding Eitekh WorkOS database...");
 
   // 1. Clean existing records
   await prisma.activityLog.deleteMany();
@@ -397,8 +397,8 @@ async function main() {
   // 14. System Announcement
   await prisma.systemAnnouncement.create({
     data: {
-      title: "Zenith WorkOS Platform Online",
-      message: "Welcome to Zenith WorkOS v1.0. All services, multi-tenant boundaries, and real-time boards are running nominally.",
+      title: "Eitekh WorkOS Platform Online",
+      message: "Welcome to Eitekh WorkOS v1.0. All services, multi-tenant boundaries, and real-time boards are running nominally.",
       severity: "INFO",
       targetAudience: "ALL",
       isActive: true,

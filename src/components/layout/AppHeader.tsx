@@ -260,7 +260,7 @@ export function AppHeader({
       return;
     }
     if (typeof window !== "undefined") {
-      const lastProjectId = localStorage.getItem("zenith_last_project_id");
+      const lastProjectId = localStorage.getItem("eitekh_last_project_id");
       if (window.location.pathname.startsWith("/settings") || window.location.pathname.startsWith("/super-admin")) {
         if (lastProjectId) {
           router.push(`/projects/${lastProjectId}`);

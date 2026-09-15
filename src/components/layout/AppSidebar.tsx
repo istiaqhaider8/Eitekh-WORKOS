@@ -55,7 +55,7 @@ export function AppSidebar({
 
   useEffect(() => {
     setIsMounted(true);
-    const stored = localStorage.getItem("zenith_sidebar_collapsed");
+    const stored = localStorage.getItem("eitekh_sidebar_collapsed");
     if (stored !== null) {
       setIsCollapsed(stored === "true");
     } else if (typeof window !== "undefined" && window.innerWidth >= 768 && window.innerWidth <= 1024) {
@@ -66,7 +66,7 @@ export function AppSidebar({
   const toggleCollapse = () => {
     const newValue = !isCollapsed;
     setIsCollapsed(newValue);
-    localStorage.setItem("zenith_sidebar_collapsed", String(newValue));
+    localStorage.setItem("eitekh_sidebar_collapsed", String(newValue));
   };
 
   const isSuperAdmin = currentUser?.isSuperAdmin;

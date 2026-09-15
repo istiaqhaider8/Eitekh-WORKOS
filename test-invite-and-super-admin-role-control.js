@@ -71,7 +71,7 @@ async function runTests() {
 
   try {
     // 1. Authenticate as Super Admin & Org Admin
-    const superAdminCookie = await login("admin@zenith.local", "AdminPass123!");
+    const superAdminCookie = await login("admin@eitekh.local", "AdminPass123!");
     const orgAdminCookie = await login("sarah@acme.com", "Password123!");
     const memberCookie = await login("marcus@acme.com", "Password123!");
     assert(superAdminCookie && orgAdminCookie && memberCookie, "Authenticated Super Admin, Org Admin, and Member");

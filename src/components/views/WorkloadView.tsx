@@ -256,7 +256,7 @@ export function WorkloadView({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const storageKey = `zenith_cap_${projectId}_${metricUnit}`;
+      const storageKey = `eitekh_cap_${projectId}_${metricUnit}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         setCustomCapacities(JSON.parse(saved));
@@ -274,7 +274,7 @@ export function WorkloadView({
     setCustomCapacities(updated);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(`zenith_cap_${projectId}_${metricUnit}`, JSON.stringify(updated));
+        localStorage.setItem(`eitekh_cap_${projectId}_${metricUnit}`, JSON.stringify(updated));
       } catch {
         // Ignore
       }
@@ -289,7 +289,7 @@ export function WorkloadView({
     setCustomCapacities(updated);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(`zenith_cap_${projectId}_${metricUnit}`, JSON.stringify(updated));
+        localStorage.setItem(`eitekh_cap_${projectId}_${metricUnit}`, JSON.stringify(updated));
       } catch {
         // Ignore
       }

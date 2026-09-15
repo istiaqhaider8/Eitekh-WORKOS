@@ -167,7 +167,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
 
     // Create BroadcastChannel for multi-tab sync
     try {
-      const channel = new BroadcastChannel('zenith_pbac_realtime_sync');
+      const channel = new BroadcastChannel('eitekh_pbac_realtime_sync');
       broadcastChannelRef.current = channel;
       channel.onmessage = (event) => {
         if (event.data?.type === 'PBAC_MUTATION') {

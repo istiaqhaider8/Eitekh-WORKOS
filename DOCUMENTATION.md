@@ -227,7 +227,7 @@ erDiagram
 ## 4. Authentication, Identity & Security Infrastructure
 
 ### 4.1 Authentication Engine
-- **Session Architecture**: Cookie-based authentication leveraging cryptographically secure tokens (`crypto.randomUUID()`) stored in HTTP-only, SameSite cookies (`zenith_session_token`).
+- **Session Architecture**: Cookie-based authentication leveraging cryptographically secure tokens (`crypto.randomUUID()`) stored in HTTP-only, SameSite cookies (`eitekh_session_token`).
 - **Password Security**: Bcrypt cost factor 10 with comprehensive password strength rules:
   - Minimum 8 characters.
   - At least 1 uppercase letter.
@@ -576,8 +576,8 @@ Eitekh WorkOS is validated by an extensive suite of automated end-to-end integra
 
 #### Step 1: Clone & Dependency Installation
 ```bash
-git clone <repository-url> zenith-workos
-cd zenith-workos
+git clone <repository-url> eitekh-workos
+cd eitekh-workos
 npm install
 ```
 

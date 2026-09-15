@@ -36,7 +36,7 @@ async function main() {
   const adminLogin = await request('http://localhost:3000/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-  }, { email: 'admin@zenith.local', password: 'AdminPass123!' });
+  }, { email: 'admin@eitekh.local', password: 'AdminPass123!' });
 
   const adminCookie = adminLogin.headers['set-cookie']?.[0]?.split(';')[0];
   console.log("1. Super Admin authenticated:", adminLogin.status === 200, "Cookie exists:", !!adminCookie);

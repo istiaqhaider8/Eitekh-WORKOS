@@ -133,8 +133,8 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
             if (typeof window !== 'undefined') {
               // Clear temporary view caches while keeping credentials
               sessionStorage.clear();
-              localStorage.removeItem('zenith_cached_views');
-              localStorage.removeItem('zenith_filter_drafts');
+              localStorage.removeItem('eitekh_cached_views');
+              localStorage.removeItem('eitekh_filter_drafts');
             }
           } catch (err) {
             console.warn('Browser storage clear error:', err);

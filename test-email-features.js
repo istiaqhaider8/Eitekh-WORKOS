@@ -56,7 +56,7 @@ function extractCookie(res) {
 
   // 4. Update a template
   const updateTpl = await req("PATCH", "/api/super-admin/email-templates/WELCOME", {
-    subject: "Welcome to Zenith WorkOS, {{userName}}! 🚀 (Customized)",
+    subject: "Welcome to Eitekh WorkOS, {{userName}}! 🚀 (Customized)",
     bodyHtml: "<p>Customized welcome email sent via cocofbd@gmail.com to {{userName}}</p>",
   }, adminCookie);
   console.log("4. Update Template WELCOME:", updateTpl.status, updateTpl.data.template?.subject);

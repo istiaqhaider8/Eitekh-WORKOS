@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function runTests() {
-  console.log("🧪 Starting Zenith WorkOS Full Platform Verification Tests...\n");
+  console.log("🧪 Starting Eitekh WorkOS Full Platform Verification Tests...\n");
 
   let passed = 0;
   let failed = 0;
@@ -21,7 +21,7 @@ async function runTests() {
 
   try {
     // TEST 1: Super Admin & Users Seed Verification
-    const superAdmin = await prisma.user.findUnique({ where: { email: "admin@zenith.local" } });
+    const superAdmin = await prisma.user.findUnique({ where: { email: "admin@eitekh.local" } });
     assert(superAdmin && superAdmin.isSuperAdmin === true, "Super Admin user exists and has root permissions");
 
     const devLead = await prisma.user.findUnique({ where: { email: "sarah@acme.com" } });

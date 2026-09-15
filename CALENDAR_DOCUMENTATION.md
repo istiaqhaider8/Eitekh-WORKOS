@@ -250,7 +250,7 @@ The Calendar View dynamically adapts each cell's height based on its tasks:
 - **Density Control (Comfortable vs Compact)**:
   - **Comfortable**: `min-h-[120px]` base height, generous task padding (`py-1 px-2`), `min-h-[26px]` task chips.
   - **Compact**: `min-h-[92px]` base height, tighter task padding (`py-0.5 px-1.5`), `min-h-[22px]` task chips.
-- Settings are persisted across sessions in `localStorage` under `zenith_calendar_view_all_tasks` and `zenith_calendar_density`.
+- Settings are persisted across sessions in `localStorage` under `eitekh_calendar_view_all_tasks` and `eitekh_calendar_density`.
 
 
 ### 6.4 Sticky Weekday Header & Zero Double-Scrollbars

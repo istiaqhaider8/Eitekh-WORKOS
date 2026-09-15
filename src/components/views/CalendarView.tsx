@@ -209,7 +209,7 @@ export function CalendarView({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('zenith_calendar_density');
+      const saved = localStorage.getItem('eitekh_calendar_density');
       if (saved === 'comfortable' || saved === 'compact') {
         setDensity(saved);
       }
@@ -220,7 +220,7 @@ export function CalendarView({
     const next = density === 'comfortable' ? 'compact' : 'comfortable';
     setDensity(next);
     try {
-      localStorage.setItem('zenith_calendar_density', next);
+      localStorage.setItem('eitekh_calendar_density', next);
     } catch (e) {}
   };
 
@@ -229,7 +229,7 @@ export function CalendarView({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('zenith_calendar_view_all_tasks');
+      const saved = localStorage.getItem('eitekh_calendar_view_all_tasks');
       if (saved !== null) {
         setViewAllTasks(saved === 'true');
       }
@@ -240,7 +240,7 @@ export function CalendarView({
     const next = !viewAllTasks;
     setViewAllTasks(next);
     try {
-      localStorage.setItem('zenith_calendar_view_all_tasks', String(next));
+      localStorage.setItem('eitekh_calendar_view_all_tasks', String(next));
     } catch (e) {}
   };
 

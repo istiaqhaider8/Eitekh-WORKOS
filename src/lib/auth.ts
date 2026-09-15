@@ -14,7 +14,7 @@ if (!JWT_SECRET) {
 }
 const JWT_ISSUER = "eitekh-workos";
 const JWT_AUDIENCE = "eitekh-workos-web";
-const COOKIE_NAME = "zenith_session_token";
+const COOKIE_NAME = "eitekh_session_token";
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 64;
 

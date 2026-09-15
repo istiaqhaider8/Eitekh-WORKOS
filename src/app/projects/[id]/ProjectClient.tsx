@@ -141,7 +141,7 @@ export function ProjectClient({
 
   useEffect(() => {
     if (project?.id) {
-      localStorage.setItem("zenith_last_project_id", project.id);
+      localStorage.setItem("eitekh_last_project_id", project.id);
     }
   }, [project?.id]);
 

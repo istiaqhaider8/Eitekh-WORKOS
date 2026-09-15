@@ -40,7 +40,7 @@ function assert(ok, name, detail) {
 
 (async () => {
   console.log("╔══════════════════════════════════════════════════════════════╗");
-  console.log("║  ZENITH WORKOS — NEW FEATURES TEST SUITE (Phase 2 & 3)     ║");
+  console.log("║  EITEKH WORKOS — NEW FEATURES TEST SUITE (Phase 2 & 3)     ║");
   console.log("║  Testing all newly implemented APIs and improvements        ║");
   console.log("╚══════════════════════════════════════════════════════════════╝\n");
 
@@ -407,7 +407,7 @@ function assert(ok, name, detail) {
 
   const newWebhook = await req("POST", "/api/webhooks", {
     orgId, projectId,
-    targetUrl: "https://hooks.example.com/zenith",
+    targetUrl: "https://hooks.example.com/eitekh",
     secret: "wh_secret_12345",
     events: JSON.stringify(["ISSUE_CREATED", "ISSUE_UPDATED"]),
     isActive: true,

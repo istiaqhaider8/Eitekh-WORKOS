@@ -562,7 +562,7 @@ export default function SuperAdminCommandCenterPage() {
               type="button"
               onClick={() => {
                 if (typeof window !== "undefined") {
-                  const lastProjectId = localStorage.getItem("zenith_last_project_id");
+                  const lastProjectId = localStorage.getItem("eitekh_last_project_id");
                   if (lastProjectId) {
                     router.push(`/projects/${lastProjectId}`);
                     return;

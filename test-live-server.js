@@ -57,7 +57,7 @@ async function runLiveTests() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       },
-      { email: "nonexistent@zenith.local", password: "wrong" }
+      { email: "nonexistent@eitekh.local", password: "wrong" }
     );
     assert(badLoginRes.status === 401, "Invalid credentials correctly returns HTTP 401", `Status: ${badLoginRes.status}`);
 
@@ -79,7 +79,7 @@ async function runLiveTests() {
     // Extract session cookie
     const setCookie = leadLoginRes.headers["set-cookie"];
     const sessionCookie = setCookie ? setCookie[0].split(";")[0] : "";
-    assert(sessionCookie.includes("zenith_session_token"), "Secure session token cookie issued");
+    assert(sessionCookie.includes("eitekh_session_token"), "Secure session token cookie issued");
 
     // -------------------------------------------------------------
     // TEST 3: Auth Session Verification (/api/auth/me)
