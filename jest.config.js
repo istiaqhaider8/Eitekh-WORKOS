@@ -18,6 +18,7 @@ const config = {
   },
   testMatch: ["**/__tests__/**/*.test.ts"],
   collectCoverageFrom: ["src/lib/**/*.ts", "!src/lib/prisma.ts"],
+  forceExit: true,
 };
 
 module.exports = config;

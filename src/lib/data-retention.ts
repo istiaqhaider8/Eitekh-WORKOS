@@ -11,7 +11,7 @@
  *   AUDIT_LOG_RETENTION_DAYS      = 365
  */
 
-import { prisma } from './prisma';
+import { container } from './container';
 
 export interface RetentionPolicy {
   entity: string;
@@ -78,32 +78,32 @@ async function purgeEntity(
   try {
     switch (entity) {
       case 'Session': {
-        const r = await prisma.session.deleteMany({
+        const r = await container.prisma.session.deleteMany({
           where: { expiresAt: { lt: cutoff } },
         });
         return { deletedCount: r.count };
       }
       case 'Notification': {
         // Only delete read notifications; unread are kept regardless of age
-        const r = await prisma.notification.deleteMany({
+        const r = await container.prisma.notification.deleteMany({
           where: { isRead: true, createdAt: { lt: cutoff } },
         });
         return { deletedCount: r.count };
       }
       case 'ActivityLog': {
-        const r = await prisma.activityLog.deleteMany({
+        const r = await container.prisma.activityLog.deleteMany({
           where: { timestamp: { lt: cutoff } },
         });
         return { deletedCount: r.count };
       }
       case 'EmailLog': {
-        const r = await prisma.emailLog.deleteMany({
+        const r = await container.prisma.emailLog.deleteMany({
           where: { createdAt: { lt: cutoff } },
         });
         return { deletedCount: r.count };
       }
       case 'PlatformAuditLog': {
-        const r = await prisma.platformAuditLog.deleteMany({
+        const r = await container.prisma.platformAuditLog.deleteMany({
           where: { createdAt: { lt: cutoff } },
         });
         return { deletedCount: r.count };
