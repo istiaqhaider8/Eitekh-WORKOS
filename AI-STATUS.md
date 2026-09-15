@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | IN PROGRESS | 8/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 68 resolved, 1 partial, 4 pending out of 73 findings (93%)**
+**Overall: 69 resolved, 0 partial, 4 pending out of 73 findings (95%)**
 
 ---
 
@@ -44,7 +44,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 9 | ARCH-2 | High | COMPLETED | In-memory singletons as infrastructure (won't scale) | Various `src/lib/` files |
 | 10 | OPS-2 | High | COMPLETED | No backup strategy for SQLite file DB | `src/lib/backup.ts` |
 | 11 | PERF-1 | High | COMPLETED | N+1 queries in issue/project listings | `src/app/api/issues/`, `src/app/api/projects/` |
-| 12 | API-2 | High | PARTIAL | Inconsistent error response formats | All route files |
+| 12 | API-2 | High | COMPLETED | Inconsistent error response formats | All route files |
 
 ### MEDIUM PRIORITY
 

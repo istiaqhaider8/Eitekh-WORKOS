@@ -26,7 +26,7 @@ export async function GET(
 
     return NextResponse.json({ template });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -86,7 +86,7 @@ export async function PATCH(
 
     return NextResponse.json({ template: updated, message: "Email template updated successfully" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -147,6 +147,6 @@ export async function POST(
       variables: vars,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

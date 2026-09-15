@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { teamMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(members);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
   }
 }
 
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
     return NextResponse.json(member, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
   }
 }
 
@@ -110,6 +110,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
   }
 }

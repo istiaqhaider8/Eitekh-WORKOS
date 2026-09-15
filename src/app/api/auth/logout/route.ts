@@ -28,6 +28,6 @@ export async function POST() {
     response.cookies.delete(COOKIE_NAME);
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

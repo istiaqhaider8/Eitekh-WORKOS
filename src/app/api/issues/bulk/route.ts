@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
@@ -159,10 +159,10 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ updatedCount: results[0].count, updated: results[0].count });
   } catch (error: any) {
     if (error.message?.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 403 });
     }
     if (error.message?.includes("Unauthorized")) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
+      return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 401 });
     }
     console.error("Bulk update error:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
@@ -223,10 +223,10 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ deletedCount: delIssues.count });
   } catch (error: any) {
     if (error.message?.includes("Forbidden")) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
+      return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 403 });
     }
     if (error.message?.includes("Unauthorized")) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
+      return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 401 });
     }
     console.error("Bulk delete error:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { pbacEngine } from "@/lib/pbac-engine";
@@ -54,7 +54,7 @@ export async function GET() {
 
     return NextResponse.json({ organizations });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ organization: org, message: `Organization ${org.name} created successfully` }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -174,7 +174,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ organization: updatedOrg, message: `Organization ${updatedOrg.name} updated successfully` });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -271,6 +271,6 @@ export async function DELETE(req: Request) {
       message: `Organization ${existingOrg.name} has been deleted permanently`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

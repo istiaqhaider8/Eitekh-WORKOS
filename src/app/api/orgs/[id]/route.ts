@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!org) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(org);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: error.message.includes("Unauthorized") ? 401 : 403 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
   }
 }
 
@@ -42,6 +42,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: error.message.includes("Unauthorized") ? 401 : 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
   }
 }

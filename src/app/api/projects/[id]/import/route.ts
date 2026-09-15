@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
@@ -106,6 +106,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       errors 
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 403 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
   }
 }

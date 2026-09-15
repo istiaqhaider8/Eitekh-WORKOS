@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to fetch priorities" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to create priority" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

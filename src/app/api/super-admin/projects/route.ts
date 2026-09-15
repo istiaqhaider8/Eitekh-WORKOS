@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { superAdminProjectCreateSchema, superAdminProjectUpdateSchema, parseBody } from "@/lib/validation";
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ projects });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ project, message: `Project ${project.name} (${project.key}) created successfully` }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -246,7 +246,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ project: updatedProject, message: `Project ${updatedProject.name} updated successfully` });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -314,6 +314,6 @@ export async function DELETE(req: Request) {
       message: `Project ${existingProject.name} (${existingProject.key}) deleted permanently`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

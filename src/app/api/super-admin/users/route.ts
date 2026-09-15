@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ users, total: users.length });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -339,7 +339,7 @@ export async function PATCH(req: Request) {
       message: passwordUpdated ? "User password updated successfully" : "User updated successfully",
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -407,6 +407,6 @@ export async function DELETE(req: Request) {
       message: "User " + targetUser.email + " has been deleted permanently",
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

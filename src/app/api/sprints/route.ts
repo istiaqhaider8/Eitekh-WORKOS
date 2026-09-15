@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ sprints });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ sprint }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -159,7 +159,7 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: true, sprints: updatedSprints });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -304,7 +304,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ sprint: updatedSprint });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -376,6 +376,6 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true, message: "Sprint deleted and issues moved to backlog" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

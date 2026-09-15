@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { superAdminFeatureCreateSchema, superAdminFeatureUpdateSchema, parseBody } from "@/lib/validation";
@@ -13,7 +13,7 @@ export async function GET() {
     const flags = await prisma.featureFlag.findMany({ orderBy: { key: "asc" } });
     return NextResponse.json({ flags });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ flag, message: `Feature flag ${flag.key} created successfully` }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -107,7 +107,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ flag: updatedFlag, message: `Feature flag ${key} updated successfully` });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -157,6 +157,6 @@ export async function DELETE(req: Request) {
       message: `Feature flag ${key} deleted permanently`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

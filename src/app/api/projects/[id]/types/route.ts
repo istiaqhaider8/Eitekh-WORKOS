@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to fetch issue types" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to create issue type" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -241,7 +241,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to update issue type" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }
@@ -306,7 +306,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to delete issue type" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 403 }
+      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

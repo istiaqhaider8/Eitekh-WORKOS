@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, getEmailConfig } from "@/lib/email";
 import { superAdminEmailTestSchema, parseBody } from "@/lib/validation";
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     <div><strong>Dispatched At:</strong> ${new Date().toISOString()}</div>
     <div><strong>Target Recipient:</strong> ${targetEmail}</div>
   </div>
-  <p style="color: #10b981; font-weight: bold; font-size: 13px;">✓ Outbound email service operational.</p>
+  <p style="color: #10b981; font-weight: bold; font-size: 13px;">âœ“ Outbound email service operational.</p>
 </div>
       `.trim(),
     });
@@ -39,6 +39,6 @@ export async function POST(req: Request) {
       result,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

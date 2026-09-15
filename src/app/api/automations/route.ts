@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(automations);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: error.message?.includes("Unauthorized") ? 401 : 403 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
   }
 }
 
@@ -54,6 +54,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(rule, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 403 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
   }
 }

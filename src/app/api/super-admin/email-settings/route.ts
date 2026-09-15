@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailConfig } from "@/lib/email";
@@ -20,14 +20,14 @@ export async function GET() {
     const safeConfig = config
       ? {
           ...config,
-          smtpPass: config.smtpPass ? "••••••••" : null,
+          smtpPass: config.smtpPass ? "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" : null,
           hasSmtpPass: Boolean(config.smtpPass),
         }
       : null;
 
     return NextResponse.json({ config: safeConfig, logs });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -51,7 +51,7 @@ export async function PATCH(req: Request) {
           smtpHost: smtpHost || "smtp.gmail.com",
           smtpPort: Number(smtpPort) || 587,
           smtpUser: smtpUser || senderEmail || "cocofbd@gmail.com",
-          smtpPass: smtpPass && smtpPass !== "••••••••" ? smtpPass : null,
+          smtpPass: smtpPass && smtpPass !== "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" ? smtpPass : null,
           isSecure: Boolean(isSecure),
           isEnabled: isEnabled !== undefined ? Boolean(isEnabled) : true,
         },
@@ -63,7 +63,7 @@ export async function PATCH(req: Request) {
       if (smtpHost !== undefined) updateData.smtpHost = smtpHost;
       if (smtpPort !== undefined) updateData.smtpPort = Number(smtpPort);
       if (smtpUser !== undefined) updateData.smtpUser = smtpUser;
-      if (smtpPass !== undefined && smtpPass !== "••••••••") updateData.smtpPass = smtpPass;
+      if (smtpPass !== undefined && smtpPass !== "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢") updateData.smtpPass = smtpPass;
       if (isSecure !== undefined) updateData.isSecure = Boolean(isSecure);
       if (isEnabled !== undefined) updateData.isEnabled = Boolean(isEnabled);
 
@@ -85,12 +85,12 @@ export async function PATCH(req: Request) {
 
     const safeConfig = {
       ...config,
-      smtpPass: config.smtpPass ? "••••••••" : null,
+      smtpPass: config.smtpPass ? "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" : null,
       hasSmtpPass: Boolean(config.smtpPass),
     };
 
     return NextResponse.json({ config: safeConfig, message: "Email configuration updated successfully" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { getCurrentUser } from "@/lib/auth";
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(workspaces);
   } catch (error: any) {
     const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message }, { status });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
   }
 }
 
@@ -67,6 +67,6 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(workspace, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
   }
 }

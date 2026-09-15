@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { securityEngine } from '@/lib/security-engine';
 import { superAdminSecurityThreatUpdateSchema, parseBody } from '@/lib/validation';
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       isolationViolations,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -53,6 +53,6 @@ export async function PATCH(request: Request) {
       threat: updated,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

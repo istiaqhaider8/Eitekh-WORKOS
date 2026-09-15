@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error("[Notifications API GET] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -102,7 +102,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, unreadCount });
   } catch (error: any) {
     console.error("[Notifications API PATCH] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -149,7 +149,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true, unreadCount });
   } catch (error: any) {
     console.error("[Notifications API DELETE] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -212,7 +212,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     console.error("[Notifications API POST] Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 

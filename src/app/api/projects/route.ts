@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { projectCreateSchema, parseBody } from "@/lib/validation";
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(projects);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -131,6 +131,6 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(project, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
   }
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getEmailTemplates, DEFAULT_TEMPLATES } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +14,7 @@ export async function GET() {
     const templates = await getEmailTemplates();
     return NextResponse.json({ templates });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -39,6 +39,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "Invalid operation" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { workspaceUpdateSchema, parseBody } from "@/lib/validation";
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!workspace) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(workspace);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: error.message === "Unauthorized" ? 401 : 403 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message === "Unauthorized" ? 401 : 500 });
   }
 }
 
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: error.message === "Unauthorized" ? 401 : 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message === "Unauthorized" ? 401 : 400 });
   }
 }
 
@@ -80,6 +80,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
   }
 }
