@@ -600,11 +600,9 @@ class UnifiedPBACEngine {
 
           if (userRoles.size === 0) {
             if (u.isSuperAdmin) {
-              // Platform super-admin authority derives from isSuperAdmin DB flag, not from
-              // a PBAC role. Assign VIEWER at the PBAC layer so the access matrix
-              // faithfully reflects that no elevated org/project role was granted here —
-              // full access is provided by the isSuperAdmin bypass in getUserCapabilities().
-              userRoles.add(viewerRoleId);
+              userRoles.add(superAdminRoleId);
+              userRoles.add(orgAdminRoleId);
+              userRoles.add(projectAdminRoleId);
             } else {
               userRoles.add(memberRoleId);
             }
