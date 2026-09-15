@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 59 resolved, 1 partial, 13 pending out of 73 findings (81%)**
+**Overall: 60 resolved, 1 partial, 12 pending out of 73 findings (82%)**
 
 ---
 
@@ -96,7 +96,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 51 | ADMIN-4 | Low | COMPLETED | No admin dashboard access logging |
 | 52 | OPS-7 | Low | COMPLETED | No structured logging |
 | 53 | OPS-8 | Low | COMPLETED | No environment-specific configuration |
-| 54 | OPS-9 | Low | PENDING | No deployment documentation |
+| 54 | OPS-9 | Low | COMPLETED | No deployment documentation |
 | 55 | TEST-2 | Low | PENDING | No integration test framework |
 
 ---
@@ -159,7 +159,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | OPS-5 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `09f8908` |
 | TEST-1 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `ea561b3` |
 | PERF-8 | Low | Claude Sonnet 4.6 | 2026-09-15 | `f220d5c` |
-| API-5 | Low | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| API-5 | Low | Claude Sonnet 4.6 | 2026-09-15 | `c6c1099` |
+| OPS-9 | Low | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -250,6 +251,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - API-5: No OpenAPI/Swagger documentation — LOW severity
   - Created public/openapi.json (OpenAPI 3.0.3) covering auth, issues, projects, notifications, webhooks
   - Created GET /api/docs route that serves the spec with CORS + cache headers
+- OPS-9: No deployment documentation — LOW severity
+  - Created DEPLOYMENT.md: full production deployment guide (systemd, Nginx+TLS, env vars, security checklist, update/rollback, backup)
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
