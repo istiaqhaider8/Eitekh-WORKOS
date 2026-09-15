@@ -76,9 +76,11 @@ export async function POST(req: Request) {
       templateKey: "INVITATION",
       variables: {
         inviterName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
+        inviterEmail: user.email,
         organizationName: org.name,
         roleName: role || "Member",
         actionUrl: inviteUrl,
+        recipientEmail: normalizedEmail,
       },
     });
 
