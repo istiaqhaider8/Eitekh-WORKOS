@@ -736,7 +736,21 @@ model EmailTemplate {
   subject     String
   bodyHtml    String
   variables   String?  // JSON array of available variables e.g. ["userName", "issueKey", "issueTitle", "actionUrl"]
+  version     Int      @default(1)
   updatedAt   DateTime @updatedAt
+}
+
+model EmailTemplateVersion {
+  id          String   @id @default(cuid())
+  templateKey String
+  version     Int
+  subject     String
+  bodyHtml    String
+  savedBy     String?  // userId of the admin who saved this version
+  savedAt     DateTime @default(now())
+
+  @@unique([templateKey, version])
+  @@index([templateKey])
 }
 
 model EmailLog {

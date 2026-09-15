@@ -66,11 +66,26 @@ export async function PATCH(
       return NextResponse.json({ error: "Subject and bodyHtml are required" }, { status: 400 });
     }
 
+    // Snapshot current version before overwriting
+    const current = await prisma.emailTemplate.findUnique({ where: { key } });
+    if (current) {
+      await prisma.emailTemplateVersion.create({
+        data: {
+          templateKey: key,
+          version: current.version,
+          subject: current.subject,
+          bodyHtml: current.bodyHtml,
+          savedBy: user.id,
+        },
+      }).catch(() => {});
+    }
+
     const updated = await prisma.emailTemplate.update({
       where: { key },
       data: {
         subject,
         bodyHtml,
+        version: { increment: 1 },
       },
     });
 
@@ -80,7 +95,7 @@ export async function PATCH(
         actorId: user.id,
         action: "EMAIL_TEMPLATE_UPDATED",
         targetResource: `EmailTemplate:${key}`,
-        details: JSON.stringify({ subject }),
+        details: JSON.stringify({ subject, version: updated.version }),
       },
     }).catch(() => {});
 
