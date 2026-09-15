@@ -12,74 +12,108 @@ export interface SendEmailOptions {
 export const DEFAULT_SENDER_EMAIL = process.env.EMAIL_FROM || "noreply@eitekh.com";
 export const DEFAULT_SENDER_NAME = process.env.EMAIL_FROM_NAME || "Eitekh WorkOS";
 
+// Shared email wrapper — table-based layout for maximum client compatibility
+function wrap(content: string): string {
+  return `
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8;">
+  <tr><td align="center" style="padding:40px 16px;">
+    <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <!-- Header -->
+      <tr>
+        <td style="background-color:#0f172a;padding:28px 32px;text-align:center;">
+          <table cellpadding="0" cellspacing="0" border="0" align="center">
+            <tr>
+              <td style="width:36px;height:36px;background-color:#2563eb;border-radius:8px;text-align:center;vertical-align:middle;font-size:18px;font-weight:800;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">E</td>
+              <td style="padding-left:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#ffffff;letter-spacing:-0.2px;">Eitekh WorkOS</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <!-- Body -->
+      <tr>
+        <td style="padding:32px 32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          ${content}
+        </td>
+      </tr>
+      <!-- Footer -->
+      <tr>
+        <td style="padding:0 32px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="border-top:1px solid #e5e7eb;padding-top:20px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#9ca3af;">&copy; {{currentYear}} Eitekh Technologies. All rights reserved.</p>
+              <p style="margin:0;font-size:11px;color:#d1d5db;">Enterprise Project Management &amp; Issue Tracking</p>
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>`.trim();
+}
+
+// Shared button component
+function btn(href: string, label: string, color = "#2563eb"): string {
+  return `<table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto;">
+  <tr><td align="center" style="background-color:${color};border-radius:6px;">
+    <a href="${href}" target="_blank" style="display:inline-block;padding:13px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.2px;">${label}</a>
+  </td></tr>
+</table>`;
+}
+
 export const DEFAULT_TEMPLATES = [
   {
     key: "WELCOME",
     name: "Welcome & Account Verification",
     description: "Sent when a new user signs up or is invited to an organization",
-    subject: "Welcome to Eitekh WorkOS, {{userName}}! 🚀",
+    subject: "Welcome to Eitekh WorkOS, {{userName}}",
     variables: JSON.stringify(["userName", "userEmail", "organizationName", "actionUrl"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">E</div>
-    <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin-top: 12px; margin-bottom: 4px;">Welcome to Eitekh WorkOS</h1>
-    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Enterprise Project Management & Issue Tracking</p>
-  </div>
+    bodyHtml: wrap(`
+          <h1 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#111827;">Welcome aboard, {{userName}}</h1>
+          <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.5;">Your Eitekh WorkOS account has been created.</p>
 
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #f1f5f9; font-size: 14px; margin-top: 0;">Hi <strong>{{userName}}</strong>,</p>
-    <p style="color: #cbd5e1; font-size: 13px; line-height: 1.6;">Your Eitekh WorkOS account is ready. You are a member of <strong>{{organizationName}}</strong>. You can now access your projects, sprint boards, and team workloads.</p>
-    
-    <div style="margin: 28px 0; text-align: center;">
-      <a href="{{actionUrl}}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block;">Open Workspace →</a>
-    </div>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Organization</p>
+              <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">{{organizationName}}</p>
+            </td></tr>
+          </table>
 
-    <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">If you did not request this account, you can safely ignore this email.</p>
-  </div>
-
-  <div style="text-align: center; margin-top: 24px; color: #64748b; font-size: 11px;">
-    Sent with Eitekh WorkOS Platform &bull; System Notification
-  </div>
-</div>
-`.trim(),
+          <p style="margin:20px 0 0;font-size:14px;color:#374151;line-height:1.6;">You now have access to your projects, sprint boards, and team workloads. Click below to open your workspace.</p>
+          ${btn("{{actionUrl}}", "Open Your Workspace")}
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">If you did not create this account, you can safely ignore this email.</p>
+    `),
   },
   {
     key: "ISSUE_ASSIGNED",
     name: "Issue Assigned Notification",
     description: "Triggered when an issue or task is assigned to a user",
-    subject: "[{{projectKey}}] Assigned to you: {{issueKey}} - {{issueTitle}}",
+    subject: "[{{projectKey}}] {{issueKey}} assigned to you — {{issueTitle}}",
     variables: JSON.stringify(["userName", "projectKey", "projectName", "issueKey", "issueTitle", "priority", "issueType", "assignerName", "actionUrl"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="display: flex; align-items: center; margin-bottom: 20px;">
-    <div style="display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 16px; border-radius: 8px; margin-right: 12px;">E</div>
-    <span style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase;">Eitekh WorkOS &bull; Task Assignment</span>
-  </div>
+    bodyHtml: wrap(`
+          <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#2563eb;text-transform:uppercase;letter-spacing:0.5px;">Task Assignment</p>
+          <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#111827;">You have a new assignment</h1>
+          <p style="margin:0 0 20px;font-size:14px;color:#374151;line-height:1.5;"><strong>{{assignerName}}</strong> assigned an issue to you in <strong>{{projectName}}</strong>.</p>
 
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #f1f5f9; font-size: 14px; margin-top: 0;">Hi <strong>{{userName}}</strong>,</p>
-    <p style="color: #cbd5e1; font-size: 13px; line-height: 1.5;"><strong>{{assignerName}}</strong> assigned a new issue to you in <strong>{{projectName}}</strong>:</p>
-
-    <div style="background-color: #0f172a; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 6px; margin: 18px 0;">
-      <div style="font-family: monospace; font-size: 12px; color: #60a5fa; font-weight: bold; margin-bottom: 4px;">{{issueKey}}</div>
-      <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 10px;">{{issueTitle}}</div>
-      <div style="font-size: 12px; color: #94a3b8;">
-        Type: <span style="color: #e2e8f0; font-weight: 600;">{{issueType}}</span> &nbsp;&bull;&nbsp;
-        Priority: <span style="color: #f59e0b; font-weight: 600;">{{priority}}</span>
-      </div>
-    </div>
-
-    <div style="margin-top: 24px;">
-      <a href="{{actionUrl}}" style="background-color: #2563eb; color: #ffffff; padding: 10px 22px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block;">View Issue Details →</a>
-    </div>
-  </div>
-
-  <div style="text-align: center; margin-top: 20px; color: #64748b; font-size: 11px;">
-    Notification dispatched to {{userName}} via Eitekh WorkOS Email Engine
-  </div>
-</div>
-`.trim(),
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+            <tr><td style="padding:20px;border-left:4px solid #2563eb;border-radius:6px;">
+              <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#2563eb;font-family:'Courier New',Courier,monospace;">{{issueKey}}</p>
+              <p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#111827;">{{issueTitle}}</p>
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding-right:16px;">
+                    <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;">Type</span><br/>
+                    <span style="font-size:13px;font-weight:600;color:#374151;">{{issueType}}</span>
+                  </td>
+                  <td>
+                    <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;">Priority</span><br/>
+                    <span style="font-size:13px;font-weight:600;color:#d97706;">{{priority}}</span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+          ${btn("{{actionUrl}}", "View Issue")}
+    `),
   },
   {
     key: "MENTION",
@@ -87,150 +121,154 @@ export const DEFAULT_TEMPLATES = [
     description: "Triggered when a user is @mentioned in an issue comment",
     subject: "[{{projectKey}}] {{authorName}} mentioned you on {{issueKey}}",
     variables: JSON.stringify(["userName", "authorName", "projectKey", "issueKey", "issueTitle", "commentContent", "actionUrl"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="margin-bottom: 16px;">
-    <span style="background-color: #3b82f6; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase;">@Mention</span>
-  </div>
+    bodyHtml: wrap(`
+          <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
+            <tr><td style="background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.5px;">@Mention</td></tr>
+          </table>
+          <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#111827;">You were mentioned in a comment</h1>
+          <p style="margin:0 0 20px;font-size:14px;color:#374151;line-height:1.5;"><strong>{{authorName}}</strong> mentioned you on <strong style="color:#2563eb;">{{issueKey}}</strong>: {{issueTitle}}</p>
 
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #f1f5f9; font-size: 14px; margin-top: 0;">Hi <strong>{{userName}}</strong>,</p>
-    <p style="color: #cbd5e1; font-size: 13px;"><strong>{{authorName}}</strong> mentioned you on <strong>{{issueKey}}: {{issueTitle}}</strong>:</p>
-
-    <div style="background-color: #0f172a; padding: 14px; border-radius: 8px; margin: 16px 0; border: 1px solid #334155; color: #e2e8f0; font-size: 13px; font-style: italic; line-height: 1.5;">
-      "{{commentContent}}"
-    </div>
-
-    <div style="margin-top: 20px;">
-      <a href="{{actionUrl}}" style="background-color: #2563eb; color: #ffffff; padding: 10px 22px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block;">Reply to Comment →</a>
-    </div>
-  </div>
-
-  <div style="text-align: center; margin-top: 20px; color: #64748b; font-size: 11px;">
-    Eitekh WorkOS Collaboration &bull; Sent to {{userName}}
-  </div>
-</div>
-`.trim(),
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;font-style:italic;">&ldquo;{{commentContent}}&rdquo;</p>
+            </td></tr>
+          </table>
+          ${btn("{{actionUrl}}", "View Comment")}
+    `),
   },
   {
     key: "PASSWORD_RESET",
     name: "Password Reset Request",
-    description: "Sent when a user requests to reset their password",
-    subject: "Reset your Eitekh WorkOS password 🔒",
+    description: "Sent when a user requests to reset their password (link-based)",
+    subject: "Reset your Eitekh WorkOS password",
     variables: JSON.stringify(["userName", "resetUrl", "expiresIn"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="color: #ffffff; font-size: 20px; font-weight: 800;">Password Reset Request</h1>
-  </div>
+    bodyHtml: wrap(`
+          <div style="text-align:center;margin-bottom:20px;">
+            <table cellpadding="0" cellspacing="0" border="0" align="center">
+              <tr><td style="width:48px;height:48px;background-color:#fef2f2;border-radius:50%;text-align:center;vertical-align:middle;font-size:22px;">&#128274;</td></tr>
+            </table>
+          </div>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Password Reset</h1>
+          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;text-align:center;line-height:1.5;">We received a request to reset the password for your account.</p>
 
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #f1f5f9; font-size: 14px; margin-top: 0;">Hi <strong>{{userName}}</strong>,</p>
-    <p style="color: #cbd5e1; font-size: 13px; line-height: 1.5;">We received a request to reset your Eitekh WorkOS password. Click the button below to choose a new password. This link will expire in {{expiresIn}}.</p>
-
-    <div style="margin: 24px 0; text-align: center;">
-      <a href="{{resetUrl}}" style="background-color: #dc2626; color: #ffffff; padding: 12px 28px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a>
-    </div>
-
-    <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">If you did not make this request, your account is still secure and no changes were made.</p>
-  </div>
-</div>
-`.trim(),
+          <p style="margin:0 0 4px;font-size:14px;color:#374151;line-height:1.6;">Hi <strong>{{userName}}</strong>,</p>
+          <p style="margin:0 0 4px;font-size:14px;color:#374151;line-height:1.6;">Click the button below to choose a new password. This link expires in <strong>{{expiresIn}}</strong>.</p>
+          ${btn("{{resetUrl}}", "Reset Password", "#dc2626")}
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">If you did not make this request, no action is needed. Your account remains secure.</p>
+    `),
   },
   {
     key: "SPRINT_STARTED",
     name: "Sprint Started Notification",
     description: "Sent to team members when a project sprint is started",
-    subject: "[{{projectName}}] Sprint {{sprintName}} is now Active! 🏁",
+    subject: "[{{projectName}}] Sprint started — {{sprintName}}",
     variables: JSON.stringify(["userName", "projectName", "sprintName", "sprintGoal", "startDate", "endDate", "actionUrl"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <h2 style="color: #ffffff; font-size: 18px; margin-top: 0;">Sprint Started: {{sprintName}}</h2>
-    <p style="color: #cbd5e1; font-size: 13px;">Project: <strong>{{projectName}}</strong></p>
+    bodyHtml: wrap(`
+          <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#059669;text-transform:uppercase;letter-spacing:0.5px;">Sprint Active</p>
+          <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#111827;">{{sprintName}} has started</h1>
+          <p style="margin:0 0 20px;font-size:14px;color:#374151;line-height:1.5;">Project: <strong>{{projectName}}</strong></p>
 
-    <div style="background-color: #0f172a; padding: 16px; border-radius: 8px; margin: 16px 0;">
-      <p style="color: #94a3b8; font-size: 12px; margin: 0 0 6px 0;">Sprint Goal:</p>
-      <p style="color: #f1f5f9; font-size: 14px; margin: 0; font-weight: 600;">{{sprintGoal}}</p>
-      <div style="margin-top: 10px; font-size: 12px; color: #64748b;">Duration: {{startDate}} to {{endDate}}</div>
-    </div>
-
-    <div style="margin-top: 20px;">
-      <a href="{{actionUrl}}" style="background-color: #2563eb; color: #ffffff; padding: 10px 22px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block;">Open Sprint Board →</a>
-    </div>
-  </div>
-</div>
-`.trim(),
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+            <tr><td style="padding:20px;">
+              <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Sprint Goal</p>
+              <p style="margin:0 0 16px;font-size:15px;font-weight:600;color:#111827;line-height:1.5;">{{sprintGoal}}</p>
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding-right:20px;">
+                    <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;">Start</span><br/>
+                    <span style="font-size:13px;font-weight:600;color:#374151;">{{startDate}}</span>
+                  </td>
+                  <td>
+                    <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;">End</span><br/>
+                    <span style="font-size:13px;font-weight:600;color:#374151;">{{endDate}}</span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+          ${btn("{{actionUrl}}", "Open Sprint Board")}
+    `),
   },
   {
     key: "REGISTRATION_OTP",
     name: "Registration OTP Code",
     description: "Sent when a user registers to verify their email address",
-    subject: "{{otpCode}} — Eitekh WorkOS Verification Code",
+    subject: "{{otpCode}} is your Eitekh WorkOS verification code",
     variables: JSON.stringify(["otpCode", "expiresIn"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">E</div>
-    <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin-top: 12px; margin-bottom: 4px;">Verify Your Email</h1>
-    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Eitekh WorkOS</p>
-  </div>
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #cbd5e1; font-size: 13px; line-height: 1.6;">Enter this code to verify your email and activate your Eitekh WorkOS account:</p>
-    <div style="text-align: center; margin: 24px 0;">
-      <div style="display: inline-block; background-color: #0f172a; border: 2px solid #3b82f6; border-radius: 12px; padding: 16px 32px; letter-spacing: 8px; font-size: 32px; font-weight: 900; color: #ffffff; font-family: monospace;">{{otpCode}}</div>
-    </div>
-    <p style="color: #64748b; font-size: 11px; text-align: center; margin-bottom: 0;">This code expires in {{expiresIn}}. Do not share it with anyone.</p>
-  </div>
-</div>
-`.trim(),
+    bodyHtml: wrap(`
+          <div style="text-align:center;margin-bottom:20px;">
+            <table cellpadding="0" cellspacing="0" border="0" align="center">
+              <tr><td style="width:48px;height:48px;background-color:#eff6ff;border-radius:50%;text-align:center;vertical-align:middle;font-size:22px;">&#128272;</td></tr>
+            </table>
+          </div>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Verify your email</h1>
+          <p style="margin:0 0 28px;font-size:14px;color:#6b7280;text-align:center;line-height:1.5;">Enter the code below to activate your Eitekh WorkOS account.</p>
+
+          <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 28px;">
+            <tr><td style="background-color:#f9fafb;border:2px solid #2563eb;border-radius:8px;padding:18px 36px;text-align:center;">
+              <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;color:#111827;letter-spacing:10px;">{{otpCode}}</span>
+            </td></tr>
+          </table>
+
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;text-align:center;">This code expires in <strong style="color:#374151;">{{expiresIn}}</strong>.</p>
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">If you did not create an account, you can ignore this email.</p>
+    `),
   },
   {
     key: "PASSWORD_RESET_OTP",
     name: "Password Reset OTP Code",
-    description: "Sent when a user requests a password reset",
-    subject: "{{otpCode}} — Eitekh WorkOS Password Reset Code",
+    description: "Sent when a user requests a password reset via OTP",
+    subject: "{{otpCode}} is your Eitekh WorkOS password reset code",
     variables: JSON.stringify(["otpCode", "expiresIn"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #dc2626; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">E</div>
-    <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin-top: 12px; margin-bottom: 4px;">Password Reset</h1>
-    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Eitekh WorkOS</p>
-  </div>
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #cbd5e1; font-size: 13px; line-height: 1.6;">Enter this code to reset your Eitekh WorkOS password:</p>
-    <div style="text-align: center; margin: 24px 0;">
-      <div style="display: inline-block; background-color: #0f172a; border: 2px solid #dc2626; border-radius: 12px; padding: 16px 32px; letter-spacing: 8px; font-size: 32px; font-weight: 900; color: #ffffff; font-family: monospace;">{{otpCode}}</div>
-    </div>
-    <p style="color: #64748b; font-size: 11px; text-align: center; margin-bottom: 0;">This code expires in {{expiresIn}}. If you did not request this, ignore this email.</p>
-  </div>
-</div>
-`.trim(),
+    bodyHtml: wrap(`
+          <div style="text-align:center;margin-bottom:20px;">
+            <table cellpadding="0" cellspacing="0" border="0" align="center">
+              <tr><td style="width:48px;height:48px;background-color:#fef2f2;border-radius:50%;text-align:center;vertical-align:middle;font-size:22px;">&#128274;</td></tr>
+            </table>
+          </div>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;text-align:center;">Password Reset Code</h1>
+          <p style="margin:0 0 28px;font-size:14px;color:#6b7280;text-align:center;line-height:1.5;">Use the code below to reset your Eitekh WorkOS password.</p>
+
+          <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 28px;">
+            <tr><td style="background-color:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:18px 36px;text-align:center;">
+              <span style="font-family:'Courier New',Courier,monospace;font-size:36px;font-weight:800;color:#111827;letter-spacing:10px;">{{otpCode}}</span>
+            </td></tr>
+          </table>
+
+          <p style="margin:0 0 4px;font-size:13px;color:#6b7280;text-align:center;">This code expires in <strong style="color:#374151;">{{expiresIn}}</strong>.</p>
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">If you did not request this, no action is needed. Your account is still secure.</p>
+    `),
   },
   {
     key: "INVITATION",
     name: "Organization Invitation",
     description: "Sent when a user is invited to join an organization",
-    subject: "You're invited to join {{organizationName}} on Eitekh WorkOS",
+    subject: "{{inviterName}} invited you to {{organizationName}} on Eitekh WorkOS",
     variables: JSON.stringify(["inviterName", "organizationName", "roleName", "actionUrl"]),
-    bodyHtml: `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 20px; background-color: #0f172a; color: #f8fafc; border-radius: 16px;">
-  <div style="text-align: center; margin-bottom: 24px;">
-    <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #2563eb; color: #ffffff; font-weight: 900; font-size: 22px; border-radius: 12px;">E</div>
-    <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin-top: 12px; margin-bottom: 4px;">Organization Invitation</h1>
-    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Eitekh WorkOS</p>
-  </div>
-  <div style="background-color: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155;">
-    <p style="color: #f1f5f9; font-size: 14px; margin-top: 0;"><strong>{{inviterName}}</strong> has invited you to join <strong>{{organizationName}}</strong> as a <strong>{{roleName}}</strong>.</p>
-    <p style="color: #cbd5e1; font-size: 13px; line-height: 1.6;">Click the button below to accept the invitation and set up your account:</p>
-    <div style="margin: 24px 0; text-align: center;">
-      <a href="{{actionUrl}}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block;">Accept Invitation →</a>
-    </div>
-    <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">This invitation expires in 7 days. If you did not expect this, you can safely ignore it.</p>
-  </div>
-</div>
-`.trim(),
+    bodyHtml: wrap(`
+          <div style="text-align:center;margin-bottom:20px;">
+            <table cellpadding="0" cellspacing="0" border="0" align="center">
+              <tr><td style="width:48px;height:48px;background-color:#f0fdf4;border-radius:50%;text-align:center;vertical-align:middle;font-size:22px;">&#9993;</td></tr>
+            </table>
+          </div>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;text-align:center;">You're invited</h1>
+          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;text-align:center;line-height:1.5;"><strong style="color:#374151;">{{inviterName}}</strong> has invited you to join their team.</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;">
+            <tr>
+              <td style="padding:16px 20px;width:50%;border-right:1px solid #e5e7eb;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Organization</p>
+                <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">{{organizationName}}</p>
+              </td>
+              <td style="padding:16px 20px;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Role</p>
+                <p style="margin:0;font-size:15px;font-weight:600;color:#111827;">{{roleName}}</p>
+              </td>
+            </tr>
+          </table>
+          ${btn("{{actionUrl}}", "Accept Invitation")}
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">This invitation expires in 7 days. If you did not expect this, you can safely ignore it.</p>
+    `),
   },
 ];
 
@@ -317,7 +355,8 @@ const URL_VARIABLE_NAMES = new Set([
  */
 export function renderTemplate(text: string, variables: Record<string, any> = {}) {
   let rendered = text;
-  for (const [key, val] of Object.entries(variables)) {
+  const allVars = { currentYear: new Date().getFullYear().toString(), ...variables };
+  for (const [key, val] of Object.entries(allVars)) {
     const raw = String(val ?? "");
     const safe = URL_VARIABLE_NAMES.has(key) ? encodeURI(raw) : escapeHtml(raw);
     const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
