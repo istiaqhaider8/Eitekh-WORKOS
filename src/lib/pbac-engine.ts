@@ -600,9 +600,11 @@ class UnifiedPBACEngine {
 
           if (userRoles.size === 0) {
             if (u.isSuperAdmin) {
-              userRoles.add(superAdminRoleId);
-              userRoles.add(orgAdminRoleId);
-              userRoles.add(projectAdminRoleId);
+              // Platform super-admin authority derives from isSuperAdmin DB flag, not from
+              // a PBAC role. Assign VIEWER at the PBAC layer so the access matrix
+              // faithfully reflects that no elevated org/project role was granted here —
+              // full access is provided by the isSuperAdmin bypass in getUserCapabilities().
+              userRoles.add(viewerRoleId);
             } else {
               userRoles.add(memberRoleId);
             }
@@ -1566,9 +1568,14 @@ class UnifiedPBACEngine {
       }
 
       const effectivePermSet = new Set<string>();
-      for (const r of assignedRoles) {
-        if (r.status === 'ACTIVE') {
-          r.permissions.forEach((p) => effectivePermSet.add(p));
+      if (u.isSuperAdmin) {
+        // isSuperAdmin DB flag bypasses PBAC role layer — all capabilities are effective
+        ALL_PBAC_PERMISSION_KEYS.forEach((p) => effectivePermSet.add(p));
+      } else {
+        for (const r of assignedRoles) {
+          if (r.status === 'ACTIVE') {
+            r.permissions.forEach((p) => effectivePermSet.add(p));
+          }
         }
       }
 
@@ -1732,6 +1739,87 @@ class UnifiedPBACEngine {
         where: { id: projectId },
         select: { id: true, name: true, key: true },
       });
+    }
+
+    // Super Admin platform bypass: isSuperAdmin DB flag grants ALL permissions regardless
+    // of any PBAC role assignment. Surface this explicitly in the inspector so the
+    // provenance trace shows the real grant source, not the (viewer-only) PBAC role.
+    if (user.isSuperAdmin) {
+      const superAdminRole: PBACRole = {
+        id: `role_${orgId}_super-admin`,
+        orgId,
+        name: 'Super Admin',
+        slug: 'super-admin',
+        description: 'Unrestricted platform authority granted via isSuperAdmin DB flag.',
+        scope: 'ORG',
+        projectId: null,
+        projectName: null,
+        status: 'ACTIVE',
+        isSystem: true,
+        permissions: [...ALL_PBAC_PERMISSION_KEYS],
+        createdBy: 'System Provisioning',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const permsByCategory = PBAC_PERMISSION_CATEGORIES.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        totalPermissions: cat.permissions.length,
+        grantedPermissions: cat.permissions.map((p) => ({
+          key: p.key,
+          label: p.label,
+          description: p.description,
+          riskLevel: p.riskLevel,
+          sources: [{ roleId: superAdminRole.id, roleName: superAdminRole.name }],
+        })),
+      }));
+
+      const provenanceTraces = PBAC_PERMISSION_CATEGORIES.flatMap((cat) =>
+        cat.permissions.map((p) => ({
+          permissionKey: p.key,
+          permissionLabel: p.label,
+          category: cat.name,
+          riskLevel: p.riskLevel,
+          grantedByRoles: [{ id: superAdminRole.id, name: superAdminRole.name, status: 'ACTIVE', isSystem: true, projectId: null, projectName: null }],
+          tracePath: [
+            { node: 'Identity', detail: `User: ${user.firstName} ${user.lastName} (${user.email}) [Status: ${user.status}]` },
+            { node: 'Permission Role', detail: 'Platform Super Admin Authority (isSuperAdmin DB flag — bypasses PBAC role layer)' },
+            { node: 'Capability Grant', detail: `All Capabilities Granted: '${p.label}' [${p.key}] (Risk: ${p.riskLevel})` },
+            { node: 'Project Scope Boundary', detail: scopedProject ? `Effective in Project '${scopedProject.name}' (${scopedProject.key})` : 'Global — All Organizations, Workspaces, and Projects' },
+          ],
+          reasoning: `Granted because user '${user.firstName} ${user.lastName}' holds the platform Super Admin designation (isSuperAdmin=true). This flag bypasses the PBAC role layer entirely and unconditionally grants all ${ALL_PBAC_PERMISSION_KEYS.length} capabilities.`,
+        }))
+      );
+
+      const assignedPbacRoleIds = Array.from(this.userRoleAssignments.get(userId) || []);
+      const assignedPbacRoles = assignedPbacRoleIds
+        .map((rId) => this.roles.get(rId))
+        .filter((r): r is PBACRole => Boolean(r && r.orgId === orgId));
+
+      return {
+        user: {
+          id: user.id,
+          name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+          email: user.email,
+          jobTitle: user.jobTitle,
+          company: user.company,
+          avatarUrl: user.avatarUrl,
+          status: user.status,
+          isSuperAdmin: true,
+          superAdminBypass: true,
+        },
+        assignedRoles: assignedPbacRoles,
+        superAdminBypassActive: true,
+        scopedProject,
+        totalEffectivePermissions: ALL_PBAC_PERMISSION_KEYS.length,
+        effectivePermissionsCount: ALL_PBAC_PERMISSION_KEYS.length,
+        accessibleProjects: user.projectMemberships?.map((pm) => pm.project) || [],
+        accessibleWorkspaces: user.workspaceMemberships?.map((wm) => wm.workspace) || [],
+        permissionsByCategory: permsByCategory,
+        provenanceTraces,
+      };
     }
 
     const assignedRoleIds = Array.from(this.userRoleAssignments.get(userId) || []);
