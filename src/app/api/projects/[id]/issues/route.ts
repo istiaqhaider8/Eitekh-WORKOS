@@ -4,6 +4,7 @@ import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { issueCreateSchema, parseBody } from "@/lib/validation";
+import { getBaseUrl } from "@/lib/config";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -295,7 +296,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             issueKey: issue.issueKey,
             issueTitle: issue.title,
             projectName: project.name,
-            actionUrl: `http://localhost:3000/projects/${projectId}?issue=${issue.id}`,
+            actionUrl: `${getBaseUrl()}/projects/${projectId}?issue=${issue.id}`,
           },
           sendEmailAsync: true,
         });
@@ -325,7 +326,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           issueTitle: issue.title,
           priority: issue.priority,
           issueType: issue.issueType,
-          actionUrl: `http://localhost:3000/projects/${projectId}?issue=${issue.id}`,
+          actionUrl: `${getBaseUrl()}/projects/${projectId}?issue=${issue.id}`,
         },
         sendEmailAsync: true,
       });

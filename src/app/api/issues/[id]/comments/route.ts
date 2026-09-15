@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { getBaseUrl } from "@/lib/config";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { commentSchema, parseBody } from "@/lib/validation";
 
@@ -92,7 +93,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
               issueKey: issue.issueKey,
               issueTitle: issue.title,
               commentContent: content,
-              actionUrl: `http://localhost:3000/projects/${issue.projectId}?issue=${issue.id}`,
+              actionUrl: `${getBaseUrl()}/projects/${issue.projectId}?issue=${issue.id}`,
             },
             sendEmailAsync: true,
           });

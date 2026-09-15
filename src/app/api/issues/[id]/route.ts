@@ -4,6 +4,7 @@ import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { issueUpdateSchema, parseBody } from "@/lib/validation";
+import { getBaseUrl } from "@/lib/config";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -306,7 +307,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             issueTitle: currentIssue.title,
             priority: body.priority || currentIssue.priority,
             issueType: currentIssue.issueType,
-            actionUrl: `http://localhost:3000/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
+            actionUrl: `${getBaseUrl()}/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
           },
           sendEmailAsync: true,
         });
@@ -365,7 +366,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             issueKey: currentIssue.issueKey,
             issueTitle: currentIssue.title,
             projectName: project?.name || "Project Workspace",
-            actionUrl: `http://localhost:3000/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
+            actionUrl: `${getBaseUrl()}/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
           },
           sendEmailAsync: true,
         });
