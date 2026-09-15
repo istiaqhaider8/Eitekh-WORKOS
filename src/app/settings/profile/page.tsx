@@ -362,6 +362,38 @@ export default function ProfileSettingsPage() {
   const delegationsByMe = delegations.filter((d) => d.originalAssigneeId === currentUserId);
   const delegationsToMe = delegations.filter((d) => d.delegateUserId === currentUserId);
 
+  // Notification preferences
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, { inApp: boolean; email: boolean }>>({});
+  const [notifTypes, setNotifTypes] = useState<string[]>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/users/notification-preferences")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.prefs) setNotifPrefs(d.prefs);
+        if (d.types) setNotifTypes(d.types);
+      })
+      .catch(console.error)
+      .finally(() => setNotifLoading(false));
+  }, []);
+
+  const handleNotifToggle = async (type: string, channel: "inApp" | "email", enabled: boolean) => {
+    setNotifPrefs((prev) => ({
+      ...prev,
+      [type]: { ...(prev[type] ?? { inApp: true, email: true }), [channel]: enabled },
+    }));
+    try {
+      await fetch("/api/users/notification-preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, channel, enabled }),
+      });
+    } catch (e) {
+      console.error("Failed to save notification preference", e);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl space-y-8">
@@ -687,6 +719,62 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Notification Preferences */}
+      <div className="space-y-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-300 dark:border-slate-800 shadow-sm">
+        <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Notification Preferences</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Choose which notifications you receive in-app and by email.</p>
+        </div>
+        {notifLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center justify-between">
+                <Skeleton className="h-4 w-32" />
+                <div className="flex gap-8">
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-5 w-12" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-2 items-center text-[11px] font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100 dark:border-slate-800">
+              <span>Notification</span>
+              <span className="text-center w-12">In-App</span>
+              <span className="text-center w-12">Email</span>
+            </div>
+            {notifTypes.map((t) => {
+              const pref = notifPrefs[t] ?? { inApp: true, email: true };
+              const label = t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+              return (
+                <div key={t} className="grid grid-cols-[1fr_auto_auto] gap-x-6 items-center py-1.5 border-b border-slate-50 dark:border-slate-800/60 last:border-0">
+                  <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{label}</span>
+                  {(["inApp", "email"] as const).map((channel) => (
+                    <div key={channel} className="flex justify-center w-12">
+                      <button
+                        role="switch"
+                        aria-checked={pref[channel]}
+                        onClick={() => handleNotifToggle(t, channel, !pref[channel])}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                          pref[channel] ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                            pref[channel] ? "translate-x-4" : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Apply for Leave & Delegate Work Modal */}

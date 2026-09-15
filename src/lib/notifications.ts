@@ -111,8 +111,31 @@ class NotificationEngine {
     const targetUserIds = actorId ? userIds.filter((id) => id !== actorId) : userIds;
     if (targetUserIds.length === 0) return { inAppCount: 0, emailQueuedCount: 0 };
 
-    // 3. Batch insert In-App notifications into database
-    const inAppRecords = targetUserIds.map((userId) => ({
+    // 2a. Fetch notification preferences for all target users in one query
+    const userPrefsRows = await prisma.user.findMany({
+      where: { id: { in: targetUserIds }, status: 'ACTIVE' },
+      select: { id: true, notificationPrefs: true },
+    });
+    const prefsMap = new Map(userPrefsRows.map((u) => {
+      let prefs: Record<string, { inApp: boolean; email: boolean }> = {};
+      try { if (u.notificationPrefs) prefs = JSON.parse(u.notificationPrefs); } catch {}
+      return [u.id, prefs];
+    }));
+    const wantsInApp = (userId: string) => {
+      const p = prefsMap.get(userId);
+      if (!p || !p[type]) return true; // default on
+      return p[type].inApp !== false;
+    };
+    const wantsEmail = (userId: string) => {
+      const p = prefsMap.get(userId);
+      if (!p || !p[type]) return true; // default on
+      return p[type].email !== false;
+    };
+    const inAppUserIds = targetUserIds.filter(wantsInApp);
+    const emailUserIds = targetUserIds.filter(wantsEmail);
+
+    // 3. Batch insert In-App notifications into database (respecting preferences)
+    const inAppRecords = inAppUserIds.map((userId) => ({
       userId,
       title,
       message,
@@ -160,7 +183,7 @@ class NotificationEngine {
       try {
         const recipients = await prisma.user.findMany({
           where: {
-            id: { in: targetUserIds },
+            id: { in: emailUserIds },
             status: 'ACTIVE',
           },
           select: { id: true, email: true, firstName: true, lastName: true },

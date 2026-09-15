@@ -27,6 +27,7 @@ model User {
   mfaEnabled      Boolean   @default(false)
   mfaSecret       String?
   recoveryCodes   String?   // JSON array of hashed recovery codes
+  notificationPrefs String? // JSON: { [NotificationType]: { inApp: boolean, email: boolean } }
   emailVerifiedAt DateTime?
   verificationToken String?
   resetToken      String?
