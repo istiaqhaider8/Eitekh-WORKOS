@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `fcc6034`
+> **Latest Commit**: `de46ff4`
 
 ---
 
@@ -347,6 +347,14 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   3. ProjectClient: refreshIssues made sequential fetches → parallelized with Promise.all
   - Result: Page-load API calls reduced from 15+ to 8, notification calls from 15+ to 1
   - Commit: `fcc6034`
+- **Notifications & Announcements system** — fully implemented:
+  1. Public `/api/announcements` endpoint for fetching active, non-expired announcements
+  2. Dismissible announcement banners above header (severity-colored: red=CRITICAL, amber=WARNING, blue=INFO)
+  3. Notification panel System tab shows announcements as dedicated cards + system notifications
+  4. Super-admin broadcast: creating announcement with `broadcast: true` sends SYSTEM notification to all active users
+  5. Added SYSTEM/INFO/ROLE icon mapping in notification panel
+  6. Seeded test data: 3 announcements, 5 notifications per user (system, assignment, mention, sprint)
+  - Commit: `de46ff4`
 
 ---
 
