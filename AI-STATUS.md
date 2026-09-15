@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 57 resolved, 1 partial, 15 pending out of 73 findings (78%)**
+**Overall: 58 resolved, 1 partial, 14 pending out of 73 findings (79%)**
 
 ---
 
@@ -82,7 +82,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|---|
 | 38 | PBAC-6 | Low | COMPLETED | Permission denied errors not user-friendly |
 | 39 | PERF-7 | Low | COMPLETED | No connection pooling strategy |
-| 40 | PERF-8 | Low | PENDING | Bundle size not optimized |
+| 40 | PERF-8 | Low | COMPLETED | Bundle size not optimized |
 | 41 | UI-6 | Low | PENDING | Missing loading/error states |
 | 42 | UI-7 | Low | PENDING | No dark mode consistency |
 | 43 | UI-8 | Low | PENDING | Mobile responsiveness gaps |
@@ -157,7 +157,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | DATA-7 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `0ec19d8` |
 | UI-2 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (already resolved by Phase 2 + error surfacing) |
 | OPS-5 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `09f8908` |
-| TEST-1 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| TEST-1 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `ea561b3` |
+| PERF-8 | Low | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -241,6 +242,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   - Installed Jest + ts-jest, added npm test / test:coverage scripts
   - 49 unit tests across 3 suites: sanitize.test.ts, encryption.test.ts, validation.test.ts
   - Coverage: sanitizeUrl XSS cases, AES-256-GCM round-trip + masking, Zod schema edge cases
+- PERF-8: Bundle size not optimized — LOW severity
+  - Install @next/bundle-analyzer; add ANALYZE=true env support + npm run analyze script
+  - Enable Next.js compress:true and experimental.optimizePackageImports for lucide-react + date-fns
+  - Wrap nextConfig with withBundleAnalyzer in next.config.mjs
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:

@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 // Baseline security headers applied to every response. CSP is intentionally
 // conservative but permits Next.js's inline runtime; tighten to nonces later.
@@ -31,8 +36,12 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true,
   images: {
     unoptimized: true,
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "date-fns"],
   },
   async headers() {
     return [
@@ -44,4 +53,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);
