@@ -1354,7 +1354,7 @@ class UnifiedPBACEngine {
     const cacheKey = projectRole ? `${orgId}:${userId}:${projectRole}` : `${orgId}:${userId}`;
     const cached = this.capabilityCache.get(cacheKey);
     const now = Date.now();
-    if (cached && (now - cached.timestamp) < 60000) { // 60s TTL
+    if (cached && (now - cached.timestamp) < 5000) { // 5s TTL — short to limit stale permissions after role changes
       return cached.permissions;
     }
 
