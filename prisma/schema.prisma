@@ -718,7 +718,7 @@ model Webhook {
 model SystemEmailConfig {
   id          String   @id @default(cuid())
   senderEmail String   @default("cocofbd@gmail.com")
-  senderName  String   @default("Zenith WorkOS")
+  senderName  String   @default("Eitekh WorkOS")
   smtpHost    String?  @default("smtp.gmail.com")
   smtpPort    Int?     @default(587)
   smtpUser    String?  @default("cocofbd@gmail.com")

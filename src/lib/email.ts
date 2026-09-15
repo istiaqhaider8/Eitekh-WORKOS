@@ -314,8 +314,7 @@ export async function sendEmail({
       messageId = info.messageId;
       status = "SENT";
     } else {
-      // In dev / unconfigured SMTP mode, simulate dispatch and log output
-      console.log(`[Email Sent Mock] From: ${fromAddress} | To: ${to} | Subject: "${subject}"`);
+      console.warn(`[Email] SMTP not configured (no smtpPass). Email to ${to} was NOT sent. Subject: "${subject}"`);
       status = "MOCKED";
       messageId = `mock-${Date.now()}`;
     }

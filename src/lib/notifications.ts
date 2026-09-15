@@ -266,9 +266,13 @@ class NotificationEngine {
             customHtml: item.customHtml,
           });
 
-          if (result.success) {
+          if (result.status === 'SENT') {
             item.status = 'SENT';
             // Remove from queue
+            this.emailQueue = this.emailQueue.filter((q) => q.id !== item.id);
+          } else if (result.status === 'MOCKED') {
+            // SMTP not configured — remove from queue but log warning
+            console.warn(`[EmailQueue] Email to ${item.to} was MOCKED (SMTP not configured). Removing from queue.`);
             this.emailQueue = this.emailQueue.filter((q) => q.id !== item.id);
           } else {
             throw new Error(result.error || 'Failed to dispatch email');
