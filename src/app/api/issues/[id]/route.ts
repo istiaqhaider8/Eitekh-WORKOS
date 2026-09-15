@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { issueUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -137,7 +138,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(issueUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
 
     if (body.statusId !== undefined && (!body.statusId || !String(body.statusId).trim())) {
       return NextResponse.json({ error: "Status is a mandatory field" }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { notificationEngine, NotificationType } from "@/lib/notifications";
+import { notificationPostSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -156,19 +157,9 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const {
-      recipientUserIds,
-      type = "INFO",
-      title,
-      message,
-      linkUrl,
-      projectId,
-    } = body;
-
-    if (!title || !message) {
-      return NextResponse.json({ error: "Title and message are required" }, { status: 400 });
-    }
+    const parsed = parseBody(notificationPostSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { recipientUserIds, type, title, message, linkUrl, projectId } = parsed.data;
 
     const requested: string[] = Array.isArray(recipientUserIds) && recipientUserIds.length > 0
       ? recipientUserIds

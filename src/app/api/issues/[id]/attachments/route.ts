@@ -65,21 +65,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { fileName, fileSize, mimeType, fileUrl } = body;
-
-    if (!fileName || !fileUrl) {
-      return NextResponse.json({ error: "fileName and fileUrl are required" }, { status: 400 });
-    }
+    const { attachmentSchema, parseBody } = await import("@/lib/validation");
+    const parsed = parseBody(attachmentSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { fileName, fileSize, mimeType, fileUrl } = parsed.data;
 
     const attachment = await prisma.attachment.create({
       data: {
         issueId,
         uploaderId: user.id,
-        fileName: fileName.trim(),
-        fileSize: fileSize ? Number(fileSize) : 0,
-        mimeType: mimeType || "application/octet-stream",
-        fileUrl: fileUrl,
+        fileName,
+        fileSize,
+        mimeType,
+        fileUrl,
       },
       include: {
         uploader: {
@@ -99,7 +97,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         issueId,
         actorId: user.id,
         actionType: "UPLOADED_ATTACHMENT",
-        newValue: fileName.trim(),
+        newValue: fileName,
       },
     });
 

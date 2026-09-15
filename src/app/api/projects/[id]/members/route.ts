@@ -4,6 +4,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { projectMemberSchema, parseBody } from "@/lib/validation";
 
 // Only these project-scoped role strings may be assigned to a ProjectMember.
 // This blocks privilege escalation via an injected org-scoped PBAC role id
@@ -46,7 +47,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
     
-    const body = await req.json();
+    const parsed = parseBody(projectMemberSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     let targetUserId = body.userId;
     let isNewUserCreated = false;
     let tempPassword = body.password || (Math.random().toString(36).slice(-8) + "Aa1!");

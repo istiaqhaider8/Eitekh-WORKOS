@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { forgotPasswordSchema, parseBody } from "@/lib/validation";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
@@ -15,13 +16,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email } = await req.json();
-
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
+    const parsed = parseBody(forgotPasswordSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const normalizedEmail = parsed.data.email;
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });

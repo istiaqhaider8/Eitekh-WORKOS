@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { projectUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -32,7 +33,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     await assertProjectPermission(id, "projects:edit");
     
-    const body = await req.json();
+    const parsed = parseBody(projectUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     const data: any = {};
     if (body.name !== undefined) data.name = body.name;
     if (body.description !== undefined) data.description = body.description;

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { commentSchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,16 +27,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const { content } = await req.json();
-    if (!content?.trim()) {
-      return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
-    }
+    const parsed = parseBody(commentSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { content } = parsed.data;
 
     const comment = await prisma.comment.create({
       data: {
         issueId,
         userId: user.id,
-        content: content.trim(),
+        content,
       },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
