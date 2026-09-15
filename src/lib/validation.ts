@@ -107,7 +107,18 @@ export const attachmentSchema = z.object({
   fileUrl: z
     .string()
     .min(1, "File URL is required")
-    .max(MAX_ATTACHMENT_URL_LENGTH, "Attachment too large (max 5MB)"),
+    .max(MAX_ATTACHMENT_URL_LENGTH, "Attachment too large (max 5MB)")
+    .refine((url) => {
+      const lower = url.toLowerCase().trim();
+      return (
+        lower.startsWith("https://") ||
+        lower.startsWith("http://") ||
+        lower.startsWith("data:image/") ||
+        lower.startsWith("data:application/pdf") ||
+        lower.startsWith("data:application/octet-stream") ||
+        lower.startsWith("/")
+      );
+    }, "Invalid or unsafe file URL"),
 });
 
 export const notificationPostSchema = z.object({

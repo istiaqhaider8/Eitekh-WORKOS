@@ -2660,7 +2660,7 @@ export function CalendarView({
                     <a
                       href={`/api/projects/${projectId}/reports?reportType=${rep.id}&format=pdf`}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="px-2 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                       title="Print PDF"
                     >

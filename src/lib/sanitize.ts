@@ -2,6 +2,38 @@
  * Input sanitization and safety utilities.
  */
 
+const SAFE_URL_PROTOCOLS = new Set(["https:", "http:", "data:"]);
+
+/**
+ * Prevents javascript: and other dangerous URL protocol injection.
+ * Returns '#' for any URL that doesn't start with a safe protocol.
+ */
+export function sanitizeUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== "string") return "#";
+  const trimmed = url.trim();
+  if (!trimmed) return "#";
+  try {
+    // data: URLs don't parse as URL objects cleanly — check prefix directly
+    if (trimmed.toLowerCase().startsWith("data:")) {
+      // Only allow safe MIME types in data: URLs
+      const mimeMatch = trimmed.match(/^data:([^;,]+)/i);
+      if (!mimeMatch) return "#";
+      const mime = mimeMatch[1].toLowerCase();
+      // Allow image types and common document types; block text/html, text/javascript, etc.
+      const safeMimes = ["image/", "application/pdf", "application/octet-stream"];
+      if (!safeMimes.some((prefix) => mime.startsWith(prefix))) return "#";
+      return trimmed;
+    }
+    const parsed = new URL(trimmed);
+    if (!SAFE_URL_PROTOCOLS.has(parsed.protocol)) return "#";
+    return trimmed;
+  } catch {
+    // Relative URLs (starting with / or .) are safe
+    if (trimmed.startsWith("/") || trimmed.startsWith(".")) return trimmed;
+    return "#";
+  }
+}
+
 /**
  * Escapes common HTML control characters to prevent XSS.
  */

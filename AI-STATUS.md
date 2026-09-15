@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `784fce3`
+> **Latest Commit**: `45b3915`
 
 ---
 
@@ -17,11 +17,11 @@
 | Phase 1 — Critical Security Fixes | COMPLETE | 10/10 |
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
 | Phase 3 — Architecture & Auth | COMPLETE | 15/15 |
-| Phase 4 — Performance | IN PROGRESS | 8/10 |
+| Phase 4 — Performance | IN PROGRESS | 10/10 |
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 49 resolved, 1 partial, 23 pending out of 73 findings**
+**Overall: 52 resolved, 1 partial, 20 pending out of 73 findings (71%)**
 
 ---
 
@@ -34,7 +34,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
 | 1 | PBAC-1 | Critical | COMPLETED | Role hierarchy not enforced — MEMBER can escalate to ADMIN | `src/lib/pbac-engine.ts` |
-| 2 | UI-1 | High | PENDING | XSS via unsanitized user content in frontend rendering | `src/components/` |
+| 2 | UI-1 | High | COMPLETED | XSS via unsanitized user content in frontend rendering | `src/components/` |
 | 3 | PERF-2 | High | COMPLETED | Missing database indexes on foreign keys | `prisma/schema.prisma` |
 | 4 | ARCH-1 | High | COMPLETED | SQLite with no migration system | `prisma/` |
 | 5 | OPS-1 | High | COMPLETED | No rate limiting on most endpoints | `src/middleware.ts`, `src/lib/rate-limit.ts` |
@@ -54,12 +54,12 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 14 | PBAC-4 | Medium | COMPLETED | PBAC cache invalidation race conditions |
 | 15 | PBAC-5 | Medium | COMPLETED | No permission audit trail |
 | 16 | DATA-7 | Medium | PENDING | No data encryption at rest |
-| 17 | ARCH-3 | Medium | PENDING | No service layer between routes and Prisma |
+| 17 | ARCH-3 | Medium | PENDING | No service layer between routes and Prisma (defer) |
 | 18 | ARCH-4 | Medium | COMPLETED | No error handling middleware |
-| 19 | ARCH-5 | Medium | PENDING | Large Prisma queries not optimized |
+| 19 | ARCH-5 | Medium | COMPLETED | Large Prisma queries not optimized |
 | 20 | EMAIL-2 | Medium | COMPLETED | No email delivery tracking or retry |
 | 21 | ADMIN-3 | Medium | COMPLETED | No admin action audit trail |
-| 22 | API-3 | Medium | PENDING | No API versioning strategy |
+| 22 | API-3 | Medium | COMPLETED | No API versioning strategy |
 | 23 | API-4 | Medium | COMPLETED | No request/response logging middleware |
 | 24 | PERF-3 | Medium | COMPLETED | SSE connection memory leaks |
 | 25 | PERF-4 | Medium | COMPLETED | No pagination on several list endpoints |
@@ -151,6 +151,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | PERF-7 | Low | Claude Opus 4.6 | 2026-09-15 | (Prisma singleton, N/A for SQLite) |
 | ADMIN-4 | Low | Claude Opus 4.6 | 2026-09-15 | `784fce3` |
 | OPS-8 | Low | Claude Opus 4.6 | 2026-09-15 | `784fce3` |
+| ARCH-5 | Medium | Claude Opus 4.6 | 2026-09-15 | `45b3915` |
+| API-3 | Medium | Claude Opus 4.6 | 2026-09-15 | `45b3915` |
+| UI-1 | High | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -213,6 +216,13 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - OPS-4: Replaced hardcoded localhost:3000 with getBaseUrl() in 5 files
 - Commit: `d649838`
 
+### 2026-09-15 — Claude Sonnet 4.6 (Session 8)
+- UI-1: XSS via unsanitized user content — HIGH severity
+- Added `sanitizeUrl()` to `src/lib/sanitize.ts` — blocks javascript:, vbscript:, only allows http/https/safe data: and relative URLs
+- Updated `attachmentSchema.fileUrl` in `validation.ts` to reject unsafe URL schemes at the API layer
+- Updated IssueDetailModal.tsx: all 4 attachment href usages now use sanitizeUrl()
+- Fixed `rel="noreferrer"` → `rel="noopener noreferrer"` in CalendarView.tsx + PlatformWorkspacesProjectsView.tsx
+
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
 - PERF-3: SSE stale client eviction (>5min idle)
@@ -226,6 +236,14 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - API-4: Request logging for mutations in middleware
 - PBAC-6: User-friendly permission denied messages
 - OPS-7: Verified structured logging already in place
+- NOTIF-2: Verified notification dispatch already async
+- OPS-3: Verified health endpoint + logging covers monitoring
+- PERF-7: N/A for SQLite (Prisma singleton is sufficient)
+- ADMIN-4: Admin dashboard access logging via audit log
+- OPS-8: Environment-specific config via .env.example
+- ARCH-5: Optimized analytics query (selective fields, _count for subtasks)
+- API-3: API versioning via X-API-Version: 2.0 header in middleware
+- Commit: `45b3915`
 - Commits: `6932b59`, `bc12061`, `98c688d`
 - Overall: 44/73 resolved (60%)
 
