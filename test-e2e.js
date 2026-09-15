@@ -21,7 +21,7 @@ async function runTests() {
 
   try {
     // TEST 1: Super Admin & Users Seed Verification
-    const superAdmin = await prisma.user.findUnique({ where: { email: "admin@eitekh.local" } });
+    const superAdmin = await prisma.user.findUnique({ where: { email: "cocofbd@gmail.com" } });
     assert(superAdmin && superAdmin.isSuperAdmin === true, "Super Admin user exists and has root permissions");
 
     const devLead = await prisma.user.findUnique({ where: { email: "sarah@acme.com" } });

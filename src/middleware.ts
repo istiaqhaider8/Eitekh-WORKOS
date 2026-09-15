@@ -37,7 +37,13 @@ function checkMiddlewareRateLimit(key: string, max: number): { allowed: boolean;
 }
 
 function getOrigin(req: NextRequest): string | null {
-  return req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, "") || null;
+  const origin = req.headers.get("origin");
+  if (origin) return origin;
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try { return new URL(referer).origin; } catch { return null; }
+  }
+  return null;
 }
 
 export function middleware(req: NextRequest) {

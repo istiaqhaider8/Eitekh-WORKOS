@@ -782,6 +782,12 @@ class UnifiedPBACEngine {
           `Privilege escalation denied: you cannot create or edit the '${data.name}' role (requires higher authority)`
         );
       }
+      const actorPerms = await this.getUserCapabilities(orgId, actor.id);
+      for (const p of data.permissions) {
+        if (!actorPerms.has(p)) {
+          throw new Error(`Cannot grant permission '${p}' that you do not hold`);
+        }
+      }
     }
 
     const now = new Date().toISOString();
@@ -845,6 +851,13 @@ class UnifiedPBACEngine {
 
     if (actor) {
       this.enforceHierarchy(orgId, actor.id, sourceRoleId);
+      const finalPermissions = newData.permissions ? Array.from(new Set(newData.permissions)) : [...source.permissions];
+      const actorPerms = await this.getUserCapabilities(orgId, actor.id);
+      for (const p of finalPermissions) {
+        if (!actorPerms.has(p)) {
+          throw new Error(`Cannot grant permission '${p}' that you do not hold`);
+        }
+      }
     }
 
     const now = new Date().toISOString();
@@ -1059,6 +1072,11 @@ class UnifiedPBACEngine {
     actor?: { id: string; name: string; email: string }
   ) {
     await this.ensureOrgSeeded(orgId);
+
+    if (actor) {
+      this.enforceHierarchy(orgId, actor.id, roleId);
+    }
+
     const role = this.roles.get(roleId);
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -1244,6 +1262,11 @@ class UnifiedPBACEngine {
 
     if (actor) {
       for (const rId of roleIds) {
+        this.enforceHierarchy(orgId, actor.id, rId);
+      }
+      const currentRoles = this.userRoleAssignments.get(userId) || new Set<string>();
+      const removedRoles = [...currentRoles].filter(r => !roleIds.includes(r));
+      for (const rId of removedRoles) {
         this.enforceHierarchy(orgId, actor.id, rId);
       }
     }
@@ -1438,7 +1461,7 @@ class UnifiedPBACEngine {
             const orgMember = dbUser.orgMemberships[0];
             const projMember = dbUser.projectMemberships[0];
 
-            if (orgMember?.role === 'OWNER' || orgMember?.role === 'ADMIN' || (dbUser.jobTitle || '').toLowerCase().includes('admin')) {
+            if (orgMember?.role === 'OWNER' || orgMember?.role === 'ADMIN') {
               userRoles.add(`role_${orgId}_org-admin`);
             }
             if (projMember) {

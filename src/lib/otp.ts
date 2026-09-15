@@ -95,10 +95,13 @@ export async function verifyOtp(
 
   const codeHash = hashOtp(code);
   if (codeHash !== otpRecord.codeHash) {
-    await prisma.otpCode.update({
-      where: { id: otpRecord.id },
-      data: { attempts: otpRecord.attempts + 1 },
+    const updated = await prisma.otpCode.updateMany({
+      where: { id: otpRecord.id, attempts: { lt: otpRecord.maxAttempts } },
+      data: { attempts: { increment: 1 } },
     });
+    if (updated.count === 0) {
+      return { valid: false, error: "Too many incorrect attempts. Please request a new code." };
+    }
     const remaining = otpRecord.maxAttempts - otpRecord.attempts - 1;
     return {
       valid: false,
