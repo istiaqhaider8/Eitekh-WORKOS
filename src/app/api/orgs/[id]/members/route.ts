@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { orgMemberCreateSchema, orgMemberUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,13 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const body = await req.json();
-    
-    if (!body.email || !body.email.includes("@")) {
-      return NextResponse.json({ error: "A valid email address is required" }, { status: 400 });
-    }
+    const parsed = parseBody(orgMemberCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
 
-    const email = body.email.trim().toLowerCase();
+    const email = body.email;
     let user = await prisma.user.findUnique({ where: { email } });
     let tempPassword = body.password || (Math.random().toString(36).slice(-8) + "Aa1!");
     let isNewUser = false;
@@ -128,7 +127,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const body = await req.json();
+    const parsed = parseBody(orgMemberUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     const updated = await prisma.organizationMember.update({
       where: { orgId_userId: { orgId: id, userId: body.userId } },
       data: { role: body.role },

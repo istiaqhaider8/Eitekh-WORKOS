@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { teamCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -68,13 +69,10 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { projectId, name, description, leadId } = body;
-    let workspaceId = body.workspaceId;
-
-    if (!name?.trim()) {
-      return NextResponse.json({ error: "Team name is required" }, { status: 400 });
-    }
+    const parsed = parseBody(teamCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, name, description, leadId } = parsed.data;
+    let workspaceId = parsed.data.workspaceId;
 
     // If projectId is provided, ensure team is project-wise
     if (projectId) {

@@ -165,6 +165,127 @@ export const projectMemberSchema = z.object({
   role: z.string().max(50).optional(),
 });
 
+// ── Resource creation schemas ──────────────────────────────────────
+
+export const projectCreateSchema = z.object({
+  workspaceId: cuidSchema,
+  name: safeStringSchema.min(1, "Project name is required").trim(),
+  key: z.string().min(1, "Project key is required").max(10).regex(/^[A-Z0-9]+$/, "Key must be uppercase alphanumeric"),
+  description: safeLongStringSchema.optional().nullable(),
+  template: z.enum(["SCRUM", "KANBAN", "WATERFALL"]).default("SCRUM"),
+  teamId: cuidSchema.optional(),
+});
+
+export const issueCreateSchema = z.object({
+  title: safeStringSchema.min(1, "Title is required").trim(),
+  description: safeLongStringSchema.optional().nullable(),
+  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK", "IMPROVEMENT", "FEATURE"]).default("TASK"),
+  priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).default("MEDIUM"),
+  statusId: cuidSchema.optional(),
+  assigneeId: optionalCuidSchema,
+  teamId: optionalCuidSchema,
+  epicId: optionalCuidSchema,
+  sprintId: optionalCuidSchema,
+  parentIssueId: optionalCuidSchema,
+  componentId: optionalCuidSchema,
+  securityLevel: z.string().max(50).default("PUBLIC"),
+  estimatePoints: z.coerce.number().min(0).max(1000).nullable().optional(),
+  estimateHours: z.coerce.number().min(0).max(10000).nullable().optional(),
+  timeSpentHours: z.coerce.number().min(0).max(10000).nullable().optional(),
+  startDate: z.string().max(50).nullable().optional(),
+  dueDate: z.string().max(50).nullable().optional(),
+  labels: z.array(z.string().max(100).trim()).max(50).default([]),
+});
+
+export const sprintCreateSchema = z.object({
+  projectId: cuidSchema,
+  name: safeStringSchema.min(1, "Sprint name is required").trim(),
+  goal: safeStringSchema.trim().optional().nullable(),
+  startDate: z.string().max(50).optional().nullable(),
+  endDate: z.string().max(50).optional().nullable(),
+});
+
+export const sprintUpdateSchema = z.object({
+  sprintId: cuidSchema,
+  status: z.enum(["FUTURE", "ACTIVE", "COMPLETED", "CANCELLED"]).optional(),
+  name: safeStringSchema.trim().optional(),
+  goal: safeStringSchema.trim().optional().nullable(),
+  startDate: z.string().max(50).optional().nullable(),
+  endDate: z.string().max(50).optional().nullable(),
+  retrospectiveNotes: safeLongStringSchema.trim().optional().nullable(),
+  position: z.coerce.number().int().min(0).optional(),
+  rolloverToSprintId: cuidSchema.optional().nullable(),
+});
+
+export const sprintReorderSchema = z.object({
+  projectId: cuidSchema,
+  sprintOrders: z.array(z.object({
+    id: cuidSchema,
+    position: z.coerce.number().int().min(0),
+  })).max(200),
+});
+
+export const teamCreateSchema = z.object({
+  projectId: cuidSchema.optional(),
+  workspaceId: cuidSchema.optional(),
+  name: safeStringSchema.min(1, "Team name is required").trim(),
+  description: safeStringSchema.trim().optional().nullable(),
+  leadId: cuidSchema.optional(),
+});
+
+export const workspaceCreateSchema = z.object({
+  orgId: cuidSchema,
+  name: safeStringSchema.min(1, "Workspace name is required").trim(),
+  description: safeStringSchema.trim().optional().nullable(),
+});
+
+export const orgMemberCreateSchema = z.object({
+  email: emailSchema,
+  firstName: z.string().max(100).trim().optional(),
+  lastName: z.string().max(100).trim().optional(),
+  jobTitle: z.string().max(200).trim().optional(),
+  password: z.string().max(64).optional(),
+  role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
+  projectIds: z.array(cuidSchema).max(100).optional(),
+  projectRole: z.string().max(50).optional(),
+});
+
+export const orgMemberUpdateSchema = z.object({
+  userId: cuidSchema,
+  role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]),
+});
+
+export const bulkIssueUpdateSchema = z.object({
+  issueIds: z.array(cuidSchema).min(1).max(500),
+  updates: z.object({
+    statusId: cuidSchema.optional(),
+    priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).optional(),
+    assigneeId: z.string().max(50).nullable().optional(),
+    teamId: z.string().max(50).nullable().optional(),
+    sprintId: z.string().max(50).nullable().optional(),
+    epicId: z.string().max(50).nullable().optional(),
+    dueDate: z.string().max(50).nullable().optional(),
+  }).refine(obj => Object.keys(obj).length > 0, "At least one update field is required"),
+});
+
+export const bulkIssueDeleteSchema = z.object({
+  issueIds: z.array(cuidSchema).min(1).max(500),
+});
+
+export const epicCreateSchema = z.object({
+  projectId: cuidSchema,
+  name: safeStringSchema.min(1, "Epic name is required").trim(),
+  summary: safeStringSchema.trim().optional().nullable(),
+  color: z.string().max(20).regex(/^#[0-9a-fA-F]{3,8}$/, "Invalid color").default("#3b82f6"),
+  ownerId: cuidSchema.optional(),
+  startDate: z.string().max(50).optional().nullable(),
+  targetDate: z.string().max(50).optional().nullable(),
+});
+
+export const commentUpdateSchema = z.object({
+  content: z.string().min(1, "Comment content is required").max(10_000).trim(),
+});
+
 // ── Parsing helper ──────────────────────────────────────────────────
 
 export function parseBody<T extends z.ZodTypeAny>(

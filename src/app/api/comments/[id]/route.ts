@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { commentUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function PATCH(
   req: Request,
@@ -13,12 +14,9 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const body = await req.json();
-    const { content } = body;
-
-    if (!content) {
-      return NextResponse.json({ error: "Missing content" }, { status: 400 });
-    }
+    const parsed = parseBody(commentUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { content } = parsed.data;
 
     const comment = await prisma.comment.findUnique({
       where: { id },
