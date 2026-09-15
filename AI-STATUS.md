@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 58 resolved, 1 partial, 14 pending out of 73 findings (79%)**
+**Overall: 59 resolved, 1 partial, 13 pending out of 73 findings (81%)**
 
 ---
 
@@ -88,7 +88,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 43 | UI-8 | Low | PENDING | Mobile responsiveness gaps |
 | 44 | NOTIF-3 | Low | PENDING | No notification preferences/opt-out |
 | 45 | NOTIF-4 | Low | PENDING | Notification UI missing bulk actions |
-| 46 | API-5 | Low | PENDING | No OpenAPI/Swagger documentation |
+| 46 | API-5 | Low | COMPLETED | No OpenAPI/Swagger documentation |
 | 47 | ARCH-6 | Low | PENDING | No dependency injection / testability |
 | 48 | DATA-8 | Low | PENDING | No data retention/deletion policy |
 | 49 | EMAIL-3 | Low | PENDING | No email template versioning |
@@ -158,7 +158,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | UI-2 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (already resolved by Phase 2 + error surfacing) |
 | OPS-5 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `09f8908` |
 | TEST-1 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `ea561b3` |
-| PERF-8 | Low | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| PERF-8 | Low | Claude Sonnet 4.6 | 2026-09-15 | `f220d5c` |
+| API-5 | Low | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -246,6 +247,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   - Install @next/bundle-analyzer; add ANALYZE=true env support + npm run analyze script
   - Enable Next.js compress:true and experimental.optimizePackageImports for lucide-react + date-fns
   - Wrap nextConfig with withBundleAnalyzer in next.config.mjs
+- API-5: No OpenAPI/Swagger documentation — LOW severity
+  - Created public/openapi.json (OpenAPI 3.0.3) covering auth, issues, projects, notifications, webhooks
+  - Created GET /api/docs route that serves the spec with CORS + cache headers
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:

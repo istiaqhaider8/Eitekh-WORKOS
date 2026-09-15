@@ -1,0 +1,436 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Eitekh WorkOS API",
+    "description": "Multi-tenant SaaS Work Management Platform — REST API. All endpoints require a valid JWT session cookie unless marked public.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "Eitekh Engineering",
+      "email": "engineering@eitekh.com"
+    }
+  },
+  "servers": [
+    { "url": "/api", "description": "Current server" }
+  ],
+  "security": [
+    { "cookieAuth": [] }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "workos-token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "minimum": 1 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "total": { "type": "integer" },
+          "pages": { "type": "integer" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "avatarUrl": { "type": "string", "nullable": true },
+          "role": { "type": "string", "enum": ["USER", "SUPER_ADMIN", "SUPPORT"] }
+        }
+      },
+      "Issue": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "issueKey": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "status": { "type": "object" },
+          "priority": { "type": "string" },
+          "assignee": { "$ref": "#/components/schemas/User", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Not authenticated",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Forbidden": {
+        "description": "Insufficient permissions",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "ValidationError": {
+        "description": "Invalid request parameters",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Operations"],
+        "summary": "Health check",
+        "description": "Public health probe that returns server status and DB latency.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "db": { "type": "string", "example": "ok" },
+                    "dbLatencyMs": { "type": "integer" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new account",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["firstName", "lastName", "email", "password"],
+                "properties": {
+                  "firstName": { "type": "string", "maxLength": 100 },
+                  "lastName": { "type": "string", "maxLength": 100 },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8, "maxLength": 64 },
+                  "company": { "type": "string", "maxLength": 200 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Account created and session started" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "description": "Email already registered" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Log in",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authenticated — sets session cookie" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Log out",
+        "responses": {
+          "200": { "description": "Session invalidated" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get current user",
+        "responses": {
+          "200": {
+            "description": "Current authenticated user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Request a password reset email",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Reset email sent (always 200 to prevent email enumeration)" },
+          "400": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/issues": {
+      "get": {
+        "tags": ["Issues"],
+        "summary": "List issues",
+        "parameters": [
+          { "name": "projectId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated issue list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issues": { "type": "array", "items": { "$ref": "#/components/schemas/Issue" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      },
+      "post": {
+        "tags": ["Issues"],
+        "summary": "Create an issue",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "projectId"],
+                "properties": {
+                  "title": { "type": "string", "maxLength": 500 },
+                  "description": { "type": "string", "maxLength": 50000 },
+                  "projectId": { "type": "string" },
+                  "priority": { "type": "string", "enum": ["URGENT", "HIGH", "MEDIUM", "LOW", "NO_PRIORITY"] },
+                  "assigneeId": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Issue created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Issue" } } } },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/issues/{id}": {
+      "get": {
+        "tags": ["Issues"],
+        "summary": "Get issue by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Issue detail", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Issue" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "tags": ["Issues"],
+        "summary": "Update an issue",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string", "maxLength": 500 },
+                  "description": { "type": "string", "maxLength": 50000 },
+                  "priority": { "type": "string" },
+                  "assigneeId": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Issue updated" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Issues"],
+        "summary": "Delete an issue",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Issue deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "List projects for an organization or workspace",
+        "parameters": [
+          { "name": "orgId", "in": "query", "schema": { "type": "string" } },
+          { "name": "workspaceId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Project list" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Create a project",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "workspaceId"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 200 },
+                  "description": { "type": "string", "maxLength": 2000 },
+                  "workspaceId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Project created" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "Get notifications for the current user",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Notification list" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "List webhooks for an org or project",
+        "parameters": [
+          { "name": "orgId", "in": "query", "schema": { "type": "string" } },
+          { "name": "projectId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Webhook list (secrets masked)" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      },
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Create a webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["orgId", "targetUrl", "secret", "events"],
+                "properties": {
+                  "orgId": { "type": "string" },
+                  "projectId": { "type": "string", "nullable": true },
+                  "targetUrl": { "type": "string", "format": "uri" },
+                  "secret": { "type": "string", "description": "Signing secret sent as X-Webhook-Secret header" },
+                  "events": { "type": "array", "items": { "type": "string" } },
+                  "isActive": { "type": "boolean", "default": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Webhook created" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    }
+  }
+}
