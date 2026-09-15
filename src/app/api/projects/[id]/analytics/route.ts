@@ -69,20 +69,20 @@ export async function GET(
     const rawIssues = await prisma.issue.findMany({
       where: { projectId },
       include: {
-        status: true,
+        status: { select: { id: true, name: true, category: true } },
         assignee: {
           select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true, jobTitle: true }
         },
         reporter: {
-          select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true }
+          select: { id: true, firstName: true, lastName: true }
         },
-        team: true,
-        epic: true,
-        sprint: true,
-        subtasks: true,
+        team: { select: { id: true, name: true } },
+        epic: { select: { id: true, name: true } },
+        sprint: { select: { id: true, name: true, status: true } },
         labels: {
-          include: { label: true }
-        }
+          include: { label: { select: { id: true, name: true } } }
+        },
+        _count: { select: { subtasks: true } },
       },
       orderBy: { createdAt: "desc" }
     });

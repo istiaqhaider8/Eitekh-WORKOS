@@ -64,7 +64,9 @@ export function middleware(req: NextRequest) {
   }
 
   if (!isMutation) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set("X-API-Version", "2.0");
+    return response;
   }
 
   const origin = getOrigin(req);
@@ -97,7 +99,9 @@ export function middleware(req: NextRequest) {
     );
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("X-API-Version", "2.0");
+  return response;
 }
 
 export const config = {
