@@ -24,11 +24,20 @@ export async function GET(req: Request) {
       where: { projectId },
       include: {
         issues: {
-          include: {
-            status: true,
-            assignee: publicUserRelation,
+          select: {
+            id: true,
+            issueKey: true,
+            title: true,
+            priority: true,
+            issueType: true,
+            position: true,
+            status: { select: { id: true, name: true, category: true, color: true } },
+            assignee: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
           },
+          orderBy: [{ position: "asc" }, { createdAt: "desc" }],
+          take: 200,
         },
+        _count: { select: { issues: true } },
       },
       orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     });
