@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { automationUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -31,7 +32,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await assertProjectPermission(existingRule.projectId, "projects:edit");
 
-    const { name, triggerConfig, conditionRules, actionConfig, isActive } = await request.json();
+    const parsed = parseBody(automationUpdateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { name, triggerConfig, conditionRules, actionConfig, isActive } = parsed.data;
 
     const rule = await prisma.automationRule.update({
       where: { id },

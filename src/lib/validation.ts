@@ -354,6 +354,152 @@ export const watcherSchema = z.object({
   userId: cuidSchema.optional(),
 });
 
+// ── Workflow schemas ───────────────────────────────────────────────
+
+export const workflowCreateSchema = z.object({
+  projectId: cuidSchema,
+  name: safeStringSchema.min(1, "Workflow name is required").trim(),
+});
+
+export const workflowUpdateSchema = z.object({
+  name: safeStringSchema.trim().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const workflowStatusCreateSchema = z.object({
+  name: safeStringSchema.min(1, "Status name is required").trim(),
+  category: z.string().max(50).default("TO_DO"),
+  color: z.string().max(20).regex(/^#[0-9a-fA-F]{3,8}$/, "Invalid color").default("#6b7280"),
+  position: z.coerce.number().int().min(0).default(0),
+  wipLimit: z.coerce.number().int().min(0).nullable().optional(),
+});
+
+export const workflowStatusUpdateSchema = z.object({
+  statusId: cuidSchema,
+  name: safeStringSchema.trim().optional(),
+  color: z.string().max(20).regex(/^#[0-9a-fA-F]{3,8}$/, "Invalid color").optional(),
+  position: z.coerce.number().int().min(0).optional(),
+  wipLimit: z.coerce.number().int().min(0).nullable().optional(),
+});
+
+export const workflowStatusDeleteSchema = z.object({
+  statusId: cuidSchema,
+});
+
+// ── Custom field schemas ──────────────────────────────────────────
+
+export const customFieldCreateSchema = z.object({
+  scopeType: z.enum(["PROJECT", "ORG"]),
+  scopeId: cuidSchema,
+  name: safeStringSchema.min(1, "Field name is required").trim(),
+  fieldType: z.string().min(1, "Field type is required").max(50),
+  optionsJson: z.string().max(10_000).nullable().optional(),
+  isRequired: z.boolean().default(false),
+});
+
+export const customFieldUpdateSchema = z.object({
+  name: safeStringSchema.trim().optional(),
+  optionsJson: z.string().max(10_000).nullable().optional(),
+  isRequired: z.boolean().optional(),
+});
+
+export const customFieldValueSchema = z.object({
+  values: z.array(z.object({
+    customFieldId: cuidSchema,
+    valueString: z.string().max(5000).nullable().optional(),
+    valueNumber: z.coerce.number().nullable().optional(),
+    valueDate: z.string().max(50).nullable().optional(),
+    valueJson: z.string().max(10_000).nullable().optional(),
+  })).max(100),
+});
+
+// ── Automation schemas ────────────────────────────────────────────
+
+export const automationCreateSchema = z.object({
+  projectId: cuidSchema,
+  name: safeStringSchema.min(1, "Automation name is required").trim(),
+  triggerType: z.string().min(1, "Trigger type is required").max(100),
+  triggerConfig: z.string().max(10_000).nullable().optional(),
+  conditionRules: z.string().max(10_000).nullable().optional(),
+  actionType: z.string().min(1, "Action type is required").max(100),
+  actionConfig: z.string().max(10_000).nullable().optional(),
+});
+
+export const automationUpdateSchema = z.object({
+  name: safeStringSchema.trim().optional(),
+  triggerConfig: z.string().max(10_000).nullable().optional(),
+  conditionRules: z.string().max(10_000).nullable().optional(),
+  actionConfig: z.string().max(10_000).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ── Webhook schemas ───────────────────────────────────────────────
+
+export const webhookCreateSchema = z.object({
+  orgId: cuidSchema,
+  projectId: cuidSchema.optional().nullable(),
+  targetUrl: z.string().min(1, "Target URL is required").max(2000).url("Must be a valid URL"),
+  secret: z.string().min(1, "Secret is required").max(500),
+  events: z.union([
+    z.array(z.string().max(100)).max(50),
+    z.string().max(5000),
+  ]),
+  isActive: z.boolean().default(true),
+});
+
+export const webhookUpdateSchema = z.object({
+  targetUrl: z.string().max(2000).url("Must be a valid URL").optional(),
+  secret: z.string().max(500).optional(),
+  events: z.union([
+    z.array(z.string().max(100)).max(50),
+    z.string().max(5000),
+  ]).optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ── Component schemas ─────────────────────────────────────────────
+
+export const componentCreateSchema = z.object({
+  projectId: cuidSchema,
+  name: safeStringSchema.min(1, "Component name is required").trim(),
+  description: safeStringSchema.trim().optional().nullable(),
+  ownerId: cuidSchema.optional(),
+});
+
+export const componentUpdateSchema = z.object({
+  name: safeStringSchema.min(1).trim().optional(),
+  description: safeStringSchema.trim().optional().nullable(),
+  ownerId: cuidSchema.optional().nullable(),
+});
+
+// ── Org schemas ───────────────────────────────────────────────────
+
+export const orgUpdateSchema = z.object({
+  name: safeStringSchema.min(1).trim().optional(),
+  domain: z.string().max(255).trim().optional(),
+  timezone: z.string().max(100).optional(),
+  language: z.string().max(10).optional(),
+  dateFormat: z.string().max(50).optional(),
+  workingDays: z.string().max(100).optional(),
+  workingHours: z.string().max(100).optional(),
+});
+
+export const orgRoleCreateSchema = z.object({
+  name: safeStringSchema.min(1, "Role name is required").trim(),
+  description: safeStringSchema.trim().optional(),
+  scope: z.enum(["PROJECT", "ORG", "WORKSPACE"]).default("ORG"),
+  permissions: z.array(z.string().max(100)).max(200).default([]),
+});
+
+// ── Recurring task schemas ────────────────────────────────────────
+
+export const recurringTaskCreateSchema = z.object({
+  projectId: cuidSchema,
+  scheduleCron: z.string().min(1, "Cron schedule is required").max(100),
+  templateData: z.any(),
+  isActive: z.boolean().default(true),
+});
+
 // ── Parsing helper ──────────────────────────────────────────────────
 
 export function parseBody<T extends z.ZodTypeAny>(

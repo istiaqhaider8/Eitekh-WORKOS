@@ -2,15 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
-
-function validateWebhookUrl(targetUrl: string): boolean {
-  try {
-    const parsed = new URL(targetUrl);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { webhookCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -49,14 +41,9 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { orgId, projectId, targetUrl, secret, events, isActive } = await request.json();
-    if (!orgId || !targetUrl || !secret || !events) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    if (!validateWebhookUrl(targetUrl)) {
-      return NextResponse.json({ error: "Invalid target URL. Must be a valid HTTP/HTTPS URL" }, { status: 400 });
-    }
+    const parsed = parseBody(webhookCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { orgId, projectId, targetUrl, secret, events, isActive } = parsed.data;
 
     await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
     if (projectId) {

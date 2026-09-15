@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectPermission } from "@/lib/tenant";
+import { workflowStatusCreateSchema, workflowStatusUpdateSchema, workflowStatusDeleteSchema, parseBody } from "@/lib/validation";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -14,16 +15,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     await assertProjectPermission(workflow.projectId, "projects:edit");
 
-    const { name, category, color, position, wipLimit } = await request.json();
-    if (!name || !name.trim()) return NextResponse.json({ error: "Missing name" }, { status: 400 });
+    const parsed = parseBody(workflowStatusCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { name, category, color, position, wipLimit } = parsed.data;
 
     const status = await prisma.workflowStatus.create({
       data: {
         workflowId: id,
-        name: name.trim(),
-        category: category || "TO_DO",
-        color: color || "#6b7280",
-        position: position || 0,
+        name,
+        category,
+        color,
+        position,
         wipLimit: wipLimit != null ? Number(wipLimit) : null,
       },
     });
@@ -59,8 +61,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await assertProjectPermission(workflow.projectId, "projects:edit");
 
-    const { statusId, name, color, position, wipLimit } = await request.json();
-    if (!statusId) return NextResponse.json({ error: "Missing statusId" }, { status: 400 });
+    const parsed2 = parseBody(workflowStatusUpdateSchema, await request.json());
+    if (!parsed2.success) return parsed2.error;
+    const { statusId, name, color, position, wipLimit } = parsed2.data;
 
     const status = await prisma.workflowStatus.update({
       where: { id: statusId },
@@ -103,8 +106,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     await assertProjectPermission(workflow.projectId, "projects:edit");
 
-    const { statusId } = await request.json();
-    if (!statusId) return NextResponse.json({ error: "Missing statusId" }, { status: 400 });
+    const parsed3 = parseBody(workflowStatusDeleteSchema, await request.json());
+    if (!parsed3.success) return parsed3.error;
+    const { statusId } = parsed3.data;
 
     const status = await prisma.workflowStatus.findUnique({
       where: { id: statusId },

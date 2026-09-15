@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { automationCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -32,10 +33,9 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { projectId, name, triggerType, triggerConfig, conditionRules, actionType, actionConfig } = await request.json();
-    if (!projectId || !name || !triggerType || !actionType) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(automationCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, name, triggerType, triggerConfig, conditionRules, actionType, actionConfig } = parsed.data;
 
     await assertProjectPermission(projectId, "settings:automations");
 

@@ -2,15 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
-
-function validateWebhookUrl(targetUrl: string): boolean {
-  try {
-    const parsed = new URL(targetUrl);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { webhookUpdateSchema, parseBody } from "@/lib/validation";
 
 async function verifyWebhookAccess(webhook: { orgId: string; projectId: string | null }, requireAdmin = true) {
   if (webhook.projectId) {
@@ -48,11 +40,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await verifyWebhookAccess(existingWebhook, true);
 
-    const { targetUrl, secret, events, isActive } = await request.json();
-
-    if (targetUrl !== undefined && !validateWebhookUrl(targetUrl)) {
-      return NextResponse.json({ error: "Invalid target URL. Must be a valid HTTP/HTTPS URL" }, { status: 400 });
-    }
+    const parsed = parseBody(webhookUpdateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { targetUrl, secret, events, isActive } = parsed.data;
 
     const updateData: any = {};
     if (targetUrl !== undefined) updateData.targetUrl = targetUrl;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { workflowCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -39,10 +40,9 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { projectId, name } = await request.json();
-    if (!projectId || !name) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(workflowCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, name } = parsed.data;
 
     await assertProjectPermission(projectId, "settings:workflows");
 

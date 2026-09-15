@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
+import { customFieldValueSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -46,10 +47,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    const { values } = await request.json();
-    if (!Array.isArray(values)) {
-      return NextResponse.json({ error: "Invalid values array" }, { status: 400 });
-    }
+    const parsed = parseBody(customFieldValueSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { values } = parsed.data;
 
     const updated = [];
     for (const val of values) {

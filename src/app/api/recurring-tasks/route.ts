@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
+import { recurringTaskCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -32,10 +33,9 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { projectId, scheduleCron, templateData, isActive } = await request.json();
-    if (!projectId || !scheduleCron || !templateData) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(recurringTaskCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, scheduleCron, templateData, isActive } = parsed.data;
 
     await assertProjectAccess(projectId);
 
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         projectId,
         scheduleCron,
         templateData,
-        isActive: isActive !== undefined ? isActive : true
+        isActive
       }
     });
 
