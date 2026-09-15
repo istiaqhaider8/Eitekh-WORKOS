@@ -216,6 +216,25 @@ export const HIGH_RISK_PERMISSIONS = PBAC_PERMISSION_CATEGORIES.flatMap((c) =>
   c.permissions.filter((p) => p.riskLevel === 'HIGH' || p.riskLevel === 'CRITICAL').map((p) => p.key)
 );
 
+// VIEWER-level permissions: the baseline for users without any assigned PBAC role.
+// Only Super Admin can bypass permission restrictions. All other users without
+// explicit role assignments are restricted to these read-only capabilities.
+export const VIEWER_PERMISSION_KEYS = [
+  'projects:view',
+  'issues:view',
+  'tasks:view',
+  'epics:view',
+  'sprints:view',
+  'backlog:view',
+  'kanban:view',
+  'list:view',
+  'calendar:view',
+  'timeline:view',
+  'workload:view',
+  'reports:view',
+  'analytics:view',
+];
+
 // Role hierarchy: higher number = more privilege. Used to prevent escalation.
 const ROLE_HIERARCHY: Record<string, number> = {
   'viewer': 10,
@@ -1471,22 +1490,32 @@ class UnifiedPBACEngine {
       .filter((r): r is PBACRole => Boolean(r && r.orgId === orgId && r.status === 'ACTIVE'));
 
     const perms = new Set<string>();
-    for (const r of activeRoles) {
-      for (const p of r.permissions) {
+
+    if (activeRoles.length === 0) {
+      // No assigned roles → VIEWER-only fallback (read-only baseline)
+      for (const p of VIEWER_PERMISSION_KEYS) {
         perms.add(p);
       }
-    }
+    } else {
+      for (const r of activeRoles) {
+        for (const p of r.permissions) {
+          perms.add(p);
+        }
+      }
 
-    // Check if user has super admin privileges
-    if (activeRoles.some((r) => r.slug === 'super-admin')) {
-      for (const p of ALL_PBAC_PERMISSION_KEYS) {
-        perms.add(p);
+      // Check if user has super admin privileges
+      if (activeRoles.some((r) => r.slug === 'super-admin')) {
+        for (const p of ALL_PBAC_PERMISSION_KEYS) {
+          perms.add(p);
+        }
       }
     }
 
     this.capabilityCache.set(cacheKey, {
       permissions: perms,
-      roles: activeRoles.map((r) => ({ id: r.id, name: r.name, isSystem: r.isSystem })),
+      roles: activeRoles.length > 0
+        ? activeRoles.map((r) => ({ id: r.id, name: r.name, isSystem: r.isSystem }))
+        : [{ id: `role_${orgId}_viewer`, name: 'VIEWER', isSystem: true }],
       timestamp: now,
     });
 
@@ -1586,6 +1615,9 @@ class UnifiedPBACEngine {
       if (u.isSuperAdmin) {
         // isSuperAdmin DB flag bypasses PBAC role layer — all capabilities are effective
         ALL_PBAC_PERMISSION_KEYS.forEach((p) => effectivePermSet.add(p));
+      } else if (assignedRoles.length === 0) {
+        // No assigned roles → VIEWER-only fallback (read-only baseline)
+        VIEWER_PERMISSION_KEYS.forEach((p) => effectivePermSet.add(p));
       } else {
         for (const r of assignedRoles) {
           if (r.status === 'ACTIVE') {
@@ -1846,6 +1878,33 @@ class UnifiedPBACEngine {
       assignedRoles = assignedRoles.filter((r) => !r.projectId || r.projectId === scopedProject.id);
     }
 
+    // No assigned roles → inject synthetic VIEWER role for provenance tracing
+    const isViewerFallback = assignedRoles.length === 0;
+    if (isViewerFallback) {
+      const viewerRoleId = `role_${orgId}_viewer`;
+      const existingViewer = this.roles.get(viewerRoleId);
+      if (existingViewer) {
+        assignedRoles = [existingViewer];
+      } else {
+        assignedRoles = [{
+          id: viewerRoleId,
+          orgId,
+          name: 'VIEWER',
+          slug: 'viewer',
+          description: 'Default read-only fallback for users without assigned permission roles.',
+          scope: 'PROJECT',
+          projectId: null,
+          projectName: null,
+          status: 'ACTIVE',
+          isSystem: true,
+          permissions: [...VIEWER_PERMISSION_KEYS],
+          createdBy: 'System Provisioning',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }];
+      }
+    }
+
     // Calculate effective permissions & Provenance resolution traces
     const effectivePermissionsMap = new Map<string, {
       permission: string;
@@ -1953,6 +2012,7 @@ class UnifiedPBACEngine {
         status: user.status,
       },
       assignedRoles,
+      viewerFallbackActive: isViewerFallback,
       scopedProject,
       totalEffectivePermissions: effectivePermissionsMap.size,
       effectivePermissionsCount: effectivePermissionsMap.size,
@@ -1981,9 +2041,15 @@ class UnifiedPBACEngine {
 
     const matrix = users.map((u: any) => {
       const userPermKeys = new Set<string>();
-      for (const r of u.assignedRoles) {
-        if (r.status === 'ACTIVE') {
-          r.permissions.forEach((p: string) => userPermKeys.add(p));
+      if (u.hasSuperAdminBypass) {
+        ALL_PBAC_PERMISSION_KEYS.forEach((p) => userPermKeys.add(p));
+      } else if (u.assignedRoles.length === 0) {
+        VIEWER_PERMISSION_KEYS.forEach((p) => userPermKeys.add(p));
+      } else {
+        for (const r of u.assignedRoles) {
+          if (r.status === 'ACTIVE') {
+            r.permissions.forEach((p: string) => userPermKeys.add(p));
+          }
         }
       }
 
@@ -1993,7 +2059,9 @@ class UnifiedPBACEngine {
         userEmail: u.email,
         jobTitle: u.jobTitle || 'Team Member',
         status: u.status,
-        roles: u.assignedRoles.map((r: any) => ({ id: r.id, name: r.name, status: r.status })),
+        roles: u.assignedRoles.length > 0
+          ? u.assignedRoles.map((r: any) => ({ id: r.id, name: r.name, status: r.status }))
+          : [{ id: `role_${orgId}_viewer`, name: 'VIEWER', status: 'ACTIVE' }],
         permissions: ALL_PBAC_PERMISSION_KEYS.reduce((acc, pKey) => {
           acc[pKey] = userPermKeys.has(pKey);
           return acc;

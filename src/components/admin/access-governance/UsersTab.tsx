@@ -528,7 +528,9 @@ export function UsersTab({
                               </span>
                             ))
                           ) : (
-                            <span className="text-slate-500 text-[11px] italic">No Roles Assigned</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-500/20 font-semibold rounded text-[10px]">
+                              VIEWER (Default)
+                            </span>
                           )}
 
                           {/* Quick Inline + Assign Role Button */}
@@ -582,7 +584,7 @@ export function UsersTab({
 
                       <td className="p-3">
                         <span className="font-mono font-bold text-indigo-400">
-                          {u.effectivePermissionCount || 0}
+                          {u.effectivePermissionsCount || 0}
                         </span>
                         <span className="text-[10px] text-slate-500 ml-1">capabilities</span>
                       </td>

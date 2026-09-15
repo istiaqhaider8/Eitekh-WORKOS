@@ -295,7 +295,7 @@ export function AccessMatrixTab({
 
                     <td className="p-3">
                       <span className="font-mono font-bold text-indigo-400">
-                        {u.effectivePermissionCount || 0}
+                        {u.effectivePermissionsCount || u.totalGranted || 0}
                       </span>
                       <span className="text-[10px] text-slate-500 ml-1">unique capabilities</span>
                     </td>
