@@ -75,6 +75,39 @@ model Session {
   @@index([userId])
 }
 
+model OtpCode {
+  id         String   @id @default(cuid())
+  email      String
+  codeHash   String
+  purpose    String   // REGISTRATION, PASSWORD_RESET
+  attempts   Int      @default(0)
+  maxAttempts Int     @default(5)
+  usedAt     DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([email, purpose])
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  email       String
+  tokenHash   String    @unique
+  invitedBy   String
+  orgId       String
+  workspaceId String?
+  projectId   String?
+  role        String    @default("MEMBER")
+  status      String    @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}
+
 // -------------------------------------------------------------
 // TENANCY HIERARCHY: Organization -> Workspace -> Team -> Project
 // -------------------------------------------------------------
@@ -93,10 +126,11 @@ model Organization {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  members    OrganizationMember[]
-  workspaces Workspace[]
-  webhooks   Webhook[]
-  leaves     Leave[]
+  members     OrganizationMember[]
+  workspaces  Workspace[]
+  webhooks    Webhook[]
+  leaves      Leave[]
+  invitations Invitation[]
 }
 
 model OrganizationMember {

@@ -46,6 +46,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
+    if (user.status === "PENDING_VERIFY") {
+      return NextResponse.json({ error: "Please verify your email before signing in." }, { status: 403 });
+    }
+
     if (user.status === "SUSPENDED") {
       await logAuditEvent({
         actor: { id: user.id, name: `${user.firstName} ${user.lastName}`, email: user.email },

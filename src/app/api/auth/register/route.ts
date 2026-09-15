@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, createSession, COOKIE_NAME, SESSION_COOKIE_MAX_AGE } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
+import { createAndSendOtp } from "@/lib/otp";
 import { registerSchema, parseBody } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -19,106 +20,43 @@ export async function POST(req: Request) {
     if (!parsed.success) return parsed.error;
     const { firstName, lastName, email, password, company, jobTitle } = parsed.data;
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser && existingUser.status === "ACTIVE" && existingUser.emailVerifiedAt) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
     const passwordHash = await hashPassword(password);
 
-    // Create user and auto-provision initial Organization and Workspace
-    const user = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        passwordHash,
-        company,
-        jobTitle,
-        status: "ACTIVE",
-        emailVerifiedAt: new Date(), // Mock verification for instant onboarding
-      },
-    });
-
-    const orgName = company || `${firstName}'s Team`;
-    const orgSlug = orgName.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Math.random().toString(36).substring(2, 6);
-
-    const org = await prisma.organization.create({
-      data: {
-        name: orgName,
-        slug: orgSlug,
-        members: {
-          create: [{ userId: user.id, role: "OWNER" }],
+    if (existingUser && existingUser.status === "PENDING_VERIFY") {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { firstName, lastName, passwordHash, company, jobTitle },
+      });
+    } else if (!existingUser) {
+      await prisma.user.create({
+        data: {
+          firstName,
+          lastName,
+          email,
+          passwordHash,
+          company,
+          jobTitle,
+          status: "PENDING_VERIFY",
         },
-      },
-    });
+      });
+    }
 
-    const workspace = await prisma.workspace.create({
-      data: {
-        orgId: org.id,
-        name: "Main Workspace",
-        slug: "main",
-        members: {
-          create: [{ userId: user.id, role: "WORKSPACE_ADMIN" }],
-        },
-      },
-    });
+    const otpResult = await createAndSendOtp(email, "REGISTRATION");
+    if (!otpResult.success) {
+      return NextResponse.json({ error: otpResult.error }, { status: 500 });
+    }
 
-    const project = await prisma.project.create({
-      data: {
-        workspaceId: workspace.id,
-        name: "My First Project",
-        key: "PRJ",
-        description: "Initial project setup",
-        ownerId: user.id,
-        template: "SCRUM",
-        members: {
-          create: [{ userId: user.id, role: "PROJECT_ADMIN" }],
-        },
-      },
-    });
-
-    // Create default workflow for the project
-    const workflow = await prisma.workflow.create({
-      data: {
-        projectId: project.id,
-        name: "Default Workflow",
-        isDefault: true,
-      },
-    });
-
-    await prisma.workflowStatus.createMany({
-      data: [
-        { workflowId: workflow.id, name: "To Do", category: "TO_DO", color: "#3b82f6", position: 1 },
-        { workflowId: workflow.id, name: "In Progress", category: "IN_PROGRESS", color: "#f59e0b", position: 2 },
-        { workflowId: workflow.id, name: "Done", category: "DONE", color: "#10b981", position: 3 },
-      ],
-    });
-
-    const { jwtToken } = await createSession(user.id);
-
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
+      requiresVerification: true,
+      email,
+      message: "Verification code sent to your email.",
     });
-
-    response.cookies.set(COOKIE_NAME, jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production" || process.env.FORCE_HTTPS === "true",
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_COOKIE_MAX_AGE,
-    });
-
-    return response;
   } catch (error: any) {
     console.error("Registration error:", error);
     return NextResponse.json({ error: error.message || "Registration failed" }, { status: 500 });
