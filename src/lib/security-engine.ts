@@ -58,6 +58,7 @@ class PlatformSecurityEngine {
   private threats: Map<string, SecurityThreat> = new Map();
   private isolationViolations: IsolationViolationEvent[] = [];
   private maxEvents = 500;
+  private maxThreats = 1000;
   private startTime = Date.now();
 
   constructor() {
@@ -120,6 +121,7 @@ class PlatformSecurityEngine {
     };
 
     this.threats.set(threatId, threat);
+    this.evictOldThreats();
 
     logger.warn('SECURITY_THREAT_DETECTED', `[${params.severity}] ${params.eventType} - ${params.description}`, {
       threatId,
@@ -129,6 +131,24 @@ class PlatformSecurityEngine {
     });
 
     return threat;
+  }
+
+  private evictOldThreats(): void {
+    if (this.threats.size <= this.maxThreats) return;
+    const resolved = Array.from(this.threats.entries())
+      .filter(([, t]) => t.status === 'RESOLVED' || t.status === 'FALSE_POSITIVE')
+      .sort((a, b) => new Date(a[1].detectedAt).getTime() - new Date(b[1].detectedAt).getTime());
+    for (const [id] of resolved) {
+      if (this.threats.size <= this.maxThreats) break;
+      this.threats.delete(id);
+    }
+    if (this.threats.size > this.maxThreats) {
+      const oldest = Array.from(this.threats.entries())
+        .sort((a, b) => new Date(a[1].detectedAt).getTime() - new Date(b[1].detectedAt).getTime());
+      while (this.threats.size > this.maxThreats && oldest.length) {
+        this.threats.delete(oldest.shift()![0]);
+      }
+    }
   }
 
   public recordIsolationViolation(event: Omit<IsolationViolationEvent, 'id' | 'timestamp' | 'prevented'>) {

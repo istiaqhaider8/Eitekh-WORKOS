@@ -22,6 +22,12 @@ export interface BackgroundJob<T = any> {
 class BackgroundJobManager {
   private jobs: Map<string, BackgroundJob> = new Map();
 
+  constructor() {
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => this.cleanOldJobs(), 10 * 60 * 1000);
+    }
+  }
+
   public enqueueJob<T = any>(
     type: BackgroundJob['type'],
     userId: string,
