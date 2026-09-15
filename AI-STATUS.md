@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `8d7220e`
+> **Latest Commit**: `cd75244`
 
 ---
 
@@ -16,12 +16,12 @@
 |---|---|---|
 | Phase 1 — Critical Security Fixes | COMPLETE | 10/10 |
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
-| Phase 3 — Architecture & Auth | IN PROGRESS | 4/15 |
+| Phase 3 — Architecture & Auth | IN PROGRESS | 7/15 |
 | Phase 4 — Performance | NOT STARTED | 0/10 |
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 22 resolved, 1 partial, 50 pending out of 73 findings**
+**Overall: 25 resolved, 1 partial, 47 pending out of 73 findings**
 
 ---
 
@@ -35,8 +35,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|---|---|
 | 1 | PBAC-1 | Critical | COMPLETED | Role hierarchy not enforced — MEMBER can escalate to ADMIN | `src/lib/pbac-engine.ts` |
 | 2 | UI-1 | High | PENDING | XSS via unsanitized user content in frontend rendering | `src/components/` |
-| 3 | PERF-2 | High | PENDING | Missing database indexes on foreign keys | `prisma/schema.prisma` |
-| 4 | ARCH-1 | High | PENDING | SQLite with no migration system | `prisma/` |
+| 3 | PERF-2 | High | COMPLETED | Missing database indexes on foreign keys | `prisma/schema.prisma` |
+| 4 | ARCH-1 | High | COMPLETED | SQLite with no migration system | `prisma/` |
 | 5 | OPS-1 | High | PENDING | No rate limiting on most endpoints | `src/middleware.ts`, `src/lib/rate-limit.ts` |
 | 6 | ADMIN-2 | High | COMPLETED | Super-admin endpoints lack consistent authorization | `src/app/api/super-admin/` |
 | 7 | PBAC-2 | High | COMPLETED | Stale permission cache after role changes | `src/lib/pbac-engine.ts` |
@@ -50,7 +50,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 
 | # | ID | Severity | Status | Description |
 |---|---|---|---|---|
-| 13 | AUTH-4 | Medium | PENDING | Cookie secure flag tied to NODE_ENV |
+| 13 | AUTH-4 | Medium | COMPLETED | Cookie secure flag tied to NODE_ENV |
 | 14 | PBAC-4 | Medium | PENDING | PBAC cache invalidation race conditions |
 | 15 | PBAC-5 | Medium | PENDING | No permission audit trail |
 | 16 | DATA-7 | Medium | PENDING | No data encryption at rest |
@@ -124,6 +124,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | ADMIN-2 | High | Claude Opus 4.6 | 2026-09-15 | `0d9fdd4` |
 | PBAC-2 | High | Claude Opus 4.6 | 2026-09-15 | `fef0161` |
 | PBAC-3 | High | Claude Opus 4.6 | 2026-09-15 | `8d7220e` |
+| ARCH-1 | High | Claude Opus 4.6 | 2026-09-15 | `cd75244` |
+| AUTH-4 | Medium | Claude Opus 4.6 | 2026-09-15 | `f5734e9` |
+| PERF-2 | High | Claude Opus 4.6 | 2026-09-15 | `cd75244` |
 
 ---
 
