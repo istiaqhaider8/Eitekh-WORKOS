@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Sonnet 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `e163316`
+> **Latest Commit**: `0df3b8d`
 
 ---
 
@@ -91,7 +91,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 46 | API-5 | Low | COMPLETED | No OpenAPI/Swagger documentation |
 | 47 | ARCH-6 | Low | COMPLETED | No dependency injection / testability |
 | 48 | DATA-8 | Low | COMPLETED | No data retention/deletion policy |
-| 49 | EMAIL-3 | Low | COMPLETED | No email template versioning |
+| 49 | EMAIL-3 | Low | COMPLETED | No email template versioning — all 8 templates redesigned as professional table-based layout |
 | 50 | EMAIL-4 | Low | COMPLETED | Hardcoded sender address |
 | 51 | ADMIN-4 | Low | COMPLETED | No admin dashboard access logging |
 | 52 | OPS-7 | Low | COMPLETED | No structured logging |
@@ -163,6 +163,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | API-5 | Low | Claude Sonnet 4.6 | 2026-09-15 | `c6c1099` |
 | OPS-9 | Low | Claude Sonnet 4.6 | 2026-09-15 | `a346cd3` |
 | UI-3 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `122ae1c` |
+| AUTH-OTP | High | Claude Opus 4.6 | 2026-09-15 | `fe9171b` |
+| EMAIL-TEMPLATES | Medium | Claude Sonnet 4.6 | 2026-09-15 | `0df3b8d` |
 
 ---
 
@@ -260,6 +262,40 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   - Added role="dialog" aria-modal="true" to 6 IssueDetailModal sub-dialogs (z-[60/65/70/80])
   - Added aria-label="Close" to close buttons in RolesTab + SystemSyncMonitorView
   - AppHeader, AppSidebar, CommandPalette already had proper ARIA (role, aria-label, aria-modal)
+
+### 2026-09-15 — Claude Opus 4.6 (Session 9) — Auth & Email Flows
+- **OTP-based authentication** — full redesign of registration, forgot-password, and invitation flows
+  - `prisma/schema.prisma`: added `OtpCode` model (email, codeHash SHA-256, purpose, attempts/maxAttempts=5, usedAt, expiresAt) and `Invitation` model (tokenHash unique, invitedBy, orgId, workspaceId?, projectId?, role, status PENDING/ACCEPTED/EXPIRED, expiresAt 7d)
+  - `src/lib/otp.ts` (NEW): `createAndSendOtp()` — invalidates old codes, generates 6-digit OTP, hashes SHA-256, sends via email; `verifyOtp()` — checks hash, increments attempts, marks used on success
+  - `src/app/api/auth/register/route.ts`: creates user as `PENDING_VERIFY`, calls `createAndSendOtp(REGISTRATION)`, returns `requiresVerification: true`
+  - `src/app/api/auth/login/route.ts`: blocks `PENDING_VERIFY` users with 403
+  - `src/app/api/auth/verify-otp/route.ts` (NEW): handles REGISTRATION (activate user → provision org/workspace/project → create session) and PASSWORD_RESET (return short-lived reset token, 15min)
+  - `src/app/api/auth/resend-otp/route.ts` (NEW): rate-limited 3/min per IP
+  - `src/app/api/auth/forgot-password/route.ts`: rewritten to send OTP instead of reset link
+  - `src/app/api/auth/invite/route.ts` (NEW): authenticated, creates Invitation + sends INVITATION email, rate-limited 20/min per user
+  - `src/app/api/auth/invitation/route.ts` (NEW): GET validates token, POST accepts invitation — creates/activates user, provisions org/workspace/project memberships, marks invitation ACCEPTED
+  - `src/app/register/page.tsx`: two-step UI (form → OTP digit inputs with auto-advance/paste/backspace, 60s resend cooldown)
+  - `src/app/forgot-password/page.tsx`: four-step UI (email → OTP → new-password with requirements checklist → success)
+  - `src/app/accept-invitation/page.tsx` (NEW): validates token on load, shows org+role, account setup form
+  - `src/lib/email.ts`: added `REGISTRATION_OTP`, `PASSWORD_RESET_OTP`, `INVITATION` templates
+- **All three flows tested end-to-end** with real email delivery:
+  - Registration: register → PENDING_VERIFY → OTP sent → login blocked (403) → verify OTP → ACTIVE → login ✓
+  - Forgot password: request OTP → verify → reset token → new password → login ✓
+  - Invitation: validate token → accept (create account + org membership) → ACTIVE → login ✓
+- **Security verified**: OTP single-use (reuse → "No active code"), invitation token single-use (reuse → 400), OTP expiry enforced (10 min), rate limiting on all new endpoints
+- Commit: `fe9171b`
+
+### 2026-09-15 — Claude Sonnet 4.6 (Session 10) — Professional Email Templates
+- **Redesigned all 8 email templates** from dark-theme div-based to professional table-based layout
+  - Changed from dark (`#0f172a` background) to light (`#ffffff` card on `#f4f6f8` ground) — professional transactional email standard
+  - Rewrote as table-based HTML for maximum email client compatibility (Gmail, Outlook, Apple Mail)
+  - Added shared `wrap()` helper: branded dark navy header (E logo + "Eitekh WorkOS"), white content area, copyright footer with auto-injected `{{currentYear}}`
+  - Added shared `btn()` helper: table-cell CTA buttons that render correctly in Outlook
+  - Templates redesigned: WELCOME (org card + CTA), ISSUE_ASSIGNED (issue card with accent border, type/priority grid), MENTION (@mention badge + quoted comment card), PASSWORD_RESET (lock icon + red CTA), SPRINT_STARTED (goal card + date grid), REGISTRATION_OTP (blue OTP box, monospace 36px), PASSWORD_RESET_OTP (red OTP box), INVITATION (org/role two-column card)
+  - `renderTemplate()` updated to auto-inject `currentYear` into all templates
+  - Updated DB templates via `npx tsx scripts/update-templates.ts` (all 8 updated)
+  - All 8 templates sent to istiaqhaider8@gmail.com — all SENT ✓
+- Commit: `0df3b8d`
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
