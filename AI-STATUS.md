@@ -18,10 +18,10 @@
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
 | Phase 3 — Architecture & Auth | COMPLETE | 15/15 |
 | Phase 4 — Performance | IN PROGRESS | 10/10 |
-| Phase 5 — UI/UX Hardening | IN PROGRESS | 2/10 |
+| Phase 5 — UI/UX Hardening | IN PROGRESS | 3/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 62 resolved, 1 partial, 10 pending out of 73 findings (85%)**
+**Overall: 63 resolved, 1 partial, 9 pending out of 73 findings (86%)**
 
 ---
 
@@ -69,7 +69,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 29 | UI-2 | Medium | COMPLETED | Client-side only validation on forms |
 | 30 | UI-3 | Medium | COMPLETED | Accessibility gaps (ARIA, keyboard navigation) |
 | 31 | UI-4 | Medium | COMPLETED | Stale real-time data after SSE reconnection |
-| 32 | UI-5 | Medium | PENDING | No optimistic updates |
+| 32 | UI-5 | Medium | COMPLETED | No optimistic updates |
 | 33 | OPS-3 | Medium | COMPLETED | No monitoring or alerting |
 | 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
 | 35 | OPS-5 | Medium | COMPLETED | No CI/CD pipeline |

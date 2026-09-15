@@ -479,8 +479,9 @@ export function ProjectClient({
 
       if (event.eventType === "ISSUE_CREATED" && event.data) {
         setIssues((prev) => {
-          if (prev.some((i) => i.id === event.data.id)) return prev;
-          return [event.data, ...prev];
+          // Skip if real issue already exists; also evict any matching optimistic placeholder
+          if (prev.some((i) => i.id === event.data.id && !i._isOptimistic)) return prev;
+          return [event.data, ...prev.filter((i) => i.id !== event.data.id)];
         });
       } else if (event.eventType === "ISSUE_UPDATED" && event.data) {
         const targetId = event.data.id || event.data.issueId || event.entityId;
@@ -604,6 +605,28 @@ export function ProjectClient({
     teamId?: string;
     dueDate?: string;
   }) => {
+    // Optimistic update: show issue immediately before server confirms
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const optimisticIssue = {
+      id: tempId,
+      issueKey: `${currentProject.key}-?`,
+      title: payload.title,
+      priority: payload.priority || "MEDIUM",
+      issueType: payload.issueType || "TASK",
+      statusId: payload.statusId,
+      status: statuses.find((s: any) => s.id === payload.statusId) ?? null,
+      assigneeId: payload.assigneeId ?? null,
+      assignee: members.find((m: any) => m.userId === payload.assigneeId)?.user ?? null,
+      estimatePoints: payload.estimatePoints ?? null,
+      teamId: payload.teamId ?? null,
+      dueDate: payload.dueDate ?? null,
+      projectId: currentProject.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _isOptimistic: true,
+    };
+    setIssues((prev) => [optimisticIssue, ...prev]);
+
     try {
       const res = await fetch(`/api/projects/${currentProject.id}/issues`, {
         method: "POST",
@@ -611,13 +634,22 @@ export function ProjectClient({
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        const data = await res.json();
+        const realIssue = data.issue;
+        // Replace optimistic entry with real server-confirmed issue
+        setIssues((prev) =>
+          prev.map((i) => (i.id === tempId ? { ...realIssue, _isOptimistic: false } : i))
+        );
         showSuccess("Task created successfully");
-        refreshIssues();
       } else {
+        // Rollback optimistic update
+        setIssues((prev) => prev.filter((i) => i.id !== tempId));
         const data = await res.json();
         showError(data.error || "Failed to create task");
       }
     } catch (err: any) {
+      // Rollback optimistic update
+      setIssues((prev) => prev.filter((i) => i.id !== tempId));
       showError(err.message || "Failed to create task");
     }
   };
