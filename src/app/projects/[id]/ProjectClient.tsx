@@ -94,9 +94,7 @@ export function ProjectClient({
     }
   }, [project?.id]);
 
-  useEffect(() => {
-    fetchAvailability();
-  }, [fetchAvailability]);
+  // Initial data load consolidated into single effect below (lines ~468)
 
 
   const [showCreateIssueModal, setShowCreateIssueModal] = useState(false);
@@ -392,17 +390,19 @@ export function ProjectClient({
 
   const refreshIssues = async () => {
     try {
-      const res = await fetch(`/api/projects/${project.id}/issues`);
+      const [res, sRes, eRes] = await Promise.all([
+        fetch(`/api/projects/${project.id}/issues`),
+        fetch(`/api/sprints?projectId=${project.id}`),
+        fetch(`/api/epics?projectId=${project.id}`),
+      ]);
       if (res.ok) {
         const data = await res.json();
         setIssues(data.issues || []);
       }
-      const sRes = await fetch(`/api/sprints?projectId=${project.id}`);
       if (sRes.ok) {
         const sData = await sRes.json();
         setSprints(sData.sprints || []);
       }
-      const eRes = await fetch(`/api/epics?projectId=${project.id}`);
       if (eRes.ok) {
         const eData = await eRes.json();
         setEpics(Array.isArray(eData) ? eData : eData.epics || []);
@@ -466,10 +466,11 @@ export function ProjectClient({
   }, [project?.id]);
 
   useEffect(() => {
+    fetchAvailability();
     refreshTeams();
     refreshPriorities();
     refreshProjectAndStatuses();
-  }, [refreshTeams, refreshPriorities, refreshProjectAndStatuses]);
+  }, [fetchAvailability, refreshTeams, refreshPriorities, refreshProjectAndStatuses]);
 
   // REAL-TIME DATA SYNCHRONIZATION:
   // Listens for project-scoped events from SSE hub and updates all views instantly

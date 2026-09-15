@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -75,14 +75,7 @@ export function AppHeader({
     if (!showNotifications) setSelectedIds(new Set());
   }, [showNotifications]);
 
-  useEffect(() => {
-    setSelectedIds(new Set());
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, [notificationTab, notificationSearch]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (notificationTab !== "all") params.set("filter", notificationTab);
@@ -98,7 +91,19 @@ export function AppHeader({
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [notificationTab, notificationSearch]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    setSelectedIds(new Set());
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [showNotifications, fetchNotifications]);
 
   const markAllAsRead = async () => {
     try {
