@@ -257,6 +257,18 @@ class NotificationEngine {
           if (item.retryCount >= item.maxRetries) {
             item.status = 'FAILED';
             console.error(`[EmailQueue] Dead-letter item ${item.id} to ${item.to} exceeded max retries.`);
+            try {
+              await prisma.emailLog.create({
+                data: {
+                  to: item.to,
+                  from: 'noreply@eitekh.com',
+                  subject: item.customSubject || item.templateKey || 'notification',
+                  templateKey: item.templateKey,
+                  status: 'FAILED',
+                  error: item.error,
+                },
+              });
+            } catch {}
           } else {
             item.status = 'QUEUED';
             // Exponential backoff: 2s, 6s, 18s

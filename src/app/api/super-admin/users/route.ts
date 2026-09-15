@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { getBaseUrl } from "@/lib/config";
 import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody } from "@/lib/validation";
 
 // GET /api/super-admin/users
@@ -194,7 +195,16 @@ export async function POST(req: Request) {
         userName: newUser.firstName + " " + newUser.lastName,
         userEmail: newUser.email,
         organizationName: targetOrg?.name || "Eitekh WorkOS Enterprise",
-        actionUrl: (process.env.NEXTAUTH_URL || "http://localhost:3000") + "/login",
+        actionUrl: getBaseUrl() + "/login",
+      },
+    }).catch(() => {});
+
+    await prisma.platformAuditLog.create({
+      data: {
+        actorId: user.id,
+        action: "USER_CREATED",
+        targetResource: "User:" + newUser.id,
+        details: JSON.stringify({ email: normalizedEmail, orgId, role }),
       },
     }).catch(() => {});
 
@@ -310,6 +320,15 @@ export async function PATCH(req: Request) {
         }),
       },
     });
+
+    await prisma.platformAuditLog.create({
+      data: {
+        actorId: user.id,
+        action: passwordUpdated ? "USER_PASSWORD_RESET" : "USER_UPDATED",
+        targetResource: "User:" + userId,
+        details: JSON.stringify({ fields: Object.keys(updateData) }),
+      },
+    }).catch(() => {});
 
     const { passwordHash: _uph, mfaSecret: _ums, recoveryCodes: _urc, ...safeUpdatedUser } = updatedUser as any;
 

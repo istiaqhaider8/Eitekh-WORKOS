@@ -9,8 +9,8 @@ export interface SendEmailOptions {
   customHtml?: string;
 }
 
-export const DEFAULT_SENDER_EMAIL = "cocofbd@gmail.com";
-export const DEFAULT_SENDER_NAME = "Eitekh WorkOS";
+export const DEFAULT_SENDER_EMAIL = process.env.EMAIL_FROM || "noreply@eitekh.com";
+export const DEFAULT_SENDER_NAME = process.env.EMAIL_FROM_NAME || "Eitekh WorkOS";
 
 export const DEFAULT_TEMPLATES = [
   {

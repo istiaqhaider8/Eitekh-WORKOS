@@ -45,8 +45,13 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const start = Date.now();
   const ip = getClientIp(req);
   const isMutation = MUTATING_METHODS.has(req.method);
+
+  if (isMutation) {
+    console.log(`[API] ${req.method} ${req.nextUrl.pathname} from ${ip}`);
+  }
   const limit = isMutation ? RATE_LIMIT_MAX_MUTATION : RATE_LIMIT_MAX;
   const rlKey = isMutation ? `mut:${ip}` : `read:${ip}`;
   const rl = checkMiddlewareRateLimit(rlKey, limit);
