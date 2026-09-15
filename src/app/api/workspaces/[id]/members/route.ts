@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { workspaceMemberSchema, parseBody } from "@/lib/validation";
+import { workspaceMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 async function assertWorkspaceAccess(workspaceId: string, allowedRoles: string[] = ["WORKSPACE_ADMIN", "MEMBER", "VIEWER"]) {
   const user = await getCurrentUser();
@@ -92,8 +92,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const body = await req.json();
-    
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
+
     await prisma.workspaceMember.delete({
       where: { workspaceId_userId: { workspaceId: id, userId: body.userId } },
     });

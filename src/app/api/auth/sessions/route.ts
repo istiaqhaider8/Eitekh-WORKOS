@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, verifyToken, COOKIE_NAME } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { sessionDeleteSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -60,8 +61,9 @@ export async function DELETE(request: Request) {
       }
     }
 
-    const body = await request.json();
-    const { sessionId, revokeAll } = body;
+    const parsed = parseBody(sessionDeleteSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { sessionId, revokeAll } = parsed.data;
 
     if (revokeAll) {
       if (!currentSessionId) {

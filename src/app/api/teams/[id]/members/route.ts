@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { teamMemberSchema, parseBody } from "@/lib/validation";
+import { teamMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 async function checkTeamAdmin(teamId: string) {
   const user = await getCurrentUser();
@@ -103,9 +103,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await checkTeamAdmin(id);
-    const body = await req.json();
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     await prisma.teamMember.delete({
-      where: { teamId_userId: { teamId: id, userId: body.userId } }
+      where: { teamId_userId: { teamId: id, userId: parsed.data.userId } }
     });
     return NextResponse.json({ success: true });
   } catch (error: any) {

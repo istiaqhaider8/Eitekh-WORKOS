@@ -4,6 +4,7 @@ import { assertOrgAccess } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { syncEngine } from "@/lib/sync-engine";
 import { logger } from "@/lib/logger";
+import { leaveCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -86,15 +87,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { orgId, userId, startDate, endDate, leaveType, note } = body;
-
-    if (!startDate || !endDate) {
-      return NextResponse.json(
-        { error: "Start date and end date are required" },
-        { status: 400 }
-      );
-    }
+    const parsed = parseBody(leaveCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { orgId, userId, startDate, endDate, leaveType, note } = parsed.data;
 
     let targetOrgId = orgId;
     if (!targetOrgId) {

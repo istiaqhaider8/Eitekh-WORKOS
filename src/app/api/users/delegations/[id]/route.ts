@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
+import { delegationUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function PATCH(
   req: NextRequest,
@@ -47,8 +48,9 @@ export async function PATCH(
     // Verify tenant access
     await assertOrgAccess(delegation.issue.project.workspace.orgId);
 
-    const body = await req.json();
-    const { status, action, details } = body;
+    const parsed = parseBody(delegationUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { status, action, details } = parsed.data;
 
     const updated = await prisma.taskDelegation.update({
       where: { id },

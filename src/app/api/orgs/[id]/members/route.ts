@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
-import { orgMemberCreateSchema, orgMemberUpdateSchema, parseBody } from "@/lib/validation";
+import { orgMemberCreateSchema, orgMemberUpdateSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -153,8 +153,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const body = await req.json();
-    
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
+
     const member = await prisma.organizationMember.findUnique({
       where: { orgId_userId: { orgId: id, userId: body.userId } }
     });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { notificationEngine, NotificationType } from "@/lib/notifications";
-import { notificationPostSchema, parseBody } from "@/lib/validation";
+import { notificationPostSchema, notificationMarkReadSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -74,8 +74,9 @@ export async function PATCH(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { id, ids, markAllRead } = body;
+    const parsed = parseBody(notificationMarkReadSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { id, ids, markAllRead } = parsed.data;
 
     if (markAllRead) {
       await prisma.notification.updateMany({

@@ -4,7 +4,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
-import { projectMemberSchema, parseBody } from "@/lib/validation";
+import { projectMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 // Only these project-scoped role strings may be assigned to a ProjectMember.
 // This blocks privilege escalation via an injected org-scoped PBAC role id
@@ -207,8 +207,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
-    const body = await req.json();
-    const safeRole = normalizeProjectRole(body.role);
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
+    const safeRole = normalizeProjectRole((body as any).role);
     const updated = await prisma.projectMember.update({
       where: { projectId_userId: { projectId: id, userId: body.userId } },
       data: { role: safeRole }
@@ -236,7 +238,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         projectId: id,
         projectKey: project.key,
         userId: body.userId,
-        newRole: body.role,
+        newRole: (body as any).role,
       },
       req,
     });
@@ -251,7 +253,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
-    const body = await req.json();
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     await prisma.projectMember.delete({
       where: { projectId_userId: { projectId: id, userId: body.userId } }
     });

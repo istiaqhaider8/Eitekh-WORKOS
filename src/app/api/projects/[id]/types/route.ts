@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
+import { issueTypeCreateSchema, issueTypeUpdateSchema, parseBody } from "@/lib/validation";
 
 const DEFAULT_ISSUE_TYPES = [
   { name: "Task", value: "TASK", color: "#0ea5e9", icon: "CheckSquare", description: "Standard actionable work item" },
@@ -73,11 +74,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await assertProjectAccess(projectId);
 
-    const body = await req.json();
-    const { name, color, icon, description, value: customVal } = body;
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return NextResponse.json({ error: "Type name is required" }, { status: 400 });
-    }
+    const parsed = parseBody(issueTypeCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { name, color, icon, description, value: customVal } = parsed.data;
 
     const trimmedName = name.trim();
     const val = (customVal && typeof customVal === "string" ? customVal.trim() : trimmedName)
@@ -160,11 +159,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await assertProjectAccess(projectId);
 
-    const body = await req.json();
-    const { originalValue, name, color, icon, description, newValue } = body;
-    if (!originalValue) {
-      return NextResponse.json({ error: "originalValue is required to update type" }, { status: 400 });
-    }
+    const parsed = parseBody(issueTypeUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { originalValue, name, color, icon, description, newValue } = parsed.data;
 
     const trimmedName = name?.trim() || originalValue;
     const finalVal = (newValue || trimmedName).toUpperCase().replace(/[^A-Z0-9_]/g, "_");

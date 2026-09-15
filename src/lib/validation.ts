@@ -735,6 +735,130 @@ export const superAdminEmailTestSchema = z.object({
   to: z.string().email().max(254).optional(),
 });
 
+// ── Auth schemas ─────────────────────────────────────────────────
+
+export const mfaToggleSchema = z.object({
+  enabled: z.boolean(),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "Verification token is required").max(256),
+});
+
+export const sessionDeleteSchema = z.object({
+  sessionId: cuidSchema.optional(),
+  revokeAll: z.boolean().optional(),
+});
+
+// ── Notification action schemas ──────────────────────────────────
+
+export const notificationMarkReadSchema = z.object({
+  id: cuidSchema.optional(),
+  ids: z.array(cuidSchema).max(500).optional(),
+  markAllRead: z.boolean().optional(),
+});
+
+// ── Workflow transition schemas ──────────────────────────────────
+
+export const workflowTransitionCreateSchema = z.object({
+  fromStatusId: cuidSchema,
+  toStatusId: cuidSchema,
+  requiredRole: z.string().max(50).optional().nullable(),
+});
+
+export const workflowTransitionDeleteSchema = z.object({
+  transitionId: cuidSchema,
+});
+
+// ── Project type/priority schemas ────────────────────────────────
+
+export const issueTypeCreateSchema = z.object({
+  name: safeStringSchema.min(1, "Type name is required").trim(),
+  color: z.string().max(20).optional(),
+  icon: z.string().max(50).optional(),
+  description: safeStringSchema.trim().optional(),
+  value: z.string().max(50).optional(),
+});
+
+export const issueTypeUpdateSchema = z.object({
+  originalValue: z.string().min(1, "originalValue is required").max(50),
+  name: safeStringSchema.trim().optional(),
+  color: z.string().max(20).optional(),
+  icon: z.string().max(50).optional(),
+  description: safeStringSchema.trim().optional(),
+  newValue: z.string().max(50).optional(),
+});
+
+export const priorityCreateSchema = z.object({
+  name: safeStringSchema.min(1, "Priority name is required").trim(),
+  color: z.string().max(20).optional(),
+});
+
+// ── Import schema ────────────────────────────────────────────────
+
+export const csvImportSchema = z.object({
+  csvData: z.string().min(1, "Missing csvData").max(5_000_000),
+});
+
+// ── Member action schemas (delete/role update) ───────────────────
+
+export const memberUserIdSchema = z.object({
+  userId: cuidSchema,
+  role: z.string().max(50).optional(),
+});
+
+// ── Recurring task update schema ─────────────────────────────────
+
+export const recurringTaskUpdateSchema = z.object({
+  scheduleCron: z.string().max(100).optional(),
+  templateData: z.any().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ── Leave schemas ────────────────────────────────────────────────
+
+export const leaveCreateSchema = z.object({
+  orgId: cuidSchema.optional(),
+  userId: cuidSchema.optional(),
+  startDate: z.string().min(1, "Start date is required").max(50),
+  endDate: z.string().min(1, "End date is required").max(50),
+  leaveType: safeStringSchema.optional(),
+  note: safeStringSchema.optional().nullable(),
+});
+
+export const leaveUpdateSchema = z.object({
+  startDate: z.string().max(50).optional(),
+  endDate: z.string().max(50).optional(),
+  leaveType: safeStringSchema.optional(),
+  note: safeStringSchema.optional().nullable(),
+});
+
+// ── Delegation schemas ───────────────────────────────────────────
+
+export const delegationCreateSchema = z.object({
+  leaveId: cuidSchema.optional().nullable(),
+  delegateUserId: cuidSchema,
+  scope: z.string().max(50).optional(),
+  issueIds: z.array(cuidSchema).max(500).optional(),
+  startDate: z.string().min(1, "Start date is required").max(50),
+  endDate: z.string().min(1, "End date is required").max(50),
+  reason: safeStringSchema.optional(),
+});
+
+export const delegationUpdateSchema = z.object({
+  status: z.string().max(50).optional(),
+  action: z.string().max(50).optional(),
+  details: safeStringSchema.optional(),
+});
+
+// ── Cache refresh schema ─────────────────────────────────────────
+
+export const cacheRefreshSchema = z.object({
+  action: z.enum(["REFRESH_SESSION", "CLEAR_CLIENT_CACHE", "REFRESH_APP_DATA", "CLEAR_SERVER_CACHE", "REBUILD_ANALYTICS_CACHE", "REFRESH_REALTIME", "FULL_SYSTEM_REFRESH", "BUMP_CACHE_VERSION"]),
+  orgId: cuidSchema.optional(),
+  projectId: cuidSchema.optional(),
+});
+
 // ── Parsing helper ──────────────────────────────────────────────────
 
 export function parseBody<T extends z.ZodTypeAny>(

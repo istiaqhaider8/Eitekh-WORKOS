@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { cacheManager, CacheRefreshAction } from '@/lib/cache-manager';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { cacheRefreshSchema, parseBody } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,14 +11,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const action: CacheRefreshAction = body.action;
-    const orgId = body.orgId || user.orgMemberships?.[0]?.organization?.id;
-    const projectId = body.projectId;
-
-    if (!action) {
-      return NextResponse.json({ error: 'Action parameter is required' }, { status: 400 });
-    }
+    const parsed = parseBody(cacheRefreshSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const action: CacheRefreshAction = parsed.data.action;
+    const orgId = parsed.data.orgId || user.orgMemberships?.[0]?.organization?.id;
+    const projectId = parsed.data.projectId;
 
     // Determine user role and authorizations
     const assignedRoles = orgId ? await pbacEngine.getUserRoles(orgId, user.id) : [];
