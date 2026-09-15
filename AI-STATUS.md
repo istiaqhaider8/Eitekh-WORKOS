@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `389fcac`
+> **Latest Commit**: `c2aae2d`
 
 ---
 
@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 18 resolved, 1 partial, 54 pending out of 73 findings**
+**Overall: 19 resolved, 1 partial, 53 pending out of 73 findings**
 
 ---
 
@@ -33,7 +33,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| 1 | PBAC-1 | Critical | PENDING | Role hierarchy not enforced — MEMBER can escalate to ADMIN | `src/lib/pbac-engine.ts` |
+| 1 | PBAC-1 | Critical | COMPLETED | Role hierarchy not enforced — MEMBER can escalate to ADMIN | `src/lib/pbac-engine.ts` |
 | 2 | UI-1 | High | PENDING | XSS via unsanitized user content in frontend rendering | `src/components/` |
 | 3 | PERF-2 | High | PENDING | Missing database indexes on foreign keys | `prisma/schema.prisma` |
 | 4 | ARCH-1 | High | PENDING | SQLite with no migration system | `prisma/` |
@@ -120,6 +120,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | EMAIL-1 | High | Claude Opus | 2026-09-15 | `e4cdbe7` |
 | ADMIN-1 | Critical | Claude Opus | 2026-09-15 | `7cc82e9` |
 | API-1 | High | Claude Opus 4.6 | 2026-09-15 | `dcd1d71` |
+| PBAC-1 | Critical | Claude Opus 4.6 | 2026-09-15 | `c2aae2d` |
 
 ---
 
@@ -149,6 +150,12 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - Resolved: API-1 fully
 - 19 files changed, 60+ schemas in validation.ts
 - Commits: `dcd1d71`, `b6716d9`, `389fcac`
+
+### 2026-09-15 — Claude Opus 4.6 (Session 6)
+- PBAC-1: Enforced role hierarchy to prevent privilege escalation
+- Added ROLE_HIERARCHY (VIEWER=10 → SUPER_ADMIN=60), getActorLevel(), enforceHierarchy()
+- Applied to: addUserToRole, bulkAddUsersToRole, assignRolesToUser, saveRole, cloneRole
+- Commit: `c2aae2d`
 
 ---
 
