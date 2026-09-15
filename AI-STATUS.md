@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `c2aae2d`
+> **Latest Commit**: `8d7220e`
 
 ---
 
@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 19 resolved, 1 partial, 53 pending out of 73 findings**
+**Overall: 22 resolved, 1 partial, 50 pending out of 73 findings**
 
 ---
 
@@ -38,9 +38,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 3 | PERF-2 | High | PENDING | Missing database indexes on foreign keys | `prisma/schema.prisma` |
 | 4 | ARCH-1 | High | PENDING | SQLite with no migration system | `prisma/` |
 | 5 | OPS-1 | High | PENDING | No rate limiting on most endpoints | `src/middleware.ts`, `src/lib/rate-limit.ts` |
-| 6 | ADMIN-2 | High | PENDING | Super-admin endpoints lack consistent authorization | `src/app/api/super-admin/` |
-| 7 | PBAC-2 | High | PENDING | Stale permission cache after role changes | `src/lib/pbac-engine.ts` |
-| 8 | PBAC-3 | High | PENDING | Two confusable auth helpers create security gaps | `src/lib/tenant.ts` |
+| 6 | ADMIN-2 | High | COMPLETED | Super-admin endpoints lack consistent authorization | `src/app/api/super-admin/` |
+| 7 | PBAC-2 | High | COMPLETED | Stale permission cache after role changes | `src/lib/pbac-engine.ts` |
+| 8 | PBAC-3 | High | COMPLETED | Two confusable auth helpers create security gaps | `src/lib/tenant.ts` |
 | 9 | ARCH-2 | High | PENDING | In-memory singletons as infrastructure (won't scale) | Various `src/lib/` files |
 | 10 | OPS-2 | High | PENDING | No backup strategy for SQLite file DB | New file needed |
 | 11 | PERF-1 | High | PENDING | N+1 queries in issue/project listings | `src/app/api/issues/`, `src/app/api/projects/` |
@@ -121,6 +121,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | ADMIN-1 | Critical | Claude Opus | 2026-09-15 | `7cc82e9` |
 | API-1 | High | Claude Opus 4.6 | 2026-09-15 | `dcd1d71` |
 | PBAC-1 | Critical | Claude Opus 4.6 | 2026-09-15 | `c2aae2d` |
+| ADMIN-2 | High | Claude Opus 4.6 | 2026-09-15 | `0d9fdd4` |
+| PBAC-2 | High | Claude Opus 4.6 | 2026-09-15 | `fef0161` |
+| PBAC-3 | High | Claude Opus 4.6 | 2026-09-15 | `8d7220e` |
 
 ---
 
@@ -156,6 +159,14 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - Added ROLE_HIERARCHY (VIEWER=10 → SUPER_ADMIN=60), getActorLevel(), enforceHierarchy()
 - Applied to: addUserToRole, bulkAddUsersToRole, assignRolesToUser, saveRole, cloneRole
 - Commit: `c2aae2d`
+- ADMIN-2: Standardized super-admin authorization across all 21 endpoints
+- GET = SA+Support (read-only), POST/PATCH/DELETE = SA-only (mutations)
+- Fixed audit-logs (was accessible to org admins), 9 files changed
+- Commit: `0d9fdd4`
+- PBAC-2: Reduced permission cache TTL from 60s to 5s
+- Commit: `fef0161`
+- PBAC-3: Added JSDoc to auth helpers, upgraded 4 mutation routes to assertProjectPermission
+- Commit: `8d7220e`
 
 ---
 
