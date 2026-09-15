@@ -53,6 +53,7 @@ export function AppHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationTab, setNotificationTab] = useState<"all" | "unread" | "mentions" | "assignments" | "system">("all");
   const [notificationSearch, setNotificationSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showUserMenu, setShowUserMenu] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -71,6 +72,11 @@ export function AppHeader({
   }, []);
 
   useEffect(() => {
+    if (!showNotifications) setSelectedIds(new Set());
+  }, [showNotifications]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
@@ -151,6 +157,54 @@ export function AppHeader({
         const item = notifications.find((n) => n.id === id);
         return item && !item.isRead ? Math.max(0, prev - 1) : prev;
       });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = notifications.length > 0 && notifications.every((n) => selectedIds.has(n.id));
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(notifications.map((n) => n.id)));
+  };
+
+  const markSelectedAsRead = async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const unreadSelected = notifications.filter((n) => ids.includes(n.id) && !n.isRead).length;
+      setNotifications((prev) => prev.map((n) => ids.includes(n.id) ? { ...n, isRead: true } : n));
+      setUnreadCount((prev) => Math.max(0, prev - unreadSelected));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    try {
+      await fetch("/api/notifications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const unreadSelected = notifications.filter((n) => ids.includes(n.id) && !n.isRead).length;
+      setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+      setUnreadCount((prev) => Math.max(0, prev - unreadSelected));
+      setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
     }
@@ -326,22 +380,42 @@ export function AppHeader({
                   )}
                 </span>
                 <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-                    >
-                      <Check className="w-3 h-3" />
-                      <span>Mark all read</span>
-                    </button>
-                  )}
-                  {notifications.length > 0 && (
-                    <button
-                      onClick={clearAllNotifications}
-                      className="text-[11px] text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-                    >
-                      Clear all
-                    </button>
+                  {selectedIds.size > 0 ? (
+                    <>
+                      <button
+                        onClick={markSelectedAsRead}
+                        className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Mark read ({selectedIds.size})</span>
+                      </button>
+                      <button
+                        onClick={deleteSelected}
+                        className="text-[11px] text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                      >
+                        Delete ({selectedIds.size})
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Mark all read</span>
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={clearAllNotifications}
+                          className="text-[11px] text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -380,6 +454,22 @@ export function AppHeader({
                 />
               </div>
 
+              {/* Select-all row */}
+              {notifications.length > 0 && (
+                <div className="flex items-center gap-2 px-1 pb-1.5">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-blue-600 cursor-pointer accent-blue-600"
+                    aria-label="Select all notifications"
+                  />
+                  <span className="text-[11px] text-slate-400 select-none">
+                    {selectedIds.size > 0 ? `${selectedIds.size} of ${notifications.length} selected` : "Select all"}
+                  </span>
+                </div>
+              )}
+
               {/* Notification Items List */}
               <div className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 max-h-72">
                 {notifications.length === 0 ? (
@@ -391,14 +481,23 @@ export function AppHeader({
                     <div
                       key={n.id}
                       onClick={() => {
+                        if (selectedIds.size > 0) { toggleSelect(n.id, { stopPropagation: () => {} } as React.MouseEvent); return; }
                         if (!n.isRead) markAsRead(n.id);
                         if (n.linkUrl) router.push(n.linkUrl);
                       }}
                       className={`py-2.5 px-2 flex items-start justify-between gap-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors cursor-pointer group ${
-                        !n.isRead ? "bg-blue-50/40 dark:bg-blue-950/20" : ""
+                        selectedIds.has(n.id) ? "bg-blue-50 dark:bg-blue-950/30" : !n.isRead ? "bg-blue-50/40 dark:bg-blue-950/20" : ""
                       }`}
                     >
                       <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(n.id)}
+                          onClick={(e) => toggleSelect(n.id, e)}
+                          onChange={() => {}}
+                          className="mt-1 w-3.5 h-3.5 shrink-0 rounded border-slate-300 dark:border-slate-600 text-blue-600 cursor-pointer accent-blue-600"
+                          aria-label="Select notification"
+                        />
                         <div className="shrink-0 mt-0.5">
                           {getNotificationIcon(n.type)}
                         </div>
