@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { workflowTransitionCreateSchema, workflowTransitionDeleteSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -36,8 +37,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     await assertProjectPermission(workflow.projectId, "projects:edit");
 
-    const { fromStatusId, toStatusId, requiredRole } = await request.json();
-    if (!fromStatusId || !toStatusId) return NextResponse.json({ error: "Missing status IDs" }, { status: 400 });
+    const parsed = parseBody(workflowTransitionCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { fromStatusId, toStatusId, requiredRole } = parsed.data;
 
     const transition = await prisma.workflowTransition.create({
       data: {
@@ -79,8 +81,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     await assertProjectPermission(workflow.projectId, "projects:edit");
 
-    const { transitionId } = await request.json();
-    if (!transitionId) return NextResponse.json({ error: "Missing transitionId" }, { status: 400 });
+    const parsedDel = parseBody(workflowTransitionDeleteSchema, await request.json());
+    if (!parsedDel.success) return parsedDel.error;
+    const { transitionId } = parsedDel.data;
 
     await prisma.workflowTransition.delete({ where: { id: transitionId } });
 

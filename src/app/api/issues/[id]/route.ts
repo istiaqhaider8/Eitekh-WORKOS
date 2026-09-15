@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { issueUpdateSchema, parseBody } from "@/lib/validation";
+import { getBaseUrl } from "@/lib/config";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,8 +17,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       include: {
         project: true,
         status: true,
-        assignee: true,
-        reporter: true,
+        assignee: publicUserRelation,
+        reporter: publicUserRelation,
         epic: true,
         sprint: true,
         component: true,
@@ -30,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         },
         subtasks: {
           orderBy: { createdAt: "asc" },
-          include: { assignee: true },
+          include: { assignee: publicUserRelation },
         },
         comments: {
           orderBy: { createdAt: "asc" },
@@ -118,7 +121,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       include: {
         status: true,
-        assignee: true,
+        assignee: publicUserRelation,
         team: true,
         sprint: true,
         epic: true,
@@ -136,7 +139,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(issueUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
 
     if (body.statusId !== undefined && (!body.statusId || !String(body.statusId).trim())) {
       return NextResponse.json({ error: "Status is a mandatory field" }, { status: 400 });
@@ -302,7 +307,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             issueTitle: currentIssue.title,
             priority: body.priority || currentIssue.priority,
             issueType: currentIssue.issueType,
-            actionUrl: `http://localhost:3000/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
+            actionUrl: `${getBaseUrl()}/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
           },
           sendEmailAsync: true,
         });
@@ -361,7 +366,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             issueKey: currentIssue.issueKey,
             issueTitle: currentIssue.title,
             projectName: project?.name || "Project Workspace",
-            actionUrl: `http://localhost:3000/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
+            actionUrl: `${getBaseUrl()}/projects/${currentIssue.projectId}?issue=${currentIssue.id}`,
           },
           sendEmailAsync: true,
         });

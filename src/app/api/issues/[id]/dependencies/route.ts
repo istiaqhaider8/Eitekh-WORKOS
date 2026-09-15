@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
+import { dependencyCreateSchema, dependencyDeleteSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -47,12 +48,9 @@ export async function POST(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: sourceIssueId } = await params;
-    const body = await req.json();
-    const { targetIssueId, type } = body;
-
-    if (!targetIssueId || !type) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(dependencyCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { targetIssueId, type } = parsed.data;
 
     if (sourceIssueId === targetIssueId) {
       return NextResponse.json({ error: "Cannot create self-referencing dependency" }, { status: 400 });
@@ -67,11 +65,6 @@ export async function POST(
 
     await assertProjectAccess(sourceIssue.projectId);
     await assertProjectAccess(targetIssue.projectId);
-
-    const validTypes = ["BLOCKS", "BLOCKED_BY", "RELATES_TO", "DUPLICATES", "FINISH_TO_START", "START_TO_START"];
-    if (!validTypes.includes(type)) {
-      return NextResponse.json({ error: "Invalid dependency type" }, { status: 400 });
-    }
 
     const existing = await prisma.issueDependency.findFirst({
       where: { sourceIssueId, targetIssueId, type },
@@ -117,12 +110,9 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const body = await req.json();
-    const { dependencyId } = body;
-
-    if (!dependencyId) {
-      return NextResponse.json({ error: "Missing dependencyId" }, { status: 400 });
-    }
+    const parsed = parseBody(dependencyDeleteSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { dependencyId } = parsed.data;
 
     const dependency = await prisma.issueDependency.findUnique({
       where: { id: dependencyId },

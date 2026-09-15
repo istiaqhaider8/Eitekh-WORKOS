@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess } from "@/lib/tenant";
 import { pbacEngine, PBAC_PERMISSION_CATEGORIES, ALL_PBAC_PERMISSION_KEYS } from "@/lib/pbac-engine";
+import { orgRoleCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -41,12 +42,9 @@ export async function POST(
     const { id: orgId } = await params;
     await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
 
-    const body = await req.json();
-    const { name, description, scope, permissions } = body;
-
-    if (!name?.trim()) {
-      return NextResponse.json({ error: "Role name is required" }, { status: 400 });
-    }
+    const parsed = parseBody(orgRoleCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { name, description, scope, permissions } = parsed.data;
 
     const actor = {
       id: user.id,
@@ -57,10 +55,10 @@ export async function POST(
     const role = await pbacEngine.saveRole(
       orgId,
       {
-        name: name.trim(),
-        description: description?.trim(),
-        scope: scope || "ORGANIZATION",
-        permissions: Array.isArray(permissions) ? permissions : [],
+        name,
+        description,
+        scope,
+        permissions,
       },
       actor
     );

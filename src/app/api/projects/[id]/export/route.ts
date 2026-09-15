@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
@@ -77,8 +78,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { projectId },
       include: {
         status: true,
-        assignee: true,
-        reporter: true,
+        assignee: publicUserRelation,
+        reporter: publicUserRelation,
         sprint: true,
         epic: true,
         team: true,

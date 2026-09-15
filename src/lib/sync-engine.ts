@@ -259,6 +259,17 @@ class RealtimeSyncEngine {
 
   private sendHeartbeats() {
     const now = new Date();
+    const staleThreshold = 5 * 60 * 1000;
+
+    for (const [clientId, client] of this.clients.entries()) {
+      if (now.getTime() - client.lastPingAt.getTime() > staleThreshold) {
+        try { client.controller.close(); } catch (_) {}
+        this.clients.delete(clientId);
+        logger.info('SYNC_CLIENT_STALE', `Evicted stale client ${clientId}`, { clientId, userId: client.userId });
+        continue;
+      }
+    }
+
     const pingPayload = {
       type: 'PING',
       timestamp: now.toISOString(),
@@ -272,9 +283,7 @@ class RealtimeSyncEngine {
         client.controller.enqueue(encoded);
         client.lastPingAt = now;
       } catch (err) {
-        try {
-          client.controller.close();
-        } catch (_) {}
+        try { client.controller.close(); } catch (_) {}
         this.clients.delete(clientId);
       }
     }

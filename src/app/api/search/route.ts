@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { searchSchema, parseQuery } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -8,13 +9,9 @@ export async function GET(req: Request) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q");
-    const type = searchParams.get("type") || "all";
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
-
-    if (!q || q.length < 2) {
-      return NextResponse.json({ error: "Search query must be at least 2 characters long" }, { status: 400 });
-    }
+    const parsed = parseQuery(searchSchema, searchParams);
+    if (!parsed.success) return parsed.error;
+    const { q, type, limit } = parsed.data;
 
     // Find projects user has access to
     // They have access via projectMemberships, OR via org membership (as admin/owner)

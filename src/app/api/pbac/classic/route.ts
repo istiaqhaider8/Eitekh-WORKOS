@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { pbacClassicActionSchema, parseBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest) {
   try {
@@ -82,12 +83,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Super Admin required' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { userId, projectId, role, action } = body;
-
-    if (!userId || !projectId) {
-      return NextResponse.json({ error: 'userId and projectId are required' }, { status: 400 });
-    }
+    const parsed = parseBody(pbacClassicActionSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { userId, projectId, role, action } = parsed.data;
 
     if (action === 'DELETE' || action === 'REMOVE') {
       await prisma.projectMember.deleteMany({

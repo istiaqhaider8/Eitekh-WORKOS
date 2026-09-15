@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { profileUpdateSchema, parseBody } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { firstName, lastName, jobTitle, company, timezone, language } = body;
+    const parsed = parseBody(profileUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { firstName, lastName, jobTitle, company, timezone, language } = parsed.data;
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },

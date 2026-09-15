@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { workspaceMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 async function assertWorkspaceAccess(workspaceId: string, allowedRoles: string[] = ["WORKSPACE_ADMIN", "MEMBER", "VIEWER"]) {
   const user = await getCurrentUser();
@@ -46,8 +47,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const body = await req.json();
-    
+    const parsed = parseBody(workspaceMemberSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
+
     // Check org membership
     const workspace = await prisma.workspace.findUnique({ where: { id } });
     const orgMember = await prisma.organizationMember.findUnique({
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: {
         workspaceId: id,
         userId: body.userId,
-        role: body.role || "MEMBER",
+        role: body.role,
       },
     });
     return NextResponse.json(member, { status: 201 });
@@ -72,7 +75,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const body = await req.json();
+    const parsed = parseBody(workspaceMemberSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     const updated = await prisma.workspaceMember.update({
       where: { workspaceId_userId: { workspaceId: id, userId: body.userId } },
       data: { role: body.role },
@@ -87,8 +92,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const body = await req.json();
-    
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
+
     await prisma.workspaceMember.delete({
       where: { workspaceId_userId: { workspaceId: id, userId: body.userId } },
     });

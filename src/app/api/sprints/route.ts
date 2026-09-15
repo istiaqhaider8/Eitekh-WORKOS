@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { sprintCreateSchema, sprintUpdateSchema, sprintReorderSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -22,11 +24,20 @@ export async function GET(req: Request) {
       where: { projectId },
       include: {
         issues: {
-          include: {
-            status: true,
-            assignee: true,
+          select: {
+            id: true,
+            issueKey: true,
+            title: true,
+            priority: true,
+            issueType: true,
+            position: true,
+            status: { select: { id: true, name: true, category: true, color: true } },
+            assignee: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
           },
+          orderBy: [{ position: "asc" }, { createdAt: "desc" }],
+          take: 200,
         },
+        _count: { select: { issues: true } },
       },
       orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     });
@@ -42,10 +53,9 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { projectId, name, goal, startDate, endDate } = await req.json();
-    if (!projectId || !name?.trim()) {
-      return NextResponse.json({ error: "projectId and name are required" }, { status: 400 });
-    }
+    const parsed = parseBody(sprintCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, name, goal, startDate, endDate } = parsed.data;
 
     try {
       await assertProjectPermission(projectId, "sprints:create");
@@ -106,15 +116,9 @@ export async function PUT(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { projectId, sprintOrders } = body;
-
-    if (!projectId || !Array.isArray(sprintOrders)) {
-      return NextResponse.json(
-        { error: "projectId and sprintOrders array are required" },
-        { status: 400 }
-      );
-    }
+    const parsed = parseBody(sprintReorderSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, sprintOrders } = parsed.data;
 
     try {
       await assertProjectPermission(projectId, "sprints:create");
@@ -164,11 +168,9 @@ export async function PATCH(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes, position } = body;
-    if (!sprintId) {
-      return NextResponse.json({ error: "sprintId is required" }, { status: 400 });
-    }
+    const parsed = parseBody(sprintUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes, position } = parsed.data;
 
     const sprint = await prisma.sprint.findUnique({
       where: { id: sprintId },

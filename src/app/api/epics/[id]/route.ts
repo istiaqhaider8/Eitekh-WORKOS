@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { epicUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -41,8 +42,9 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const body = await req.json();
-    const { name, summary, color, status, ownerId, startDate, targetDate } = body;
+    const parsed = parseBody(epicUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { name, summary, color, status, ownerId, startDate, targetDate } = parsed.data;
 
     const epic = await prisma.epic.findUnique({ where: { id } });
     if (!epic) return NextResponse.json({ error: "Epic not found" }, { status: 404 });
@@ -52,7 +54,7 @@ export async function PATCH(
     const updatedEpic = await prisma.epic.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name: name.trim() }),
+        ...(name !== undefined && { name }),
         ...(summary !== undefined && { summary }),
         ...(color !== undefined && { color }),
         ...(status !== undefined && { status }),

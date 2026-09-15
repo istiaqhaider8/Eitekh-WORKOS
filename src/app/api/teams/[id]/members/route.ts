@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { teamMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 async function checkTeamAdmin(teamId: string) {
   const user = await getCurrentUser();
@@ -56,12 +57,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     await checkTeamAdmin(id);
-    const body = await req.json();
+    const parsed = parseBody(teamMemberSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
 
     const team = await prisma.team.findUnique({ where: { id } });
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-    // If this is a project-wise team, verify the user being added is an assigned member of this project
     if (team.projectId) {
       const isProjectMember = await prisma.projectMember.findUnique({
         where: { projectId_userId: { projectId: team.projectId, userId: body.userId } }
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: {
         teamId: id,
         userId: body.userId,
-        role: body.role || "MEMBER"
+        role: body.role,
       },
       include: {
         user: {
@@ -101,9 +103,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await checkTeamAdmin(id);
-    const body = await req.json();
+    const parsed = parseBody(memberUserIdSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     await prisma.teamMember.delete({
-      where: { teamId_userId: { teamId: id, userId: body.userId } }
+      where: { teamId_userId: { teamId: id, userId: parsed.data.userId } }
     });
     return NextResponse.json({ success: true });
   } catch (error: any) {

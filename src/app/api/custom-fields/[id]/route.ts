@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission, assertOrgAccess } from "@/lib/tenant";
+import { customFieldUpdateSchema, parseBody } from "@/lib/validation";
 
 async function verifyFieldAccess(field: { scopeType: string; scopeId: string }, requireAdmin = false) {
   if (field.scopeType === "PROJECT") {
@@ -46,7 +47,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await verifyFieldAccess(existingField, true);
 
-    const { name, optionsJson, isRequired } = await request.json();
+    const parsed = parseBody(customFieldUpdateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { name, optionsJson, isRequired } = parsed.data;
 
     const field = await prisma.customField.update({
       where: { id },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { pbacRoleUsersSchema, parseBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -31,11 +32,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const body = await req.json();
-    const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
-    const { userId, userIds } = body;
+    const parsed = parseBody(pbacRoleUsersSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const { userId, userIds } = parsed.data;
 
-    // Strict Tenant Isolation & Privilege Escalation Guard
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
 
     const actor = {
@@ -65,9 +66,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const body = await req.json();
-    const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
-    const { userId, userIds } = body;
+    const parsedDel = parseBody(pbacRoleUsersSchema, await req.json());
+    if (!parsedDel.success) return parsedDel.error;
+    const orgId = parsedDel.data.orgId || searchParams.get('orgId') || 'default-org';
+    const { userId, userIds } = parsedDel.data;
 
     // Strict Tenant Isolation & Privilege Escalation Guard
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);

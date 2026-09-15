@@ -1,33 +1,26 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSession, COOKIE_NAME } from "@/lib/auth";
+import { registerSchema, parseBody } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   try {
-    const { firstName, lastName, email, password, company, jobTitle } = await req.json();
-
-    if (!firstName || !lastName || !email || !password) {
-      return NextResponse.json({ error: "First name, last name, email, and password are required" }, { status: 400 });
+    const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anonymous";
+    const rl = checkRateLimit(`register:${ipAddress}`, { limit: 10, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many registration attempts. Please try again in ${rl.resetInSeconds} seconds.` },
+        { status: 429, headers: { "Retry-After": String(rl.resetInSeconds) } }
+      );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters long" }, { status: 400 });
-    }
-    if (!/[A-Z]/.test(password)) {
-      return NextResponse.json({ error: "Password must contain at least 1 uppercase letter" }, { status: 400 });
-    }
-    if (!/[a-z]/.test(password)) {
-      return NextResponse.json({ error: "Password must contain at least 1 lowercase letter" }, { status: 400 });
-    }
-    if (!/[0-9]/.test(password)) {
-      return NextResponse.json({ error: "Password must contain at least 1 number" }, { status: 400 });
-    }
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      return NextResponse.json({ error: "Password must contain at least 1 special character" }, { status: 400 });
-    }
+    const parsed = parseBody(registerSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { firstName, lastName, email, password, company, jobTitle } = parsed.data;
 
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email },
     });
 
     if (existingUser) {
@@ -41,7 +34,7 @@ export async function POST(req: Request) {
       data: {
         firstName,
         lastName,
-        email: email.toLowerCase().trim(),
+        email,
         passwordHash,
         company,
         jobTitle,
@@ -119,7 +112,7 @@ export async function POST(req: Request) {
 
     response.cookies.set(COOKIE_NAME, jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" || process.env.FORCE_HTTPS === "true",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,

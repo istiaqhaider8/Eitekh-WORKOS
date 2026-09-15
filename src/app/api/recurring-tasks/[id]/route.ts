@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { recurringTaskUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -31,7 +32,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await assertProjectPermission(existingTask.projectId, "projects:edit");
 
-    const { scheduleCron, templateData, isActive } = await request.json();
+    const parsed = parseBody(recurringTaskUpdateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { scheduleCron, templateData, isActive } = parsed.data;
 
     const task = await prisma.recurringTask.update({
       where: { id },

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { issueCreateSchema, parseBody } from "@/lib/validation";
+import { getBaseUrl } from "@/lib/config";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -58,12 +61,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         reporter: {
           select: { id: true, firstName: true, lastName: true },
         },
-        subtasks: true,
         labels: {
           include: { label: true },
         },
-        epic: true,
-        sprint: true,
+        epic: { select: { id: true, name: true } },
+        sprint: { select: { id: true, name: true, status: true } },
         team: {
           select: { id: true, name: true }
         },
@@ -113,12 +115,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(issueCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     const {
       title,
       description,
-      issueType = "TASK",
-      priority = "MEDIUM",
+      issueType,
+      priority,
       statusId,
       assigneeId,
       teamId,
@@ -132,12 +135,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       timeSpentHours,
       startDate,
       dueDate,
-      labels = [],
-    } = body;
-
-    if (!title?.trim()) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
+      labels,
+    } = parsed.data;
 
     if (startDate && dueDate && new Date(dueDate) < new Date(startDate)) {
       return NextResponse.json({ error: "Due Date cannot be earlier than Start Date" }, { status: 400 });
@@ -222,7 +221,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: issueData,
         include: {
           status: true,
-          assignee: true,
+          assignee: publicUserRelation,
           team: {
             include: {
               members: {
@@ -230,7 +229,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
               }
             }
           },
-          reporter: true,
+          reporter: publicUserRelation,
         },
       });
 
@@ -297,7 +296,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             issueKey: issue.issueKey,
             issueTitle: issue.title,
             projectName: project.name,
-            actionUrl: `http://localhost:3000/projects/${projectId}?issue=${issue.id}`,
+            actionUrl: `${getBaseUrl()}/projects/${projectId}?issue=${issue.id}`,
           },
           sendEmailAsync: true,
         });
@@ -327,7 +326,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           issueTitle: issue.title,
           priority: issue.priority,
           issueType: issue.issueType,
-          actionUrl: `http://localhost:3000/projects/${projectId}?issue=${issue.id}`,
+          actionUrl: `${getBaseUrl()}/projects/${projectId}?issue=${issue.id}`,
         },
         sendEmailAsync: true,
       });

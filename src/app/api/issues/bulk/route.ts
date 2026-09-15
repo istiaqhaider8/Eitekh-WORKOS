@@ -2,22 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { bulkIssueUpdateSchema, bulkIssueDeleteSchema, parseBody } from "@/lib/validation";
 
 export async function PATCH(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { issueIds, updates } = body;
-
-    if (!issueIds || !Array.isArray(issueIds) || issueIds.length === 0) {
-      return NextResponse.json({ error: "Missing or invalid issueIds" }, { status: 400 });
-    }
-
-    if (!updates || typeof updates !== "object" || Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: "Missing updates" }, { status: 400 });
-    }
+    const parsed = parseBody(bulkIssueUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { issueIds, updates } = parsed.data;
 
     // Validate access to all issues
     const issues = await prisma.issue.findMany({
@@ -180,12 +174,9 @@ export async function DELETE(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { issueIds } = body;
-
-    if (!issueIds || !Array.isArray(issueIds) || issueIds.length === 0) {
-      return NextResponse.json({ error: "Missing or invalid issueIds" }, { status: 400 });
-    }
+    const parsed = parseBody(bulkIssueDeleteSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { issueIds } = parsed.data;
 
     // Query all target issues to verify existence and check project access
     const issues = await prisma.issue.findMany({

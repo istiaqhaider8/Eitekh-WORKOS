@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { getBaseUrl } from "@/lib/config";
+import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody } from "@/lib/validation";
 
 // GET /api/super-admin/users
 export async function GET(req: Request) {
@@ -108,7 +110,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(superAdminUserCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     const {
       email,
       firstName,
@@ -122,13 +125,9 @@ export async function POST(req: Request) {
       isSuperAdmin,
       password,
       status,
-    } = body;
+    } = parsed.data;
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ error: "Valid email address is required" }, { status: 400 });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email;
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (existingUser) {
@@ -196,7 +195,16 @@ export async function POST(req: Request) {
         userName: newUser.firstName + " " + newUser.lastName,
         userEmail: newUser.email,
         organizationName: targetOrg?.name || "Eitekh WorkOS Enterprise",
-        actionUrl: (process.env.NEXTAUTH_URL || "http://localhost:3000") + "/login",
+        actionUrl: getBaseUrl() + "/login",
+      },
+    }).catch(() => {});
+
+    await prisma.platformAuditLog.create({
+      data: {
+        actorId: user.id,
+        action: "USER_CREATED",
+        targetResource: "User:" + newUser.id,
+        details: JSON.stringify({ email: normalizedEmail, orgId, role }),
       },
     }).catch(() => {});
 
@@ -221,7 +229,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(superAdminUserUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     const {
       userId,
       firstName,
@@ -238,11 +247,7 @@ export async function PATCH(req: Request) {
       revokeSessions,
       orgId,
       role,
-    } = body;
-
-    if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
-    }
+    } = parsed.data;
 
     const targetUser = await prisma.user.findUnique({ where: { id: userId } });
     if (!targetUser) {
@@ -315,6 +320,15 @@ export async function PATCH(req: Request) {
         }),
       },
     });
+
+    await prisma.platformAuditLog.create({
+      data: {
+        actorId: user.id,
+        action: passwordUpdated ? "USER_PASSWORD_RESET" : "USER_UPDATED",
+        targetResource: "User:" + userId,
+        details: JSON.stringify({ fields: Object.keys(updateData) }),
+      },
+    }).catch(() => {});
 
     const { passwordHash: _uph, mfaSecret: _ums, recoveryCodes: _urc, ...safeUpdatedUser } = updatedUser as any;
 

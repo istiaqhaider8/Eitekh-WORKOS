@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { epicCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -53,12 +54,9 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { projectId, name, summary, color, ownerId, startDate, targetDate } = body;
-
-    if (!projectId || !name) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(epicCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, name, summary, color, ownerId, startDate, targetDate } = parsed.data;
 
     await assertProjectPermission(projectId, "epics:create");
 

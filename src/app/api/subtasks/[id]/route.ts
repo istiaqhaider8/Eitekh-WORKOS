@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { subtaskUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -75,8 +76,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { title, assigneeId, priority, estimateHours, dueDate, isCompleted, status } = body;
+    const parsed = parseBody(subtaskUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { title, assigneeId, priority, estimateHours, dueDate, isCompleted, status } = parsed.data;
 
     const updateData: any = {};
     if (title !== undefined) updateData.title = title.trim();

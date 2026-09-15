@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailConfig } from "@/lib/email";
+import { superAdminEmailSettingsUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.isSuperAdmin) {
-      return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
+    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+      return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
     const config = await getEmailConfig();
@@ -37,8 +38,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { senderEmail, senderName, smtpHost, smtpPort, smtpUser, smtpPass, isSecure, isEnabled } = body;
+    const parsed = parseBody(superAdminEmailSettingsUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { senderEmail, senderName, smtpHost, smtpPort, smtpUser, smtpPass, isSecure, isEnabled } = parsed.data;
 
     let config = await prisma.systemEmailConfig.findFirst();
     if (!config) {

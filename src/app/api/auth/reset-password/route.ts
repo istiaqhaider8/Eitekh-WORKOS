@@ -2,18 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { resetPasswordSchema, parseBody } from "@/lib/validation";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
-
-// Password strength validation helper
-function isStrongPassword(password: string): { valid: boolean; reason?: string } {
-  if (password.length < 8) return { valid: false, reason: "Password must be at least 8 characters long" };
-  if (!/[A-Z]/.test(password)) return { valid: false, reason: "Password must contain at least one uppercase letter" };
-  if (!/[a-z]/.test(password)) return { valid: false, reason: "Password must contain at least one lowercase letter" };
-  if (!/[0-9]/.test(password)) return { valid: false, reason: "Password must contain at least one number" };
-  if (!/[^A-Za-z0-9]/.test(password)) return { valid: false, reason: "Password must contain at least one special character (!@#$%^&*...)" };
-  return { valid: true };
-}
 
 export async function POST(req: Request) {
   try {
@@ -26,25 +18,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const { token, newPassword } = await req.json();
+    const parsed = parseBody(resetPasswordSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { token, newPassword } = parsed.data;
 
-    if (!token || typeof token !== "string") {
-      return NextResponse.json({ error: "Reset token is required" }, { status: 400 });
-    }
-
-    if (!newPassword || typeof newPassword !== "string") {
-      return NextResponse.json({ error: "New password is required" }, { status: 400 });
-    }
-
-    const strength = isStrongPassword(newPassword);
-    if (!strength.valid) {
-      return NextResponse.json({ error: strength.reason }, { status: 400 });
-    }
-
-    // Find user with matching unexpired token
+    // Tokens are stored hashed; hash the incoming token to look it up.
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: tokenHash,
         resetTokenExp: {
           gt: new Date(),
         },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { superAdminProjectCreateSchema, superAdminProjectUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -62,28 +63,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(superAdminProjectCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     const {
       workspaceId,
       name,
       key,
       description,
-      template = "SCRUM",
-      status = "ACTIVE",
-      priority = "MEDIUM",
+      template,
+      status,
+      priority,
       startDate,
       targetDate,
-    } = body;
-
-    if (!workspaceId) {
-      return NextResponse.json({ error: "Workspace ID is required" }, { status: 400 });
-    }
-    if (!name || !name.trim()) {
-      return NextResponse.json({ error: "Project name is required" }, { status: 400 });
-    }
-    if (!key || !key.trim()) {
-      return NextResponse.json({ error: "Project key is required" }, { status: 400 });
-    }
+    } = parsed.data;
 
     const ws = await prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -188,7 +180,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed2 = parseBody(superAdminProjectUpdateSchema, await req.json());
+    if (!parsed2.success) return parsed2.error;
     const {
       projectId,
       name,
@@ -200,11 +193,7 @@ export async function PATCH(req: Request) {
       startDate,
       targetDate,
       workspaceId,
-    } = body;
-
-    if (!projectId) {
-      return NextResponse.json({ error: "projectId is required" }, { status: 400 });
-    }
+    } = parsed2.data;
 
     const existingProject = await prisma.project.findUnique({
       where: { id: projectId },

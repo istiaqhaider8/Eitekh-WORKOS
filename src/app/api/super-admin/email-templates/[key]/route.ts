@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailTemplates, DEFAULT_TEMPLATES, renderTemplate } from "@/lib/email";
+import { superAdminEmailTemplateUpdateSchema, superAdminEmailTemplatePreviewSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   req: NextRequest,
@@ -9,8 +10,8 @@ export async function GET(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.isSuperAdmin) {
-      return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
+    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+      return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
     const { key } = await params;
@@ -40,8 +41,9 @@ export async function PATCH(
     }
 
     const { key } = await params;
-    const body = await req.json();
-    const { subject, bodyHtml, resetToDefault } = body;
+    const parsed = parseBody(superAdminEmailTemplateUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { subject, bodyHtml, resetToDefault } = parsed.data;
 
     await getEmailTemplates(); // ensure seeded
 
@@ -99,8 +101,9 @@ export async function POST(
     }
 
     const { key } = await params;
-    const body = await req.json().catch(() => ({}));
-    const { sampleVariables = {} } = body;
+    const parsed = parseBody(superAdminEmailTemplatePreviewSchema, await req.json().catch(() => ({})));
+    if (!parsed.success) return parsed.error;
+    const { sampleVariables } = parsed.data;
 
     await getEmailTemplates();
     const template = await prisma.emailTemplate.findUnique({

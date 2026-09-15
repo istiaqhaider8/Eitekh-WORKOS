@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { subtaskCreateSchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,10 +32,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const { title, assigneeId, estimateHours, dueDate } = await req.json();
-    if (!title?.trim()) {
-      return NextResponse.json({ error: "Subtask title is required" }, { status: 400 });
-    }
+    const parsed = parseBody(subtaskCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { title, assigneeId, estimateHours, dueDate } = parsed.data;
 
     const subtask = await prisma.subtask.create({
       data: {
@@ -45,7 +46,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         status: "TO_DO",
       },
       include: {
-        assignee: true,
+        assignee: publicUserRelation,
       },
     });
 

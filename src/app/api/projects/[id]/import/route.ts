@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { csvImportSchema, parseBody } from "@/lib/validation";
 
 function parseCSVLine(line: string) {
   const result = [];
@@ -36,10 +37,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     await assertProjectPermission(id, "export:import_data");
 
-    const { csvData } = await request.json();
-    if (!csvData) {
-      return NextResponse.json({ error: "Missing csvData" }, { status: 400 });
-    }
+    const parsed = parseBody(csvImportSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { csvData } = parsed.data;
 
     const lines = csvData.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     if (lines.length < 2) {

@@ -7,6 +7,7 @@
 import { prisma } from './prisma';
 import { sendEmail } from './email';
 import { syncEngine } from './sync-engine';
+import { getBaseUrl } from './config';
 
 export type NotificationType =
   | 'MENTION'
@@ -169,7 +170,7 @@ class NotificationEngine {
           const vars = {
             userName: `${r.firstName} ${r.lastName}`.trim() || r.email,
             userEmail: r.email,
-            actionUrl: linkUrl ? `http://localhost:3000${linkUrl}` : 'http://localhost:3000',
+            actionUrl: linkUrl ? `${getBaseUrl()}${linkUrl}` : getBaseUrl(),
             ...emailVariables,
           };
 
@@ -256,6 +257,18 @@ class NotificationEngine {
           if (item.retryCount >= item.maxRetries) {
             item.status = 'FAILED';
             console.error(`[EmailQueue] Dead-letter item ${item.id} to ${item.to} exceeded max retries.`);
+            try {
+              await prisma.emailLog.create({
+                data: {
+                  to: item.to,
+                  from: 'noreply@eitekh.com',
+                  subject: item.customSubject || item.templateKey || 'notification',
+                  templateKey: item.templateKey,
+                  status: 'FAILED',
+                  error: item.error,
+                },
+              });
+            } catch {}
           } else {
             item.status = 'QUEUED';
             // Exponential backoff: 2s, 6s, 18s

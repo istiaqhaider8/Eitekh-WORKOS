@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, getEmailConfig } from "@/lib/email";
+import { superAdminEmailTestSchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -9,8 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const targetEmail = body.to || user.email;
+    const parsed = parseBody(superAdminEmailTestSchema, await req.json().catch(() => ({})));
+    if (!parsed.success) return parsed.error;
+    const targetEmail = parsed.data.to || user.email;
     const config = await getEmailConfig();
 
     const result = await sendEmail({

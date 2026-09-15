@@ -216,6 +216,20 @@ export const HIGH_RISK_PERMISSIONS = PBAC_PERMISSION_CATEGORIES.flatMap((c) =>
   c.permissions.filter((p) => p.riskLevel === 'HIGH' || p.riskLevel === 'CRITICAL').map((p) => p.key)
 );
 
+// Role hierarchy: higher number = more privilege. Used to prevent escalation.
+const ROLE_HIERARCHY: Record<string, number> = {
+  'viewer': 10,
+  'member': 20,
+  'project-manager': 30,
+  'project-admin': 40,
+  'org-admin': 50,
+  'super-admin': 60,
+};
+
+function getRoleLevel(slug: string): number {
+  return ROLE_HIERARCHY[slug] ?? 0;
+}
+
 export interface PBACRole {
   id: string;
   orgId: string;
@@ -260,6 +274,36 @@ class UnifiedPBACEngine {
   private isLoadedFromDisk: boolean = false;
   // High-throughput In-Memory Capability Cache for scale (100k+ users)
   private capabilityCache: Map<string, { permissions: Set<string>; roles: Array<{ id: string; name: string; isSystem: boolean }>; timestamp: number }> = new Map();
+
+  // Returns the highest role hierarchy level the actor holds in the given org.
+  public getActorLevel(orgId: string, actorId: string, isSuperAdmin?: boolean): number {
+    if (isSuperAdmin) return ROLE_HIERARCHY['super-admin'];
+    const roleIds = this.userRoleAssignments.get(actorId);
+    if (!roleIds) return 0;
+    let max = 0;
+    for (const rId of roleIds) {
+      const r = this.roles.get(rId);
+      if (r && r.orgId === orgId && r.status === 'ACTIVE') {
+        const level = getRoleLevel(r.slug);
+        if (level > max) max = level;
+      }
+    }
+    return max;
+  }
+
+  // Throws if actor tries to assign a role at or above their own level.
+  private enforceHierarchy(orgId: string, actorId: string, targetRoleId: string, isSuperAdmin?: boolean): void {
+    if (isSuperAdmin) return;
+    const targetRole = this.roles.get(targetRoleId);
+    if (!targetRole) return;
+    const actorLevel = this.getActorLevel(orgId, actorId, isSuperAdmin);
+    const targetLevel = getRoleLevel(targetRole.slug);
+    if (targetLevel >= actorLevel) {
+      throw new Error(
+        `Privilege escalation denied: you cannot assign the '${targetRole.name}' role (requires higher authority)`
+      );
+    }
+  }
 
   public invalidateUserCache(userId?: string) {
     if (userId) {
@@ -555,7 +599,7 @@ class UnifiedPBACEngine {
           const userRoles = this.userRoleAssignments.get(u.id)!;
 
           if (userRoles.size === 0) {
-            if (u.isSuperAdmin || u.email === 'cocofbd@gmail.com') {
+            if (u.isSuperAdmin) {
               userRoles.add(superAdminRoleId);
               userRoles.add(orgAdminRoleId);
               userRoles.add(projectAdminRoleId);
@@ -692,6 +736,18 @@ class UnifiedPBACEngine {
     actor?: { id: string; name: string; email: string }
   ): Promise<PBACRole> {
     await this.ensureOrgSeeded(orgId);
+
+    if (actor) {
+      const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const roleLevel = getRoleLevel(slug);
+      const actorLevel = this.getActorLevel(orgId, actor.id);
+      if (roleLevel >= actorLevel) {
+        throw new Error(
+          `Privilege escalation denied: you cannot create or edit the '${data.name}' role (requires higher authority)`
+        );
+      }
+    }
+
     const now = new Date().toISOString();
     const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const id = data.id || `role_${orgId}_${slug}_${Date.now()}`;
@@ -750,6 +806,10 @@ class UnifiedPBACEngine {
     await this.ensureOrgSeeded(orgId);
     const source = this.roles.get(sourceRoleId);
     if (!source) throw new Error('Source role not found');
+
+    if (actor) {
+      this.enforceHierarchy(orgId, actor.id, sourceRoleId);
+    }
 
     const now = new Date().toISOString();
     const slug = newData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -890,6 +950,10 @@ class UnifiedPBACEngine {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('User not found in system directory');
 
+    if (actor) {
+      this.enforceHierarchy(orgId, actor.id, roleId);
+    }
+
     if (!this.userRoleAssignments.has(userId)) {
       this.userRoleAssignments.set(userId, new Set<string>());
     }
@@ -1017,6 +1081,10 @@ class UnifiedPBACEngine {
     const role = this.roles.get(roleId);
     if (!role) throw new Error('Role not found');
 
+    if (actor) {
+      this.enforceHierarchy(orgId, actor.id, roleId);
+    }
+
     let addedCount = 0;
     let skippedCount = 0;
 
@@ -1138,6 +1206,12 @@ class UnifiedPBACEngine {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('User not found');
 
+    if (actor) {
+      for (const rId of roleIds) {
+        this.enforceHierarchy(orgId, actor.id, rId);
+      }
+    }
+
     const previousRoleIds = Array.from(this.userRoleAssignments.get(userId) || []);
     this.userRoleAssignments.set(userId, new Set(roleIds));
     this.saveToDisk();
@@ -1203,15 +1277,26 @@ class UnifiedPBACEngine {
   // Synchronize a project member's role into PBAC store and invalidate cache
   public async syncProjectMemberRole(orgId: string, userId: string, projectRole: string, projectId?: string) {
     await this.ensureOrgSeeded(orgId);
-    let targetRoleId = projectRole;
-    if (this.roles.has(projectRole)) {
-      targetRoleId = projectRole;
-    } else {
-      const targetSlug = this.getRoleSlugForProjectRole(projectRole);
-      const found = Array.from(this.roles.values()).find(
-        (r) => r.orgId === orgId && (r.id === projectRole || r.slug === targetSlug || r.slug === projectRole || r.name.toUpperCase() === projectRole.toUpperCase())
+    let targetRoleId: string;
+    // Resolve the incoming role by slug/name only — never trust a raw role id
+    // supplied by the caller, which could name an org- or super-admin role.
+    const targetSlug = this.getRoleSlugForProjectRole(projectRole);
+    const found = Array.from(this.roles.values()).find(
+      (r) => r.orgId === orgId && (r.slug === targetSlug || r.name.toUpperCase() === projectRole.toUpperCase())
+    );
+    targetRoleId = found ? found.id : `role_${orgId}_${targetSlug}`;
+
+    // Refuse to assign anything that is not a PROJECT-scoped role. This is the
+    // backstop against privilege escalation: a project membership must never
+    // grant an ORG- or SUPER-scoped role.
+    const resolved = this.roles.get(targetRoleId);
+    if (resolved && resolved.scope !== "PROJECT") {
+      throw new Error(
+        `Refusing to assign non-project role "${targetRoleId}" (scope ${resolved.scope}) via project membership`
       );
-      targetRoleId = found ? found.id : `role_${orgId}_${targetSlug}`;
+    }
+    if (resolved && resolved.orgId !== orgId) {
+      throw new Error(`Refusing to assign role from a different organization`);
     }
 
     if (!this.userRoleAssignments.has(userId)) {
@@ -1269,7 +1354,7 @@ class UnifiedPBACEngine {
     const cacheKey = projectRole ? `${orgId}:${userId}:${projectRole}` : `${orgId}:${userId}`;
     const cached = this.capabilityCache.get(cacheKey);
     const now = Date.now();
-    if (cached && (now - cached.timestamp) < 60000) { // 60s TTL
+    if (cached && (now - cached.timestamp) < 5000) { // 5s TTL — short to limit stale permissions after role changes
       return cached.permissions;
     }
 
@@ -1281,7 +1366,7 @@ class UnifiedPBACEngine {
         where: { id: userId },
         select: { id: true, isSuperAdmin: true, email: true },
       });
-      if (dbUser?.isSuperAdmin || dbUser?.email === 'cocofbd@gmail.com') {
+      if (dbUser?.isSuperAdmin) {
         const superPerms = new Set<string>(ALL_PBAC_PERMISSION_KEYS);
         this.capabilityCache.set(cacheKey, {
           permissions: superPerms,
@@ -1311,7 +1396,7 @@ class UnifiedPBACEngine {
           }
           const userRoles = this.userRoleAssignments.get(userId)!;
 
-          if (dbUser.isSuperAdmin || dbUser.email === 'cocofbd@gmail.com') {
+          if (dbUser.isSuperAdmin) {
             userRoles.add(`role_${orgId}_super-admin`);
           } else {
             const orgMember = dbUser.orgMemberships[0];

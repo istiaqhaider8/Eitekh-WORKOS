@@ -7,6 +7,7 @@ import { notificationEngine } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
 import { autoProcessExpiredDelegations } from "@/lib/delegation-engine";
 import { formatLeaveRange } from "@/lib/leave-engine";
+import { delegationCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -94,16 +95,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { leaveId, delegateUserId, scope, issueIds, startDate, endDate, reason } = body;
-
-    if (!delegateUserId) {
-      return NextResponse.json({ error: "Delegate user is required" }, { status: 400 });
-    }
-
-    if (!startDate || !endDate) {
-      return NextResponse.json({ error: "Start date and end date are required" }, { status: 400 });
-    }
+    const parsed = parseBody(delegationCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { leaveId, delegateUserId, scope, issueIds, startDate, endDate, reason } = parsed.data;
 
     const start = new Date(startDate);
     const end = new Date(endDate);

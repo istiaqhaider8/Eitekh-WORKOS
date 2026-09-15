@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { componentUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -41,8 +42,9 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const body = await req.json();
-    const { name, description, ownerId } = body;
+    const parsed = parseBody(componentUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { name, description, ownerId } = parsed.data;
 
     const component = await prisma.component.findUnique({ where: { id } });
     if (!component) return NextResponse.json({ error: "Component not found" }, { status: 404 });

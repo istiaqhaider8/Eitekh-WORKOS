@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { superAdminSecurityActionSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -112,11 +113,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+    if (!user || !user.isSuperAdmin) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const { action, targetUserId, sessionId } = await request.json();
+    const parsed = parseBody(superAdminSecurityActionSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { action, targetUserId, sessionId } = parsed.data;
 
     if (action === "SUSPEND_USER" && targetUserId) {
       const updated = await prisma.user.update({

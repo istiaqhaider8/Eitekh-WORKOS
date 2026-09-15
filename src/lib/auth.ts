@@ -4,8 +4,19 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { prisma } from "./prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET required'); })() : 'zenith-workos-dev-secret');
+// JWT secret must be supplied via env. No in-source fallback: a hardcoded
+// default is publicly known and lets anyone forge tokens for any user.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error(
+    "JWT_SECRET environment variable is required. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\""
+  );
+}
+const JWT_ISSUER = "eitekh-workos";
+const JWT_AUDIENCE = "eitekh-workos-web";
 const COOKIE_NAME = "zenith_session_token";
+const BCRYPT_COST = 12;
+const MAX_PASSWORD_LENGTH = 64;
 
 export interface TokenPayload {
   userId: string;
@@ -15,7 +26,12 @@ export interface TokenPayload {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
+  // bcrypt silently truncates at 72 bytes; cap earlier so a long passphrase
+  // is not authenticated by only its prefix.
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at most ${MAX_PASSWORD_LENGTH} characters`);
+  }
+  return bcrypt.hash(password, BCRYPT_COST);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
@@ -23,12 +39,21 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function createToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, JWT_SECRET as string, {
+    expiresIn: "7d",
+    algorithm: "HS256",
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
+  });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, JWT_SECRET as string, {
+      algorithms: ["HS256"],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    }) as TokenPayload;
   } catch {
     return null;
   }
@@ -75,6 +100,29 @@ export async function getCurrentUser() {
 
     const payload = verifyToken(token);
     if (!payload) return null;
+
+    // Enforce server-side session state so logout, password reset, and admin
+    // force-logout actually revoke access. A valid JWT alone is not enough.
+    if (payload.sessionId) {
+      const session = await prisma.session.findUnique({
+        where: { id: payload.sessionId },
+        select: { id: true, userId: true, expiresAt: true },
+      });
+      if (
+        !session ||
+        session.userId !== payload.userId ||
+        session.expiresAt <= new Date()
+      ) {
+        return null;
+      }
+      // Best-effort activity refresh; never block the request on it.
+      prisma.session
+        .update({ where: { id: session.id }, data: { lastActiveAt: new Date() } })
+        .catch(() => {});
+    } else {
+      // Legacy tokens without a session id are no longer trusted.
+      return null;
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },

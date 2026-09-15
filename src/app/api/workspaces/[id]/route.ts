@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { workspaceUpdateSchema, parseBody } from "@/lib/validation";
 
 async function assertWorkspaceAccess(workspaceId: string, allowedRoles: string[] = ["WORKSPACE_ADMIN", "MEMBER", "VIEWER"]) {
   const user = await getCurrentUser();
@@ -52,7 +53,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const body = await req.json();
+    const parsed = parseBody(workspaceUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     const updated = await prisma.workspace.update({
       where: { id },
       data: {

@@ -72,6 +72,11 @@ export async function assertOrgAccess(orgId: string, allowedRoles: string[] = ["
   return { user, role: membership.role, organization: membership.organization };
 }
 
+/**
+ * Tenant isolation check: verifies the user is a member of the project (or its org).
+ * Use for READ-ONLY operations. For mutations, use assertProjectPermission() instead
+ * to enforce PBAC capability checks on top of membership.
+ */
 export async function assertProjectAccess(projectId: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized: Please sign in");
@@ -180,7 +185,8 @@ export async function assertProjectPermission(projectId: string, permissionKey: 
       permissionKey,
       role: access.role,
     });
-    throw new Error(`Forbidden: Insufficient permissions. Required: '${permissionKey}'`);
+    const friendlyAction = permissionKey.replace(":", " ").replace("_", " ");
+    throw new Error(`You don't have permission to ${friendlyAction}. Contact your project admin for access.`);
   }
 
   return { ...access, hasPermission: true };
@@ -210,7 +216,8 @@ export async function assertOrgPermission(orgId: string, permissionKey: string) 
       permissionKey,
       role: access.role,
     });
-    throw new Error(`Forbidden: Insufficient permissions. Required: '${permissionKey}'`);
+    const friendlyAction = permissionKey.replace(":", " ").replace("_", " ");
+    throw new Error(`You don't have permission to ${friendlyAction}. Contact your project admin for access.`);
   }
 
   return { ...access, hasPermission: true };

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission, assertOrgPermission } from "@/lib/tenant";
+import { customFieldCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -38,10 +39,9 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { scopeType, scopeId, name, fieldType, optionsJson, isRequired } = await request.json();
-    if (!scopeType || !scopeId || !name || !fieldType) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(customFieldCreateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { scopeType, scopeId, name, fieldType, optionsJson, isRequired } = parsed.data;
 
     if (scopeType === "PROJECT") {
       await assertProjectPermission(scopeId, "settings:custom_fields");
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         name,
         fieldType,
         optionsJson: optionsJson || null,
-        isRequired: !!isRequired
+        isRequired
       }
     });
 

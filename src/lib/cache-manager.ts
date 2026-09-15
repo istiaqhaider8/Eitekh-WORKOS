@@ -65,6 +65,7 @@ class SystemCacheManager {
   private static instance: SystemCacheManager;
   private store: Map<string, CacheEntry> = new Map();
   private cacheVersion: string = '2026.1.0';
+  private maxEntries: number = 5000;
   private startedAt: number = Date.now();
   private totalHits: number = 0;
   private totalMisses: number = 0;
@@ -134,6 +135,18 @@ class SystemCacheManager {
       scope,
       scopeId,
     });
+
+    if (this.store.size > this.maxEntries) {
+      this.cleanupExpired();
+      if (this.store.size > this.maxEntries) {
+        const entries = Array.from(this.store.entries())
+          .sort((a, b) => a[1].hits - b[1].hits || a[1].createdAt - b[1].createdAt);
+        const toRemove = this.store.size - this.maxEntries;
+        for (let i = 0; i < toRemove; i++) {
+          this.store.delete(entries[i][0]);
+        }
+      }
+    }
   }
 
   public get<T = any>(namespace: CacheNamespace, key: string): T | null {

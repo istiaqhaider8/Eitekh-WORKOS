@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { workflowUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -38,8 +39,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     await assertProjectPermission(existing.projectId, "settings:workflows");
 
-    const { name, isDefault } = await request.json();
-    
+    const parsed = parseBody(workflowUpdateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { name, isDefault } = parsed.data;
+
     if (isDefault) {
       await prisma.workflow.updateMany({
         where: { projectId: existing.projectId },

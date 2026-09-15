@@ -9,8 +9,8 @@ export interface SendEmailOptions {
   customHtml?: string;
 }
 
-export const DEFAULT_SENDER_EMAIL = "cocofbd@gmail.com";
-export const DEFAULT_SENDER_NAME = "Eitekh WorkOS";
+export const DEFAULT_SENDER_EMAIL = process.env.EMAIL_FROM || "noreply@eitekh.com";
+export const DEFAULT_SENDER_NAME = process.env.EMAIL_FROM_NAME || "Eitekh WorkOS";
 
 export const DEFAULT_TEMPLATES = [
   {
@@ -226,14 +226,32 @@ export async function getEmailTemplates() {
   }
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const URL_VARIABLE_NAMES = new Set([
+  "actionUrl", "resetUrl", "loginUrl", "projectUrl", "issueUrl", "linkUrl",
+]);
+
 /**
  * Replace placeholders like {{userName}} with actual values.
+ * All values are HTML-escaped to prevent injection.
+ * URL variables (actionUrl, resetUrl, etc.) are placed in href attributes
+ * and must already be safe URLs — they are still escaped for attribute context.
  */
 export function renderTemplate(text: string, variables: Record<string, any> = {}) {
   let rendered = text;
   for (const [key, val] of Object.entries(variables)) {
+    const raw = String(val ?? "");
+    const safe = URL_VARIABLE_NAMES.has(key) ? encodeURI(raw) : escapeHtml(raw);
     const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
-    rendered = rendered.replace(regex, String(val ?? ""));
+    rendered = rendered.replace(regex, safe);
   }
   return rendered;
 }

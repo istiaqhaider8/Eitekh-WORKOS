@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+      return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -24,13 +24,7 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = {};
 
-    if (!user.isSuperAdmin) {
-      const userOrgId = user.orgMemberships?.[0]?.organization?.id;
-      if (!userOrgId) {
-        return NextResponse.json({ error: "Forbidden: No organization membership" }, { status: 403 });
-      }
-      whereClause.orgId = userOrgId;
-    } else if (orgId && orgId !== "ALL") {
+    if (orgId && orgId !== "ALL") {
       whereClause.orgId = orgId;
     }
 
@@ -160,6 +154,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.platformAuditLog.groupBy({
         by: ["action"],
+        where: whereClause,
         _count: { action: true },
       }),
       prisma.platformAuditLog.count({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { pbacBulkUserActionSchema, parseBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest) {
   try {
@@ -45,16 +46,12 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const body = await req.json();
-    const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
-    const { action, userIds, roleId, simulate } = body;
+    const parsed = parseBody(pbacBulkUserActionSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const { action, userIds, roleId, simulate } = parsed.data;
 
-    // Tenant Isolation (Admin or Owner required for bulk modifications)
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
-
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return NextResponse.json({ error: 'userIds array is required' }, { status: 400 });
-    }
 
     if (simulate && roleId) {
       const simulation = await pbacEngine.simulateBulkAssignment(orgId, userIds, roleId);

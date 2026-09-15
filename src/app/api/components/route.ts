@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { componentCreateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -35,19 +36,16 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { projectId, name, description, ownerId } = body;
-
-    if (!projectId || !name) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const parsed = parseBody(componentCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { projectId, name, description, ownerId } = parsed.data;
 
     await assertProjectPermission(projectId, "projects:edit");
 
     const component = await prisma.component.create({
       data: {
         projectId,
-        name: name.trim(),
+        name,
         description: description || null,
         ownerId,
       },

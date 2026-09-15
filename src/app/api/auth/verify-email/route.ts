@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyEmailSchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -13,11 +14,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const { token } = await req.json();
-
-    if (!token || typeof token !== "string") {
-      return NextResponse.json({ error: "Verification token is required" }, { status: 400 });
-    }
+    const parsed = parseBody(verifyEmailSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { token } = parsed.data;
 
     const user = await prisma.user.findFirst({
       where: { verificationToken: token },
