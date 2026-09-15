@@ -4,9 +4,9 @@
 > This is the single source of truth for all AI assistants working on this project.
 
 > **Last Updated**: 2026-09-15
-> **Last Updated By**: Claude Sonnet 4.6
+> **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `0df3b8d`
+> **Latest Commit**: `49c780a`
 
 ---
 
@@ -320,6 +320,26 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - Commit: `45b3915`
 - Commits: `6932b59`, `bc12061`, `98c688d`
 - Overall: 44/73 resolved (60%)
+
+### 2026-09-15 — Claude Opus 4.6 (Session 11) — Full E2E Testing & Security Hardening
+- **Branding**: Replaced all "Zenith WorkOS" references with "Eitekh WorkOS" across 21 files (cookie name, localStorage keys, BroadcastChannel, test files, docs, seed data)
+- Commit: `2aa1cd4`
+- **Security audit** — deep code analysis found 7 vulnerabilities, 6 fixed:
+  1. CRITICAL: Privilege escalation via custom role creation — permissions not validated against actor's own (fixed: validate actor perms in saveRole/cloneRole)
+  2. CRITICAL: OTP brute-force via TOCTOU race condition on attempts counter (fixed: atomic increment with updateMany)
+  3. HIGH: assignRolesToUser replaced all roles without checking hierarchy on removed roles (fixed: enforce hierarchy on dropped roles)
+  4. HIGH: removeUserFromRole had no hierarchy enforcement at all (fixed: added enforceHierarchy call)
+  5. MEDIUM: CSRF origin extraction broke on pathless Referer headers (fixed: use URL constructor)
+  6. MEDIUM: getUserCapabilities granted org-admin from job title containing "admin" (fixed: removed job title check)
+  7. MEDIUM: In-memory rate limiting ineffective in multi-instance deployments (KNOWN LIMITATION — requires Redis for production)
+- Commit: `49c780a`
+- **Full API test suite**: 39/39 endpoints passed (auth, health, SA endpoints x20, tenant isolation x4, project APIs x6, user APIs x2, OpenAPI docs)
+- **E2E database tests**: 16/16 passed (seed data, org hierarchy, workflows, issues, sprints, feature flags, tenant isolation)
+- **Email delivery**: Forgot-password OTP sent to istiaqhaider8@gmail.com — API returned success
+- **SSE/realtime**: Connection established, CONNECTED event + PING keepalive verified
+- **Production build**: Clean build, no TypeScript errors
+- **Performance**: All APIs respond under 1.5s (analytics slowest at 1.37s — acceptable for aggregation)
+- **Browser UI verification**: Login page, Board view, Kanban columns, issue cards — all rendering correctly with Eitekh branding
 
 ---
 
