@@ -72,6 +72,11 @@ export async function assertOrgAccess(orgId: string, allowedRoles: string[] = ["
   return { user, role: membership.role, organization: membership.organization };
 }
 
+/**
+ * Tenant isolation check: verifies the user is a member of the project (or its org).
+ * Use for READ-ONLY operations. For mutations, use assertProjectPermission() instead
+ * to enforce PBAC capability checks on top of membership.
+ */
 export async function assertProjectAccess(projectId: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized: Please sign in");

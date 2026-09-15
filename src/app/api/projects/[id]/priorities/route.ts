@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { priorityCreateSchema, parseBody } from "@/lib/validation";
 
 const DEFAULT_PRIORITIES = [
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await assertProjectAccess(projectId);
+    await assertProjectPermission(projectId, "projects:edit");
 
     const parsed = parseBody(priorityCreateSchema, await req.json());
     if (!parsed.success) return parsed.error;

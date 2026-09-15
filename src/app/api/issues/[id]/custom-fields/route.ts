@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { customFieldValueSchema, parseBody } from "@/lib/validation";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -41,7 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
 
   try {
-    await assertProjectAccess(issue.projectId);
+    await assertProjectPermission(issue.projectId, "issues:edit");
   } catch (e: any) {
     return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
   }

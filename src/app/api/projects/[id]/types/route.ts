@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { issueTypeCreateSchema, issueTypeUpdateSchema, parseBody } from "@/lib/validation";
 
 const DEFAULT_ISSUE_TYPES = [
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await assertProjectAccess(projectId);
+    await assertProjectPermission(projectId, "projects:edit");
 
     const parsed = parseBody(issueTypeCreateSchema, await req.json());
     if (!parsed.success) return parsed.error;
@@ -157,7 +157,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await assertProjectAccess(projectId);
+    await assertProjectPermission(projectId, "projects:edit");
 
     const parsed = parseBody(issueTypeUpdateSchema, await req.json());
     if (!parsed.success) return parsed.error;
@@ -252,7 +252,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await assertProjectAccess(projectId);
+    await assertProjectPermission(projectId, "projects:edit");
 
     const { searchParams } = new URL(req.url);
     const valueToDelete = searchParams.get("value")?.toUpperCase();
