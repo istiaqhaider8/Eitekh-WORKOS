@@ -67,7 +67,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+    if (!user || !user.isSuperAdmin) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 

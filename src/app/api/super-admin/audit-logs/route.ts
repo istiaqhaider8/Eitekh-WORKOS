@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+      return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -24,22 +24,7 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = {};
 
-    const isPlatformAdmin = user.isSuperAdmin || user.isSupportAdmin;
-    if (!isPlatformAdmin) {
-      // Non-platform-admins may only read their own organization's audit trail,
-      // and only if they are an OWNER/ADMIN of it. Plain membership is not
-      // sufficient to read admin actions (role grants, suspensions, resets).
-      const membership = user.orgMemberships?.[0];
-      const userOrgId = membership?.organization?.id;
-      const orgRole = (membership as any)?.role;
-      if (!userOrgId || !["OWNER", "ADMIN"].includes(orgRole)) {
-        return NextResponse.json(
-          { error: "Forbidden: Administrator access required" },
-          { status: 403 }
-        );
-      }
-      whereClause.orgId = userOrgId;
-    } else if (orgId && orgId !== "ALL") {
+    if (orgId && orgId !== "ALL") {
       whereClause.orgId = orgId;
     }
 

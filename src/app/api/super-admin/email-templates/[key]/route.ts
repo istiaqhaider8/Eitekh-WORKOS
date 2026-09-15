@@ -10,8 +10,8 @@ export async function GET(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.isSuperAdmin) {
-      return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
+    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+      return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
     const { key } = await params;

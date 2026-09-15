@@ -9,14 +9,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // STRICT SUPERADMIN AUTHORIZATION ENFORCEMENT:
-    // Normal users receive strict 403 Forbidden
-    if (!user.isSuperAdmin) {
-      return NextResponse.json({ error: 'Forbidden: Superadmin privileges required' }, { status: 403 });
+    if (!user || (!user.isSuperAdmin && !user.isSupportAdmin)) {
+      return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
