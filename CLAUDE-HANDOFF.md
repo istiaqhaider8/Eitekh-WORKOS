@@ -53,21 +53,30 @@ const { field1, field2 } = parsed.data;
 
 **Findings resolved**: AUTH-1 through AUTH-3, TENANT-1, TENANT-2, DATA-1 through DATA-6, NOTIF-1, EMAIL-1, ADMIN-1, API-1 (18 total resolved, 1 partial: API-2)
 
+### Phase 3 — Architecture & Auth (IN PROGRESS — 4/15 done)
+**Commits**: `c2aae2d`, `0d9fdd4`, `fef0161`, `8d7220e`
+
+4 findings resolved:
+- PBAC-1 (Critical): Role hierarchy enforcement — ROLE_HIERARCHY with 6 levels (VIEWER=10 → SUPER_ADMIN=60), enforceHierarchy() blocks escalation. Applied to addUserToRole, bulkAddUsersToRole, assignRolesToUser, saveRole, cloneRole.
+- ADMIN-2 (High): Standardized auth across all 21 super-admin endpoints — GET=SA+Support, POST/PATCH/DELETE=SA-only. Fixed audit-logs endpoint that was accessible to org admins.
+- PBAC-2 (High): Reduced permission cache TTL from 60s to 5s to limit stale permissions after role changes.
+- PBAC-3 (High): Added JSDoc to differentiate assertProjectAccess (read-only) vs assertProjectPermission (mutations). Upgraded types/priorities/custom-fields mutation routes to use assertProjectPermission.
+
 ---
 
-## What Remains — Pending Findings (55 items across 4 phases)
+## What Remains — Pending Findings (50 items across 4 phases)
 
 ### Phase 3 — Architecture & Auth Refactoring (~14 findings, High priority)
 | ID | Severity | Description |
 |---|---|---|
 | AUTH-4 | Medium | Cookie secure flag tied to NODE_ENV (needs HTTPS enforcement) |
-| PBAC-1 | Critical | Role hierarchy not enforced (MEMBER can escalate to ADMIN) |
-| PBAC-2 | High | Stale permission cache after role changes |
-| PBAC-3 | High | Two confusable auth helpers (assertProjectAccess vs assertProjectPermission) |
+| PBAC-1 | Critical | ~~Role hierarchy not enforced~~ **RESOLVED** `c2aae2d` |
+| PBAC-2 | High | ~~Stale permission cache after role changes~~ **RESOLVED** `fef0161` |
+| PBAC-3 | High | ~~Two confusable auth helpers~~ **RESOLVED** `8d7220e` |
 | PBAC-4 | Medium | PBAC cache invalidation race conditions |
 | PBAC-5 | Medium | No permission audit trail |
 | PBAC-6 | Low | Permission denied errors not user-friendly |
-| ADMIN-2 | High | Super-admin endpoints lack consistent authorization |
+| ADMIN-2 | High | ~~Super-admin endpoints lack consistent authorization~~ **RESOLVED** `0d9fdd4` |
 | ADMIN-3 | Medium | No admin action audit trail |
 | ARCH-1 | High | SQLite with no migration system |
 | ARCH-2 | High | In-memory singletons as infrastructure |
@@ -155,16 +164,20 @@ const { field1, field2 } = parsed.data;
 4. **PBAC role scopes**: `'PROJECT' | 'WORKSPACE' | 'ORG'` with status `'ACTIVE' | 'INACTIVE'`
 5. **All commits must be pushed** — user's standing instruction
 6. **Commit message style**: `feat(scope): description` with `Co-Authored-By` line
+7. **PBAC role hierarchy**: VIEWER(10) < MEMBER(20) < PROJECT_MANAGER(30) < PROJECT_ADMIN(40) < ORG_ADMIN(50) < SUPER_ADMIN(60) — enforced in pbac-engine.ts
+8. **Super-admin auth pattern**: GET = `isSuperAdmin || isSupportAdmin`, POST/PATCH/DELETE = `isSuperAdmin` only
+9. **assertProjectAccess** = membership check (read-only), **assertProjectPermission** = PBAC capability check (mutations)
+10. **Permission cache TTL** = 5 seconds (was 60s, reduced for security)
 
 ---
 
 ## Recommended Next Steps (in priority order)
 
-1. **PBAC-1** (Critical): Role hierarchy enforcement — prevent privilege escalation
-2. **UI-1** (High): XSS prevention in frontend rendering
-3. **PERF-2** (High): Add database indexes on foreign keys
-4. **ARCH-1** (High): Set up Prisma migrations properly
-5. **OPS-1** (High): Add rate limiting middleware to all endpoints
+1. **UI-1** (High): XSS prevention in frontend rendering
+2. **PERF-2** (High): Add database indexes on foreign keys
+3. **ARCH-1** (High): Set up Prisma migrations properly
+4. **OPS-1** (High): Add rate limiting middleware to all endpoints
+5. **ARCH-2** (High): In-memory singletons won't scale — needs refactoring
 6. **AUTH-4** (Medium): Cookie secure flag for production HTTPS
 
 ---
@@ -172,6 +185,13 @@ const { field1, field2 } = parsed.data;
 ## Git History Summary
 
 ```
+431628b docs: update AI-STATUS.md — PBAC-2, PBAC-3, ADMIN-2 completed (22/73)
+8d7220e feat(security): PBAC-3 — clarify auth helpers and enforce PBAC on mutations
+fef0161 feat(security): PBAC-2 — reduce permission cache TTL from 60s to 5s
+0d9fdd4 feat(security): ADMIN-2 — enforce consistent super-admin authorization
+c2aae2d feat(security): PBAC-1 — enforce role hierarchy to prevent privilege escalation
+425893c docs: add universal AI coordination system (AI-PROMPT.md + AI-STATUS.md)
+389fcac docs: add CLAUDE-HANDOFF.md for cross-session continuity
 b6716d9 docs: update SECURITY-AUDIT.md — API-1 fully resolved (107/107)
 dcd1d71 feat(validation): Phase 2 — complete zod validation all remaining routes (107/107)
 e4e5baf feat(validation): Phase 2 — add zod validation to all super-admin routes (67/107)
