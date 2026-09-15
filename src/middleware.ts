@@ -49,7 +49,7 @@ export function middleware(req: NextRequest) {
   const ip = getClientIp(req);
   const isMutation = MUTATING_METHODS.has(req.method);
 
-  if (isMutation) {
+  if (isMutation || req.nextUrl.pathname.startsWith("/api/super-admin")) {
     console.log(`[API] ${req.method} ${req.nextUrl.pathname} from ${ip}`);
   }
   const limit = isMutation ? RATE_LIMIT_MAX_MUTATION : RATE_LIMIT_MAX;
