@@ -168,6 +168,7 @@ model Team {
 
   @@index([workspaceId])
   @@index([leadId])
+  @@index([projectId])
 }
 
 model TeamMember {
@@ -224,6 +225,7 @@ model Project {
   @@index([status])
   @@index([createdAt])
   @@index([ownerId])
+  @@index([teamId])
 }
 
 model ProjectMember {
@@ -253,6 +255,8 @@ model Component {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues  Issue[]
+
+  @@index([projectId])
 }
 
 model Epic {
@@ -270,6 +274,8 @@ model Epic {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues  Issue[]
+
+  @@index([projectId])
 }
 
 model Sprint {
@@ -296,6 +302,7 @@ model Sprint {
   @@index([projectId])
   @@index([status])
   @@index([projectId, position])
+  @@index([teamId])
 }
 
 model Workflow {
@@ -335,6 +342,10 @@ model WorkflowTransition {
   requiredRole String?
 
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([fromStatusId])
+  @@index([toStatusId])
 }
 
 // -------------------------------------------------------------
@@ -409,6 +420,9 @@ model Issue {
   @@index([parentIssueId])
   @@index([epicId])
   @@index([teamId])
+  @@index([statusId])
+  @@index([sprintId])
+  @@index([componentId])
 }
 
 model Subtask {
@@ -441,6 +455,7 @@ model IssueDependency {
   targetIssue Issue @relation("TargetDep", fields: [targetIssueId], references: [id], onDelete: Cascade)
 
   @@unique([sourceIssueId, targetIssueId, type])
+  @@index([targetIssueId])
 }
 
 model Comment {
@@ -470,6 +485,9 @@ model Attachment {
 
   issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   uploader User  @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@index([uploaderId])
 }
 
 model Watcher {
@@ -482,6 +500,7 @@ model Watcher {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([issueId, userId])
+  @@index([userId])
 }
 
 model Label {
@@ -506,6 +525,7 @@ model IssueLabel {
   label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
 
   @@unique([issueId, labelId])
+  @@index([labelId])
 }
 
 model ActivityLog {
@@ -574,6 +594,7 @@ model CustomFieldValue {
   issue       Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   @@unique([customFieldId, issueId])
+  @@index([issueId])
 }
 
 model AutomationRule {
@@ -589,6 +610,8 @@ model AutomationRule {
   createdAt      DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 model RecurringTask {
@@ -602,6 +625,8 @@ model RecurringTask {
   createdAt    DateTime  @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 // -------------------------------------------------------------
@@ -681,6 +706,9 @@ model Webhook {
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([projectId])
 }
 
 // -------------------------------------------------------------
@@ -768,6 +796,7 @@ model TaskDelegation {
   @@index([delegateUserId, startDate, endDate])
   @@index([leaveId])
   @@index([status])
+  @@index([createdBy])
 }
 
 model DelegationHistory {
@@ -783,6 +812,7 @@ model DelegationHistory {
 
   @@index([delegationId])
   @@index([timestamp])
+  @@index([actorId])
 }
 
 

@@ -637,6 +637,9 @@ CREATE INDEX "Team_workspaceId_idx" ON "Team"("workspaceId");
 CREATE INDEX "Team_leadId_idx" ON "Team"("leadId");
 
 -- CreateIndex
+CREATE INDEX "Team_projectId_idx" ON "Team"("projectId");
+
+-- CreateIndex
 CREATE INDEX "TeamMember_userId_idx" ON "TeamMember"("userId");
 
 -- CreateIndex
@@ -661,6 +664,9 @@ CREATE INDEX "Project_createdAt_idx" ON "Project"("createdAt");
 CREATE INDEX "Project_ownerId_idx" ON "Project"("ownerId");
 
 -- CreateIndex
+CREATE INDEX "Project_teamId_idx" ON "Project"("teamId");
+
+-- CreateIndex
 CREATE INDEX "ProjectMember_userId_idx" ON "ProjectMember"("userId");
 
 -- CreateIndex
@@ -676,6 +682,12 @@ CREATE INDEX "ProjectMember_userId_role_idx" ON "ProjectMember"("userId", "role"
 CREATE UNIQUE INDEX "ProjectMember_projectId_userId_key" ON "ProjectMember"("projectId", "userId");
 
 -- CreateIndex
+CREATE INDEX "Component_projectId_idx" ON "Component"("projectId");
+
+-- CreateIndex
+CREATE INDEX "Epic_projectId_idx" ON "Epic"("projectId");
+
+-- CreateIndex
 CREATE INDEX "Sprint_projectId_idx" ON "Sprint"("projectId");
 
 -- CreateIndex
@@ -685,10 +697,22 @@ CREATE INDEX "Sprint_status_idx" ON "Sprint"("status");
 CREATE INDEX "Sprint_projectId_position_idx" ON "Sprint"("projectId", "position");
 
 -- CreateIndex
+CREATE INDEX "Sprint_teamId_idx" ON "Sprint"("teamId");
+
+-- CreateIndex
 CREATE INDEX "Workflow_projectId_idx" ON "Workflow"("projectId");
 
 -- CreateIndex
 CREATE INDEX "WorkflowStatus_workflowId_idx" ON "WorkflowStatus"("workflowId");
+
+-- CreateIndex
+CREATE INDEX "WorkflowTransition_workflowId_idx" ON "WorkflowTransition"("workflowId");
+
+-- CreateIndex
+CREATE INDEX "WorkflowTransition_fromStatusId_idx" ON "WorkflowTransition"("fromStatusId");
+
+-- CreateIndex
+CREATE INDEX "WorkflowTransition_toStatusId_idx" ON "WorkflowTransition"("toStatusId");
 
 -- CreateIndex
 CREATE INDEX "Issue_issueKey_idx" ON "Issue"("issueKey");
@@ -739,6 +763,15 @@ CREATE INDEX "Issue_epicId_idx" ON "Issue"("epicId");
 CREATE INDEX "Issue_teamId_idx" ON "Issue"("teamId");
 
 -- CreateIndex
+CREATE INDEX "Issue_statusId_idx" ON "Issue"("statusId");
+
+-- CreateIndex
+CREATE INDEX "Issue_sprintId_idx" ON "Issue"("sprintId");
+
+-- CreateIndex
+CREATE INDEX "Issue_componentId_idx" ON "Issue"("componentId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Issue_projectId_keyNumber_key" ON "Issue"("projectId", "keyNumber");
 
 -- CreateIndex
@@ -746,6 +779,9 @@ CREATE INDEX "Subtask_parentIssueId_idx" ON "Subtask"("parentIssueId");
 
 -- CreateIndex
 CREATE INDEX "Subtask_assigneeId_idx" ON "Subtask"("assigneeId");
+
+-- CreateIndex
+CREATE INDEX "IssueDependency_targetIssueId_idx" ON "IssueDependency"("targetIssueId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "IssueDependency_sourceIssueId_targetIssueId_type_key" ON "IssueDependency"("sourceIssueId", "targetIssueId", "type");
@@ -757,10 +793,22 @@ CREATE INDEX "Comment_issueId_idx" ON "Comment"("issueId");
 CREATE INDEX "Comment_userId_idx" ON "Comment"("userId");
 
 -- CreateIndex
+CREATE INDEX "Attachment_issueId_idx" ON "Attachment"("issueId");
+
+-- CreateIndex
+CREATE INDEX "Attachment_uploaderId_idx" ON "Attachment"("uploaderId");
+
+-- CreateIndex
+CREATE INDEX "Watcher_userId_idx" ON "Watcher"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Watcher_issueId_userId_key" ON "Watcher"("issueId", "userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Label_projectId_name_key" ON "Label"("projectId", "name");
+
+-- CreateIndex
+CREATE INDEX "IssueLabel_labelId_idx" ON "IssueLabel"("labelId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "IssueLabel_issueId_labelId_key" ON "IssueLabel"("issueId", "labelId");
@@ -790,7 +838,16 @@ CREATE INDEX "TimeEntry_userId_idx" ON "TimeEntry"("userId");
 CREATE INDEX "TimeEntry_userId_workDate_idx" ON "TimeEntry"("userId", "workDate");
 
 -- CreateIndex
+CREATE INDEX "CustomFieldValue_issueId_idx" ON "CustomFieldValue"("issueId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "CustomFieldValue_customFieldId_issueId_key" ON "CustomFieldValue"("customFieldId", "issueId");
+
+-- CreateIndex
+CREATE INDEX "AutomationRule_projectId_idx" ON "AutomationRule"("projectId");
+
+-- CreateIndex
+CREATE INDEX "RecurringTask_projectId_idx" ON "RecurringTask"("projectId");
 
 -- CreateIndex
 CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
@@ -817,6 +874,12 @@ CREATE INDEX "PlatformAuditLog_action_idx" ON "PlatformAuditLog"("action");
 CREATE INDEX "PlatformAuditLog_orgId_idx" ON "PlatformAuditLog"("orgId");
 
 -- CreateIndex
+CREATE INDEX "Webhook_orgId_idx" ON "Webhook"("orgId");
+
+-- CreateIndex
+CREATE INDEX "Webhook_projectId_idx" ON "Webhook"("projectId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "EmailTemplate_key_key" ON "EmailTemplate"("key");
 
 -- CreateIndex
@@ -841,18 +904,14 @@ CREATE INDEX "TaskDelegation_leaveId_idx" ON "TaskDelegation"("leaveId");
 CREATE INDEX "TaskDelegation_status_idx" ON "TaskDelegation"("status");
 
 -- CreateIndex
+CREATE INDEX "TaskDelegation_createdBy_idx" ON "TaskDelegation"("createdBy");
+
+-- CreateIndex
 CREATE INDEX "DelegationHistory_delegationId_idx" ON "DelegationHistory"("delegationId");
 
 -- CreateIndex
 CREATE INDEX "DelegationHistory_timestamp_idx" ON "DelegationHistory"("timestamp");
 
-┌─────────────────────────────────────────────────────────┐
-│  Update available 5.22.0 -> 8.0.0-rc.15                 │
-│                                                         │
-│  This is a major update - please follow the guide at    │
-│  https://pris.ly/d/major-version-upgrade                │
-│                                                         │
-│  Run the following to update                            │
-│    npm i --save-dev prisma@latest                       │
-│    npm i @prisma/client@latest                          │
-└─────────────────────────────────────────────────────────┘
+-- CreateIndex
+CREATE INDEX "DelegationHistory_actorId_idx" ON "DelegationHistory"("actorId");
+
