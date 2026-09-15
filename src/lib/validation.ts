@@ -493,6 +493,58 @@ export const orgRoleCreateSchema = z.object({
 
 // ── Recurring task schemas ────────────────────────────────────────
 
+// ── PBAC schemas (security-critical) ─────────────────────────────
+
+export const pbacRoleCreateSchema = z.object({
+  orgId: cuidSchema.optional(),
+  id: cuidSchema.optional(),
+  name: safeStringSchema.min(1, "Role name is required").trim(),
+  description: safeStringSchema.trim().optional(),
+  scope: z.enum(["PROJECT", "ORG", "WORKSPACE"]).optional(),
+  projectId: cuidSchema.optional(),
+  projectName: safeStringSchema.trim().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  permissions: z.array(z.string().max(100)).max(500).default([]),
+  cloneFromId: cuidSchema.optional(),
+});
+
+export const pbacRoleUpdateSchema = z.object({
+  orgId: cuidSchema.optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  name: safeStringSchema.trim().optional(),
+  description: safeStringSchema.trim().optional(),
+  permissions: z.array(z.string().max(100)).max(500).optional(),
+  scope: z.enum(["PROJECT", "ORG", "WORKSPACE"]).optional(),
+  projectId: cuidSchema.optional(),
+  projectName: safeStringSchema.trim().optional(),
+});
+
+export const pbacRoleUsersSchema = z.object({
+  orgId: cuidSchema.optional(),
+  userId: cuidSchema.optional(),
+  userIds: z.array(cuidSchema).max(500).optional(),
+});
+
+export const pbacBulkUserActionSchema = z.object({
+  orgId: cuidSchema.optional(),
+  action: z.enum(["ASSIGN_ROLE", "REMOVE_ROLE"]).optional(),
+  userIds: z.array(cuidSchema).min(1).max(500),
+  roleId: cuidSchema.optional(),
+  simulate: z.boolean().optional(),
+});
+
+export const pbacUserRolesUpdateSchema = z.object({
+  orgId: cuidSchema.optional(),
+  roleIds: z.array(cuidSchema).max(200),
+});
+
+export const pbacClassicActionSchema = z.object({
+  userId: cuidSchema,
+  projectId: cuidSchema,
+  role: z.string().max(50).optional(),
+  action: z.string().max(50).optional(),
+});
+
 export const recurringTaskCreateSchema = z.object({
   projectId: cuidSchema,
   scheduleCron: z.string().min(1, "Cron schedule is required").max(100),

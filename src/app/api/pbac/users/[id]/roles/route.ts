@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { pbacUserRolesUpdateSchema, parseBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,15 +30,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const body = await req.json();
-    const orgId = body.orgId || searchParams.get('orgId') || 'default-org';
-    const { roleIds } = body;
+    const parsed = parseBody(pbacUserRolesUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const { roleIds } = parsed.data;
 
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
-
-    if (!Array.isArray(roleIds)) {
-      return NextResponse.json({ error: 'roleIds array required' }, { status: 400 });
-    }
 
     const actor = {
       id: user.id,
