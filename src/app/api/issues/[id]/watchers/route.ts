@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
+import { watcherSchema, parseBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -43,8 +44,9 @@ export async function POST(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: issueId } = await params;
-    const body = await req.json().catch(() => ({}));
-    const targetUserId = body.userId || user.id;
+    const parsed = parseBody(watcherSchema, await req.json().catch(() => ({})));
+    if (!parsed.success) return parsed.error;
+    const targetUserId = parsed.data.userId || user.id;
 
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
@@ -56,7 +58,7 @@ export async function POST(
     });
 
     if (existing) {
-      return NextResponse.json(existing, { status: 200 }); // Or 400, but returning existing is often nicer
+      return NextResponse.json(existing, { status: 200 });
     }
 
     const watcher = await prisma.watcher.create({
@@ -90,8 +92,9 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: issueId } = await params;
-    const body = await req.json().catch(() => ({}));
-    const targetUserId = body.userId || user.id;
+    const parsed = parseBody(watcherSchema, await req.json().catch(() => ({})));
+    if (!parsed.success) return parsed.error;
+    const targetUserId = parsed.data.userId || user.id;
 
     const issue = await prisma.issue.findUnique({ where: { id: issueId } });
     if (!issue) return NextResponse.json({ error: "Issue not found" }, { status: 404 });

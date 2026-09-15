@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
+import { timeEntryCreateSchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,10 +24,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const { durationMinutes, description, workDate } = await req.json();
-    if (!durationMinutes || durationMinutes <= 0) {
-      return NextResponse.json({ error: "Valid duration is required" }, { status: 400 });
-    }
+    const parsed = parseBody(timeEntryCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { durationMinutes, description, workDate } = parsed.data;
 
     const timeEntry = await prisma.timeEntry.create({
       data: {

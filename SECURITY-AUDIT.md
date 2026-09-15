@@ -33,7 +33,7 @@ A comprehensive security audit of the Eitekh WorkOS platform identified **73 fin
 
 **10 Critical findings** have been resolved in Phase 1 and pushed to GitHub on branch `security/phase-1-critical-fixes`. These fixes close all exploitable attack chains that were verified against the running system, including a full pre-authentication account takeover chain, cross-tenant data injection, and a hardcoded backdoor.
 
-**Phase 2 is in progress** — zod validation library installed, shared validation schemas created, and applied to 22 route handlers. Rate limiting added to registration. Attachment size/type validation enforced. CSRF origin-checking middleware added. Email template rendering now HTML-escapes all interpolated values. 7 additional findings fully resolved, 2 partially addressed.
+**Phase 2 is in progress** — zod validation library installed, shared validation schemas created, and applied to 32 route handlers (30% coverage). Rate limiting added to registration. Attachment size/type validation enforced. CSRF origin-checking middleware added. Email template rendering now HTML-escapes all interpolated values. 7 additional findings fully resolved, 2 partially addressed.
 
 **56 findings remain** across Phases 2–6, ranging from High to Low severity. No Critical findings remain open.
 
@@ -121,7 +121,7 @@ A comprehensive security audit of the Eitekh WorkOS platform identified **73 fin
 | ADMIN-2 | High | ⬚ PENDING | 3 | Super-admin endpoints lack consistent authorization |
 | ADMIN-3 | Medium | ⬚ PENDING | 3 | No admin action audit trail |
 | ADMIN-4 | Low | ⬚ PENDING | 6 | No admin dashboard access logging |
-| API-1 | High | 🔧 PARTIAL | 2 | Zero schema validation across 107 API routes (22/107 done) |
+| API-1 | High | 🔧 PARTIAL | 2 | Zero schema validation across 107 API routes (32/107 done) |
 | API-2 | High | 🔧 PARTIAL | 2 | Inconsistent error response formats (standardized for validated routes) |
 | API-3 | Medium | ⬚ PENDING | 3 | No API versioning strategy |
 | API-4 | Medium | ⬚ PENDING | 4 | No request/response logging middleware |

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { teamUpdateSchema, parseBody } from "@/lib/validation";
 
 async function checkTeamAccess(teamId: string) {
   const user = await getCurrentUser();
@@ -64,16 +65,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const team = await prisma.team.findUnique({ where: { id } });
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
     
-    const body = await req.json();
+    const parsed = parseBody(teamUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const body = parsed.data;
     const updateData: any = {};
 
     if (body.name !== undefined) {
-      if (!body.name.trim()) return NextResponse.json({ error: "Team name cannot be empty" }, { status: 400 });
-      updateData.name = body.name.trim();
+      updateData.name = body.name;
     }
 
     if (body.description !== undefined) {
-      updateData.description = body.description ? body.description.trim() : null;
+      updateData.description = body.description || null;
     }
 
     if (body.leadId !== undefined) {

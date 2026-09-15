@@ -286,6 +286,74 @@ export const commentUpdateSchema = z.object({
   content: z.string().min(1, "Comment content is required").max(10_000).trim(),
 });
 
+export const workspaceUpdateSchema = z.object({
+  name: safeStringSchema.min(1).trim().optional(),
+  description: safeStringSchema.trim().optional().nullable(),
+  isArchived: z.boolean().optional(),
+});
+
+export const workspaceMemberSchema = z.object({
+  userId: cuidSchema,
+  role: z.enum(["WORKSPACE_ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
+});
+
+export const teamUpdateSchema = z.object({
+  name: safeStringSchema.min(1).trim().optional(),
+  description: safeStringSchema.trim().optional().nullable(),
+  leadId: cuidSchema.optional().nullable(),
+});
+
+export const teamMemberSchema = z.object({
+  userId: cuidSchema,
+  role: z.enum(["LEAD", "MEMBER"]).default("MEMBER"),
+});
+
+export const epicUpdateSchema = z.object({
+  name: safeStringSchema.min(1).trim().optional(),
+  summary: safeStringSchema.trim().optional().nullable(),
+  color: z.string().max(20).regex(/^#[0-9a-fA-F]{3,8}$/, "Invalid color").optional(),
+  status: z.string().max(50).optional(),
+  ownerId: cuidSchema.optional().nullable(),
+  startDate: z.string().max(50).optional().nullable(),
+  targetDate: z.string().max(50).optional().nullable(),
+});
+
+export const subtaskCreateSchema = z.object({
+  title: safeStringSchema.min(1, "Subtask title is required").trim(),
+  assigneeId: cuidSchema.optional().nullable(),
+  estimateHours: z.coerce.number().min(0).max(10000).optional().nullable(),
+  dueDate: z.string().max(50).optional().nullable(),
+});
+
+export const subtaskUpdateSchema = z.object({
+  title: safeStringSchema.trim().optional(),
+  assigneeId: cuidSchema.optional().nullable(),
+  priority: z.string().max(50).optional(),
+  estimateHours: z.coerce.number().min(0).max(10000).optional().nullable(),
+  dueDate: z.string().max(50).optional().nullable(),
+  isCompleted: z.boolean().optional(),
+  status: z.string().max(50).optional(),
+});
+
+export const timeEntryCreateSchema = z.object({
+  durationMinutes: z.coerce.number().int().min(1, "Valid duration is required").max(1440),
+  description: safeStringSchema.trim().optional().nullable(),
+  workDate: z.string().max(50).optional(),
+});
+
+export const dependencyCreateSchema = z.object({
+  targetIssueId: cuidSchema,
+  type: z.enum(["BLOCKS", "BLOCKED_BY", "RELATES_TO", "DUPLICATES", "FINISH_TO_START", "START_TO_START"]),
+});
+
+export const dependencyDeleteSchema = z.object({
+  dependencyId: cuidSchema,
+});
+
+export const watcherSchema = z.object({
+  userId: cuidSchema.optional(),
+});
+
 // ── Parsing helper ──────────────────────────────────────────────────
 
 export function parseBody<T extends z.ZodTypeAny>(
