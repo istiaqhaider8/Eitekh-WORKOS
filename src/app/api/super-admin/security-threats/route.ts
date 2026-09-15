@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { securityEngine } from '@/lib/security-engine';
+import { superAdminSecurityThreatUpdateSchema, parseBody } from '@/lib/validation';
 
 export async function GET(request: Request) {
   try {
@@ -37,10 +38,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
     }
 
-    const { threatId, status, note } = await request.json();
-    if (!threatId || !status) {
-      return NextResponse.json({ error: 'Missing threatId or status' }, { status: 400 });
-    }
+    const parsed = parseBody(superAdminSecurityThreatUpdateSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { threatId, status, note } = parsed.data;
 
     const updated = securityEngine.updateThreatStatus(threatId, status, note, user.email);
     if (!updated) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { superAdminJobActionSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -70,7 +71,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const { action, taskId, ruleId, emailLogId } = await request.json();
+    const parsed = parseBody(superAdminJobActionSchema, await request.json());
+    if (!parsed.success) return parsed.error;
+    const { action, taskId, ruleId, emailLogId } = parsed.data;
 
     if (action === "TRIGGER_RECURRING_TASK" && taskId) {
       const task = await prisma.recurringTask.findUnique({

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { pbacEngine } from "@/lib/pbac-engine";
+import { superAdminOrgCreateSchema, superAdminOrgUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -64,14 +65,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { name, slug, domain, timezone, language } = body;
+    const parsed = parseBody(superAdminOrgCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { name, slug, domain, timezone, language } = parsed.data;
 
-    if (!name || !name.trim()) {
-      return NextResponse.json({ error: "Organization name is required" }, { status: 400 });
-    }
-
-    const cleanName = name.trim();
+    const cleanName = name;
     let cleanSlug = (slug || cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-")).trim();
     if (!cleanSlug) cleanSlug = `org-${Date.now()}`;
 
@@ -134,11 +132,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { orgId, name, slug, domain, status, timezone, language, dateFormat, workingDays, workingHours } = body;
-    if (!orgId) {
-      return NextResponse.json({ error: "orgId is required" }, { status: 400 });
-    }
+    const parsed2 = parseBody(superAdminOrgUpdateSchema, await req.json());
+    if (!parsed2.success) return parsed2.error;
+    const { orgId, name, slug, domain, status, timezone, language, dateFormat, workingDays, workingHours } = parsed2.data;
 
     const existingOrg = await prisma.organization.findUnique({ where: { id: orgId } });
     if (!existingOrg) {

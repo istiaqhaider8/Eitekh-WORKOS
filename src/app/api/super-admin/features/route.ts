@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { superAdminFeatureCreateSchema, superAdminFeatureUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -23,12 +24,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { key, description, isGlobalEnabled = true } = body;
-
-    if (!key || !key.trim()) {
-      return NextResponse.json({ error: "Feature flag key is required" }, { status: 400 });
-    }
+    const parsed = parseBody(superAdminFeatureCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { key, description, isGlobalEnabled } = parsed.data;
 
     const cleanKey = key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
 
@@ -72,9 +70,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { key, isGlobalEnabled, description } = body;
-    if (!key) return NextResponse.json({ error: "key is required" }, { status: 400 });
+    const parsed = parseBody(superAdminFeatureUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { key, isGlobalEnabled, description } = parsed.data;
 
     const existing = await prisma.featureFlag.findUnique({ where: { key } });
     if (!existing) {

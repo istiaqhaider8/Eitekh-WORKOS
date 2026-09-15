@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getEmailTemplates, DEFAULT_TEMPLATES } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { superAdminEmailTemplateResetSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -24,10 +25,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const parsed = parseBody(superAdminEmailTemplateResetSchema, await req.json().catch(() => ({})));
+    if (!parsed.success) return parsed.error;
 
-    // If resetAll requested, restore default templates
-    if (body.resetAll) {
+    if (parsed.data.resetAll) {
       await prisma.emailTemplate.deleteMany();
       for (const t of DEFAULT_TEMPLATES) {
         await prisma.emailTemplate.create({ data: t });

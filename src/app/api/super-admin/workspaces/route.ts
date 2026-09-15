@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { superAdminWorkspaceCreateSchema, superAdminWorkspaceUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -52,15 +53,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { orgId, name, slug, description } = body;
-
-    if (!orgId) {
-      return NextResponse.json({ error: "Organization ID is required" }, { status: 400 });
-    }
-    if (!name || !name.trim()) {
-      return NextResponse.json({ error: "Workspace name is required" }, { status: 400 });
-    }
+    const parsed = parseBody(superAdminWorkspaceCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { orgId, name, slug, description } = parsed.data;
 
     const targetOrg = await prisma.organization.findUnique({ where: { id: orgId } });
     if (!targetOrg) {
@@ -118,12 +113,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { workspaceId, name, slug, description, isArchived, orgId } = body;
-
-    if (!workspaceId) {
-      return NextResponse.json({ error: "workspaceId is required" }, { status: 400 });
-    }
+    const parsed2 = parseBody(superAdminWorkspaceUpdateSchema, await req.json());
+    if (!parsed2.success) return parsed2.error;
+    const { workspaceId, name, slug, description, isArchived, orgId } = parsed2.data;
 
     const existingWs = await prisma.workspace.findUnique({
       where: { id: workspaceId },

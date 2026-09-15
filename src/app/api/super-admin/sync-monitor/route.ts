@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { syncEngine } from '@/lib/sync-engine';
 import { prisma } from '@/lib/prisma';
+import { superAdminSyncMonitorActionSchema, parseBody } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,17 +66,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Superadmin privileges required' }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const targetProjectId = body.projectId || 'GLOBAL_SYSTEM';
+    const parsed = parseBody(superAdminSyncMonitorActionSchema, await req.json().catch(() => ({})));
+    if (!parsed.success) return parsed.error;
+    const targetProjectId = parsed.data.projectId || 'GLOBAL_SYSTEM';
 
-    // Broadcast a test sync event
     const event = syncEngine.publishProjectEvent({
       projectId: targetProjectId,
       eventType: 'SYSTEM_SYNC_PING',
       entityId: `ping_${Date.now()}`,
       entityType: 'SYSTEM',
       data: {
-        message: body.message || 'Manual system sync test ping triggered by Superadmin',
+        message: parsed.data.message || 'Manual system sync test ping triggered by Superadmin',
         triggeredBy: user.email,
       },
       actor: {

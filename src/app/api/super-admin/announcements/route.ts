@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { superAdminAnnouncementCreateSchema, superAdminAnnouncementUpdateSchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -26,31 +27,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const {
-      title,
-      message,
-      severity = "INFO",
-      targetAudience = "ALL",
-      isActive = true,
-      startsAt,
-      expiresAt,
-    } = body;
-
-    if (!title || !title.trim()) {
-      return NextResponse.json({ error: "Announcement title is required" }, { status: 400 });
-    }
-    if (!message || !message.trim()) {
-      return NextResponse.json({ error: "Announcement message is required" }, { status: 400 });
-    }
+    const parsed = parseBody(superAdminAnnouncementCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
 
     const announcement = await prisma.systemAnnouncement.create({
       data: {
         title: title.trim(),
         message: message.trim(),
-        severity: ["INFO", "WARNING", "CRITICAL"].includes(severity) ? severity : "INFO",
-        targetAudience: ["ALL", "ORGS", "USERS"].includes(targetAudience) ? targetAudience : "ALL",
-        isActive: Boolean(isActive),
+        severity,
+        targetAudience,
+        isActive,
         startsAt: startsAt ? new Date(startsAt) : new Date(),
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
@@ -84,12 +71,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { id, title, message, severity, targetAudience, isActive, startsAt, expiresAt } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
-    }
+    const parsed = parseBody(superAdminAnnouncementUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
+    const { id, title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
 
     const existing = await prisma.systemAnnouncement.findUnique({ where: { id } });
     if (!existing) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody } from "@/lib/validation";
 
 // GET /api/super-admin/users
 export async function GET(req: Request) {
@@ -108,7 +109,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(superAdminUserCreateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     const {
       email,
       firstName,
@@ -122,13 +124,9 @@ export async function POST(req: Request) {
       isSuperAdmin,
       password,
       status,
-    } = body;
+    } = parsed.data;
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ error: "Valid email address is required" }, { status: 400 });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email;
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (existingUser) {
@@ -221,7 +219,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = parseBody(superAdminUserUpdateSchema, await req.json());
+    if (!parsed.success) return parsed.error;
     const {
       userId,
       firstName,
@@ -238,11 +237,7 @@ export async function PATCH(req: Request) {
       revokeSessions,
       orgId,
       role,
-    } = body;
-
-    if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
-    }
+    } = parsed.data;
 
     const targetUser = await prisma.user.findUnique({ where: { id: userId } });
     if (!targetUser) {

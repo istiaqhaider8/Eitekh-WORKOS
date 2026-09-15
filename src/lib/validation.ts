@@ -552,6 +552,189 @@ export const recurringTaskCreateSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+// ── Super-admin schemas ───────────────────────────────────────────
+
+export const superAdminUserCreateSchema = z.object({
+  email: emailSchema,
+  firstName: z.string().max(100).trim().optional(),
+  lastName: z.string().max(100).trim().optional(),
+  jobTitle: z.string().max(200).trim().optional(),
+  company: z.string().max(200).trim().optional(),
+  timezone: z.string().max(100).optional(),
+  language: z.string().max(10).optional(),
+  orgId: cuidSchema.optional(),
+  role: z.string().max(50).optional(),
+  isSuperAdmin: z.boolean().optional(),
+  password: z.string().max(64).optional(),
+  status: z.string().max(50).optional(),
+});
+
+export const superAdminUserUpdateSchema = z.object({
+  userId: cuidSchema,
+  firstName: z.string().max(100).trim().optional(),
+  lastName: z.string().max(100).trim().optional(),
+  email: z.string().email().max(254).optional(),
+  jobTitle: z.string().max(200).trim().optional(),
+  company: z.string().max(200).trim().optional(),
+  timezone: z.string().max(100).optional(),
+  language: z.string().max(10).optional(),
+  status: z.string().max(50).optional(),
+  isSuperAdmin: z.boolean().optional(),
+  password: z.string().max(64).optional(),
+  resetMfa: z.boolean().optional(),
+  revokeSessions: z.boolean().optional(),
+  orgId: cuidSchema.optional(),
+  role: z.string().max(50).optional(),
+});
+
+export const superAdminSecurityActionSchema = z.object({
+  action: z.enum(["SUSPEND_USER", "ACTIVATE_USER", "REVOKE_SESSION", "REVOKE_ALL_SESSIONS"]),
+  targetUserId: cuidSchema.optional(),
+  sessionId: cuidSchema.optional(),
+});
+
+export const superAdminOrgCreateSchema = z.object({
+  name: safeStringSchema.min(1, "Organization name is required").trim(),
+  slug: z.string().max(100).trim().optional(),
+  domain: z.string().max(255).trim().optional(),
+  timezone: z.string().max(100).optional(),
+  language: z.string().max(10).optional(),
+});
+
+export const superAdminOrgUpdateSchema = z.object({
+  orgId: cuidSchema,
+  name: safeStringSchema.trim().optional(),
+  slug: z.string().max(100).trim().optional(),
+  domain: z.string().max(255).trim().optional(),
+  status: z.string().max(50).optional(),
+  timezone: z.string().max(100).optional(),
+  language: z.string().max(10).optional(),
+  dateFormat: z.string().max(50).optional(),
+  workingDays: z.string().max(100).optional(),
+  workingHours: z.string().max(100).optional(),
+});
+
+export const superAdminProjectCreateSchema = z.object({
+  workspaceId: cuidSchema,
+  name: safeStringSchema.min(1, "Project name is required").trim(),
+  key: z.string().min(1, "Project key is required").max(10).trim(),
+  description: safeLongStringSchema.trim().optional().nullable(),
+  template: z.enum(["SCRUM", "KANBAN", "WATERFALL"]).default("SCRUM"),
+  status: z.string().max(50).default("ACTIVE"),
+  priority: z.string().max(50).default("MEDIUM"),
+  startDate: z.string().max(50).optional().nullable(),
+  targetDate: z.string().max(50).optional().nullable(),
+});
+
+export const superAdminProjectUpdateSchema = z.object({
+  projectId: cuidSchema,
+  name: safeStringSchema.trim().optional(),
+  key: z.string().max(10).trim().optional(),
+  description: safeLongStringSchema.trim().optional().nullable(),
+  template: z.string().max(50).optional(),
+  status: z.string().max(50).optional(),
+  priority: z.string().max(50).optional(),
+  startDate: z.string().max(50).optional().nullable(),
+  targetDate: z.string().max(50).optional().nullable(),
+  workspaceId: cuidSchema.optional(),
+});
+
+export const superAdminWorkspaceCreateSchema = z.object({
+  orgId: cuidSchema,
+  name: safeStringSchema.min(1, "Workspace name is required").trim(),
+  slug: z.string().max(100).trim().optional(),
+  description: safeStringSchema.trim().optional().nullable(),
+});
+
+export const superAdminWorkspaceUpdateSchema = z.object({
+  workspaceId: cuidSchema,
+  name: safeStringSchema.trim().optional(),
+  slug: z.string().max(100).trim().optional(),
+  description: safeStringSchema.trim().optional().nullable(),
+  isArchived: z.boolean().optional(),
+  orgId: cuidSchema.optional(),
+});
+
+export const superAdminFeatureCreateSchema = z.object({
+  key: z.string().min(1, "Feature flag key is required").max(200).trim(),
+  description: safeStringSchema.trim().optional().nullable(),
+  isGlobalEnabled: z.boolean().default(true),
+});
+
+export const superAdminFeatureUpdateSchema = z.object({
+  key: z.string().min(1, "key is required").max(200),
+  isGlobalEnabled: z.boolean().optional(),
+  description: safeStringSchema.trim().optional().nullable(),
+});
+
+export const superAdminAnnouncementCreateSchema = z.object({
+  title: safeStringSchema.min(1, "Announcement title is required").trim(),
+  message: safeLongStringSchema.min(1, "Announcement message is required").trim(),
+  severity: z.enum(["INFO", "WARNING", "CRITICAL"]).default("INFO"),
+  targetAudience: z.enum(["ALL", "ORGS", "USERS"]).default("ALL"),
+  isActive: z.boolean().default(true),
+  startsAt: z.string().max(50).optional().nullable(),
+  expiresAt: z.string().max(50).optional().nullable(),
+});
+
+export const superAdminAnnouncementUpdateSchema = z.object({
+  id: cuidSchema,
+  title: safeStringSchema.trim().optional(),
+  message: safeLongStringSchema.trim().optional(),
+  severity: z.enum(["INFO", "WARNING", "CRITICAL"]).optional(),
+  targetAudience: z.enum(["ALL", "ORGS", "USERS"]).optional(),
+  isActive: z.boolean().optional(),
+  startsAt: z.string().max(50).optional().nullable(),
+  expiresAt: z.string().max(50).optional().nullable(),
+});
+
+export const superAdminEmailTemplateResetSchema = z.object({
+  resetAll: z.boolean().optional(),
+});
+
+export const superAdminEmailTemplateUpdateSchema = z.object({
+  subject: safeStringSchema.trim().optional(),
+  bodyHtml: safeLongStringSchema.optional(),
+  resetToDefault: z.boolean().optional(),
+});
+
+export const superAdminEmailTemplatePreviewSchema = z.object({
+  sampleVariables: z.record(z.string(), z.string().max(2000)).optional().default({}),
+});
+
+export const superAdminSyncMonitorActionSchema = z.object({
+  projectId: z.string().max(200).optional(),
+  message: safeStringSchema.optional(),
+});
+
+export const superAdminSecurityThreatUpdateSchema = z.object({
+  threatId: z.string().min(1, "Missing threatId").max(200),
+  status: z.enum(["OPEN", "INVESTIGATING", "MITIGATED", "RESOLVED", "FALSE_POSITIVE"]),
+  note: safeStringSchema.optional(),
+});
+
+export const superAdminJobActionSchema = z.object({
+  action: z.enum(["TRIGGER_RECURRING_TASK", "RETRY_EMAIL"]),
+  taskId: cuidSchema.optional(),
+  ruleId: cuidSchema.optional(),
+  emailLogId: cuidSchema.optional(),
+});
+
+export const superAdminEmailSettingsUpdateSchema = z.object({
+  senderEmail: z.string().email().max(254).optional(),
+  senderName: safeStringSchema.trim().optional(),
+  smtpHost: z.string().max(255).optional(),
+  smtpPort: z.coerce.number().int().min(1).max(65535).optional(),
+  smtpUser: z.string().max(254).optional(),
+  smtpPass: z.string().max(500).optional(),
+  isSecure: z.boolean().optional(),
+  isEnabled: z.boolean().optional(),
+});
+
+export const superAdminEmailTestSchema = z.object({
+  to: z.string().email().max(254).optional(),
+});
+
 // ── Parsing helper ──────────────────────────────────────────────────
 
 export function parseBody<T extends z.ZodTypeAny>(
