@@ -18,6 +18,17 @@ const COOKIE_NAME = "zenith_session_token";
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 64;
 
+// Session lifetime — configurable via SESSION_EXPIRY_DAYS (default 7).
+// Must be a positive integer; invalid values fall back to the default.
+function parseSessionExpiryDays(): number {
+  const raw = process.env.SESSION_EXPIRY_DAYS;
+  if (!raw) return 7;
+  const parsed = parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 7;
+}
+export const SESSION_EXPIRY_DAYS = parseSessionExpiryDays();
+export const SESSION_COOKIE_MAX_AGE = SESSION_EXPIRY_DAYS * 24 * 60 * 60;
+
 export interface TokenPayload {
   userId: string;
   email: string;
@@ -40,7 +51,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 export function createToken(payload: TokenPayload): string {
   return jwt.sign(payload, JWT_SECRET as string, {
-    expiresIn: "7d",
+    expiresIn: `${SESSION_EXPIRY_DAYS}d`,
     algorithm: "HS256",
     issuer: JWT_ISSUER,
     audience: JWT_AUDIENCE,
@@ -66,7 +77,7 @@ export async function createSession(
   userParam?: { id: string; email: string; isSuperAdmin: boolean }
 ) {
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
+  expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
   // Generate random token string for database lookup
   const sessionRecord = await prisma.session.create({

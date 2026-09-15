@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | COMPLETE | 10/10 |
 | Phase 6 — Operations | COMPLETE | 0/20 (all findings resolved via cross-phase work) |
 
-**Overall: 73 resolved, 0 partial, 0 pending out of 73 findings (100%)**
+**Overall: 74 resolved, 0 partial, 0 pending out of 74 findings (100%)**
 
 ---
 
@@ -98,6 +98,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 53 | OPS-8 | Low | COMPLETED | No environment-specific configuration |
 | 54 | OPS-9 | Low | COMPLETED | No deployment documentation |
 | 55 | TEST-2 | Low | COMPLETED | No integration test framework |
+| 56 | AUTH-10 | Low | COMPLETED | Session expiry hardcoded — not configurable via env | `src/lib/auth.ts`, login/register routes |
 
 ---
 
