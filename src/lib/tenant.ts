@@ -185,7 +185,8 @@ export async function assertProjectPermission(projectId: string, permissionKey: 
       permissionKey,
       role: access.role,
     });
-    throw new Error(`Forbidden: Insufficient permissions. Required: '${permissionKey}'`);
+    const friendlyAction = permissionKey.replace(":", " ").replace("_", " ");
+    throw new Error(`You don't have permission to ${friendlyAction}. Contact your project admin for access.`);
   }
 
   return { ...access, hasPermission: true };
@@ -215,7 +216,8 @@ export async function assertOrgPermission(orgId: string, permissionKey: string) 
       permissionKey,
       role: access.role,
     });
-    throw new Error(`Forbidden: Insufficient permissions. Required: '${permissionKey}'`);
+    const friendlyAction = permissionKey.replace(":", " ").replace("_", " ");
+    throw new Error(`You don't have permission to ${friendlyAction}. Contact your project admin for access.`);
   }
 
   return { ...access, hasPermission: true };
