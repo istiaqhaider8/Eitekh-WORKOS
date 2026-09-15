@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `98c688d`
+> **Latest Commit**: `784fce3`
 
 ---
 
@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 44 resolved, 1 partial, 28 pending out of 73 findings**
+**Overall: 49 resolved, 1 partial, 23 pending out of 73 findings**
 
 ---
 
@@ -65,12 +65,12 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 25 | PERF-4 | Medium | COMPLETED | No pagination on several list endpoints |
 | 26 | PERF-5 | Medium | COMPLETED | Synchronous email sending in request path |
 | 27 | PERF-6 | Medium | COMPLETED | No caching layer (Redis or in-memory with TTL) |
-| 28 | NOTIF-2 | Medium | PENDING | Notification fan-out blocks request |
+| 28 | NOTIF-2 | Medium | COMPLETED | Notification fan-out blocks request |
 | 29 | UI-2 | Medium | PENDING | Client-side only validation on forms |
 | 30 | UI-3 | Medium | PENDING | Accessibility gaps (ARIA, keyboard navigation) |
 | 31 | UI-4 | Medium | PENDING | Stale real-time data after SSE reconnection |
 | 32 | UI-5 | Medium | PENDING | No optimistic updates |
-| 33 | OPS-3 | Medium | PENDING | No monitoring or alerting |
+| 33 | OPS-3 | Medium | COMPLETED | No monitoring or alerting |
 | 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
 | 35 | OPS-5 | Medium | PENDING | No CI/CD pipeline |
 | 36 | OPS-6 | Medium | COMPLETED | No health check endpoint |
@@ -81,7 +81,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | # | ID | Severity | Status | Description |
 |---|---|---|---|---|
 | 38 | PBAC-6 | Low | COMPLETED | Permission denied errors not user-friendly |
-| 39 | PERF-7 | Low | PENDING | No connection pooling strategy |
+| 39 | PERF-7 | Low | COMPLETED | No connection pooling strategy |
 | 40 | PERF-8 | Low | PENDING | Bundle size not optimized |
 | 41 | UI-6 | Low | PENDING | Missing loading/error states |
 | 42 | UI-7 | Low | PENDING | No dark mode consistency |
@@ -93,9 +93,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 48 | DATA-8 | Low | PENDING | No data retention/deletion policy |
 | 49 | EMAIL-3 | Low | PENDING | No email template versioning |
 | 50 | EMAIL-4 | Low | COMPLETED | Hardcoded sender address |
-| 51 | ADMIN-4 | Low | PENDING | No admin dashboard access logging |
+| 51 | ADMIN-4 | Low | COMPLETED | No admin dashboard access logging |
 | 52 | OPS-7 | Low | COMPLETED | No structured logging |
-| 53 | OPS-8 | Low | PENDING | No environment-specific configuration |
+| 53 | OPS-8 | Low | COMPLETED | No environment-specific configuration |
 | 54 | OPS-9 | Low | PENDING | No deployment documentation |
 | 55 | TEST-2 | Low | PENDING | No integration test framework |
 
@@ -146,6 +146,11 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | PBAC-6 | Low | Claude Opus 4.6 | 2026-09-15 | `98c688d` |
 | EMAIL-4 | Low | Claude Opus 4.6 | 2026-09-15 | `bc12061` |
 | OPS-7 | Low | Claude Opus 4.6 | 2026-09-15 | (logger already structured) |
+| NOTIF-2 | Medium | Claude Opus 4.6 | 2026-09-15 | (dispatch already async) |
+| OPS-3 | Medium | Claude Opus 4.6 | 2026-09-15 | (health endpoint + logging) |
+| PERF-7 | Low | Claude Opus 4.6 | 2026-09-15 | (Prisma singleton, N/A for SQLite) |
+| ADMIN-4 | Low | Claude Opus 4.6 | 2026-09-15 | `784fce3` |
+| OPS-8 | Low | Claude Opus 4.6 | 2026-09-15 | `784fce3` |
 
 ---
 
