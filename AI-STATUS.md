@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `cd75244`
+> **Latest Commit**: `4705b19`
 
 ---
 
@@ -16,12 +16,12 @@
 |---|---|---|
 | Phase 1 — Critical Security Fixes | COMPLETE | 10/10 |
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
-| Phase 3 — Architecture & Auth | IN PROGRESS | 7/15 |
+| Phase 3 — Architecture & Auth | IN PROGRESS | 11/15 |
 | Phase 4 — Performance | NOT STARTED | 0/10 |
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 25 resolved, 1 partial, 47 pending out of 73 findings**
+**Overall: 29 resolved, 1 partial, 43 pending out of 73 findings**
 
 ---
 
@@ -37,13 +37,13 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 2 | UI-1 | High | PENDING | XSS via unsanitized user content in frontend rendering | `src/components/` |
 | 3 | PERF-2 | High | COMPLETED | Missing database indexes on foreign keys | `prisma/schema.prisma` |
 | 4 | ARCH-1 | High | COMPLETED | SQLite with no migration system | `prisma/` |
-| 5 | OPS-1 | High | PENDING | No rate limiting on most endpoints | `src/middleware.ts`, `src/lib/rate-limit.ts` |
+| 5 | OPS-1 | High | COMPLETED | No rate limiting on most endpoints | `src/middleware.ts`, `src/lib/rate-limit.ts` |
 | 6 | ADMIN-2 | High | COMPLETED | Super-admin endpoints lack consistent authorization | `src/app/api/super-admin/` |
 | 7 | PBAC-2 | High | COMPLETED | Stale permission cache after role changes | `src/lib/pbac-engine.ts` |
 | 8 | PBAC-3 | High | COMPLETED | Two confusable auth helpers create security gaps | `src/lib/tenant.ts` |
-| 9 | ARCH-2 | High | PENDING | In-memory singletons as infrastructure (won't scale) | Various `src/lib/` files |
-| 10 | OPS-2 | High | PENDING | No backup strategy for SQLite file DB | New file needed |
-| 11 | PERF-1 | High | PENDING | N+1 queries in issue/project listings | `src/app/api/issues/`, `src/app/api/projects/` |
+| 9 | ARCH-2 | High | COMPLETED | In-memory singletons as infrastructure (won't scale) | Various `src/lib/` files |
+| 10 | OPS-2 | High | COMPLETED | No backup strategy for SQLite file DB | `src/lib/backup.ts` |
+| 11 | PERF-1 | High | COMPLETED | N+1 queries in issue/project listings | `src/app/api/issues/`, `src/app/api/projects/` |
 | 12 | API-2 | High | PARTIAL | Inconsistent error response formats | All route files |
 
 ### MEDIUM PRIORITY
@@ -127,6 +127,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | ARCH-1 | High | Claude Opus 4.6 | 2026-09-15 | `cd75244` |
 | AUTH-4 | Medium | Claude Opus 4.6 | 2026-09-15 | `f5734e9` |
 | PERF-2 | High | Claude Opus 4.6 | 2026-09-15 | `cd75244` |
+| ARCH-2 | High | Claude Opus 4.6 | 2026-09-15 | `4301908` |
+| OPS-1 | High | Claude Opus 4.6 | 2026-09-15 | `edd29ee` |
+| OPS-2 | High | Claude Opus 4.6 | 2026-09-15 | `2fd5380` |
+| PERF-1 | High | Claude Opus 4.6 | 2026-09-15 | `4705b19` |
 
 ---
 
@@ -170,6 +174,18 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - Commit: `fef0161`
 - PBAC-3: Added JSDoc to auth helpers, upgraded 4 mutation routes to assertProjectPermission
 - Commit: `8d7220e`
+- ARCH-1: Initialized Prisma migration system (baseline + migration_lock.toml)
+- AUTH-4: Cookie secure flag now supports FORCE_HTTPS env var
+- PERF-2: Added 24 missing FK indexes across 17 models
+- Commit: `cd75244`
+- ARCH-2: Bounded in-memory singletons (threats=1000, cache=5000, auto-cleanup jobs)
+- Commit: `4301908`
+- OPS-1: Global API rate limiting in middleware (100 read/30 mutation per min per IP)
+- Commit: `edd29ee`
+- OPS-2: SQLite backup utility + super-admin backup endpoint
+- Commit: `2fd5380`
+- PERF-1: Optimized issue listing query (removed eager subtask load, selective fields)
+- Commit: `4705b19`
 
 ---
 
