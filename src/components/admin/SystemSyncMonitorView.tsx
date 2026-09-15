@@ -411,7 +411,7 @@ export function SystemSyncMonitorView() {
                       type="button"
                       onClick={() => setSelectedLog(log)}
                       className="p-1 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer"
-                      title="View full event payload"
+                      title="View full event payload" aria-label="Close"
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </button>
@@ -443,7 +443,7 @@ export function SystemSyncMonitorView() {
               <button
                 type="button"
                 onClick={() => setSelectedLog(null)}
-                className="p-1 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer"
+                className="p-1 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer" aria-label="Close"
               >
                 ✕
               </button>

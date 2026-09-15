@@ -3594,7 +3594,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Add Project Status Modal (Project-Wide Option) */}
         {showAddStatusModal && (
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowAddStatusModal(false);
             }}
@@ -3712,7 +3712,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Issue Types Management & CRUD Modal (Project-Wide) */}
         {showAddTypeModal && (
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[65] p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[65] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowAddTypeModal(false);
@@ -3994,7 +3994,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Add Project Priority Modal (Project-Wide Option) */}
         {showAddPriorityModal && (
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowAddPriorityModal(false);
             }}
@@ -4092,7 +4092,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Add / Manage Project Epic Modal (Project-Wide Option) */}
         {showAddEpicModal && (
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowAddEpicModal(false);
             }}
@@ -4343,7 +4343,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Attachment Lightbox Modal */}
         {previewAttachment && (
           <div
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[70] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) setPreviewAttachment(null);
             }}
@@ -4415,7 +4415,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         {/* Delete Issue Confirmation Modal */}
         {showDeleteConfirm && (
           <div
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[80] p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[80] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget && !isDeleting) setShowDeleteConfirm(false);
             }}

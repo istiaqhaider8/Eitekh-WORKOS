@@ -680,7 +680,7 @@ export function UsersTab({
 
       {/* 1. BULK ROLE ASSIGNMENT & PRE-FLIGHT PREVIEW MODAL */}
       {isBulkAssignOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-xl shadow-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
@@ -790,7 +790,7 @@ export function UsersTab({
 
       {/* 2. USER ACCESS PROFILE DRAWER */}
       {isProfileOpen && selectedUserProfile && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 w-full max-w-lg h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-200">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
               <div>

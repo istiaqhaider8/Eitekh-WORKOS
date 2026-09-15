@@ -718,7 +718,7 @@ export function RolesTab({
 
       {/* 1. ADD EXISTING USERS TO ROLE MODAL */}
       {addUserModalRole && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
@@ -879,7 +879,7 @@ export function RolesTab({
 
       {/* 2. VIEW ASSIGNED ROLE USERS MODAL */}
       {viewUsersRole && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
@@ -977,7 +977,7 @@ export function RolesTab({
 
       {/* 3. CLONE ROLE MODAL */}
       {cloneModalRole && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <form
             onSubmit={handleCloneSubmit}
             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-5 space-y-4"
@@ -1045,7 +1045,7 @@ export function RolesTab({
 
       {/* 4. ROLE COMPARISON MODAL */}
       {isCompareOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
@@ -1158,7 +1158,7 @@ export function RolesTab({
 
       {/* 5. CREATE / EDIT ROLE DRAWER */}
       {isEditorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex justify-end" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 w-full max-w-2xl h-full flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-right duration-200">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
               <div>
@@ -1427,7 +1427,7 @@ export function RolesTab({
                     <button
                       type="button"
                       onClick={() => handleOpenDelete(editingRole)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/20 rounded-lg text-xs font-semibold transition-all cursor-pointer" aria-label="Close"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Delete Role</span>
@@ -1459,7 +1459,7 @@ export function RolesTab({
 
       {/* 6. DELETE ROLE CONFIRMATION MODAL */}
       {deleteModalRole && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3">
               <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 shrink-0">

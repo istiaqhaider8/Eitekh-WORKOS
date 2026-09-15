@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 60 resolved, 1 partial, 12 pending out of 73 findings (82%)**
+**Overall: 61 resolved, 1 partial, 11 pending out of 73 findings (84%)**
 
 ---
 
@@ -67,7 +67,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 27 | PERF-6 | Medium | COMPLETED | No caching layer (Redis or in-memory with TTL) |
 | 28 | NOTIF-2 | Medium | COMPLETED | Notification fan-out blocks request |
 | 29 | UI-2 | Medium | COMPLETED | Client-side only validation on forms |
-| 30 | UI-3 | Medium | PENDING | Accessibility gaps (ARIA, keyboard navigation) |
+| 30 | UI-3 | Medium | COMPLETED | Accessibility gaps (ARIA, keyboard navigation) |
 | 31 | UI-4 | Medium | PENDING | Stale real-time data after SSE reconnection |
 | 32 | UI-5 | Medium | PENDING | No optimistic updates |
 | 33 | OPS-3 | Medium | COMPLETED | No monitoring or alerting |
@@ -161,6 +161,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | PERF-8 | Low | Claude Sonnet 4.6 | 2026-09-15 | `f220d5c` |
 | API-5 | Low | Claude Sonnet 4.6 | 2026-09-15 | `c6c1099` |
 | OPS-9 | Low | Claude Sonnet 4.6 | 2026-09-15 | `a346cd3` |
+| UI-3 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -253,6 +254,11 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   - Created GET /api/docs route that serves the spec with CORS + cache headers
 - OPS-9: No deployment documentation — LOW severity
   - Created DEPLOYMENT.md: full production deployment guide (systemd, Nginx+TLS, env vars, security checklist, update/rollback, backup)
+- UI-3: Accessibility gaps — MEDIUM severity
+  - Added role="dialog" aria-modal="true" to 20+ modal overlays across 8 admin component files
+  - Added role="dialog" aria-modal="true" to 6 IssueDetailModal sub-dialogs (z-[60/65/70/80])
+  - Added aria-label="Close" to close buttons in RolesTab + SystemSyncMonitorView
+  - AppHeader, AppSidebar, CommandPalette already had proper ARIA (role, aria-label, aria-modal)
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
