@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `4705b19`
+> **Latest Commit**: `d649838`
 
 ---
 
@@ -16,12 +16,12 @@
 |---|---|---|
 | Phase 1 — Critical Security Fixes | COMPLETE | 10/10 |
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
-| Phase 3 — Architecture & Auth | IN PROGRESS | 11/15 |
+| Phase 3 — Architecture & Auth | IN PROGRESS | 15/15 |
 | Phase 4 — Performance | NOT STARTED | 0/10 |
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 29 resolved, 1 partial, 43 pending out of 73 findings**
+**Overall: 33 resolved, 1 partial, 39 pending out of 73 findings**
 
 ---
 
@@ -52,10 +52,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|---|
 | 13 | AUTH-4 | Medium | COMPLETED | Cookie secure flag tied to NODE_ENV |
 | 14 | PBAC-4 | Medium | PENDING | PBAC cache invalidation race conditions |
-| 15 | PBAC-5 | Medium | PENDING | No permission audit trail |
+| 15 | PBAC-5 | Medium | COMPLETED | No permission audit trail |
 | 16 | DATA-7 | Medium | PENDING | No data encryption at rest |
 | 17 | ARCH-3 | Medium | PENDING | No service layer between routes and Prisma |
-| 18 | ARCH-4 | Medium | PENDING | No error handling middleware |
+| 18 | ARCH-4 | Medium | COMPLETED | No error handling middleware |
 | 19 | ARCH-5 | Medium | PENDING | Large Prisma queries not optimized |
 | 20 | EMAIL-2 | Medium | PENDING | No email delivery tracking or retry |
 | 21 | ADMIN-3 | Medium | PENDING | No admin action audit trail |
@@ -71,9 +71,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 31 | UI-4 | Medium | PENDING | Stale real-time data after SSE reconnection |
 | 32 | UI-5 | Medium | PENDING | No optimistic updates |
 | 33 | OPS-3 | Medium | PENDING | No monitoring or alerting |
-| 34 | OPS-4 | Medium | PENDING | Secrets/config partially hardcoded |
+| 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
 | 35 | OPS-5 | Medium | PENDING | No CI/CD pipeline |
-| 36 | OPS-6 | Medium | PENDING | No health check endpoint |
+| 36 | OPS-6 | Medium | COMPLETED | No health check endpoint |
 | 37 | TEST-1 | Medium | PENDING | Zero test coverage |
 
 ### LOW PRIORITY
@@ -131,6 +131,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | OPS-1 | High | Claude Opus 4.6 | 2026-09-15 | `edd29ee` |
 | OPS-2 | High | Claude Opus 4.6 | 2026-09-15 | `2fd5380` |
 | PERF-1 | High | Claude Opus 4.6 | 2026-09-15 | `4705b19` |
+| PBAC-5 | Medium | Claude Opus 4.6 | 2026-09-15 | (already implemented) |
+| OPS-6 | Medium | Claude Opus 4.6 | 2026-09-15 | `e355107` |
+| ARCH-4 | Medium | Claude Opus 4.6 | 2026-09-15 | `e355107` |
+| OPS-4 | Medium | Claude Opus 4.6 | 2026-09-15 | `d649838` |
 
 ---
 
@@ -186,6 +190,12 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - Commit: `2fd5380`
 - PERF-1: Optimized issue listing query (removed eager subtask load, selective fields)
 - Commit: `4705b19`
+- PBAC-5: Already implemented — permission audit trail via recordAudit() + logAuditEvent()
+- OPS-6: Public health check endpoint GET /api/health with DB latency probe
+- ARCH-4: Centralized ApiError class + handleApiError() utility
+- Commit: `e355107`
+- OPS-4: Replaced hardcoded localhost:3000 with getBaseUrl() in 5 files
+- Commit: `d649838`
 
 ---
 
