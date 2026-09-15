@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 56 resolved, 1 partial, 16 pending out of 73 findings (77%)**
+**Overall: 57 resolved, 1 partial, 15 pending out of 73 findings (78%)**
 
 ---
 
@@ -74,7 +74,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
 | 35 | OPS-5 | Medium | COMPLETED | No CI/CD pipeline |
 | 36 | OPS-6 | Medium | COMPLETED | No health check endpoint |
-| 37 | TEST-1 | Medium | PENDING | Zero test coverage |
+| 37 | TEST-1 | Medium | COMPLETED | Zero test coverage |
 
 ### LOW PRIORITY
 
@@ -156,7 +156,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | UI-1 | High | Claude Sonnet 4.6 | 2026-09-15 | `326538a` |
 | DATA-7 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `0ec19d8` |
 | UI-2 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (already resolved by Phase 2 + error surfacing) |
-| OPS-5 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| OPS-5 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `09f8908` |
+| TEST-1 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -235,7 +236,11 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - UI-2: Client-side only validation — MEDIUM severity
   - Verified resolved by Phase 2 (Zod on all 107 routes) + all critical forms already surface server errors
 - OPS-5: No CI/CD pipeline — MEDIUM severity
-  - Created .github/workflows/ci.yml with type-check + lint + build jobs on push/PR
+  - Created .github/workflows/ci.yml with type-check + unit tests + lint + build jobs on push/PR
+- TEST-1: Zero test coverage — MEDIUM severity
+  - Installed Jest + ts-jest, added npm test / test:coverage scripts
+  - 49 unit tests across 3 suites: sanitize.test.ts, encryption.test.ts, validation.test.ts
+  - Coverage: sanitizeUrl XSS cases, AES-256-GCM round-trip + masking, Zod schema edge cases
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
