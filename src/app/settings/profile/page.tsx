@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatLeaveRange } from "@/lib/leave-engine";
+import { Skeleton } from "@/components/common/Skeleton";
 
 interface LeaveRecord {
   id: string;
@@ -362,7 +363,35 @@ export default function ProfileSettingsPage() {
   const delegationsToMe = delegations.filter((d) => d.delegateUserId === currentUserId);
 
   if (loading) {
-    return <div className="p-8">Loading profile...</div>;
+    return (
+      <div className="max-w-3xl space-y-8">
+        <div className="flex items-center gap-4">
+          <Skeleton className="w-16 h-16 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+        </div>
+        <div className="space-y-4 p-6 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <Skeleton className="h-5 w-32 mb-4" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="space-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-9 w-28 rounded-lg mt-2" />
+        </div>
+        <div className="space-y-3 p-6 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <Skeleton className="h-5 w-32 mb-4" />
+          {[1, 2].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

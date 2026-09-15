@@ -18,10 +18,10 @@
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
 | Phase 3 — Architecture & Auth | COMPLETE | 15/15 |
 | Phase 4 — Performance | IN PROGRESS | 10/10 |
-| Phase 5 — UI/UX Hardening | IN PROGRESS | 3/10 |
+| Phase 5 — UI/UX Hardening | IN PROGRESS | 4/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 63 resolved, 1 partial, 9 pending out of 73 findings (86%)**
+**Overall: 64 resolved, 1 partial, 8 pending out of 73 findings (88%)**
 
 ---
 
@@ -83,7 +83,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 38 | PBAC-6 | Low | COMPLETED | Permission denied errors not user-friendly |
 | 39 | PERF-7 | Low | COMPLETED | No connection pooling strategy |
 | 40 | PERF-8 | Low | COMPLETED | Bundle size not optimized |
-| 41 | UI-6 | Low | PENDING | Missing loading/error states |
+| 41 | UI-6 | Low | COMPLETED | Missing loading/error states |
 | 42 | UI-7 | Low | PENDING | No dark mode consistency |
 | 43 | UI-8 | Low | PENDING | Mobile responsiveness gaps |
 | 44 | NOTIF-3 | Low | PENDING | No notification preferences/opt-out |
