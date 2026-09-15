@@ -1357,6 +1357,7 @@ export function ReportViewModal({
               {reportId === 'team-capacity' && (
                 <div className="space-y-3">
                   <div className="border border-border rounded-xl overflow-hidden shadow-2xs">
+                    <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left">
                       <thead className="bg-muted/60 text-muted-foreground border-b border-border font-bold">
                         <tr>
@@ -1413,6 +1414,7 @@ export function ReportViewModal({
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1668,6 +1670,7 @@ export function ReportViewModal({
               {/* Table */}
               {paginatedIssues.length > 0 ? (
                 <div className="border border-border rounded-xl overflow-hidden shadow-2xs">
+                  <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-muted/50 text-muted-foreground border-b border-border font-bold">
                       <tr>
@@ -1843,6 +1846,7 @@ export function ReportViewModal({
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground text-xs flex flex-col items-center gap-2">
