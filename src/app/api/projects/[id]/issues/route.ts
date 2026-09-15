@@ -60,12 +60,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         reporter: {
           select: { id: true, firstName: true, lastName: true },
         },
-        subtasks: true,
         labels: {
           include: { label: true },
         },
-        epic: true,
-        sprint: true,
+        epic: { select: { id: true, name: true } },
+        sprint: { select: { id: true, name: true, status: true } },
         team: {
           select: { id: true, name: true }
         },
