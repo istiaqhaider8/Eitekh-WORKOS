@@ -208,7 +208,8 @@ class RealtimeSyncEngine {
 
     let deliveredCount = 0;
     let failedCount = 0;
-    const sseMessage = `event: message\ndata: ${JSON.stringify(payload)}\n\n`;
+    // Include SSE id: field so browsers track Last-Event-ID and send it on reconnect
+    const sseMessage = `id: ${eventId}\nevent: message\ndata: ${JSON.stringify(payload)}\n\n`;
     const encoded = staticTextEncoder.encode(sseMessage);
 
     // PROJECT-SCOPED DELIVERY ENFORCEMENT:

@@ -79,7 +79,7 @@ export function useRealtimeSync({
       es.onopen = () => {
         if (!isMountedRef.current) return;
         setStatus('connected');
-        if (wasConnectedRef.current && retryCountRef.current > 0) {
+        if (wasConnectedRef.current) {
           onReconnectRef.current?.();
         }
         wasConnectedRef.current = true;
@@ -106,8 +106,12 @@ export function useRealtimeSync({
 
           setLastEvent(payload);
           setLastSyncTime(new Date());
-          if (payload.eventType === 'CONNECTED') {
+          if (payload.eventType === 'CONNECTED' || payload.eventType === 'RECONNECTED') {
             setStatus('connected');
+            // Server-detected reconnect: refresh stale data
+            if (payload.eventType === 'RECONNECTED' || (payload.data as any)?.refreshRequired) {
+              onReconnectRef.current?.();
+            }
           }
           if (onEventRef.current) {
             onEventRef.current(payload);

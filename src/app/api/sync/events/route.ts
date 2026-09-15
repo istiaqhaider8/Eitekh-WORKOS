@@ -75,10 +75,15 @@ export async function GET(req: NextRequest) {
         syncEngine.registerClient(client);
         isRegistered = true;
 
+        // Detect reconnect: browser sends Last-Event-ID when it auto-reconnects
+        const lastEventId = req.headers.get('last-event-id');
+        const isReconnect = !!lastEventId;
+
         // Send Initial Connection Confirmation
+        const initEventId = `evt_init_${clientId}`;
         const initPayload = {
-          eventId: `evt_init_${clientId}`,
-          eventType: 'CONNECTED',
+          eventId: initEventId,
+          eventType: isReconnect ? 'RECONNECTED' : 'CONNECTED',
           projectId,
           timestamp: new Date().toISOString(),
           data: {
@@ -87,10 +92,14 @@ export async function GET(req: NextRequest) {
             userEmail: user.email,
             status: 'ONLINE',
             serverTime: new Date().toISOString(),
+            // Signal client to refresh stale data when reconnecting
+            refreshRequired: isReconnect,
+            lastEventId: lastEventId ?? null,
           },
         };
 
-        const initMessage = `event: message\ndata: ${JSON.stringify(initPayload)}\n\n`;
+        // Include SSE id: field so browser tracks Last-Event-ID for reconnects
+        const initMessage = `id: ${initEventId}\nevent: message\ndata: ${JSON.stringify(initPayload)}\n\n`;
         controller.enqueue(encoder.encode(initMessage));
       },
       cancel() {

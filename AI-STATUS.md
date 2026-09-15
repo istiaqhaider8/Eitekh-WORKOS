@@ -18,10 +18,10 @@
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
 | Phase 3 — Architecture & Auth | COMPLETE | 15/15 |
 | Phase 4 — Performance | IN PROGRESS | 10/10 |
-| Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
+| Phase 5 — UI/UX Hardening | IN PROGRESS | 2/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 61 resolved, 1 partial, 11 pending out of 73 findings (84%)**
+**Overall: 62 resolved, 1 partial, 10 pending out of 73 findings (85%)**
 
 ---
 
@@ -68,7 +68,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 28 | NOTIF-2 | Medium | COMPLETED | Notification fan-out blocks request |
 | 29 | UI-2 | Medium | COMPLETED | Client-side only validation on forms |
 | 30 | UI-3 | Medium | COMPLETED | Accessibility gaps (ARIA, keyboard navigation) |
-| 31 | UI-4 | Medium | PENDING | Stale real-time data after SSE reconnection |
+| 31 | UI-4 | Medium | COMPLETED | Stale real-time data after SSE reconnection |
 | 32 | UI-5 | Medium | PENDING | No optimistic updates |
 | 33 | OPS-3 | Medium | COMPLETED | No monitoring or alerting |
 | 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
@@ -161,7 +161,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | PERF-8 | Low | Claude Sonnet 4.6 | 2026-09-15 | `f220d5c` |
 | API-5 | Low | Claude Sonnet 4.6 | 2026-09-15 | `c6c1099` |
 | OPS-9 | Low | Claude Sonnet 4.6 | 2026-09-15 | `a346cd3` |
-| UI-3 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| UI-3 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `122ae1c` |
 
 ---
 
