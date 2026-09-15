@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-15
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `49c780a`
+> **Latest Commit**: `fcc6034`
 
 ---
 
@@ -340,6 +340,13 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - **Production build**: Clean build, no TypeScript errors
 - **Performance**: All APIs respond under 1.5s (analytics slowest at 1.37s — acceptable for aggregation)
 - **Browser UI verification**: Login page, Board view, Kanban columns, issue cards — all rendering correctly with Eitekh branding
+- **Invitation email template**: Redesigned with professional table-based HTML (inviter profile card, org/role details, blue CTA, amber security callout). Commit: `053fae9`
+- **Performance optimization** — identified and fixed 3 root causes of excessive API calls:
+  1. AppHeader: Notification endpoint polled 15+ times on load → fixed to 1 fetch on mount, polling only when panel open (30s)
+  2. ProjectClient: 4 scattered mount useEffects firing independently (doubled by React Strict Mode) → consolidated into single effect
+  3. ProjectClient: refreshIssues made sequential fetches → parallelized with Promise.all
+  - Result: Page-load API calls reduced from 15+ to 8, notification calls from 15+ to 1
+  - Commit: `fcc6034`
 
 ---
 
