@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
 import { webhookCreateSchema, parseBody } from "@/lib/validation";
+import { encryptField, maskSecret } from "@/lib/encryption";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -33,7 +34,9 @@ export async function GET(request: Request) {
 
   const webhooks = await prisma.webhook.findMany({ where });
 
-  return NextResponse.json(webhooks);
+  // Mask secrets before returning to client
+  const safeWebhooks = webhooks.map((w) => ({ ...w, secret: maskSecret(w.secret) }));
+  return NextResponse.json(safeWebhooks);
 }
 
 export async function POST(request: Request) {
@@ -55,13 +58,13 @@ export async function POST(request: Request) {
         orgId,
         projectId: projectId || null,
         targetUrl,
-        secret,
+        secret: encryptField(secret),
         events: Array.isArray(events) ? JSON.stringify(events) : events,
         isActive: isActive !== undefined ? isActive : true
       }
     });
 
-    return NextResponse.json(webhook, { status: 201 });
+    return NextResponse.json({ ...webhook, secret: maskSecret(webhook.secret) }, { status: 201 });
   } catch (error: any) {
     const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });

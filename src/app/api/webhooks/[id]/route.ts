@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
 import { webhookUpdateSchema, parseBody } from "@/lib/validation";
+import { encryptField, maskSecret } from "@/lib/encryption";
 
 async function verifyWebhookAccess(webhook: { orgId: string; projectId: string | null }, requireAdmin = true) {
   if (webhook.projectId) {
@@ -22,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!webhook) return NextResponse.json({ error: "Webhook not found" }, { status: 404 });
 
     await verifyWebhookAccess(webhook, false);
-    return NextResponse.json(webhook);
+    return NextResponse.json({ ...webhook, secret: maskSecret(webhook.secret) });
   } catch (error: any) {
     const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
@@ -46,7 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const updateData: any = {};
     if (targetUrl !== undefined) updateData.targetUrl = targetUrl;
-    if (secret !== undefined) updateData.secret = secret;
+    if (secret !== undefined) updateData.secret = encryptField(secret);
     if (isActive !== undefined) updateData.isActive = Boolean(isActive);
     if (events !== undefined) {
       updateData.events = Array.isArray(events) ? JSON.stringify(events) : events;
@@ -57,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: updateData
     });
 
-    return NextResponse.json(webhook);
+    return NextResponse.json({ ...webhook, secret: maskSecret(webhook.secret) });
   } catch (error: any) {
     const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });

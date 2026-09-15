@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { decryptField } from "./encryption";
 
 export async function dispatchWebhook(eventType: string, payload: any, projectId?: string, orgId?: string) {
   try {
@@ -32,7 +33,7 @@ export async function dispatchWebhook(eventType: string, payload: any, projectId
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Webhook-Secret': webhook.secret
+              'X-Webhook-Secret': decryptField(webhook.secret)
             },
             body: JSON.stringify({
               event: eventType,

@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 52 resolved, 1 partial, 20 pending out of 73 findings (71%)**
+**Overall: 53 resolved, 1 partial, 19 pending out of 73 findings (73%)**
 
 ---
 
@@ -53,7 +53,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 13 | AUTH-4 | Medium | COMPLETED | Cookie secure flag tied to NODE_ENV |
 | 14 | PBAC-4 | Medium | COMPLETED | PBAC cache invalidation race conditions |
 | 15 | PBAC-5 | Medium | COMPLETED | No permission audit trail |
-| 16 | DATA-7 | Medium | PENDING | No data encryption at rest |
+| 16 | DATA-7 | Medium | COMPLETED | No data encryption at rest |
 | 17 | ARCH-3 | Medium | PENDING | No service layer between routes and Prisma (defer) |
 | 18 | ARCH-4 | Medium | COMPLETED | No error handling middleware |
 | 19 | ARCH-5 | Medium | COMPLETED | Large Prisma queries not optimized |
@@ -153,7 +153,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | OPS-8 | Low | Claude Opus 4.6 | 2026-09-15 | `784fce3` |
 | ARCH-5 | Medium | Claude Opus 4.6 | 2026-09-15 | `45b3915` |
 | API-3 | Medium | Claude Opus 4.6 | 2026-09-15 | `45b3915` |
-| UI-1 | High | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| UI-1 | High | Claude Sonnet 4.6 | 2026-09-15 | `326538a` |
+| DATA-7 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -218,10 +219,17 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 
 ### 2026-09-15 — Claude Sonnet 4.6 (Session 8)
 - UI-1: XSS via unsanitized user content — HIGH severity
-- Added `sanitizeUrl()` to `src/lib/sanitize.ts` — blocks javascript:, vbscript:, only allows http/https/safe data: and relative URLs
-- Updated `attachmentSchema.fileUrl` in `validation.ts` to reject unsafe URL schemes at the API layer
-- Updated IssueDetailModal.tsx: all 4 attachment href usages now use sanitizeUrl()
-- Fixed `rel="noreferrer"` → `rel="noopener noreferrer"` in CalendarView.tsx + PlatformWorkspacesProjectsView.tsx
+  - Added `sanitizeUrl()` to `src/lib/sanitize.ts` — blocks javascript:, only allows http/https/safe data: and relative URLs
+  - Updated `attachmentSchema.fileUrl` in `validation.ts` to reject unsafe URL schemes at the API layer
+  - Updated IssueDetailModal.tsx: all 4 attachment href usages now use sanitizeUrl()
+  - Fixed `rel="noreferrer"` → `rel="noopener noreferrer"` in CalendarView.tsx + PlatformWorkspacesProjectsView.tsx
+  - Commit: `326538a`
+- DATA-7: No data encryption at rest — MEDIUM severity
+  - Created `src/lib/encryption.ts` — AES-256-GCM field-level encryption with `enc:v1:` prefix detection
+  - Backward compatible: unencrypted legacy values pass through decryptField unchanged
+  - Encrypt webhook secrets on create/update; decrypt in dispatch
+  - Mask secrets in GET /api/webhooks responses (show only last 4 chars)
+  - Added FIELD_ENCRYPTION_KEY to .env.example with setup instructions
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
