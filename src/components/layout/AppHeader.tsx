@@ -19,6 +19,10 @@ import {
   ArrowLeft,
   RefreshCw,
   Menu,
+  Megaphone,
+  X,
+  Info,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/common/Breadcrumb";
@@ -55,6 +59,8 @@ export function AppHeader({
   const [notificationSearch, setNotificationSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(new Set());
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +80,29 @@ export function AppHeader({
   useEffect(() => {
     if (!showNotifications) setSelectedIds(new Set());
   }, [showNotifications]);
+
+  useEffect(() => {
+    let dismissed: Set<string> = new Set();
+    try {
+      const stored = localStorage.getItem("eitekh_dismissed_announcements");
+      if (stored) dismissed = new Set(JSON.parse(stored));
+    } catch {}
+    setDismissedAnnouncements(dismissed);
+
+    fetch("/api/announcements")
+      .then((r) => r.ok ? r.json() : { announcements: [] })
+      .then((data) => setAnnouncements(data.announcements || []))
+      .catch(() => {});
+  }, []);
+
+  const dismissAnnouncement = (id: string) => {
+    setDismissedAnnouncements((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem("eitekh_dismissed_announcements", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -233,6 +262,10 @@ export function AppHeader({
         return <span className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold text-xs">⏰</span>;
       case "SPRINT":
         return <span className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold text-xs">🏃</span>;
+      case "SYSTEM":
+      case "INFO":
+      case "ROLE":
+        return <span className="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 font-bold text-xs">📢</span>;
       default:
         return <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs">⚡</span>;
     }
@@ -280,8 +313,48 @@ export function AppHeader({
     router.push("/");
   };
 
+  const visibleAnnouncements = announcements.filter((a) => !dismissedAnnouncements.has(a.id));
+
+  const getSeverityStyle = (severity: string) => {
+    switch (severity) {
+      case "CRITICAL":
+        return "bg-red-600 dark:bg-red-700 text-white border-red-700 dark:border-red-800";
+      case "WARNING":
+        return "bg-amber-500 dark:bg-amber-600 text-white border-amber-600 dark:border-amber-700";
+      default:
+        return "bg-blue-600 dark:bg-blue-700 text-white border-blue-700 dark:border-blue-800";
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case "CRITICAL": return <AlertCircle className="w-4 h-4 shrink-0" />;
+      case "WARNING": return <AlertTriangle className="w-4 h-4 shrink-0" />;
+      default: return <Info className="w-4 h-4 shrink-0" />;
+    }
+  };
+
   return (
-    <header className="h-13 md:h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] backdrop-blur-md flex items-center justify-between px-2.5 sm:px-4 md:px-5 sticky top-0 z-30 transition-colors shadow-2xs">
+    <>
+      {visibleAnnouncements.map((a) => (
+        <div
+          key={a.id}
+          className={`flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium border-b sticky top-0 z-40 ${getSeverityStyle(a.severity)}`}
+        >
+          {getSeverityIcon(a.severity)}
+          <Megaphone className="w-3.5 h-3.5 shrink-0" />
+          <span className="font-bold">{a.title}</span>
+          <span className="hidden sm:inline opacity-90">&mdash; {a.message}</span>
+          <button
+            onClick={() => dismissAnnouncement(a.id)}
+            className="ml-2 p-0.5 rounded-lg hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+            aria-label="Dismiss announcement"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+    <header className={`h-13 md:h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] backdrop-blur-md flex items-center justify-between px-2.5 sm:px-4 md:px-5 sticky ${visibleAnnouncements.length > 0 ? "" : "top-0"} z-30 transition-colors shadow-2xs`}>
       {/* Left: Hamburger & Brand & Context */}
       <div className="flex items-center gap-2 sm:gap-3 md:gap-4 shrink-0">
         {onToggleMobileSidebar && (
@@ -475,11 +548,49 @@ export function AppHeader({
                 </div>
               )}
 
+              {/* Announcement cards in System tab */}
+              {notificationTab === "system" && visibleAnnouncements.length > 0 && (
+                <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Platform Announcements</span>
+                  {visibleAnnouncements.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`px-2.5 py-2 rounded-xl text-xs flex items-start gap-2 ${
+                        a.severity === "CRITICAL"
+                          ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/60"
+                          : a.severity === "WARNING"
+                          ? "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60"
+                          : "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60"
+                      }`}
+                    >
+                      <Megaphone className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
+                        a.severity === "CRITICAL" ? "text-red-500" : a.severity === "WARNING" ? "text-amber-500" : "text-blue-500"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 dark:text-slate-100">{a.title}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{a.message}</p>
+                      </div>
+                      <button
+                        onClick={() => dismissAnnouncement(a.id)}
+                        className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded cursor-pointer shrink-0"
+                        aria-label="Dismiss"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Notification Items List */}
               <div className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 max-h-72">
                 {notifications.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-400">
-                    {notificationSearch ? "No matching notifications found" : "No notifications in this filter"}
+                    {notificationSearch
+                      ? "No matching notifications found"
+                      : notificationTab === "system" && visibleAnnouncements.length > 0
+                      ? "No system notifications yet"
+                      : "No notifications in this filter"}
                   </div>
                 ) : (
                   notifications.map((n) => (
@@ -624,5 +735,6 @@ export function AppHeader({
         </div>
       </div>
     </header>
+    </>
   );
 }

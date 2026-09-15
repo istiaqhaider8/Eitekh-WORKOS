@@ -31,6 +31,8 @@ export async function POST(req: Request) {
     if (!parsed.success) return parsed.error;
     const { title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
 
+    const { broadcast } = parsed.data as any;
+
     const announcement = await prisma.systemAnnouncement.create({
       data: {
         title: title.trim(),
@@ -42,6 +44,26 @@ export async function POST(req: Request) {
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
     });
+
+    let broadcastCount = 0;
+    if (broadcast) {
+      const allUsers = await prisma.user.findMany({
+        where: { status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (allUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: allUsers.map((u) => ({
+            userId: u.id,
+            title: `📢 ${title.trim()}`,
+            message: message.trim(),
+            type: "SYSTEM",
+            linkUrl: null,
+          })),
+        });
+        broadcastCount = allUsers.length;
+      }
+    }
 
     await prisma.platformAuditLog.create({
       data: {
@@ -58,7 +80,13 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ announcement, message: "Announcement published successfully" }, { status: 201 });
+    return NextResponse.json({
+      announcement,
+      broadcastCount,
+      message: broadcast
+        ? `Announcement published and broadcast to ${broadcastCount} users`
+        : "Announcement published successfully",
+    }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }

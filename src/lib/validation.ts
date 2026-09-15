@@ -686,6 +686,7 @@ export const superAdminAnnouncementCreateSchema = z.object({
   isActive: z.boolean().default(true),
   startsAt: z.string().max(50).optional().nullable(),
   expiresAt: z.string().max(50).optional().nullable(),
+  broadcast: z.boolean().default(false),
 });
 
 export const superAdminAnnouncementUpdateSchema = z.object({
