@@ -571,41 +571,58 @@ class UnifiedPBACEngine {
       }
     }
 
+    // Ensure platform super admins always hold the super-admin role for THIS org.
+    // This runs on every ensureOrgSeeded() call (not gated by !isOrgInitialized)
+    // so that super admins added after the org was first initialized are still covered.
+    try {
+      const superAdminRoleId = `role_${orgId}_super-admin`;
+      const orgAdminRoleId = `role_${orgId}_org-admin`;
+      const projectAdminRoleId = `role_${orgId}_project-admin`;
+
+      const superAdminUsers = await prisma.user.findMany({
+        where: { isSuperAdmin: true },
+        select: { id: true },
+      });
+
+      for (const u of superAdminUsers) {
+        if (!this.userRoleAssignments.has(u.id)) {
+          this.userRoleAssignments.set(u.id, new Set<string>());
+        }
+        const userRoles = this.userRoleAssignments.get(u.id)!;
+        if (!userRoles.has(superAdminRoleId)) {
+          userRoles.add(superAdminRoleId);
+          userRoles.add(orgAdminRoleId);
+          userRoles.add(projectAdminRoleId);
+          storeUpdated = true;
+        }
+      }
+    } catch (e) {
+      console.error('Error ensuring super admin roles:', e);
+    }
+
     if (!isOrgInitialized) {
-      // Seed realistic initial role assignments for existing database users
+      // Seed initial role assignments for non-super-admin users
       try {
         const existingUsers = await prisma.user.findMany({
+          where: { isSuperAdmin: false },
           select: {
             id: true,
             email: true,
             firstName: true,
             lastName: true,
             jobTitle: true,
-            isSuperAdmin: true,
           },
         });
 
-        const superAdminRoleId = `role_${orgId}_super-admin`;
-        const orgAdminRoleId = `role_${orgId}_org-admin`;
-        const projectAdminRoleId = `role_${orgId}_project-admin`;
-        const pmRoleId = `role_${orgId}_project-manager`;
         const memberRoleId = `role_${orgId}_member`;
-        const viewerRoleId = `role_${orgId}_viewer`;
 
         for (const u of existingUsers) {
           if (!this.userRoleAssignments.has(u.id)) {
             this.userRoleAssignments.set(u.id, new Set<string>());
           }
           const userRoles = this.userRoleAssignments.get(u.id)!;
-
           if (userRoles.size === 0) {
-            if (u.isSuperAdmin) {
-              userRoles.add(superAdminRoleId);
-              userRoles.add(orgAdminRoleId);
-              userRoles.add(projectAdminRoleId);
-            } else {
-              userRoles.add(memberRoleId);
-            }
+            userRoles.add(memberRoleId);
           }
         }
       } catch (e) {
