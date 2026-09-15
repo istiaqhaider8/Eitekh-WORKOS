@@ -23,7 +23,19 @@ export default function RootLayout({
       <body className="antialiased min-h-screen bg-background text-foreground" suppressHydrationWarning>
         <ThemeProvider>
           {children}
-          <Toaster />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: "var(--card)",
+                color: "var(--card-foreground)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                fontSize: "13px",
+                borderRadius: "10px",
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>
