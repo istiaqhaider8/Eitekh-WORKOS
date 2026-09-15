@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | NOT STARTED | 0/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 53 resolved, 1 partial, 19 pending out of 73 findings (73%)**
+**Overall: 56 resolved, 1 partial, 16 pending out of 73 findings (77%)**
 
 ---
 
@@ -66,13 +66,13 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 26 | PERF-5 | Medium | COMPLETED | Synchronous email sending in request path |
 | 27 | PERF-6 | Medium | COMPLETED | No caching layer (Redis or in-memory with TTL) |
 | 28 | NOTIF-2 | Medium | COMPLETED | Notification fan-out blocks request |
-| 29 | UI-2 | Medium | PENDING | Client-side only validation on forms |
+| 29 | UI-2 | Medium | COMPLETED | Client-side only validation on forms |
 | 30 | UI-3 | Medium | PENDING | Accessibility gaps (ARIA, keyboard navigation) |
 | 31 | UI-4 | Medium | PENDING | Stale real-time data after SSE reconnection |
 | 32 | UI-5 | Medium | PENDING | No optimistic updates |
 | 33 | OPS-3 | Medium | COMPLETED | No monitoring or alerting |
 | 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
-| 35 | OPS-5 | Medium | PENDING | No CI/CD pipeline |
+| 35 | OPS-5 | Medium | COMPLETED | No CI/CD pipeline |
 | 36 | OPS-6 | Medium | COMPLETED | No health check endpoint |
 | 37 | TEST-1 | Medium | PENDING | Zero test coverage |
 
@@ -154,7 +154,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | ARCH-5 | Medium | Claude Opus 4.6 | 2026-09-15 | `45b3915` |
 | API-3 | Medium | Claude Opus 4.6 | 2026-09-15 | `45b3915` |
 | UI-1 | High | Claude Sonnet 4.6 | 2026-09-15 | `326538a` |
-| DATA-7 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
+| DATA-7 | Medium | Claude Sonnet 4.6 | 2026-09-15 | `0ec19d8` |
+| UI-2 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (already resolved by Phase 2 + error surfacing) |
+| OPS-5 | Medium | Claude Sonnet 4.6 | 2026-09-15 | (pending commit) |
 
 ---
 
@@ -230,6 +232,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   - Encrypt webhook secrets on create/update; decrypt in dispatch
   - Mask secrets in GET /api/webhooks responses (show only last 4 chars)
   - Added FIELD_ENCRYPTION_KEY to .env.example with setup instructions
+- UI-2: Client-side only validation — MEDIUM severity
+  - Verified resolved by Phase 2 (Zod on all 107 routes) + all critical forms already surface server errors
+- OPS-5: No CI/CD pipeline — MEDIUM severity
+  - Created .github/workflows/ci.yml with type-check + lint + build jobs on push/PR
 
 ### 2026-09-15 — Claude Opus 4.6 (Session 7)
 - Phase 4 (Performance) work:
