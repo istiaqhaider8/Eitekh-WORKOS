@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
     response.cookies.set(COOKIE_NAME, jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" || process.env.FORCE_HTTPS === "true",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
