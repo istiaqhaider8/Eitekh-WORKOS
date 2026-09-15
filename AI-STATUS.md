@@ -21,7 +21,7 @@
 | Phase 5 — UI/UX Hardening | IN PROGRESS | 8/10 |
 | Phase 6 — Operations | NOT STARTED | 0/20 |
 
-**Overall: 69 resolved, 0 partial, 4 pending out of 73 findings (95%)**
+**Overall: 70 resolved, 0 partial, 3 pending out of 73 findings (96%)**
 
 ---
 
@@ -90,7 +90,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 45 | NOTIF-4 | Low | COMPLETED | Notification UI missing bulk actions |
 | 46 | API-5 | Low | COMPLETED | No OpenAPI/Swagger documentation |
 | 47 | ARCH-6 | Low | PENDING | No dependency injection / testability |
-| 48 | DATA-8 | Low | PENDING | No data retention/deletion policy |
+| 48 | DATA-8 | Low | COMPLETED | No data retention/deletion policy |
 | 49 | EMAIL-3 | Low | PENDING | No email template versioning |
 | 50 | EMAIL-4 | Low | COMPLETED | Hardcoded sender address |
 | 51 | ADMIN-4 | Low | COMPLETED | No admin dashboard access logging |
