@@ -549,7 +549,7 @@ export default function SuperAdminCommandCenterPage() {
     );
   }
 
-  const kpis = stats?.kpis || {};
+  const kpis = stats?.kpis || { totalOrgs: 0, activeOrgs: 0, totalUsers: 0, activeUsers: 0, totalWorkspaces: 0, totalProjects: 0, totalIssues: 0, openIssues: 0, activeSprints: 0, securityAlerts: 0, syncErrors: 0, suspendedOrgs: 0 };
   const actionRequired = stats?.actionRequired || [];
 
   return (

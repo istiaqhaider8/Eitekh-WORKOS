@@ -2185,11 +2185,11 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                       <div>
                         <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px] mb-1.5">
-                          Start Date <span className="text-rose-500 font-bold">*</span>
+                          Start Date {isCreateMode && <span className="text-rose-500 font-bold">*</span>}
                         </label>
                         <input
                           type="date"
-                          required
+                          required={isCreateMode}
                           disabled={isViewer}
                           value={draftStartDate}
                           onChange={(e) => {
@@ -2197,7 +2197,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             setHasChanges(true);
                           }}
                           className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 rounded-xl border ${
-                            !draftStartDate
+                            isCreateMode && !draftStartDate
                               ? "border-rose-400 dark:border-rose-600 ring-1 ring-rose-400/30"
                               : "border-slate-300 dark:border-slate-700"
                           } outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs text-xs ${
@@ -2208,11 +2208,11 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                       <div>
                         <label className="block text-slate-500 dark:text-slate-400 font-bold text-[11px] mb-1.5">
-                          Due Date <span className="text-rose-500 font-bold">*</span>
+                          Due Date {isCreateMode && <span className="text-rose-500 font-bold">*</span>}
                         </label>
                         <input
                           type="date"
-                          required
+                          required={isCreateMode}
                           disabled={isViewer}
                           value={draftDueDate}
                           onChange={(e) => {
@@ -2220,7 +2220,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             setHasChanges(true);
                           }}
                           className={`w-full bg-white dark:bg-slate-900 font-semibold text-slate-800 dark:text-slate-200 p-2 rounded-xl border ${
-                            !draftDueDate || (draftStartDate && draftDueDate && draftDueDate < draftStartDate)
+                            (isCreateMode && !draftDueDate) || (draftStartDate && draftDueDate && draftDueDate < draftStartDate)
                               ? "border-rose-400 dark:border-rose-600 ring-1 ring-rose-400/30"
                               : "border-slate-300 dark:border-slate-700"
                           } outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs text-xs ${
@@ -3549,7 +3549,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
             </div>
             <div className="flex items-center gap-3 w-full justify-between">
               <div>
-                {canDelete && (
+                {canDelete && !isCreateMode && (
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}

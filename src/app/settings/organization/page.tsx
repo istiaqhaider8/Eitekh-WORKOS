@@ -49,11 +49,11 @@ export default function OrganizationSettingsPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.user && data.user.organizations?.length > 0) {
           const currentOrg = data.user.organizations[0];
           setOrg(currentOrg);
-          setRole(currentOrg.role);
+          setRole(currentOrg.role || (data.user.isSuperAdmin ? "OWNER" : "MEMBER"));
 
           setFormData({
             name: currentOrg.name || "",
@@ -71,6 +71,35 @@ export default function OrganizationSettingsPage() {
           );
 
           fetchOrgData(currentOrg.id);
+        } else if (data.user?.isSuperAdmin) {
+          try {
+            const orgsRes = await fetch("/api/super-admin/orgs");
+            if (orgsRes.ok) {
+              const orgsData = await orgsRes.json();
+              const orgs = orgsData.organizations || orgsData;
+              if (Array.isArray(orgs) && orgs.length > 0) {
+                const firstOrg = orgs[0];
+                setOrg(firstOrg);
+                setRole("OWNER");
+                setFormData({
+                  name: firstOrg.name || "",
+                  domain: firstOrg.domain || "",
+                  timezone: firstOrg.timezone || "UTC",
+                  dateFormat: firstOrg.dateFormat || "YYYY-MM-DD",
+                  workingHoursStart: firstOrg.workingHours?.split("-")[0] || "09:00",
+                  workingHoursEnd: firstOrg.workingHours?.split("-")[1] || "17:00",
+                });
+                setWorkingDays(
+                  firstOrg.workingDays
+                    ? firstOrg.workingDays.split(",").map(Number)
+                    : [1, 2, 3, 4, 5]
+                );
+                fetchOrgData(firstOrg.id);
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch orgs for super admin:", e);
+          }
         }
         setLoading(false);
       });
