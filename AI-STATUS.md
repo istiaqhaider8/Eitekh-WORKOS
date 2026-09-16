@@ -3,10 +3,10 @@
 > **IMPORTANT**: Every AI session MUST update this file after making changes.
 > This is the single source of truth for all AI assistants working on this project.
 
-> **Last Updated**: 2026-09-15
+> **Last Updated**: 2026-09-16
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `de46ff4`
+> **Latest Commit**: `26c5668`
 
 ---
 
@@ -355,6 +355,19 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   5. Added SYSTEM/INFO/ROLE icon mapping in notification panel
   6. Seeded test data: 3 announcements, 5 notifications per user (system, assignment, mention, sprint)
   - Commit: `de46ff4`
+
+### 2026-09-16 — Claude Opus 4.6 (Session 12) — Live Application Testing & Bug Fixes
+- **Live testing completed** — tested 20+ features across the platform:
+  - **Working**: Board view, List view, Backlog/Sprint, Timeline/Gantt, Calendar, Workload, Analytics, Reports, Issue creation (CP-6 created), Command Palette (Ctrl+K with search), Comments (posted and displayed), Subtasks tab, Sidebar navigation, Organization Settings, Roles & Permissions (PBAC dashboard), Dark mode toggle, Team Management modal, Profile Settings, Announcements banners (3 severity-colored), Notification panel (all tabs)
+- **Bugs found and fixed**:
+  1. **Delete Issue on new task** — "Delete Issue" button showed on unsaved new task form. Fixed: added `!isCreateMode` guard to footer delete button (`IssueDetailModal.tsx:3552`)
+  2. **Date field red borders on existing issues** — Start Date/Due Date fields showed red required borders and asterisks for existing issues with null dates. Fixed: validation styling and `required` attribute now only apply in create mode (`IssueDetailModal.tsx:2187-2230`)
+  3. **Organization Settings "No organization found"** — SA user had no OrganizationMember record, so the page showed empty. Fixed: fallback to `/api/super-admin/orgs` for SA users (`settings/organization/page.tsx:49-77`)
+  4. **Super Admin "undefined active" stats** — KPI cards rendered with undefined values before stats loaded. Fixed: initialized kpis default object with zero values (`super-admin/page.tsx:552`)
+- **Known issues (not fixed — low priority)**:
+  - Filter dropdowns (All Priorities, All Statuses, All Types) may have interaction issues (code uses standard `<select>` elements — may be browser-specific)
+  - Super Admin API calls duplicated due to React Strict Mode double-mount in dev (only affects development)
+- Commit: `26c5668`
 
 ---
 
