@@ -151,12 +151,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: "Priority is a mandatory field" }, { status: 400 });
     }
 
-    if (body.startDate !== undefined && (body.startDate === null || body.startDate === "")) {
-      return NextResponse.json({ error: "Start Date is a mandatory field" }, { status: 400 });
+    // Dates are optional on updates — only validate format if provided
+    if (body.startDate !== undefined && body.startDate !== null && body.startDate !== "") {
+      const d = new Date(body.startDate);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: "Invalid Start Date format" }, { status: 400 });
+      }
     }
 
-    if (body.dueDate !== undefined && (body.dueDate === null || body.dueDate === "")) {
-      return NextResponse.json({ error: "Due Date is a mandatory field" }, { status: 400 });
+    if (body.dueDate !== undefined && body.dueDate !== null && body.dueDate !== "") {
+      const d = new Date(body.dueDate);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: "Invalid Due Date format" }, { status: 400 });
+      }
     }
 
     const effectiveStartDate = body.startDate !== undefined ? (body.startDate ? new Date(body.startDate) : null) : (currentIssue.startDate ? new Date(currentIssue.startDate) : null);
@@ -263,6 +270,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       let newAssigneeName = "Unassigned";
       let assignedUser = null;
       if (body.assigneeId) {
+        const projWithOrg = await prisma.project.findUnique({
+          where: { id: currentIssue.projectId },
+          select: { workspace: { select: { orgId: true } } },
+        });
+        if (projWithOrg?.workspace?.orgId) {
+          const assigneeMember = await prisma.organizationMember.findFirst({
+            where: { userId: body.assigneeId, orgId: projWithOrg.workspace.orgId },
+          });
+          if (!assigneeMember) {
+            return NextResponse.json({ error: "Assignee is not a member of this organization" }, { status: 400 });
+          }
+        }
         assignedUser = await prisma.user.findUnique({ where: { id: body.assigneeId } });
         if (assignedUser) {
           newAssigneeName = `${assignedUser.firstName} ${assignedUser.lastName}`.trim() || assignedUser.email;
@@ -476,36 +495,40 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.securityLevel = body.securityLevel || null;
     }
 
-    const updatedIssue = await prisma.issue.update({
-      where: { id },
-      data: updateData,
-      include: {
-        status: true,
-        assignee: {
-          select: { id: true, firstName: true, lastName: true, avatarUrl: true, email: true },
+    const updatedIssue = await prisma.$transaction(async (tx) => {
+      const issue = await tx.issue.update({
+        where: { id },
+        data: updateData,
+        include: {
+          status: true,
+          assignee: {
+            select: { id: true, firstName: true, lastName: true, avatarUrl: true, email: true },
+          },
+          reporter: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+          team: true,
+          sprint: true,
+          epic: true,
+          component: true,
+          labels: {
+            include: { label: true },
+          },
+          subtasks: true,
+          _count: {
+            select: { comments: true, attachments: true, subtasks: true },
+          },
         },
-        reporter: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        team: true,
-        sprint: true,
-        epic: true,
-        component: true,
-        labels: {
-          include: { label: true },
-        },
-        subtasks: true,
-        _count: {
-          select: { comments: true, attachments: true, subtasks: true },
-        },
-      },
-    });
-
-    if (activityLogs.length > 0) {
-      await prisma.activityLog.createMany({
-        data: activityLogs,
       });
-    }
+
+      if (activityLogs.length > 0) {
+        await tx.activityLog.createMany({
+          data: activityLogs,
+        });
+      }
+
+      return issue;
+    });
 
     // REAL-TIME DATA SYNCHRONIZATION:
     // Broadcast project-scoped ISSUE_UPDATED event to all active project subscribers

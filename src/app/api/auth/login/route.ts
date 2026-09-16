@@ -50,18 +50,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please verify your email before signing in." }, { status: 403 });
     }
 
-    if (user.status === "SUSPENDED") {
+    if (user.status === "SUSPENDED" || user.status === "INACTIVE") {
       await logAuditEvent({
         actor: { id: user.id, name: `${user.firstName} ${user.lastName}`, email: user.email },
         action: 'AUTH_LOGIN_BLOCKED',
         category: 'SECURITY',
-        severity: 'CRITICAL',
+        severity: user.status === "SUSPENDED" ? 'CRITICAL' : 'WARNING',
         status: 'FAILURE',
         targetResource: `User:${user.id} (${user.email})`,
         ipAddress: ipAddress === 'anonymous' ? '127.0.0.1' : ipAddress,
-        details: { email, status: 'SUSPENDED' },
+        details: { email, status: user.status },
       });
-      return NextResponse.json({ error: "Your account has been suspended. Please contact administrator." }, { status: 403 });
+      const msg = user.status === "SUSPENDED"
+        ? "Your account has been suspended. Please contact administrator."
+        : "Your account is inactive. Please contact administrator.";
+      return NextResponse.json({ error: msg }, { status: 403 });
     }
 
     const isMatch = await verifyPassword(password, user.passwordHash);

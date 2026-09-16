@@ -24,6 +24,12 @@ export async function POST(req: Request) {
     if (existingUser && existingUser.status === "ACTIVE" && existingUser.emailVerifiedAt) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
+    if (existingUser && existingUser.status === "SUSPENDED") {
+      return NextResponse.json({ error: "This account has been suspended. Please contact administrator." }, { status: 403 });
+    }
+    if (existingUser && existingUser.status === "INACTIVE") {
+      return NextResponse.json({ error: "This account is inactive. Please contact administrator." }, { status: 403 });
+    }
 
     const passwordHash = await hashPassword(password);
 

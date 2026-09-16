@@ -160,7 +160,7 @@ export async function getCurrentUser() {
       },
     });
 
-    if (!user || user.status === "SUSPENDED") return null;
+    if (!user || user.status === "SUSPENDED" || user.status === "INACTIVE") return null;
 
     return {
       ...user,

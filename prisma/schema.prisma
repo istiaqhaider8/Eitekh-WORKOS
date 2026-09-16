@@ -423,7 +423,7 @@ model Issue {
   epic              Epic?               @relation(fields: [epicId], references: [id])
   sprint            Sprint?             @relation(fields: [sprintId], references: [id])
   component         Component?          @relation(fields: [componentId], references: [id])
-  parentIssue       Issue?              @relation("ParentChild", fields: [parentIssueId], references: [id])
+  parentIssue       Issue?              @relation("ParentChild", fields: [parentIssueId], references: [id], onDelete: SetNull)
   subIssues         Issue[]             @relation("ParentChild")
   subtasks          Subtask[]
   comments          Comment[]

@@ -189,6 +189,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         } else {
           throw new Error("No workflow statuses defined for this project");
         }
+      } else {
+        const validStatus = await tx.workflowStatus.findFirst({
+          where: {
+            id: finalStatusId,
+            workflow: { projectId },
+          },
+        });
+        if (!validStatus) {
+          throw new Error("Invalid status: does not belong to this project");
+        }
       }
 
       const issueData: any = {
@@ -210,7 +220,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         dueDate: finalDueDate,
       };
 
-      if (assigneeId) issueData.assignee = { connect: { id: assigneeId } };
+      if (assigneeId) {
+        const projWithOrg = await tx.project.findUnique({
+          where: { id: projectId },
+          select: { workspace: { select: { orgId: true } } },
+        });
+        if (projWithOrg?.workspace?.orgId) {
+          const assigneeMember = await tx.organizationMember.findFirst({
+            where: { userId: assigneeId, orgId: projWithOrg.workspace.orgId },
+          });
+          if (!assigneeMember) {
+            throw new Error("Assignee is not a member of this organization");
+          }
+        }
+        issueData.assignee = { connect: { id: assigneeId } };
+      }
       if (teamId) issueData.team = { connect: { id: teamId } };
       if (epicId) issueData.epic = { connect: { id: epicId } };
       if (sprintId) issueData.sprint = { connect: { id: sprintId } };
@@ -278,7 +302,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       if (assignedTeam && assignedTeam.members.length > 0) {
         const { notificationEngine } = await import("@/lib/notifications");
-        const targetMemberIds = assignedTeam.members.map((m) => m.userId);
+        const targetMemberIds = assignedTeam.members
+          .map((m) => m.userId)
+          .filter((uid) => uid !== assigneeId);
         await notificationEngine.dispatch({
           recipientUserIds: targetMemberIds,
           type: "ASSIGNMENT",

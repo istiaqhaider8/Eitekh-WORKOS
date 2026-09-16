@@ -93,7 +93,9 @@ export async function POST(req: Request) {
         ],
       });
 
-      const { jwtToken } = await createSession(user.id);
+      const userAgent = req.headers.get("user-agent") || undefined;
+      const verifyIpAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || undefined;
+      const { jwtToken } = await createSession(user.id, userAgent, verifyIpAddress);
 
       const response = NextResponse.json({
         success: true,
