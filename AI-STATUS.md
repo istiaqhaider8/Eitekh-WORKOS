@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-16
 > **Last Updated By**: Claude Opus 4.6
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `26c5668`
+> **Latest Commit**: `79a0131`
 
 ---
 
@@ -368,6 +368,27 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
   - Filter dropdowns (All Priorities, All Statuses, All Types) may have interaction issues (code uses standard `<select>` elements — may be browser-specific)
   - Super Admin API calls duplicated due to React Strict Mode double-mount in dev (only affects development)
 - Commit: `26c5668`
+
+### 2026-09-16 — Claude Opus 4.6 (Session 12 cont.) — Logic & Data Flow Audit
+- **Deep code audit** — two parallel agents audited issue lifecycle + auth/permission logic
+- **9 bugs found and fixed** across 7 files:
+  1. **CRITICAL: PATCH date validation** — Issue update API rejected null/empty dates as "mandatory", blocking edits on existing issues with null dates. Fixed: changed to optional format validation only (`issues/[id]/route.ts:154-160`)
+  2. **MEDIUM: INACTIVE users can log in** — Login route only blocked SUSPENDED, not INACTIVE. Fixed: added INACTIVE check with audit logging (`auth/login/route.ts`)
+  3. **MEDIUM: getCurrentUser allows INACTIVE sessions** — `getCurrentUser()` only rejected SUSPENDED, not INACTIVE. Fixed: added INACTIVE status check (`lib/auth.ts:163`)
+  4. **MEDIUM: SUSPENDED/INACTIVE re-registration** — Users with these statuses could trigger OTP emails. Fixed: added explicit status checks returning 403 (`auth/register/route.ts`)
+  5. **HIGH: Cross-project statusId on creation** — No validation that client-supplied statusId belongs to the target project's workflow. Fixed: added WorkflowStatus lookup within transaction (`projects/[id]/issues/route.ts`)
+  6. **HIGH: Assignee not validated as org member** — Both create and update allowed any user ID as assignee. Fixed: added OrganizationMember check on both endpoints (`projects/[id]/issues/route.ts`, `issues/[id]/route.ts`)
+  7. **HIGH: Parent-child issue delete fails** — Self-relation `parentIssue` had no `onDelete` clause, causing FK constraint error when deleting parent. Fixed: added `onDelete: SetNull` (`prisma/schema.prisma:426`)
+  8. **MEDIUM: Update + activity logs not atomic** — Issue update and activity log creation were separate DB calls. Fixed: wrapped in `$transaction` (`issues/[id]/route.ts`)
+  9. **LOW: Verify-OTP session missing metadata** — `createSession()` called without user-agent/IP. Fixed: pass request headers (`auth/verify-otp/route.ts`)
+  10. **MEDIUM: Duplicate team+assignee notification** — When assignee was also a team member, they received two notifications. Fixed: exclude assignee from team fan-out (`projects/[id]/issues/route.ts`)
+- **Additional audit findings (informational, not fixed)**:
+  - File-based PBAC store won't work in multi-instance deployments (design limitation, requires Redis)
+  - In-memory email queue lost on process recycle (serverless limitation)
+  - No notification on issue status change or deletion (feature gap, not a bug)
+  - No idempotency keys on notification dispatch (deduplication is effectively disabled)
+- TypeScript compilation: CLEAN
+- Commit: `79a0131`
 
 ---
 
