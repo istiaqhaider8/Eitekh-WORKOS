@@ -278,7 +278,7 @@ export function ProjectClient({
   const [orgMembers, setOrgMembers] = useState<any[]>([]);
   const [pbacRoles, setPbacRoles] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedUserRole, setSelectedUserRole] = useState("PROJECT_MEMBER");
+  const [selectedUserRole, setSelectedUserRole] = useState("member");
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberError, setMemberError] = useState("");
 
@@ -286,7 +286,7 @@ export function ProjectClient({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteFirstName, setInviteFirstName] = useState("");
   const [inviteLastName, setInviteLastName] = useState("");
-  const [inviteRole, setInviteRole] = useState("PROJECT_MEMBER");
+  const [inviteRole, setInviteRole] = useState("member");
   const [invitePassword, setInvitePassword] = useState("");
   const [inviteCreatedUser, setInviteCreatedUser] = useState<{ email: string; tempPassword?: string } | null>(null);
 
@@ -769,7 +769,7 @@ export function ProjectClient({
 
       showSuccess("Team member assigned to project");
       setSelectedUserId("");
-      setSelectedUserRole("PROJECT_MEMBER");
+      setSelectedUserRole("member");
       refreshMembers();
     } catch (err: any) {
       setMemberError(err.message);
@@ -1949,21 +1949,13 @@ export function ProjectClient({
                           onChange={(e) => setSelectedUserRole(e.target.value)}
                           className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
                         >
-                          <optgroup label="Standard Project Roles">
-                            <option value="PROJECT_MEMBER">Member (Read/Write)</option>
-                            <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
-                            <option value="PROJECT_ADMIN">Admin (Full Control)</option>
-                            <option value="VIEWER">Viewer (Read-Only)</option>
-                          </optgroup>
-                          {pbacRoles.length > 0 && (
-                            <optgroup label="Organization Permission Roles">
-                              {pbacRoles.map((r: any) => (
-                                <option key={r.id} value={r.slug || r.id}>
-                                  {r.name} {r.isSystem ? "(System)" : ""}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
+                          {pbacRoles
+                            .filter((r: any) => r.scope === "PROJECT")
+                            .map((r: any) => (
+                              <option key={r.id} value={r.slug || r.id}>
+                                {r.name} {r.isSystem ? "(System)" : ""}
+                              </option>
+                            ))}
                         </select>
                       </div>
 
@@ -2042,21 +2034,13 @@ export function ProjectClient({
                           onChange={(e) => setInviteRole(e.target.value)}
                           className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
                         >
-                          <optgroup label="Standard Project Roles">
-                            <option value="PROJECT_MEMBER">Member (Read/Write)</option>
-                            <option value="PROJECT_MANAGER">Project Manager (Sprints/Epics/Roadmaps)</option>
-                            <option value="PROJECT_ADMIN">Admin (Full Control)</option>
-                            <option value="VIEWER">Viewer (Read-Only)</option>
-                          </optgroup>
-                          {pbacRoles.length > 0 && (
-                            <optgroup label="Organization Permission Roles">
-                              {pbacRoles.map((r: any) => (
-                                <option key={r.id} value={r.slug || r.id}>
-                                  {r.name} {r.isSystem ? "(System)" : ""}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
+                          {pbacRoles
+                            .filter((r: any) => r.scope === "PROJECT")
+                            .map((r: any) => (
+                              <option key={r.id} value={r.slug || r.id}>
+                                {r.name} {r.isSystem ? "(System)" : ""}
+                              </option>
+                            ))}
                         </select>
                       </div>
                     </div>
@@ -2125,7 +2109,7 @@ export function ProjectClient({
                           {isProjectAdmin ? (
                             <>
                               {(() => {
-                                const normRole = member.role === "MEMBER" ? "PROJECT_MEMBER" : member.role === "ADMIN" ? "PROJECT_ADMIN" : member.role === "MANAGER" ? "PROJECT_MANAGER" : member.role;
+                                const normRole = member.role === "MEMBER" ? "member" : member.role === "ADMIN" ? "project-admin" : member.role === "MANAGER" ? "project-manager" : member.role === "PROJECT_MEMBER" ? "member" : member.role === "PROJECT_ADMIN" ? "project-admin" : member.role === "PROJECT_MANAGER" ? "project-manager" : member.role === "VIEWER" ? "viewer" : member.role;
                                 return (
                                   <select
                                     value={normRole}
@@ -2134,21 +2118,13 @@ export function ProjectClient({
                                     }
                                     className="text-xs py-1 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold outline-none cursor-pointer focus:border-blue-500 shadow-2xs"
                                   >
-                                    <optgroup label="Standard Project Roles">
-                                      <option value="PROJECT_ADMIN">Admin</option>
-                                      <option value="PROJECT_MANAGER">Project Manager</option>
-                                      <option value="PROJECT_MEMBER">Member</option>
-                                      <option value="VIEWER">Viewer</option>
-                                    </optgroup>
-                                    {pbacRoles.length > 0 && (
-                                      <optgroup label="Organization Permission Roles">
-                                        {pbacRoles.map((r: any) => (
-                                          <option key={r.id} value={r.slug || r.id}>
-                                            {r.name} {r.isSystem ? "(System)" : ""}
-                                          </option>
-                                        ))}
-                                      </optgroup>
-                                    )}
+                                    {pbacRoles
+                                      .filter((r: any) => r.scope === "PROJECT")
+                                      .map((r: any) => (
+                                        <option key={r.id} value={r.slug || r.id}>
+                                          {r.name} {r.isSystem ? "(System)" : ""}
+                                        </option>
+                                      ))}
                                   </select>
                                 );
                               })()}
@@ -2164,7 +2140,15 @@ export function ProjectClient({
                             </>
                           ) : (
                             <span className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                              {member.role === "PROJECT_ADMIN" ? "Admin" : member.role === "PROJECT_MANAGER" ? "Manager" : member.role === "PROJECT_MEMBER" || member.role === "MEMBER" ? "Member" : "Viewer"}
+                              {(() => {
+                                const r = member.role;
+                                const match = pbacRoles.find((pr: any) => pr.slug === r || pr.id === r);
+                                if (match) return match.name;
+                                if (r === "PROJECT_ADMIN" || r === "ADMIN") return "PROJECT ADMIN";
+                                if (r === "PROJECT_MANAGER" || r === "MANAGER") return "PROJECT MANAGER";
+                                if (r === "PROJECT_MEMBER" || r === "MEMBER") return "MEMBER";
+                                return r;
+                              })()}
                             </span>
                           )}
                         </div>
