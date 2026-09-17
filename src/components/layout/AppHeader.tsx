@@ -762,7 +762,12 @@ export function AppHeader({
                       onClick={() => {
                         if (selectedIds.size > 0) { toggleSelect(n.id, { stopPropagation: () => {} } as React.MouseEvent); return; }
                         if (!n.isRead) markAsRead(n.id);
-                        if (n.linkUrl) router.push(n.linkUrl);
+                        if (n.linkUrl) {
+                          // Close the panel, otherwise it stays open on top of
+                          // the issue modal the navigation is about to open.
+                          setShowNotifications(false);
+                          router.push(n.linkUrl);
+                        }
                       }}
                       className={`py-2.5 px-2 flex items-start justify-between gap-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors cursor-pointer group ${
                         selectedIds.has(n.id) ? "bg-blue-50 dark:bg-blue-950/30" : !n.isRead ? "bg-blue-50/40 dark:bg-blue-950/20" : ""

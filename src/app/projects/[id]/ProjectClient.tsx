@@ -84,8 +84,15 @@ export function ProjectClient({
   const deepLinkIssueId = searchParams.get("issue");
 
   useEffect(() => {
-    if (deepLinkIssueId) setSelectedIssueId(deepLinkIssueId);
-  }, [deepLinkIssueId]);
+    if (!deepLinkIssueId) return;
+    setSelectedIssueId(deepLinkIssueId);
+    // Consume the param straight away rather than on modal close. Clicking the
+    // same notification twice would otherwise push an identical URL, leaving
+    // deepLinkIssueId unchanged so this effect never re-fired and the issue
+    // did not reopen. Clearing it here guarantees a null -> id transition
+    // every time.
+    router.replace(`/projects/${project.id}`, { scroll: false });
+  }, [deepLinkIssueId, project.id, router]);
 
   const fetchAvailability = useCallback(async () => {
     if (!project?.id) return;
@@ -1541,9 +1548,6 @@ export function ProjectClient({
         onClose={() => {
           setSelectedIssueId(null);
           setCreateInitialStatusId(null);
-          // Drop ?issue= so a refresh (or closing and reopening) does not
-          // immediately re-open the issue the deep link pointed at.
-          if (deepLinkIssueId) router.replace(`/projects/${currentProject.id}`);
         }}
         onIssueUpdated={refreshIssues}
       />
