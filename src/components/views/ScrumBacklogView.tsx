@@ -34,6 +34,7 @@ import {
   Target,
   Info,
   Bookmark,
+  Calendar,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { StartSprintModal } from "@/components/sprints/StartSprintModal";
@@ -120,6 +121,16 @@ export function ScrumBacklogView({
   const [editSprintName, setEditSprintName] = useState("");
   const [editSprintGoal, setEditSprintGoal] = useState("");
   const [editSprintStatus, setEditSprintStatus] = useState<string>("FUTURE");
+  const [editSprintStartDate, setEditSprintStartDate] = useState("");
+  const [editSprintEndDate, setEditSprintEndDate] = useState("");
+
+  // <input type="date"> needs a plain yyyy-MM-dd value, while the API returns
+  // an ISO timestamp (or null for a sprint with no dates set yet).
+  const toDateInputValue = (v?: string | Date | null) => {
+    if (!v) return "";
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+  };
   const [editLoading, setEditLoading] = useState(false);
   const [viewingSprintDetails, setViewingSprintDetails] = useState<any | null>(null);
 
@@ -642,6 +653,11 @@ export function ScrumBacklogView({
     e.preventDefault();
     if (!editingSprint || !editSprintName.trim()) return;
 
+    if (editSprintStartDate && editSprintEndDate && editSprintEndDate < editSprintStartDate) {
+      showError("End date cannot be before the start date");
+      return;
+    }
+
     setEditLoading(true);
     try {
       const res = await fetch("/api/sprints", {
@@ -652,6 +668,10 @@ export function ScrumBacklogView({
           name: editSprintName.trim(),
           goal: editSprintGoal.trim() || null,
           status: editSprintStatus,
+          // Sent as null when cleared so the API unsets the column rather than
+          // leaving the previous value in place.
+          startDate: editSprintStartDate || null,
+          endDate: editSprintEndDate || null,
         }),
       });
       if (res.ok) {
@@ -1148,6 +1168,62 @@ export function ScrumBacklogView({
           </div>
         </div>
       </div>
+    );
+  };
+
+  /**
+   * Sprint date range badge. Sprint dates were stored and editable through the
+   * API but never surfaced anywhere in the UI, so a sprint's timebox was
+   * invisible. Shows whichever dates are set, plus days remaining for a sprint
+   * that is currently running.
+   */
+  const renderSprintDates = (sprint: any) => {
+    const { startDate, endDate } = sprint || {};
+    if (!startDate && !endDate) {
+      return (
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0" title="No timebox set for this sprint">
+          No dates set
+        </span>
+      );
+    }
+
+    const fmt = (v: string) =>
+      new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
+    let daysLeft: number | null = null;
+    if (endDate && sprint.status === "ACTIVE") {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      daysLeft = Math.ceil((end.getTime() - Date.now()) / 86400000);
+    }
+
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0"
+        title={`Sprint timebox${startDate ? ` • starts ${fmt(startDate)}` : ""}${endDate ? ` • ends ${fmt(endDate)}` : ""}`}
+      >
+        <Calendar className="w-3 h-3 text-slate-400" />
+        <span>
+          {startDate ? fmt(startDate) : "—"} → {endDate ? fmt(endDate) : "—"}
+        </span>
+        {daysLeft !== null && (
+          <span
+            className={
+              daysLeft < 0
+                ? "text-rose-600 dark:text-rose-400 font-bold"
+                : daysLeft <= 2
+                ? "text-amber-600 dark:text-amber-400 font-bold"
+                : "text-emerald-600 dark:text-emerald-400 font-bold"
+            }
+          >
+            {daysLeft < 0
+              ? `${Math.abs(daysLeft)}d overdue`
+              : daysLeft === 0
+              ? "ends today"
+              : `${daysLeft}d left`}
+          </span>
+        )}
+      </span>
     );
   };
 
@@ -1714,6 +1790,7 @@ export function ScrumBacklogView({
                   ({sprintIssues.length} {sprintIssues.length === 1 ? "issue" : "issues"})
                 </span>
                 {renderSprintCapacityBadge(sprintIssues)}
+                {renderSprintDates(activeSprint)}
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -1732,6 +1809,8 @@ export function ScrumBacklogView({
                     setEditSprintName(activeSprint.name || "");
                     setEditSprintGoal(formatSprintGoal(activeSprint.goal));
                     setEditSprintStatus(activeSprint.status || "ACTIVE");
+                    setEditSprintStartDate(toDateInputValue(activeSprint.startDate));
+                    setEditSprintEndDate(toDateInputValue(activeSprint.endDate));
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   title="Edit Sprint details"
@@ -1862,6 +1941,7 @@ export function ScrumBacklogView({
                   ({sprintIssues.length} {sprintIssues.length === 1 ? "issue" : "issues"})
                 </span>
                 {renderSprintCapacityBadge(sprintIssues)}
+                {renderSprintDates(sprint)}
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -1905,6 +1985,8 @@ export function ScrumBacklogView({
                     setEditSprintName(sprint.name || "");
                     setEditSprintGoal(formatSprintGoal(sprint.goal));
                     setEditSprintStatus(sprint.status || "FUTURE");
+                    setEditSprintStartDate(toDateInputValue(sprint.startDate));
+                    setEditSprintEndDate(toDateInputValue(sprint.endDate));
                   }}
                   className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   title="Edit Sprint details"
@@ -2712,6 +2794,39 @@ export function ScrumBacklogView({
                   <option value="COMPLETED">COMPLETED (Finished)</option>
                 </select>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editSprintStartDate}
+                    max={editSprintEndDate || undefined}
+                    onChange={(e) => setEditSprintStartDate(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editSprintEndDate}
+                    min={editSprintStartDate || undefined}
+                    onChange={(e) => setEditSprintEndDate(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              {editSprintStartDate && editSprintEndDate && editSprintEndDate < editSprintStartDate && (
+                <p className="text-[11px] font-semibold text-red-600 dark:text-red-400">
+                  End date cannot be before the start date.
+                </p>
+              )}
 
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
