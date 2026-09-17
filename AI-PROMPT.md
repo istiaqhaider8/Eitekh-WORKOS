@@ -11,7 +11,11 @@ You are working on the Eitekh WorkOS project — a multi-tenant SaaS work manage
 
 STEP 1 — READ THESE FILES FIRST (in this order):
 1. Read `AI-STATUS.md` in the repo root — this is the LIVE status tracker. It tells you exactly what is done, what is in progress, and what remains.
-2. Read `SECURITY-AUDIT.md` — the full security audit with 73 findings and detailed descriptions.
+2. Read `PRODUCTION-READINESS.md` — the ACTIVE launch-blocking plan (17 tasks, 3 gates, acceptance criteria + verification commands). This is where current priority work lives.
+3. Read `PERFORMANCE-PLAN.md` — the measured performance findings and fix plan.
+4. Read `SECURITY-AUDIT.md` — the full security audit with 73 findings (note: its counts are stale, see its reconciliation note).
+
+IMPORTANT — VERIFY, DON'T TRUST: a task marked COMPLETED is a claim, not a fact. Three findings (ARCH-2, OPS-3, PERF-8) were closed without actually being fixed. Run the check commands in `PRODUCTION-READINESS.md` §8 before assuming something is done.
 3. Read `src/lib/validation.ts` — the central validation library with all Zod schemas.
 
 STEP 2 — PICK THE NEXT TASK:

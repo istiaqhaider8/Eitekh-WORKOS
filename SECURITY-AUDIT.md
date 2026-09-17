@@ -8,6 +8,32 @@
 
 ---
 
+> ### 📌 Reconciliation note (added 2026-09-17 by Claude Opus 5, 1M context)
+>
+> **The counts in this document are stale.** Work continued in `AI-STATUS.md` after this audit was
+> written, so most findings here were subsequently addressed — this file was never updated to match.
+> Conversely, `AI-STATUS.md` then over-claimed **74/74 (100%)**, which is also wrong.
+>
+> **Verified position as of 2026-09-17: 71 of 74 findings resolved, 3 reopened.**
+>
+> | Finding | Marked | Reality | Now tracked as |
+> |---|---|---|---|
+> | **ARCH-2** — in-memory singletons won't scale | COMPLETED | Closed with `src/lib/container.ts`, a **testability** DI helper ("Production code uses the real singletons by default"). Shared state is still process-local: `rate-limit.ts:11`, `cache-manager.ts:66`, `sync-engine.ts:79` | PROD-2 / PROD-3 / PROD-4 |
+> | **OPS-3** — no monitoring or alerting | COMPLETED | Closed as "(health endpoint + logging)". A health endpoint is liveness, not monitoring; logs go to `console.*` with no sink or alerting | PROD-7 |
+> | **PERF-8** — bundle size not optimized | COMPLETED | `/projects/[id]` still ships **310 kB** First Load JS | PROD-12 |
+>
+> **Neither this file nor `AI-STATUS.md` answers "can we launch to paying tenants?"** That question
+> is answered in **[`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md)**, which is the active plan:
+> 17 tasks across 3 gates, with acceptance criteria and verification commands.
+>
+> **Summary**: no Critical security findings remain open. What blocks a multi-tenant production
+> launch is **infrastructure and verification**, not security features — SQLite in production, all
+> shared state in-process, and zero tenant-isolation or authorization tests across 118 API routes.
+>
+> Treat a COMPLETED status in any tracker as a claim to verify. See `PRODUCTION-READINESS.md` §8.
+
+---
+
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)

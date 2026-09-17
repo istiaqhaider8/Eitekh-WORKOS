@@ -3,31 +3,155 @@
 > **IMPORTANT**: Every AI session MUST update this file after making changes.
 > This is the single source of truth for all AI assistants working on this project.
 
-> **Last Updated**: 2026-09-16
-> **Last Updated By**: Claude Opus 4.6
+> **Last Updated**: 2026-09-17
+> **Last Updated By**: Claude Opus 5 (1M context)
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `79a0131`
+> **Latest Commit**: `6f744d1`
+
+---
+
+## ⚠️ READ BEFORE TRUSTING THE STATUS BELOW
+
+The audit-phase table below is **not a statement of production readiness**, and at least one
+entry in it was verified to be over-claimed:
+
+- **ARCH-2** ("In-memory singletons as infrastructure — won't scale") is marked COMPLETED, but
+  the delivered change ([`src/lib/container.ts`](src/lib/container.ts)) is a dependency-injection
+  helper for **testability** whose own docstring says *"Production code uses the real singletons
+  by default."* The in-process state it was meant to fix is still in-process
+  (`rate-limit.ts:11`, `cache-manager.ts:66`, `sync-engine.ts:79`). **ARCH-2 is reopened** as
+  PROD-2/3/4 in [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md).
+- **OPS-3** ("No monitoring or alerting") was closed with the justification *"(health endpoint +
+  logging)"*. A health endpoint is liveness, not monitoring; logs go to `console.*` with no sink
+  or alerting. **Reopened** as PROD-7.
+- **PERF-8** ("Bundle size not optimized") is marked COMPLETED, but `/projects/[id]` still ships
+  **310 kB First Load JS**. **Reopened** as PROD-12.
+
+`SECURITY-AUDIT.md` independently reports 17/73 resolved (23%), which contradicts the 100% below.
+Treat a COMPLETED status as a *claim to verify*, not a fact — see the verification commands in
+[`PRODUCTION-READINESS.md` §8](PRODUCTION-READINESS.md).
+
+**➡️ For launch-blocking work, use [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md). It is the
+active plan. The table below is audit-finding history.**
 
 ---
 
 ## PROGRESS SUMMARY
 
+### 🚨 Open Critical finding (2026-09-17)
+
+**PERF-0** — password hashes + MFA secrets leak to the browser on the project page.
+Not part of the original audit. See NEXT PRIORITY TASKS below and
+[`PERFORMANCE-PLAN.md`](PERFORMANCE-PLAN.md). **The "0 Critical findings remain" statement
+elsewhere in this file refers to the original 73-finding audit only.**
+
+### Performance (active work — see `PERFORMANCE-PLAN.md`)
+
+| Gate | Meaning | Progress |
+|---|---|---|
+| PERF-0 | Critical credential disclosure | **0/1** |
+| Gate A — Make it fast | App slowness; cost grows with data volume | **0/7** |
+| Gate C — Polish | Decomposition, render profiling | 0/4 |
+
+### Production readiness (active work — see `PRODUCTION-READINESS.md`)
+
+| Gate | Meaning | Progress |
+|---|---|---|
+| Gate 0 — Blockers | Blocks any multi-tenant production launch | **0/7** |
+| Gate 1 — Pre-launch hardening | Blocks public/paid launch | 0/5 |
+| Gate 2 — Maintainability | Post-launch | 0/5 |
+
+**Current state: single-instance pilot viable. Multi-tenant production NOT viable until Gate 0 passes.**
+
+Verified 2026-09-17: production build passes (exit 0), `npx tsc --noEmit` clean, 74 unit tests pass,
+CI runs typecheck/test/lint/build, `.env` untracked. Blockers: SQLite in production, all shared
+state in-process (no Redis), zero tenant-isolation/authz tests, no error tracking.
+
+### Security audit findings (history)
+
 | Phase | Status | Progress |
 |---|---|---|
 | Phase 1 — Critical Security Fixes | COMPLETE | 10/10 |
 | Phase 2 — Input Validation | COMPLETE | 107/107 routes |
-| Phase 3 — Architecture & Auth | COMPLETE | 15/15 |
-| Phase 4 — Performance | COMPLETE | 10/10 |
+| Phase 3 — Architecture & Auth | COMPLETE (1 reopened) | 14/15 |
+| Phase 4 — Performance | COMPLETE (1 reopened) | 9/10 |
 | Phase 5 — UI/UX Hardening | COMPLETE | 10/10 |
-| Phase 6 — Operations | COMPLETE | 0/20 (all findings resolved via cross-phase work) |
+| Phase 6 — Operations | COMPLETE (1 reopened) | 19/20 |
 
-**Overall: 74 resolved, 0 partial, 0 pending out of 74 findings (100%)**
+**Audit findings: 71 resolved, 3 reopened (ARCH-2, OPS-3, PERF-8) out of 74.**
+**Production readiness: 0/17 tasks complete.**
 
 ---
 
 ## NEXT PRIORITY TASKS
 
 Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLETED when done.
+
+### 🚨 DO THIS FIRST — PERF-0: CRITICAL credential disclosure (found 2026-09-17)
+
+| # | ID | Severity | Status | Description | Key Files |
+|---|---|---|---|---|---|
+| 0 | **PERF-0** | **CRITICAL** | **PENDING** | `passwordHash`, `mfaSecret` + `recoveryCodes` of every project member are serialized into the browser payload. `include: { user: true }` (line 49) selects all User columns, and `project` is passed to the `"use client"` `ProjectClient`. Any VIEWER can read every colleague's password hash and TOTP seed from page source → offline cracking + full MFA bypass. **Fix: explicit `select`, ~10 min.** | `src/app/projects/[id]/page.tsx:47-51` |
+
+This is a **new** finding, outside the original 73-finding audit. Full write-up, fix and
+verification steps: [`PERFORMANCE-PLAN.md`](PERFORMANCE-PLAN.md) → PERF-0.
+
+### 🔴 GATE A — PERFORMANCE (app is slow; see `PERFORMANCE-PLAN.md`)
+
+| # | ID | Severity | Status | Description | Key Files |
+|---|---|---|---|---|---|
+| A1 | PERF-P1 | Blocker | PENDING | Project page loads **every** issue with 9 nested relations, no `take:` — main cause of slowness, worsens as data grows. Same file as PERF-0, do together | `src/app/projects/[id]/page.tsx:33-46` |
+| A2 | PERF-P2 | High | PENDING | Analytics loads all issues into memory, then ~20 JS `.filter()` passes — use `groupBy`/`count` | `api/projects/[id]/analytics/route.ts` |
+| A3 | PERF-P3 | High | PENDING | **65 of 93** `findMany` calls have no `take:` (reopens PERF-4 as partial) | ~65 files in `src/app/api/` |
+| A4 | PERF-P4 | High | PENDING | `/projects/[id]` ships 310 kB First Load JS — code-split views (reopens PERF-8) | `ProjectClient.tsx`, `components/views/` |
+| A5 | PERF-P5 | Medium | PENDING | Polling: super-admin 15 s, notifications 30 s site-wide; move to existing SSE, pause on hidden tabs | `super-admin/page.tsx:260`, `AppHeader.tsx:133` |
+| A6 | PERF-P6 | Medium | PENDING | N+1 write loops (`await` inside `for`) | `orgs/[id]/members`, `projects/[id]/issues`, `issues/[id]/comments` |
+| A7 | PERF-P7 | Medium | PENDING | Narrow remaining `user: true` over-fetches (server-only, but same pattern as PERF-0) | 3 route files |
+
+> **Before validating any Gate A fix**: seed ~5,000 issues. Every finding is invisible at the
+> current 5-issue volume — an unmeasured performance fix cannot be verified. See
+> `PERFORMANCE-PLAN.md` §8.
+
+### 🔴 GATE 0 — PRODUCTION BLOCKERS (infrastructure)
+
+Full task specs, acceptance criteria and verification commands are in
+[`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md). Respect the dependency order in its §7.
+
+| # | ID | Severity | Status | Description | Key Files |
+|---|---|---|---|---|---|
+| 1 | PROD-1 | Blocker | PENDING | Migrate SQLite → PostgreSQL (start here — unblocks most others) | `prisma/schema.prisma`, `prisma/migrations/` |
+| 2 | PROD-5 | Blocker | PENDING | Tenant-isolation integration tests (highest risk reduction) | `__tests__/integration/` |
+| 3 | PROD-2 | Blocker | PENDING | Move rate limiting to Redis (in-process = N× limit with N instances) | `src/lib/rate-limit.ts` |
+| 4 | PROD-3 | Blocker | PENDING | Move cache to Redis (stale PBAC across instances = authz bug) | `src/lib/cache-manager.ts` |
+| 5 | PROD-4 | Blocker | PENDING | Cross-instance SSE fan-out via Redis pub/sub | `src/lib/sync-engine.ts` |
+| 6 | PROD-6 | Blocker | PENDING | PBAC / authorization route tests (2,254-line engine, 0 tests) | `__tests__/integration/` |
+| 7 | PROD-7 | Blocker | PENDING | Error tracking + monitoring + alerting (reopens OPS-3) | `src/lib/logger.ts` |
+
+### 🟠 GATE 1 — PRE-LAUNCH HARDENING
+
+| # | ID | Severity | Status | Description |
+|---|---|---|---|---|
+| 8 | PROD-8 | High | BLOCKED | Load + soak testing — **requires PROD-1/2/3/4 first**, else meaningless |
+| 9 | PROD-9 | High | PENDING | Postgres backup + **verified restore drill** (replaces SQLite file copy) |
+| 10 | PROD-10 | High | PENDING | Secrets from platform secret manager; fail fast on weak/default keys |
+| 11 | PROD-11 | Medium | PENDING | Migration safety in CI (shadow DB, drift detection) |
+| 12 | PROD-12 | Medium | PENDING | Front-end perf budget — `/projects/[id]` is 310 kB (reopens PERF-8) |
+
+### 🟡 GATE 2 — POST-LAUNCH / MAINTAINABILITY
+
+| # | ID | Severity | Status | Description |
+|---|---|---|---|---|
+| 13 | PROD-13 | Medium | PENDING | Decompose `IssueDetailModal.tsx` (4,466 lines) |
+| 14 | PROD-14 | Low | PENDING | Upgrade Prisma 5.22 → 6.x |
+| 15 | PROD-15 | Medium | PENDING | Service layer between routes and Prisma (was ARCH-3, deferred) |
+| 16 | PROD-16 | Low | PENDING | Coverage thresholds in CI |
+| 17 | PROD-17 | Low | PENDING | Decompose remaining >2,400-line view components |
+
+---
+
+## AUDIT FINDINGS (HISTORY)
+
+Kept for traceability. **Reopened items are listed in Gate 0/1 above — work those instead.**
 
 ### HIGH PRIORITY (do these first)
 
@@ -41,7 +165,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 6 | ADMIN-2 | High | COMPLETED | Super-admin endpoints lack consistent authorization | `src/app/api/super-admin/` |
 | 7 | PBAC-2 | High | COMPLETED | Stale permission cache after role changes | `src/lib/pbac-engine.ts` |
 | 8 | PBAC-3 | High | COMPLETED | Two confusable auth helpers create security gaps | `src/lib/tenant.ts` |
-| 9 | ARCH-2 | High | COMPLETED | In-memory singletons as infrastructure (won't scale) | Various `src/lib/` files |
+| 9 | ARCH-2 | High | **REOPENED → PROD-2/3/4** | In-memory singletons as infrastructure (won't scale) — closed with a testability DI helper, not a shared-state fix | Various `src/lib/` files |
 | 10 | OPS-2 | High | COMPLETED | No backup strategy for SQLite file DB | `src/lib/backup.ts` |
 | 11 | PERF-1 | High | COMPLETED | N+1 queries in issue/project listings | `src/app/api/issues/`, `src/app/api/projects/` |
 | 12 | API-2 | High | COMPLETED | Inconsistent error response formats | All route files |
@@ -70,7 +194,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | 30 | UI-3 | Medium | COMPLETED | Accessibility gaps (ARIA, keyboard navigation) |
 | 31 | UI-4 | Medium | COMPLETED | Stale real-time data after SSE reconnection |
 | 32 | UI-5 | Medium | COMPLETED | No optimistic updates |
-| 33 | OPS-3 | Medium | COMPLETED | No monitoring or alerting |
+| 33 | OPS-3 | Medium | **REOPENED → PROD-7** | No monitoring or alerting — health endpoint is liveness, not monitoring |
 | 34 | OPS-4 | Medium | COMPLETED | Secrets/config partially hardcoded |
 | 35 | OPS-5 | Medium | COMPLETED | No CI/CD pipeline |
 | 36 | OPS-6 | Medium | COMPLETED | No health check endpoint |
@@ -82,7 +206,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|---|
 | 38 | PBAC-6 | Low | COMPLETED | Permission denied errors not user-friendly |
 | 39 | PERF-7 | Low | COMPLETED | No connection pooling strategy |
-| 40 | PERF-8 | Low | COMPLETED | Bundle size not optimized |
+| 40 | PERF-8 | Low | **REOPENED → PROD-12** | Bundle size not optimized — `/projects/[id]` still 310 kB First Load JS |
 | 41 | UI-6 | Low | COMPLETED | Missing loading/error states |
 | 42 | UI-7 | Low | COMPLETED | No dark mode consistency |
 | 43 | UI-8 | Low | COMPLETED | Mobile responsiveness gaps |
@@ -390,6 +514,120 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 - TypeScript compilation: CLEAN
 - Commit: `79a0131`
 
+### 2026-09-17 — Claude Opus 5 (1M context) (Session 13) — UI Cleanup, Modal Performance & Production Readiness Plan
+
+**1. Removed unused issue types and priorities (user request)**
+
+The values lived in **7 places**, not one — a first pass that only edited the component's
+fallback array had no visible effect because the API response overwrote it. Removed
+`FEATURE`/`INCIDENT`/`IMPROVEMENT` (types) and `HIGHEST`/`LOWEST` (priorities) from every
+selectable list:
+- `src/app/api/projects/[id]/types/route.ts` — `DEFAULT_ISSUE_TYPES` (the actual source of truth)
+- `src/app/api/projects/[id]/priorities/route.ts` — `DEFAULT_PRIORITIES`
+- `src/app/projects/[id]/ProjectClient.tsx`, `IssueDetailModal.tsx`, `ListView.tsx`,
+  `KanbanBoardView.tsx`, `AnalyticsChartsView.tsx`, `CalendarView.tsx`, `ReportViewModal.tsx`,
+  `lib/designSystem.ts`
+- `lib/validation.ts` (enums), `types/index.ts` (unions), `analytics/route.ts`
+  (`typeOrder`/`priorityOrder` — would otherwise render empty chart buckets)
+- Also removed the inline `+ Add & manage types…` / `+ Add more options (project-wise)…` options
+  from the Type/Status/Priority dropdowns, and the now-orphaned icon imports.
+- **Data migration**: 2 issues (`CP-2`, `CP-3`) were stored as `issueType = FEATURE`; migrated to
+  `STORY`. DB backed up first to `../db-backups/dev.db.bak-20260917-222216` (outside the repo).
+  Verified afterwards: `issueType: STORY=3, TASK=2`, `priority: CRITICAL=1, HIGH=2, MEDIUM=2`.
+- **Gotcha for future sessions**: `IssueDetailModal` renders a fallback `<option>` showing the raw
+  stored value when an issue's type is not in the list. A value that "won't go away" from a
+  dropdown usually means **a DB record still uses it**, not leftover code.
+
+**2. Custom-field dropdown — multi-option builder**
+
+Replaced the single comma-separated text input with one input per option plus add/remove
+controls (`newFieldOptions` is now `string[]`).
+
+**3. Fixed slow task-open (~780 ms → near-instant on repeat opens)**
+
+Measured from the dev-server log: clicking a task fired **11 requests in a serial waterfall** —
+`/api/issues/[id]` blocked first (190 ms), and only then did 10 project-context requests start
+(up to 590 ms). The context requests only need `projectId`, which is already a prop.
+- Context load now runs **in parallel** with the issue fetch.
+- Added a module-level **cache keyed by `projectId`** (60 s TTL) — cached data applies instantly,
+  then revalidates in the background.
+- Removed ~95 lines of duplicated fetch logic (`loadProjectContext` and an inline chain in
+  `fetchIssueDetails` were fetching the same endpoints two different ways).
+- Skipped `/api/auth/me` when the parent already passes `currentUser` (it always does).
+- **Two correctness guards**: `applyProjectContext(ctx, applyDefaults)` — `applyDefaults` is
+  `true` only in create mode, because the cached context's "default to active sprint / first
+  status" logic could otherwise **assign a sprint to an issue that had none**. And
+  `invalidateProjectContext()` is called in all 9 mutation handlers (add/edit/delete type,
+  status, priority, epic, custom field), or a newly added option would stay invisible behind a
+  stale cache for up to 60 s.
+
+**4. Production readiness audit → new `PRODUCTION-READINESS.md`**
+
+Verified the repo state rather than trusting the trackers, and found this file was over-claiming.
+`AI-STATUS.md` said **74/74 (100%)** while `SECURITY-AUDIT.md` said **17/73 (23%)**. Spot-checks
+confirmed 3 findings were closed without being fixed — **ARCH-2**, **OPS-3**, **PERF-8** — now
+marked REOPENED above. (Session 12 had already noted the Redis/multi-instance limitation as
+"informational"; it is a launch blocker, not an informational note.)
+- Verified good: production build passes (exit 0), `tsc --noEmit` clean, 74 tests pass, CI runs
+  typecheck/test/lint/build, `.env` untracked, migrations exist, 10/10 Critical findings fixed.
+- Verified blockers: SQLite in production; rate-limit/cache/SSE state all process-local with no
+  Redis; **zero** tenant-isolation or authz tests (118 routes, 6 library-level test files);
+  logging to `console.*` only; `/projects/[id]` ships 310 kB First Load JS.
+- Created [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md): 17 tasks across 3 gates, each with
+  acceptance criteria, a verification command, and dependency order. **Start with PROD-1
+  (Postgres) and PROD-5 (tenant-isolation tests).**
+- **Build gotcha**: `next build` fails with a misleading
+  `PageNotFoundError: Cannot find module for page: /api/auth/login` if `next dev` is running —
+  both write to `.next`. Verified by building in a separate git worktree: exit 0. Stop the dev
+  server before building.
+
+**5. Full-system audit → new `PERFORMANCE-PLAN.md`**
+
+Audited the whole system for slowness. Found a **Critical security vulnerability** in the same
+code path as the slowness:
+
+- 🚨 **PERF-0 (CRITICAL, new — not in the 73-finding audit)**: `src/app/projects/[id]/page.tsx:49`
+  uses `include: { user: true }` for project members, which selects **all** `User` columns —
+  including `passwordHash`, `mfaSecret` and `recoveryCodes` — and `project` is passed to
+  `ProjectClient`, a `"use client"` component. Next.js therefore serializes all of it into the
+  browser payload. **Any VIEWER can read every project member's bcrypt hash and TOTP seed from
+  page source** → offline password cracking + complete MFA bypass. Fix is an explicit `select`
+  (~10 min); `getCurrentUser()` in `lib/auth.ts:140` already does this correctly and is the
+  pattern to copy. **NOT YET FIXED — top of the queue.**
+- **PERF-P1 (blocker)**: the same file loads **every** project issue with 9 nested relations and
+  no `take:`, then serializes them all. Fine at 5 issues, multi-megabyte at 5,000. This is the
+  main cause of the app feeling slow, and it degrades permanently as data accumulates. Note
+  `api/projects/[id]/issues/route.ts` **already implements `page`/`limit` correctly** — the
+  server page bypasses its own paginated API.
+- **PERF-P2**: analytics route `findMany` with no `take:`, then ~20 sequential JS `.filter()`
+  passes over all issues. Should be `groupBy`/`count` — the composite indexes to serve it exist.
+- **PERF-P3**: **65 of 93** `findMany` calls have no `take:`. PERF-4 was marked COMPLETED but the
+  work was partial. Worst: `super-admin/search`, `super-admin/analytics`, `search`.
+- **PERF-P4**: `/projects/[id]` = 310 kB First Load JS; 4 view components >2,400 lines each, all
+  eagerly bundled (reopens PERF-8).
+- **PERF-P5**: polling — super-admin every 15 s, notifications every 30 s **site-wide per user**,
+  despite SSE already existing.
+- **PERF-P6**: N+1 write loops (`await` inside `for`) in 3 routes.
+- **PERF-P7**: 3 more `user: true` over-fetches — server-only (verified not returned to clients),
+  so over-fetching rather than disclosure, but the same pattern as PERF-0.
+- ✅ **Verified genuinely good**: 96 `@@index` across 45 models (`Issue` has 20 incl. composites) —
+  PERF-2 was real work. Issues API pagination is correct. `getCurrentUser()` leaks nothing.
+
+**Root cause of the perf findings**: the system was built and tested at ~5 issues/project, where
+"load everything" is indistinguishable from a correct design. Every finding except PERF-P5 is
+that same mistake in a different place.
+
+**Created [`PERFORMANCE-PLAN.md`](PERFORMANCE-PLAN.md)**: 12 findings, 3 gates, each with
+acceptance criteria and verification steps. Also updated `AI-PROMPT.md` so new AI sessions read
+both plans and are warned to verify COMPLETED claims.
+
+> ⚠️ **Gate A fixes cannot be validated at current data volume.** Seed ~5,000 issues first
+> (`prisma/seed.js`) — otherwise every measurement is noise.
+
+- TypeScript compilation: CLEAN (`npx tsc --noEmit`, exit 0)
+- Tests: 6 suites / 74 tests passing
+- No application code changed in items 4-5 — documentation and audit only
+
 ---
 
 ## TECHNICAL REFERENCE
@@ -407,7 +645,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | `src/lib/cache-manager.ts` | Cache refresh (CacheRefreshAction type) |
 | `src/lib/security-engine.ts` | ThreatStatus type |
 | `prisma/schema.prisma` | Database schema |
-| `SECURITY-AUDIT.md` | Full 73-finding audit report |
+| `SECURITY-AUDIT.md` | Full 73-finding audit report (counts stale — see its reconciliation note) |
+| `PRODUCTION-READINESS.md` | **Active launch-blocking plan** — 17 tasks, 3 gates, acceptance criteria |
+| `src/lib/rate-limit.ts` | Rate limiting — **process-local `Map`**, see PROD-2 |
+| `src/lib/sync-engine.ts` | SSE sync — **process-local client registry**, see PROD-4 |
 
 ### Validation Pattern (used in all 107 routes)
 ```typescript
@@ -433,10 +674,21 @@ export async function POST(req: Request) {
 
 ## RULES FOR AI SESSIONS
 
-1. **READ THIS FILE FIRST** — before doing anything
-2. **PICK FROM THE TOP** — work on highest priority PENDING task
-3. **UPDATE THIS FILE** — after every change, mark tasks done, add session log entry
-4. **COMMIT AND PUSH EVERYTHING** — including this file
-5. **DON'T DUPLICATE WORK** — check status before starting
-6. **FOLLOW EXISTING PATTERNS** — read the codebase before inventing new ones
-7. **TypeScript MUST compile** — run `npx tsc --noEmit` before committing
+1. **READ THIS FILE FIRST** — then read [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md),
+   which holds the active launch-blocking plan
+2. **PICK FROM THE TOP** — work the highest-priority PENDING task, respecting the dependency
+   order in `PRODUCTION-READINESS.md` §7 (e.g. do not start PROD-8 load testing before PROD-1/2/3/4)
+3. **VERIFY, DON'T TRUST** — a COMPLETED status is a claim, not a fact. ARCH-2, OPS-3 and PERF-8
+   were all closed without being fixed. Use the check commands in `PRODUCTION-READINESS.md` §8
+   before assuming something is done
+4. **UPDATE BOTH TRACKERS** — after every change, mark tasks done and add a session log entry here;
+   tick the acceptance boxes in `PRODUCTION-READINESS.md`
+5. **COMMIT AND PUSH EVERYTHING** — including these files
+6. **DON'T DUPLICATE WORK** — check status before starting
+7. **FOLLOW EXISTING PATTERNS** — read the codebase before inventing new ones. Keep public
+   function signatures stable so the 118 routes need no edits
+8. **TypeScript MUST compile** — run `npx tsc --noEmit` before committing
+9. **BE HONEST** — if a task is bigger than expected, mark it PARTIAL and write down exactly what
+   is missing. A PARTIAL with a note is worth more to the next session than a wrong COMPLETED
+10. **STOP THE DEV SERVER BEFORE `npm run build`** — otherwise you will chase a phantom
+    `PageNotFoundError` (both processes write to `.next`)
