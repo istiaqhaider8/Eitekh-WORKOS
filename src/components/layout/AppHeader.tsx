@@ -793,7 +793,12 @@ export function AppHeader({
                           router.push(n.linkUrl);
                         }
                       }}
-                      className={`py-2.5 px-2 flex items-start justify-between gap-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors cursor-pointer group ${
+                      // A notification with no linkUrl (system notices) has
+                      // nowhere to navigate, so it must not advertise itself as
+                      // clickable — an unread one still marks itself read.
+                      className={`py-2.5 px-2 flex items-start justify-between gap-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-colors group ${
+                        n.linkUrl || !n.isRead || selectedIds.size > 0 ? "cursor-pointer" : "cursor-default"
+                      } ${
                         selectedIds.has(n.id) ? "bg-blue-50 dark:bg-blue-950/30" : !n.isRead ? "bg-blue-50/40 dark:bg-blue-950/20" : ""
                       }`}
                     >
