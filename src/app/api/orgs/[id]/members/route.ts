@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { getBaseUrl } from "@/lib/config";
 import { orgMemberCreateSchema, orgMemberUpdateSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         userName: `${user.firstName} ${user.lastName}`,
         userEmail: user.email,
         organizationName: org?.name || "Eitekh WorkOS Organization",
-        actionUrl: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/login`,
+        actionUrl: `${getBaseUrl()}/login`,
       }
     }).catch((err) => console.error("Failed to send welcome email:", err));
 

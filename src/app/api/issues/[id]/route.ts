@@ -342,7 +342,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           where: { id: body.teamId },
           include: {
             members: {
-              include: { user: true },
+              include: { user: publicUserRelation },
             },
           },
         });

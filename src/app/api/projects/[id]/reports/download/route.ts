@@ -35,7 +35,7 @@ export async function GET(
         workspace: true,
         projectTeams: {
           include: {
-            members: { include: { user: true } },
+            members: { include: { user: publicUserRelation } },
           }
         },
         workflows: {

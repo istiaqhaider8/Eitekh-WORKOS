@@ -83,9 +83,13 @@ export function middleware(req: NextRequest) {
     );
   }
 
+  // BASE_URL must be included too: it is the variable documented in
+  // .env.example, so an operator may set only that one. Omitting it would
+  // reject legitimate cross-origin requests behind a proxy as CSRF.
   const allowed = new Set([
     req.nextUrl.origin,
     process.env.NEXTAUTH_URL,
+    process.env.BASE_URL,
   ].filter(Boolean));
 
   let originHost: string;

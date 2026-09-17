@@ -4,6 +4,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { getBaseUrl } from "@/lib/config";
 import { projectMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
 
 // Only these project-scoped role strings may be assigned to a ProjectMember.
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       // Send invitation email
       try {
-        const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const baseUrl = getBaseUrl();
         await sendEmail({
           to: email,
           templateKey: "WELCOME",

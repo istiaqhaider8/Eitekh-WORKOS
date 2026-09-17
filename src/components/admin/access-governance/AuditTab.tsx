@@ -242,13 +242,13 @@ export function AuditTab({ orgId }: AuditTabProps) {
                 <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 font-mono text-[11px] text-slate-700 dark:text-slate-300 max-h-60 overflow-y-auto space-y-2">
                   {selectedLog.previousState && (
                     <div>
-                      <span className="text-amber-400 font-bold block">// Previous State:</span>
+                      <span className="text-amber-400 font-bold block">{"// Previous State:"}</span>
                       <pre>{JSON.stringify(selectedLog.previousState, null, 2)}</pre>
                     </div>
                   )}
                   {selectedLog.newState && (
                     <div>
-                      <span className="text-emerald-400 font-bold block">// New State:</span>
+                      <span className="text-emerald-400 font-bold block">{"// New State:"}</span>
                       <pre>{JSON.stringify(selectedLog.newState, null, 2)}</pre>
                     </div>
                   )}

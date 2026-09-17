@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { ProjectClient } from "./ProjectClient";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,7 +35,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       issues: {
         include: {
           status: true,
-          assignee: true,
+          assignee: publicUserRelation,
           epic: true,
           sprint: true,
           component: true,
@@ -46,7 +48,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       },
       members: {
         include: {
-          user: true,
+          user: publicUserRelation,
         },
       },
     },
@@ -97,12 +99,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               Access to this project's Kanban, List, Scrum, Timeline, Calendar, Workload, and Reports is restricted. You are only authorized to view and perform actions on projects to which you are explicitly assigned.
             </p>
             <div className="pt-2">
-              <a
+              <Link
                 href="/"
                 className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
               >
                 Go to My Assigned Projects
-              </a>
+              </Link>
             </div>
           </div>
         </div>

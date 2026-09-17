@@ -295,7 +295,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         where: { id: teamId },
         include: {
           members: {
-            include: { user: true }
+            include: { user: publicUserRelation }
           }
         }
       });
