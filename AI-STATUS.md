@@ -6,7 +6,7 @@
 > **Last Updated**: 2026-09-17
 > **Last Updated By**: Claude Opus 5 (1M context)
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `6f744d1`
+> **Latest Commit**: `6719b2d`
 
 ---
 
@@ -38,19 +38,22 @@ active plan. The table below is audit-finding history.**
 
 ## PROGRESS SUMMARY
 
-### 🚨 Open Critical finding (2026-09-17)
+### ✅ No open Critical findings (as of 2026-09-17)
 
-**PERF-0** — password hashes + MFA secrets leak to the browser on the project page.
-Not part of the original audit. See NEXT PRIORITY TASKS below and
-[`PERFORMANCE-PLAN.md`](PERFORMANCE-PLAN.md). **The "0 Critical findings remain" statement
-elsewhere in this file refers to the original 73-finding audit only.**
+**PERF-0** (password hashes + MFA secrets leaking to the browser on the project page) was found
+and **fixed** on 2026-09-17 in commit `6719b2d`. It was not part of the original 73-finding audit.
+Details and the lesson learned: see NEXT PRIORITY TASKS below and
+[`PERFORMANCE-PLAN.md`](PERFORMANCE-PLAN.md).
+
+One High-severity item remains open: **DEP-1** (postcss CVEs via Next.js — needs a planned
+`next@16` upgrade, not `audit fix --force`).
 
 ### Performance (active work — see `PERFORMANCE-PLAN.md`)
 
 | Gate | Meaning | Progress |
 |---|---|---|
-| PERF-0 | Critical credential disclosure | **0/1** |
-| Gate A — Make it fast | App slowness; cost grows with data volume | **0/7** |
+| PERF-0 | Critical credential disclosure | **1/1 ✅ FIXED** |
+| Gate A — Make it fast | App slowness; cost grows with data volume | **1/7** (PERF-P7 done) |
 | Gate C — Polish | Decomposition, render profiling | 0/4 |
 
 ### Production readiness (active work — see `PRODUCTION-READINESS.md`)
@@ -87,26 +90,41 @@ state in-process (no Redis), zero tenant-isolation/authz tests, no error trackin
 
 Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLETED when done.
 
-### 🚨 DO THIS FIRST — PERF-0: CRITICAL credential disclosure (found 2026-09-17)
+### ✅ FIXED 2026-09-17 (commit `6719b2d`) — verify before re-opening
+
+| ID | Severity | Status | What it was |
+|---|---|---|---|
+| **PERF-0** | **CRITICAL** | ✅ FIXED | `passwordHash`, `mfaSecret`, `recoveryCodes` of every project member **and assignee** were serialized into the browser payload (`user: true` + `assignee: true` in `page.tsx`, passed to the `"use client"` ProjectClient). Any VIEWER could read colleagues' bcrypt hashes and TOTP seeds from page source. Fixed with the pre-existing `publicUserRelation` helper. **Blanket User includes now: zero.** |
+| **CI-1** | High | ✅ FIXED | CI failed on **every push**: `npm run lint` exited 1 (eslint was never installed), so step 8 `npm run build` never ran. Added eslint 9 + flat config; all 4 CI gates now verified passing. |
+| **ENV-1** | High | ✅ FIXED | Invitation emails would ship `http://localhost:3000` links in production — 2 routes read `NEXTAUTH_URL` directly, bypassing the documented `BASE_URL`. Now use `getBaseUrl()`. |
+| **ENV-2** | Medium | ✅ FIXED | CSRF allowed-origins trusted only `NEXTAUTH_URL`, not the documented `BASE_URL`. |
+| **PERF-P7** | Medium | ✅ FIXED | 3 server-side blanket `user: true` over-fetches narrowed. |
+| **ENV-3** | Low | ✅ FIXED | 6 env vars read by code but absent from `.env.example` now documented. |
+
+> **Lesson worth remembering**: PERF-0's guard **already existed**.
+> [`src/lib/safe-select.ts`](src/lib/safe-select.ts) was created in Phase 1 (`7cc82e9`), its
+> docstring names `assignee: true` and the exact leaking columns, and it was applied to 18 API
+> call sites — but never to the server-rendered page, the one place data goes straight to the
+> client. **A helper is not a fix until every call site uses it.** When adding a guard, grep for
+> every pattern it replaces.
+
+### 🚨 STILL OPEN — highest priority
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| 0 | **PERF-0** | **CRITICAL** | **PENDING** | `passwordHash`, `mfaSecret` + `recoveryCodes` of every project member are serialized into the browser payload. `include: { user: true }` (line 49) selects all User columns, and `project` is passed to the `"use client"` `ProjectClient`. Any VIEWER can read every colleague's password hash and TOTP seed from page source → offline cracking + full MFA bypass. **Fix: explicit `select`, ~10 min.** | `src/app/projects/[id]/page.tsx:47-51` |
-
-This is a **new** finding, outside the original 73-finding audit. Full write-up, fix and
-verification steps: [`PERFORMANCE-PLAN.md`](PERFORMANCE-PLAN.md) → PERF-0.
+| 0 | **DEP-1** | High | PENDING | 2 dependency CVEs (1 high, 1 moderate) in `postcss` via Next.js. Exposure is low (build-time only). **Do NOT run `npm audit fix --force`** — it installs `next@16`, a breaking upgrade. Schedule with PROD-14. | `package.json` |
 
 ### 🔴 GATE A — PERFORMANCE (app is slow; see `PERFORMANCE-PLAN.md`)
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| A1 | PERF-P1 | Blocker | PENDING | Project page loads **every** issue with 9 nested relations, no `take:` — main cause of slowness, worsens as data grows. Same file as PERF-0, do together | `src/app/projects/[id]/page.tsx:33-46` |
+| A1 | PERF-P1 | Blocker | **PENDING ← START HERE** | Project page loads **every** issue with 9 nested relations, no `take:` — the main remaining cause of slowness, and it worsens as data grows. Note `api/projects/[id]/issues/route.ts` already implements `page`/`limit` correctly; the server page bypasses its own paginated API | `src/app/projects/[id]/page.tsx:35-48` |
 | A2 | PERF-P2 | High | PENDING | Analytics loads all issues into memory, then ~20 JS `.filter()` passes — use `groupBy`/`count` | `api/projects/[id]/analytics/route.ts` |
 | A3 | PERF-P3 | High | PENDING | **65 of 93** `findMany` calls have no `take:` (reopens PERF-4 as partial) | ~65 files in `src/app/api/` |
 | A4 | PERF-P4 | High | PENDING | `/projects/[id]` ships 310 kB First Load JS — code-split views (reopens PERF-8) | `ProjectClient.tsx`, `components/views/` |
 | A5 | PERF-P5 | Medium | PENDING | Polling: super-admin 15 s, notifications 30 s site-wide; move to existing SSE, pause on hidden tabs | `super-admin/page.tsx:260`, `AppHeader.tsx:133` |
 | A6 | PERF-P6 | Medium | PENDING | N+1 write loops (`await` inside `for`) | `orgs/[id]/members`, `projects/[id]/issues`, `issues/[id]/comments` |
-| A7 | PERF-P7 | Medium | PENDING | Narrow remaining `user: true` over-fetches (server-only, but same pattern as PERF-0) | 3 route files |
+| ~~A7~~ | ~~PERF-P7~~ | Medium | ✅ FIXED `6719b2d` | Narrowed the 3 server-side `user: true` over-fetches | 3 route files |
 
 > **Before validating any Gate A fix**: seed ~5,000 issues. Every finding is invisible at the
 > current 5-issue volume — an unmeasured performance fix cannot be verified. See
@@ -627,6 +645,96 @@ both plans and are warned to verify COMPLETED claims.
 - TypeScript compilation: CLEAN (`npx tsc --noEmit`, exit 0)
 - Tests: 6 suites / 74 tests passing
 - No application code changed in items 4-5 — documentation and audit only
+
+### 2026-09-17 — Claude Opus 5 (1M context) (Session 14) — Fixed PERF-0 (Critical), repaired CI, env bugs
+
+Commit `6719b2d`. Fixed everything found in the Session 13 audit except the one item that needs a
+planned breaking upgrade (DEP-1).
+
+**1. PERF-0 (CRITICAL) — credential disclosure, FIXED**
+
+`src/app/projects/[id]/page.tsx` used blanket Prisma includes on **two** User relations:
+`user: true` (members, line 49) and `assignee: true` (issues, line 36). My first grep only looked
+for `user: true` and **missed `assignee`** — worth remembering: `User`-typed relations in this
+schema are `actor`, `assignee`, `creator`, `delegateUser`, `originalAssignee`, `reporter`,
+`uploader`, `user`. Grep for all eight, not just `user`.
+
+Because `project` is passed to `ProjectClient` (`"use client"`), every selected column was
+serialized into the browser payload — so `passwordHash`, `mfaSecret` and `recoveryCodes` for
+every project member and assignee were readable from page source by any VIEWER. That is offline
+password cracking plus complete MFA bypass (`mfaSecret` *is* the TOTP seed).
+
+**The guard already existed.** [`src/lib/safe-select.ts`](src/lib/safe-select.ts) was created in
+Phase 1 (`7cc82e9`); its docstring explicitly names `assignee: true` and these exact columns. It
+had been applied to **18 API call sites** but never to the server-rendered page — the one place
+the data goes straight to the client. Fixed by applying `publicUserRelation` there, plus the 3
+remaining blanket includes in API routes (server-only: over-fetching, not disclosure).
+**Blanket User includes in the codebase: now zero** (verified by grep across all 8 relation names).
+
+> **Lesson**: a helper is not a fix until every call site uses it. When you add a guard, grep for
+> every pattern it is meant to replace — including the ones you did not think of.
+
+**2. CI-1 (High) — CI had been failing on every push, FIXED**
+
+`eslint` was never installed (no dependency, no config file) yet `.github/workflows/ci.yml` ran
+`npm run lint` as step 7 of 8. Verified: it exits **1** non-interactively, so **CI failed on every
+push and step 8 (`npm run build`) never ran.** The build gate everyone assumed existed had never
+executed. OPS-5 was marked COMPLETED — the pipeline existed but one gate was broken and took the
+last gate down with it.
+
+Fixed: installed `eslint@9` + `eslint-config-next` + `@eslint/eslintrc`, added
+`eslint.config.mjs` (flat config via FlatCompat, since `eslint-config-next@15` is still
+eslintrc-style), and switched the script from the deprecated `next lint` to `eslint .`.
+Baseline was 39 errors / 27 warnings. Fixed the 3 substantive errors:
+- `page.tsx` — `<a href="/">` → `<Link>` (was forcing a full page reload)
+- `AuditTab.tsx` ×2 — `// Previous State:` / `// New State:` are intentional display text;
+  wrapped as `{"// ..."}` string literals so they still render
+
+The other 36 were all `react/no-unescaped-entities` (apostrophes in UI copy). React renders them
+correctly; the rule guards ambiguity, not a defect. Left as warnings with the rationale in the
+config rather than churning 36 customer-visible strings.
+
+**Verified the full CI sequence in an isolated git worktree** (so the dev server kept running):
+tsc PASS · tests PASS · lint PASS · **build PASS**. All four gates green for the first time.
+
+**3. ENV-1 / ENV-2 — real bugs found via the env-var audit, FIXED**
+
+`NEXTAUTH_URL` is leftover scaffolding — **`next-auth` is not installed** — but 4 places still
+read it:
+- `orgs/[id]/members/route.ts:110` and `projects/[id]/members/route.ts:97` read it *directly*
+  with a `http://localhost:3000` fallback, **bypassing `BASE_URL` entirely**. Since
+  `.env.example` documents `BASE_URL` and not `NEXTAUTH_URL`, an operator following the docs
+  would have shipped **`http://localhost:3000` invitation links in production emails** —
+  unusable invites. Both now use the existing `getBaseUrl()` helper from `lib/config.ts`.
+- `middleware.ts:88` trusted only `NEXTAUTH_URL` for the CSRF allowed-origin set; behind a proxy
+  with only `BASE_URL` set, legitimate requests could be rejected as CSRF. `BASE_URL` added.
+
+**4. ENV-3 — documented 6 undocumented env vars**
+
+5 retention periods (`SESSION_/NOTIFICATION_/ACTIVITY_LOG_/EMAIL_LOG_/AUDIT_LOG_RETENTION_DAYS`)
+plus `NEXTAUTH_URL`. They had sane defaults (90/90/180/90/365), so this was a documentation gap —
+but retention is compliance-adjacent, so an operator should choose it rather than inherit it
+silently. All env vars read by code are now in `.env.example` (verified by script).
+
+**5. DEP-1 — left open deliberately**
+
+`npm audit`: 1 high + 1 moderate in `postcss` via Next.js (CSS stringify XSS; `sourceMappingURL`
+path traversal). Real exposure is low — postcss runs at build time and no user content is piped
+into CSS. **Did not fix**, because `npm audit fix --force` installs `next@16`, a breaking major
+upgrade that deserves a planned task with the build/tests as safety net. Tracked as DEP-1;
+schedule with PROD-14 (Prisma 6).
+
+**Audited clean — do not redo these:**
+- **No missing authentication**: 108/118 routes guarded; the 10 without are exactly the ones that
+  must be public (login, register, forgot/reset password, verify-email, verify-otp, resend-otp,
+  invitation, docs, health)
+- **Zero `dangerouslySetInnerHTML`, zero `eval`/`new Function`** in the whole codebase — genuinely
+  strong XSS posture, UI-1 was real work
+- **No hardcoded secrets**; no real `TODO`/`FIXME` debt (all 6 grep hits are the status literal
+  `"TODO"`)
+
+- TypeScript: CLEAN · Tests: 74/74 · Lint: exit 0 · Build: PASS (all verified)
+- **Next task: PERF-P1** — paginate the project page; the main remaining cause of slowness
 
 ---
 

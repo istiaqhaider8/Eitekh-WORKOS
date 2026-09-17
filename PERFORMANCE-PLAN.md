@@ -11,7 +11,22 @@
 ## ⛔ STOP — READ THIS FIRST
 
 This audit was looking for slowness. It found a **Critical security vulnerability** instead, in the
-same code path that causes the slowness. **Fix PERF-0 before anything else in this document.**
+same code path that causes the slowness.
+
+> ### ✅ PERF-0 is FIXED (2026-09-17, commit `6719b2d`)
+>
+> Resolved by applying the existing `publicUserRelation` helper from
+> [`src/lib/safe-select.ts`](src/lib/safe-select.ts) to both leaking relations in
+> `page.tsx` (`user: true` on members **and** `assignee: true` on issues), plus the 3
+> remaining blanket includes in API routes. **Blanket User includes in the codebase: zero.**
+>
+> **Key lesson**: the guard already existed. Phase 1 created `safe-select.ts`, whose docstring
+> explicitly names `assignee: true` and the exact leaking columns, and applied it to 18 API call
+> sites — but never to the server-rendered page, the one place the data goes straight to the
+> client. A helper is not a fix until every call site uses it. When you add a guard, grep for
+> **all** the patterns it is meant to replace.
+
+**Next up: PERF-P1** (project page pagination) — still the main cause of slowness.
 
 ---
 
@@ -32,7 +47,12 @@ same code path that causes the slowness. **Fix PERF-0 before anything else in th
 
 | ID | Severity | Finding | Evidence |
 |---|---|---|---|
-| **PERF-0** | 🔴 **CRITICAL (security)** | `passwordHash`, `mfaSecret`, `recoveryCodes` of every project member serialized into the browser payload | `src/app/projects/[id]/page.tsx:49` |
+| ~~**PERF-0**~~ | ✅ **FIXED** `6719b2d` | `passwordHash`, `mfaSecret`, `recoveryCodes` of every project member + assignee serialized into the browser payload | was `src/app/projects/[id]/page.tsx:36,49` |
+| ~~**CI-1**~~ | ✅ **FIXED** `6719b2d` | CI failed on every push: `npm run lint` exited 1 (eslint never installed), so the `npm run build` gate never ran | `.github/workflows/ci.yml` step 7 |
+| ~~**ENV-1**~~ | ✅ **FIXED** `6719b2d` | Invitation emails shipped `http://localhost:3000` links in production — 2 routes read `NEXTAUTH_URL` directly, bypassing the documented `BASE_URL` | `orgs/[id]/members:110`, `projects/[id]/members:97` |
+| ~~**ENV-2**~~ | ✅ **FIXED** `6719b2d` | CSRF allowed-origins trusted only `NEXTAUTH_URL`, not the documented `BASE_URL` | `src/middleware.ts:88` |
+| ~~**PERF-P7**~~ | ✅ **FIXED** `6719b2d` | 3 server-side blanket `user: true` over-fetches | 3 API route files |
+| **DEP-1** | 🟠 High | 2 dependency CVEs (1 high, 1 moderate) in `postcss` via Next.js; fix requires `next@16` (**breaking**) | `npm audit` |
 | **PERF-P1** | 🔴 Blocker | Project page loads **every issue** with **9 nested relations**, no pagination — cost grows linearly with project size, forever | `src/app/projects/[id]/page.tsx:33-46` |
 | **PERF-P2** | 🟠 High | Analytics route loads all issues into memory, then ~20 sequential `.filter()` passes in JS instead of DB aggregation | `src/app/api/projects/[id]/analytics/route.ts:69,127+` |
 | **PERF-P3** | 🟠 High | **65 of 93** `findMany` calls have no `take:` — unbounded result sets | `grep -rn findMany src/app/api` |
@@ -42,6 +62,20 @@ same code path that causes the slowness. **Fix PERF-0 before anything else in th
 | **PERF-P7** | 🟡 Medium | Server-side over-fetch: full `user: true` includes for notification fan-out that only needs `id`/`email` | `issues/[id]/route.ts:345`, `projects/[id]/issues/route.ts:298`, `reports/download/route.ts:38` |
 | ✅ DONE | — | Task-open waterfall: 11 serial requests, ~780 ms → parallel + cached | Fixed 2026-09-17, see `AI-STATUS.md` Session 13 |
 | ✅ GOOD | — | DB indexes: 96 `@@index` across 45 models; `Issue` has 20 including composites | `prisma/schema.prisma` |
+| ✅ GOOD | — | No missing auth: 108/118 routes guarded; the 10 without are exactly the public ones (login, register, reset, verify, health, docs) | audited 2026-09-17 |
+| ✅ GOOD | — | Zero `dangerouslySetInnerHTML`, zero `eval`/`new Function` — strong XSS posture | audited 2026-09-17 |
+| ✅ GOOD | — | No hardcoded secrets; no real `TODO`/`FIXME` debt | audited 2026-09-17 |
+
+### DEP-1 — postcss CVEs (open, needs a decision)
+
+`npm audit` reports 1 high + 1 moderate in `postcss`, pulled in transitively by Next.js:
+XSS via unescaped `</style>` in CSS stringify output, and path traversal via
+attacker-controlled `sourceMappingURL` leading to arbitrary `.map` file disclosure.
+
+**Real-world exposure here is low** — postcss runs at build time and no user content is piped
+into CSS stringification. **Do not run `npm audit fix --force`**: it installs `next@16`, a
+breaking major upgrade. Schedule it deliberately alongside PROD-14 (Prisma 6) as a planned
+dependency-upgrade task with the build and tests as the safety net.
 
 ### Root cause
 
