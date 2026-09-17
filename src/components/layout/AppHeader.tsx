@@ -177,12 +177,17 @@ export function AppHeader({
     let es: EventSource | null = null;
     let reconnectTimer: any = null;
     let closed = false;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 6;
 
     const connect = () => {
       if (closed) return;
       es = new EventSource("/api/sync/events?scope=user");
 
-      es.onopen = () => setSseConnected(true);
+      es.onopen = () => {
+        attempt = 0;
+        setSseConnected(true);
+      };
 
       es.onmessage = (evt) => {
         try {
@@ -204,9 +209,17 @@ export function AppHeader({
         setSseConnected(false);
         es?.close();
         es = null;
-        // EventSource auto-reconnects, but it is closed above on error to
-        // avoid a tight loop when the endpoint returns a hard failure.
-        if (!closed) reconnectTimer = setTimeout(connect, 10000);
+        if (closed) return;
+
+        // onerror cannot see the HTTP status, so a hard failure (an expired
+        // session returning 401) looks the same as a transient network blip.
+        // Backing off and then giving up avoids hammering the endpoint every
+        // 10s forever; the 30s polling fallback takes over from there, since it
+        // runs whenever sseConnected is false.
+        attempt += 1;
+        if (attempt > MAX_ATTEMPTS) return;
+        const delay = Math.min(60000, 5000 * 2 ** (attempt - 1));
+        reconnectTimer = setTimeout(connect, delay);
       };
     };
 
@@ -272,6 +285,17 @@ export function AppHeader({
   };
 
   const clearAllNotifications = async () => {
+    // This deletes every notification for the user, not just the ones matching
+    // the active tab, and there is no undo. It also sits immediately next to
+    // "Mark all read", so a misclick would otherwise destroy the whole history
+    // silently. Native confirm() matches the pattern used for epic deletion.
+    if (
+      !confirm(
+        "Delete all your notifications? This cannot be undone, and it clears everything — not just the tab you are viewing."
+      )
+    ) {
+      return;
+    }
     const data = await notifyRequest("DELETE", { clearAll: true }, "Couldn't clear notifications.");
     if (!data) return;
     setNotifications([]);
