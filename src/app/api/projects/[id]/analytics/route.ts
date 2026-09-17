@@ -327,14 +327,12 @@ export async function GET(
       .sort((a, b) => b.count - a.count);
 
     // By Priority
-    const priorityOrder = ["CRITICAL", "HIGHEST", "HIGH", "MEDIUM", "LOW", "LOWEST"];
+    const priorityOrder = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
     const priorityColors: Record<string, string> = {
       CRITICAL: "#ef4444",
-      HIGHEST: "#f97316",
       HIGH: "#f59e0b",
       MEDIUM: "#3b82f6",
       LOW: "#10b981",
-      LOWEST: "#64748b",
     };
 
     const priorityBuckets = new Map<string, { count: number; points: number }>();
@@ -362,15 +360,12 @@ export async function GET(
     });
 
     // By Issue Type
-    const typeOrder = ["TASK", "BUG", "STORY", "EPIC", "FEATURE", "INCIDENT", "IMPROVEMENT"];
+    const typeOrder = ["TASK", "BUG", "STORY", "EPIC"];
     const typeColors: Record<string, string> = {
       TASK: "#3b82f6",
       BUG: "#ef4444",
       STORY: "#10b981",
       EPIC: "#8b5cf6",
-      FEATURE: "#06b6d4",
-      INCIDENT: "#f43f5e",
-      IMPROVEMENT: "#f59e0b",
     };
 
     const byType = typeOrder.map((type) => {

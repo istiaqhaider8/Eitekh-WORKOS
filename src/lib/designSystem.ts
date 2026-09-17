@@ -3,9 +3,6 @@ import {
   AlertCircle,
   Bookmark,
   Zap,
-  Flame,
-  TrendingUp,
-  Sparkles,
 } from "lucide-react";
 
 export const ISSUE_TYPES = [
@@ -31,27 +28,6 @@ export const ISSUE_TYPES = [
     color: "#10b981",
   },
   {
-    value: "FEATURE",
-    label: "Feature",
-    icon: Sparkles,
-    badgeClass: "text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800/80",
-    color: "#6366f1",
-  },
-  {
-    value: "IMPROVEMENT",
-    label: "Improvement",
-    icon: TrendingUp,
-    badgeClass: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800/80",
-    color: "#f59e0b",
-  },
-  {
-    value: "INCIDENT",
-    label: "Incident",
-    icon: Flame,
-    badgeClass: "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/60 border-red-200 dark:border-red-800/80",
-    color: "#ef4444",
-  },
-  {
     value: "EPIC",
     label: "Epic",
     icon: Zap,
@@ -62,11 +38,9 @@ export const ISSUE_TYPES = [
 
 export const DEFAULT_PRIORITIES = [
   { value: "CRITICAL", name: "Critical", color: "#f43f5e", dotClass: "bg-rose-500", bgClass: "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900" },
-  { value: "HIGHEST", name: "Highest", color: "#f97316", dotClass: "bg-orange-500", bgClass: "bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-900" },
   { value: "HIGH", name: "High", color: "#f59e0b", dotClass: "bg-amber-500", bgClass: "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900" },
   { value: "MEDIUM", name: "Medium", color: "#3b82f6", dotClass: "bg-blue-500", bgClass: "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900" },
   { value: "LOW", name: "Low", color: "#10b981", dotClass: "bg-emerald-500", bgClass: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900" },
-  { value: "LOWEST", name: "Lowest", color: "#64748b", dotClass: "bg-slate-400", bgClass: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700" },
 ];
 
 export function getIssueTypeInfo(type: string) {

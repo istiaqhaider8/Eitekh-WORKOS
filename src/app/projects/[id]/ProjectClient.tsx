@@ -228,11 +228,9 @@ export function ProjectClient({
   // Project Priorities State (custom + defaults)
   const [projectPriorities, setProjectPriorities] = useState<any[]>([
     { name: "Critical", value: "CRITICAL", color: "#f43f5e" },
-    { name: "Highest", value: "HIGHEST", color: "#f97316" },
     { name: "High", value: "HIGH", color: "#f59e0b" },
     { name: "Medium", value: "MEDIUM", color: "#3b82f6" },
     { name: "Low", value: "LOW", color: "#10b981" },
-    { name: "Lowest", value: "LOWEST", color: "#64748b" },
   ]);
 
   // Quick create issue fields

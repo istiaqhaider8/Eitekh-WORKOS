@@ -9,9 +9,6 @@ const DEFAULT_ISSUE_TYPES = [
   { name: "Bug", value: "BUG", color: "#f43f5e", icon: "AlertCircle", description: "Defect, error or problem in functionality" },
   { name: "Story", value: "STORY", color: "#10b981", icon: "Bookmark", description: "User requirement or scenario" },
   { name: "Epic", value: "EPIC", color: "#a855f7", icon: "Layers", description: "Large body of work encompassing multiple tasks" },
-  { name: "Feature", value: "FEATURE", color: "#6366f1", icon: "Sparkles", description: "New functionality or capability" },
-  { name: "Incident", value: "INCIDENT", color: "#ef4444", icon: "AlertTriangle", description: "Urgent outage or critical problem" },
-  { name: "Improvement", value: "IMPROVEMENT", color: "#f59e0b", icon: "TrendingUp", description: "Optimization or enhancement" },
 ];
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

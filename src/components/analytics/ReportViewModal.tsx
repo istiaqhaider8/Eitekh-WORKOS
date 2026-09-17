@@ -965,7 +965,6 @@ export function ReportViewModal({
                 <option value="BUG">Bug</option>
                 <option value="STORY">Story</option>
                 <option value="EPIC">Epic</option>
-                <option value="FEATURE">Feature</option>
               </select>
 
               {/* Assignee Filter */}

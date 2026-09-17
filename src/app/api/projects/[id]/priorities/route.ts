@@ -6,11 +6,9 @@ import { priorityCreateSchema, parseBody } from "@/lib/validation";
 
 const DEFAULT_PRIORITIES = [
   { name: "Critical", value: "CRITICAL", color: "#f43f5e" },
-  { name: "Highest", value: "HIGHEST", color: "#f97316" },
   { name: "High", value: "HIGH", color: "#f59e0b" },
   { name: "Medium", value: "MEDIUM", color: "#3b82f6" },
   { name: "Low", value: "LOW", color: "#10b981" },
-  { name: "Lowest", value: "LOWEST", color: "#64748b" },
 ];
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

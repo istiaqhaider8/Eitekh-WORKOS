@@ -54,6 +54,19 @@ interface IssueDetailModalProps {
   onIssueUpdated: () => void;
 }
 
+// Project-level context (statuses, types, priorities, members, teams, epics, sprints)
+// is identical for every issue in a project, so it is cached across modal opens.
+// Cached data is applied instantly, then revalidated in the background once stale.
+const projectContextCache = new Map<string, { data: any; ts: number }>();
+const PROJECT_CONTEXT_TTL = 60_000;
+
+// Must be called whenever project-level config (types, statuses, priorities,
+// epics, custom fields) is mutated, so the next open refetches instead of
+// serving a cached list that is missing the change.
+const invalidateProjectContext = (pId?: string | null) => {
+  if (pId) projectContextCache.delete(pId);
+};
+
 export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentUser, initialStatusId, onClose, onIssueUpdated }: IssueDetailModalProps) {
   const isCreateMode = issueId === "new" || issueId === "create";
   const [issue, setIssue] = useState<any>(null);
@@ -71,9 +84,6 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     { name: "Bug", value: "BUG", color: "#f43f5e", description: "Defect, error or problem in functionality" },
     { name: "Story", value: "STORY", color: "#10b981", description: "User requirement or scenario" },
     { name: "Epic", value: "EPIC", color: "#a855f7", description: "Large body of work encompassing multiple tasks" },
-    { name: "Feature", value: "FEATURE", color: "#6366f1", description: "New functionality or capability" },
-    { name: "Incident", value: "INCIDENT", color: "#ef4444", description: "Urgent outage or critical problem" },
-    { name: "Improvement", value: "IMPROVEMENT", color: "#f59e0b", description: "Optimization or enhancement" },
   ]);
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
   const [typeModalTab, setTypeModalTab] = useState<"ADD" | "MANAGE">("ADD");
@@ -141,7 +151,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
   const [showCreateFieldModal, setShowCreateFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState("");
   const [newFieldType, setNewFieldType] = useState<"TEXT" | "NUMBER" | "DATE" | "DROPDOWN" | "CHECKBOX" | "URL">("TEXT");
-  const [newFieldOptions, setNewFieldOptions] = useState("");
+  const [newFieldOptions, setNewFieldOptions] = useState<string[]>([""]);
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [creatingField, setCreatingField] = useState(false);
 
@@ -190,11 +200,9 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
   const [projectWorkflowId, setProjectWorkflowId] = useState<string | null>(null);
   const [projectPriorities, setProjectPriorities] = useState<any[]>([
     { name: "Critical", value: "CRITICAL", color: "#f43f5e" },
-    { name: "Highest", value: "HIGHEST", color: "#f97316" },
     { name: "High", value: "HIGH", color: "#f59e0b" },
     { name: "Medium", value: "MEDIUM", color: "#3b82f6" },
     { name: "Low", value: "LOW", color: "#10b981" },
-    { name: "Lowest", value: "LOWEST", color: "#64748b" },
   ]);
   const [teams, setTeams] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(propCurrentUser || null);
@@ -248,82 +256,118 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     Boolean(currentUser?.capabilities?.includes("issues:delete"));
   const canEdit = !isViewer;
 
-  const loadProjectContext = useCallback(async (pId: string) => {
-    if (!pId) return;
-    try {
-      const [sRes, cfRes, mRes, aRes, wfRes, tRes, pRes, tmRes, epRes] = await Promise.all([
-        fetch(`/api/sprints?projectId=${pId}`),
-        fetch(`/api/custom-fields?projectId=${pId}`),
-        fetch(`/api/projects/${pId}/members`),
-        fetch(`/api/projects/${pId}/availability`),
-        fetch(`/api/workflows?projectId=${pId}`),
-        fetch(`/api/projects/${pId}/types`),
-        fetch(`/api/projects/${pId}/priorities`),
-        fetch(`/api/teams?projectId=${pId}`),
-        fetch(`/api/epics?projectId=${pId}`),
-      ]);
-
-      if (sRes.ok) {
-        const sData = await sRes.json();
-        const sps = Array.isArray(sData.sprints) ? sData.sprints : Array.isArray(sData) ? sData : [];
-        setProjectSprints(sps);
-        if (sps.length > 0) {
-          const activeS = sps.find((s: any) => s.status === "ACTIVE") || sps[0];
-          setDraftSprintId((prev) => prev || activeS?.id || null);
-        }
+  // Applies an already-fetched project context to local state.
+  // `applyDefaults` is only true in create mode — in view mode the issue's own
+  // values must never be overwritten by project defaults.
+  const applyProjectContext = useCallback((ctx: any, applyDefaults: boolean) => {
+    if (ctx.sprints) {
+      setProjectSprints(ctx.sprints);
+      if (applyDefaults && ctx.sprints.length > 0) {
+        const activeS = ctx.sprints.find((s: any) => s.status === "ACTIVE") || ctx.sprints[0];
+        setDraftSprintId((prev) => prev || activeS?.id || null);
       }
-
-      if (cfRes.ok) {
-        const cfData = await cfRes.json();
-        if (Array.isArray(cfData.customFields)) setCustomFields(cfData.customFields);
-      }
-
-      if (mRes.ok) {
-        const mList = await mRes.json();
-        if (Array.isArray(mList)) setProjectMembers(mList);
-      }
-
-      if (aRes.ok) {
-        const aData = await aRes.json();
-        if (Array.isArray(aData.leaves)) setLeaves(aData.leaves);
-      }
-
-      if (wfRes.ok) {
-        const wfList = await wfRes.json();
-        if (Array.isArray(wfList) && wfList.length > 0) {
-          setProjectWorkflowId(wfList[0].id);
-          const stList = wfList[0].statuses || [];
-          setProjectStatuses(stList);
-          if (stList.length > 0) {
-            setDraftStatusId((prev) => prev || stList[0].id);
-          }
-        }
-      }
-
-      if (tRes.ok) {
-        const tData = await tRes.json();
-        if (Array.isArray(tData.types) && tData.types.length > 0) setProjectTypes(tData.types);
-      }
-
-      if (pRes.ok) {
-        const pData = await pRes.json();
-        if (Array.isArray(pData.priorities) && pData.priorities.length > 0) setProjectPriorities(pData.priorities);
-      }
-
-      if (tmRes.ok) {
-        const tmData = await tmRes.json();
-        if (Array.isArray(tmData.teams)) setTeams(tmData.teams);
-        else if (Array.isArray(tmData)) setTeams(tmData);
-      }
-
-      if (epRes && epRes.ok) {
-        const epData = await epRes.json();
-        if (Array.isArray(epData)) setProjectEpics(epData);
-      }
-    } catch (e) {
-      console.error("Error loading project context for issue creation", e);
     }
+    if (ctx.customFields) setCustomFields(ctx.customFields);
+    if (ctx.members) setProjectMembers(ctx.members);
+    if (ctx.leaves) setLeaves(ctx.leaves);
+    if (ctx.workflowId) setProjectWorkflowId(ctx.workflowId);
+    if (ctx.statuses) {
+      setProjectStatuses(ctx.statuses);
+      if (applyDefaults && ctx.statuses.length > 0) {
+        setDraftStatusId((prev) => prev || ctx.statuses[0].id);
+      }
+    }
+    if (ctx.types?.length) setProjectTypes(ctx.types);
+    if (ctx.priorities?.length) setProjectPriorities(ctx.priorities);
+    if (ctx.teams) setTeams(ctx.teams);
+    if (ctx.epics) setProjectEpics(ctx.epics);
   }, []);
+
+  const fetchProjectContext = async (pId: string) => {
+    const [sRes, cfRes, mRes, aRes, wfRes, tRes, pRes, tmRes, epRes] = await Promise.all([
+      fetch(`/api/sprints?projectId=${pId}`),
+      fetch(`/api/custom-fields?projectId=${pId}`),
+      fetch(`/api/projects/${pId}/members`),
+      fetch(`/api/projects/${pId}/availability`),
+      fetch(`/api/workflows?projectId=${pId}`),
+      fetch(`/api/projects/${pId}/types`),
+      fetch(`/api/projects/${pId}/priorities`),
+      fetch(`/api/teams?projectId=${pId}`),
+      fetch(`/api/epics?projectId=${pId}`),
+    ]);
+
+    const ctx: any = {};
+
+    if (sRes.ok) {
+      const sData = await sRes.json();
+      ctx.sprints = Array.isArray(sData.sprints) ? sData.sprints : Array.isArray(sData) ? sData : [];
+    }
+
+    if (cfRes.ok) {
+      const cfData = await cfRes.json();
+      if (Array.isArray(cfData.customFields)) ctx.customFields = cfData.customFields;
+    }
+
+    if (mRes.ok) {
+      const mList = await mRes.json();
+      if (Array.isArray(mList)) ctx.members = mList;
+    }
+
+    if (aRes.ok) {
+      const aData = await aRes.json();
+      if (Array.isArray(aData.leaves)) ctx.leaves = aData.leaves;
+    }
+
+    if (wfRes.ok) {
+      const wfList = await wfRes.json();
+      if (Array.isArray(wfList) && wfList.length > 0) {
+        ctx.workflowId = wfList[0].id;
+        ctx.statuses = wfList[0].statuses || [];
+      }
+    }
+
+    if (tRes.ok) {
+      const tData = await tRes.json();
+      if (Array.isArray(tData.types)) ctx.types = tData.types;
+    }
+
+    if (pRes.ok) {
+      const pData = await pRes.json();
+      if (Array.isArray(pData.priorities)) ctx.priorities = pData.priorities;
+    }
+
+    if (tmRes.ok) {
+      const tmData = await tmRes.json();
+      if (Array.isArray(tmData.teams)) ctx.teams = tmData.teams;
+      else if (Array.isArray(tmData)) ctx.teams = tmData;
+    }
+
+    if (epRes && epRes.ok) {
+      const epData = await epRes.json();
+      if (Array.isArray(epData)) ctx.epics = epData;
+    }
+
+    return ctx;
+  };
+
+  const loadProjectContext = useCallback(async (pId: string, applyDefaults = false) => {
+    if (!pId) return;
+
+    // Apply cached context immediately so dropdowns render without a round-trip
+    const cached = projectContextCache.get(pId);
+    if (cached) {
+      applyProjectContext(cached.data, applyDefaults);
+      if (Date.now() - cached.ts < PROJECT_CONTEXT_TTL) return;
+    }
+
+    try {
+      const ctx = await fetchProjectContext(pId);
+      projectContextCache.set(pId, { data: ctx, ts: Date.now() });
+      applyProjectContext(ctx, applyDefaults);
+    } catch (e) {
+      console.error("Error loading project context", e);
+    }
+  }, [applyProjectContext]);
 
   useEffect(() => {
     if (isCreateMode) {
@@ -354,9 +398,13 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
       setHasChanges(false);
 
       if (targetProjId) {
-        loadProjectContext(targetProjId);
+        loadProjectContext(targetProjId, true);
       }
     } else if (issueId) {
+      // Kick off project context in parallel with the issue fetch. It only needs
+      // projectId, so waiting for the issue response first would serialise ~10
+      // requests behind it for no reason.
+      if (projectId) loadProjectContext(projectId, false);
       fetchIssueDetails();
     } else {
       setIssue(null);
@@ -416,94 +464,14 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
           setCustomFieldValues(valMap);
         }
 
-        // Fetch project custom fields, members, workflow statuses, teams, and sprints
-        if (data.issue?.projectId) {
-          fetch(`/api/sprints?projectId=${data.issue.projectId}`)
-            .then((r) => r.json())
-            .then((sData) => {
-              if (Array.isArray(sData.sprints)) {
-                setProjectSprints(sData.sprints);
-              } else if (Array.isArray(sData)) {
-                setProjectSprints(sData);
-              }
-            })
-            .catch(() => {});
+        // Project context is loaded in parallel from the mount effect when the
+        // projectId prop is known; only fall back here if it was not provided.
+        if (!projectId && data.issue?.projectId) {
+          loadProjectContext(data.issue.projectId, false);
+        }
 
-          fetch(`/api/custom-fields?projectId=${data.issue.projectId}`)
-            .then((r) => r.json())
-            .then((cfData) => {
-              if (Array.isArray(cfData.customFields)) {
-                setCustomFields(cfData.customFields);
-              }
-            })
-            .catch(() => {});
-
-          fetch(`/api/projects/${data.issue.projectId}/members`)
-            .then((r) => r.json())
-            .then((mList) => {
-              if (Array.isArray(mList)) {
-                setProjectMembers(mList);
-              }
-            })
-            .catch(() => {});
-
-          fetch(`/api/projects/${data.issue.projectId}/availability`)
-            .then((r) => r.json())
-            .then((aData) => {
-              if (Array.isArray(aData.leaves)) {
-                setLeaves(aData.leaves);
-              }
-            })
-            .catch(() => {});
-
-
-          fetch(`/api/workflows?projectId=${data.issue.projectId}`)
-            .then((r) => r.json())
-            .then((wfList) => {
-              if (Array.isArray(wfList) && wfList.length > 0) {
-                setProjectWorkflowId(wfList[0].id);
-                const statuses = wfList[0].statuses || [];
-                setProjectStatuses(statuses);
-              }
-            })
-            .catch(() => {});
-
-          fetch(`/api/projects/${data.issue.projectId}/types`)
-            .then((r) => r.json())
-            .then((tData) => {
-              if (Array.isArray(tData.types) && tData.types.length > 0) {
-                setProjectTypes(tData.types);
-              }
-            })
-            .catch(() => {});
-
-          fetch(`/api/projects/${data.issue.projectId}/priorities`)
-            .then((r) => r.json())
-            .then((pData) => {
-              if (Array.isArray(pData.priorities) && pData.priorities.length > 0) {
-                setProjectPriorities(pData.priorities);
-              }
-            })
-            .catch(() => {});
-
-          fetch(`/api/teams?projectId=${data.issue.projectId}`)
-            .then((r) => r.json())
-            .then((tList) => {
-              if (Array.isArray(tList)) {
-                setTeams(tList);
-              }
-            })
-            .catch(() => {});
-
-          fetch(`/api/epics?projectId=${data.issue.projectId}`)
-            .then((r) => r.json())
-            .then((epList) => {
-              if (Array.isArray(epList)) {
-                setProjectEpics(epList);
-              }
-            })
-            .catch(() => {});
-
+        // The parent already passes currentUser in the normal case
+        if (!propCurrentUser) {
           fetch(`/api/auth/me`)
             .then((r) => r.json())
             .then((uData) => {
@@ -602,11 +570,8 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     setCreatingField(true);
     try {
       let optionsJson = null;
-      if (newFieldType === "DROPDOWN" && newFieldOptions.trim()) {
-        const opts = newFieldOptions
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
+      if (newFieldType === "DROPDOWN") {
+        const opts = newFieldOptions.map((s) => s.trim()).filter(Boolean);
         optionsJson = JSON.stringify(opts);
       }
 
@@ -625,13 +590,14 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
       if (res.ok) {
         setNewFieldName("");
-        setNewFieldOptions("");
+        setNewFieldOptions([""]);
         setNewFieldRequired(false);
         setShowCreateFieldModal(false);
 
         // Reload project custom fields
         const cfRes = await fetch(`/api/custom-fields?projectId=${issue.projectId}`);
         const cfData = await cfRes.json();
+        invalidateProjectContext(issue?.projectId || projectId);
         if (Array.isArray(cfData.customFields)) {
           setCustomFields(cfData.customFields);
         } else if (Array.isArray(cfData.fields)) {
@@ -654,6 +620,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         method: "DELETE",
       });
       if (res.ok) {
+        invalidateProjectContext(issue?.projectId || projectId);
         setCustomFields((prev) => prev.filter((f) => f.id !== fieldId));
       }
     } catch (err) {
@@ -680,6 +647,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.types)) {
+          invalidateProjectContext(issue?.projectId || projectId);
           setProjectTypes(data.types);
         }
         if (data.created) {
@@ -722,6 +690,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.types)) {
+          invalidateProjectContext(issue?.projectId || projectId);
           setProjectTypes(data.types);
         }
         if (draftIssueType === editingType.value && data.updated?.value) {
@@ -761,6 +730,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
       if (res.ok) {
         const data = await res.json();
+        invalidateProjectContext(issue?.projectId || projectId);
         if (Array.isArray(data.types)) {
           setProjectTypes(data.types);
         } else {
@@ -827,6 +797,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
       if (res.ok) {
         const createdStatus = await res.json();
+        invalidateProjectContext(issue?.projectId || projectId);
         setProjectStatuses((prev) => [...prev, createdStatus]);
         setDraftStatusId(createdStatus.id);
         setHasChanges(true);
@@ -863,6 +834,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
       if (res.ok) {
         const data = await res.json();
+        invalidateProjectContext(issue?.projectId || projectId);
         if (Array.isArray(data.priorities)) {
           setProjectPriorities(data.priorities);
         }
@@ -908,6 +880,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
       if (res.ok) {
         const created = await res.json();
+        invalidateProjectContext(issue?.projectId || projectId);
         setProjectEpics((prev) => [...prev, created]);
         setDraftEpicId(created.id);
         setHasChanges(true);
@@ -937,6 +910,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     try {
       const res = await fetch(`/api/epics/${epicId}`, { method: "DELETE" });
       if (res.ok) {
+        invalidateProjectContext(issue?.projectId || projectId);
         setProjectEpics((prev) => prev.filter((e) => e.id !== epicId));
         if (draftEpicId === epicId) {
           setDraftEpicId(null);
@@ -1699,9 +1673,6 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           {draftIssueType && !projectTypes.some((t) => t.value === draftIssueType) && (
                             <option value={draftIssueType}>{draftIssueType}</option>
                           )}
-                          <option value="__ADD_TYPE__" className="text-blue-600 font-bold">
-                            + Add & manage types...
-                          </option>
                         </select>
                       </div>
 
@@ -1753,9 +1724,6 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 {st.name}
                               </option>
                             ))}
-                            <option value="__ADD_STATUS__" className="text-blue-600 font-bold">
-                              + Add more options (project-wise)...
-                            </option>
                           </select>
                         ) : (
                           <span className="inline-block font-semibold px-2 py-1 rounded text-[11px]" style={{ backgroundColor: `${issue?.status?.color || "#3b82f6"}20`, color: issue?.status?.color || "#3b82f6" }}>
@@ -1825,9 +1793,6 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           {draftPriority && !projectPriorities.some((p) => p.value === draftPriority) && (
                             <option value={draftPriority}>{draftPriority}</option>
                           )}
-                          <option value="__ADD_PRIORITY__" className="text-blue-600 font-bold">
-                            + Add more options (project-wise)...
-                          </option>
                         </select>
                       </div>
 
@@ -3052,15 +3017,43 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                     {newFieldType === "DROPDOWN" && (
                       <div>
                         <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          Dropdown Options (Comma separated)
+                          Dropdown Options
                         </label>
-                        <input
-                          type="text"
-                          value={newFieldOptions}
-                          onChange={(e) => setNewFieldOptions(e.target.value)}
-                          placeholder="e.g. Alpha, Beta, RC1, Production"
-                          className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <div className="space-y-1.5">
+                          {newFieldOptions.map((opt, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={(e) => {
+                                  const next = [...newFieldOptions];
+                                  next[idx] = e.target.value;
+                                  setNewFieldOptions(next);
+                                }}
+                                placeholder={`Option ${idx + 1}`}
+                                className="flex-1 text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              {newFieldOptions.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setNewFieldOptions(newFieldOptions.filter((_, i) => i !== idx))}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
+                                  title="Remove option"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setNewFieldOptions([...newFieldOptions, ""])}
+                          className="mt-1.5 text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer flex items-center gap-0.5"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                          <span>Add option</span>
+                        </button>
                       </div>
                     )}
 

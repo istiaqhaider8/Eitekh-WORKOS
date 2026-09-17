@@ -239,9 +239,9 @@ export interface Issue {
   issueKey: string;
   title: string;
   description: string | null;
-  issueType: 'TASK' | 'BUG' | 'STORY' | 'EPIC' | 'SUBTASK' | 'FEATURE' | 'INCIDENT';
+  issueType: 'TASK' | 'BUG' | 'STORY' | 'EPIC' | 'SUBTASK';
   statusId: string;
-  priority: 'CRITICAL' | 'HIGHEST' | 'HIGH' | 'MEDIUM' | 'LOW' | 'LOWEST';
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
   reporterId: string;
   assigneeId: string | null;
   epicId: string | null;

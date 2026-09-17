@@ -134,7 +134,7 @@ export const issueUpdateSchema = z.object({
   title: safeStringSchema.min(1).optional(),
   description: safeLongStringSchema.optional().nullable(),
   priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).optional(),
-  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK", "IMPROVEMENT", "FEATURE"]).optional(),
+  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK"]).optional(),
   statusId: cuidSchema.optional(),
   assigneeId: optionalCuidSchema,
   teamId: optionalCuidSchema,
@@ -190,7 +190,7 @@ export const projectCreateSchema = z.object({
 export const issueCreateSchema = z.object({
   title: safeStringSchema.min(1, "Title is required").trim(),
   description: safeLongStringSchema.optional().nullable(),
-  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK", "IMPROVEMENT", "FEATURE"]).default("TASK"),
+  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK"]).default("TASK"),
   priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).default("MEDIUM"),
   statusId: cuidSchema.optional(),
   assigneeId: optionalCuidSchema,

@@ -2442,8 +2442,6 @@ export function CalendarView({
                     <option value="TASK">Task</option>
                     <option value="BUG">Bug</option>
                     <option value="STORY">Story</option>
-                    <option value="FEATURE">Feature</option>
-                    <option value="INCIDENT">Incident</option>
                   </select>
                 </div>
               </div>

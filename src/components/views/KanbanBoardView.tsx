@@ -14,8 +14,6 @@ import {
   AlertCircle,
   Bookmark,
   Zap,
-  Flame,
-  TrendingUp,
   Users,
   MessageSquare,
   Calendar,
@@ -57,9 +55,6 @@ const ISSUE_TYPES = [
   { value: "TASK", label: "Task", icon: CheckSquare, color: "text-sky-600 dark:text-sky-400 bg-sky-100/70 dark:bg-sky-950/60 border-sky-200 dark:border-sky-800" },
   { value: "BUG", label: "Bug", icon: AlertCircle, color: "text-rose-600 dark:text-rose-400 bg-rose-100/70 dark:bg-rose-950/60 border-rose-200 dark:border-rose-800" },
   { value: "STORY", label: "Story", icon: Bookmark, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800" },
-  { value: "FEATURE", label: "Feature", icon: Sparkles, color: "text-indigo-600 dark:text-indigo-400 bg-indigo-100/70 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800" },
-  { value: "IMPROVEMENT", label: "Improvement", icon: TrendingUp, color: "text-amber-600 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800" },
-  { value: "INCIDENT", label: "Incident", icon: Flame, color: "text-red-600 dark:text-red-400 bg-red-100/70 dark:bg-red-950/60 border-red-200 dark:border-red-800" },
   { value: "EPIC", label: "Epic", icon: Zap, color: "text-purple-600 dark:text-purple-400 bg-purple-100/70 dark:bg-purple-950/60 border-purple-200 dark:border-purple-800" },
 ];
 
@@ -114,11 +109,9 @@ export function KanbanBoardView({
       ? priorities
       : [
           { value: "CRITICAL", name: "Critical", color: "#ef4444" },
-          { value: "HIGHEST", name: "Highest", color: "#f97316" },
           { value: "HIGH", name: "High", color: "#f59e0b" },
           { value: "MEDIUM", name: "Medium", color: "#3b82f6" },
           { value: "LOW", name: "Low", color: "#10b981" },
-          { value: "LOWEST", name: "Lowest", color: "#64748b" },
         ];
   }, [priorities]);
 

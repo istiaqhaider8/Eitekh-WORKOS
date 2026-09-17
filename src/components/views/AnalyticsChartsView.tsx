@@ -1051,11 +1051,9 @@ export function AnalyticsChartsView({
                 >
                   <option value="ALL">All Priorities</option>
                   <option value="CRITICAL">Critical</option>
-                  <option value="HIGHEST">Highest</option>
                   <option value="HIGH">High</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="LOW">Low</option>
-                  <option value="LOWEST">Lowest</option>
                 </select>
               </div>
 
@@ -1072,8 +1070,6 @@ export function AnalyticsChartsView({
                   <option value="BUG">Bug</option>
                   <option value="STORY">Story</option>
                   <option value="EPIC">Epic</option>
-                  <option value="FEATURE">Feature</option>
-                  <option value="INCIDENT">Incident</option>
                 </select>
               </div>
 
