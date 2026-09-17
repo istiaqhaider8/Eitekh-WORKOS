@@ -135,37 +135,87 @@ class NotificationEngine {
     const emailUserIds = targetUserIds.filter(wantsEmail);
 
     // 3. Batch insert In-App notifications into database (respecting preferences)
+    // One shared timestamp for this batch, so the rows can be read back by an
+    // exact createdAt match below rather than a fuzzy time window.
+    const batchCreatedAt = new Date();
+
     const inAppRecords = inAppUserIds.map((userId) => ({
       userId,
+      actorId: actorId || null,
       title,
       message,
       linkUrl: linkUrl || null,
       type,
       isRead: false,
-      createdAt: new Date(),
+      createdAt: batchCreatedAt,
     }));
 
+    // Created rows are read back so the realtime event can carry the same
+    // shape the GET endpoint returns (id, actor, timestamps). createMany does
+    // not return rows on SQLite, hence the follow-up query.
+    let createdNotifications: any[] = [];
     try {
       await prisma.notification.createMany({
         data: inAppRecords,
       });
+
+      if (inAppUserIds.length > 0) {
+        createdNotifications = await prisma.notification.findMany({
+          where: {
+            userId: { in: inAppUserIds },
+            type,
+            // Exact timestamp of this batch — cannot match an earlier
+            // identical notification to the same user.
+            createdAt: batchCreatedAt,
+          },
+          include: {
+            actor: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+          },
+        });
+      }
     } catch (err) {
       console.error('[NotificationEngine] Failed to create in-app notifications:', err);
     }
 
+    // Realtime delivery, one event per recipient.
+    //
+    // This replaces relying on the project-wide SYSTEM_SYNC_PING below for
+    // notification delivery. That broadcast sends every recipient's title and
+    // message to all project subscribers, so users could see notifications
+    // addressed to other people. publishUserEvent requires an exact userId
+    // match, so each person only ever receives their own.
+    for (const n of createdNotifications) {
+      try {
+        syncEngine.publishUserEvent({
+          userId: n.userId,
+          eventType: 'NOTIFICATION_CREATED',
+          entityId: n.id,
+          entityType: 'SYSTEM',
+          data: { notification: n },
+          actor: actorId
+            ? { id: actorId, email: options.actorEmail || '', name: actorName || '' }
+            : undefined,
+        });
+      } catch (err) {
+        console.error('[NotificationEngine] Failed to publish realtime notification:', err);
+      }
+    }
+
     // 4. Real-Time Event Dispatch via Sync Engine
     if (projectId) {
+      // Board-level ping only. The notification's title, message and recipient
+      // list are deliberately NOT included: this event goes to every subscriber
+      // of the project, so including them let users read notifications
+      // addressed to other people. Notification content is delivered per-user
+      // via publishUserEvent above.
       syncEngine.publishProjectEvent({
         projectId,
         eventType: 'SYSTEM_SYNC_PING',
         entityType: 'SYSTEM',
         data: {
           notification: {
-            title,
-            message,
-            linkUrl,
             type,
-            recipientUserIds: targetUserIds,
+            recipientCount: targetUserIds.length,
             createdAt: new Date().toISOString(),
           },
         },

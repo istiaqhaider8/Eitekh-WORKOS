@@ -30,6 +30,7 @@ export type SyncEventType =
   | 'LEAVE_CREATED'
   | 'LEAVE_UPDATED'
   | 'LEAVE_DELETED'
+  | 'NOTIFICATION_CREATED'
   | 'SYSTEM_SYNC_PING';
 
 const staticTextEncoder = new TextEncoder();
@@ -213,8 +214,13 @@ class RealtimeSyncEngine {
     const encoded = staticTextEncoder.encode(sseMessage);
 
     // PROJECT-SCOPED DELIVERY ENFORCEMENT:
-    // Only deliver event to clients subscribed to this exact projectId (or Superadmin observers)
+    // Only deliver event to clients subscribed to this exact projectId (or Superadmin observers).
+    // Personal `USER:<id>` streams are excluded entirely — including for
+    // Superadmins — so a notifications-only connection never receives project
+    // traffic it did not subscribe to.
     for (const [clientId, client] of this.clients.entries()) {
+      const isUserScopedStream = client.projectId.startsWith('USER:');
+      if (isUserScopedStream) continue;
       if (client.projectId === params.projectId || client.isSuperAdmin) {
         try {
           client.controller.enqueue(encoded);
@@ -253,6 +259,80 @@ class RealtimeSyncEngine {
       projectId: params.projectId,
       deliveredCount,
       totalSubscribers: this.clients.size,
+    });
+
+    return payload;
+  }
+
+  /**
+   * Delivers an event to a single user's own connections, on every stream that
+   * user has open (project streams and the header's user stream alike).
+   *
+   * Isolation: delivery requires an exact `client.userId` match. Unlike
+   * `publishProjectEvent` there is deliberately no Superadmin fan-out, because
+   * a notification is addressed to one person — a Superadmin has no reason to
+   * receive another user's personal notifications on their own stream.
+   */
+  public publishUserEvent(params: {
+    userId: string;
+    eventType: SyncEventType;
+    entityId?: string;
+    entityType?: SyncEventPayload['entityType'];
+    data?: any;
+    actor?: { id: string; email: string; name?: string };
+    sourceModule?: string;
+  }): SyncEventPayload {
+    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const timestamp = new Date().toISOString();
+
+    const payload: SyncEventPayload = {
+      eventId,
+      eventType: params.eventType,
+      // User-scoped events are not tied to a project board.
+      projectId: `USER:${params.userId}`,
+      entityId: params.entityId,
+      entityType: params.entityType,
+      data: params.data,
+      actor: params.actor,
+      sourceModule: params.sourceModule || 'Notifications',
+      targetModules: ['Notifications'],
+      timestamp,
+    };
+
+    const sseMessage = `id: ${eventId}\nevent: message\ndata: ${JSON.stringify(payload)}\n\n`;
+    const encoded = staticTextEncoder.encode(sseMessage);
+
+    let deliveredCount = 0;
+    let failedCount = 0;
+
+    for (const [clientId, client] of this.clients.entries()) {
+      if (client.userId !== params.userId) continue;
+      try {
+        client.controller.enqueue(encoded);
+        deliveredCount++;
+      } catch (err: any) {
+        failedCount++;
+        logger.error('SYNC_DELIVERY_FAILED', `Failed to deliver user event ${eventId} to client ${clientId}`, {
+          clientId,
+          error: err.message,
+        });
+        try {
+          client.controller.close();
+        } catch (_) {}
+        this.clients.delete(clientId);
+      }
+    }
+
+    this.totalEventsProcessed++;
+    if (failedCount > 0) this.totalEventsFailed += failedCount;
+
+    this.recordEventLog({
+      ...payload,
+      recipientsCount: deliveredCount,
+      deliveryStatus: deliveredCount > 0 ? 'DELIVERED' : 'NO_SUBSCRIBERS',
+      databaseStatus: 'COMMITTED',
+      retryCount: 0,
+      errorMessage: failedCount > 0 ? `${failedCount} client deliver(ies) failed` : undefined,
     });
 
     return payload;

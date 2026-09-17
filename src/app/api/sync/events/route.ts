@@ -19,7 +19,20 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     let projectId = searchParams.get('projectId');
 
-    if (!projectId) {
+    // scope=user opens a personal stream for notifications (used by the app
+    // header, which renders on pages that have no project context).
+    //
+    // It carries NO project authority: the client is registered against the
+    // sentinel `USER:<id>`, which can never equal a real projectId, so
+    // publishProjectEvent will not match it. Only publishUserEvent, which
+    // requires an exact userId match, reaches this stream. A Superadmin asking
+    // for scope=user gets their own personal stream rather than the
+    // GLOBAL_MONITOR firehose, so it stays usable for notifications.
+    const scope = searchParams.get('scope');
+
+    if (scope === 'user') {
+      projectId = `USER:${user.id}`;
+    } else if (!projectId) {
       if (user.isSuperAdmin) {
         projectId = 'GLOBAL_MONITOR';
       } else {

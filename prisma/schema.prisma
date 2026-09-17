@@ -47,6 +47,7 @@ model User {
   timeEntries          TimeEntry[]
   watchers             Watcher[]
   notifications        Notification[]
+  triggeredNotifications Notification[] @relation("NotificationActor")
   activityLogs         ActivityLog[]
   attachments          Attachment[]
   leaves               Leave[]
@@ -670,6 +671,10 @@ model RecurringTask {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
+  // Who caused this notification, when it was a person rather than the system.
+  // Nullable: system notifications have no actor, and rows created before this
+  // column existed have none either. Used to show the actor's avatar.
+  actorId   String?
   title     String
   message   String
   linkUrl   String?
@@ -677,11 +682,15 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // SetNull, not Cascade: deleting a user must not delete notifications sent
+  // to other people just because that user triggered them.
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([userId, isRead])
   @@index([userId, createdAt])
+  @@index([actorId])
 }
 
 model FeatureFlag {

@@ -47,6 +47,19 @@ export async function GET(req: Request) {
     const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where: whereClause,
+        // Explicit select on the actor relation — never `actor: true`, which
+        // would pull passwordHash/mfaSecret into a client response.
+        include: {
+          actor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,

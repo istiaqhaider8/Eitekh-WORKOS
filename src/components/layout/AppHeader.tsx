@@ -163,15 +163,74 @@ export function AppHeader({
     fetchRef.current = fetchNotifications;
   }, [fetchNotifications]);
 
+  // Realtime notifications over the existing SSE sync engine.
+  //
+  // scope=user opens a personal stream (see /api/sync/events): it carries no
+  // project authority and only receives events published with an exact userId
+  // match, so tenant isolation is preserved. This runs on every page, which is
+  // why it cannot reuse the project-scoped stream ProjectClient opens.
+  const [sseConnected, setSseConnected] = useState(false);
+
   useEffect(() => {
-    if (!showNotifications) return;
+    if (!currentUser?.id) return;
+
+    let es: EventSource | null = null;
+    let reconnectTimer: any = null;
+    let closed = false;
+
+    const connect = () => {
+      if (closed) return;
+      es = new EventSource("/api/sync/events?scope=user");
+
+      es.onopen = () => setSseConnected(true);
+
+      es.onmessage = (evt) => {
+        try {
+          const payload = JSON.parse(evt.data);
+          if (payload?.eventType !== "NOTIFICATION_CREATED") return;
+          const n = payload?.data?.notification;
+          if (!n?.id) return;
+
+          // Prepend without a refetch, and only if we do not already have it
+          // (a poll may have raced the event in).
+          setNotifications((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev]));
+          if (!n.isRead) setUnreadCount((prev) => prev + 1);
+        } catch {
+          /* ignore malformed frames */
+        }
+      };
+
+      es.onerror = () => {
+        setSseConnected(false);
+        es?.close();
+        es = null;
+        // EventSource auto-reconnects, but it is closed above on error to
+        // avoid a tight loop when the endpoint returns a hard failure.
+        if (!closed) reconnectTimer = setTimeout(connect, 10000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      es?.close();
+      setSseConnected(false);
+    };
+  }, [currentUser?.id]);
+
+  // Fallback polling only while the realtime stream is down. With SSE healthy
+  // this stops the site-wide 30s poll that previously ran for every user on
+  // every page.
+  useEffect(() => {
+    if (!showNotifications || sseConnected) return;
     const interval = setInterval(() => {
-      // Skip polling while the tab is hidden — it is wasted load.
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       fetchRef.current();
     }, 30000);
     return () => clearInterval(interval);
-  }, [showNotifications]);
+  }, [showNotifications, sseConnected]);
 
   // All mutations below previously updated local state without checking the
   // response, so a failed request still looked like it had worked — then the
@@ -268,6 +327,68 @@ export function AppHeader({
     setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
     setUnreadCount((prev) => data.unreadCount ?? Math.max(0, prev - unreadSelected));
     setSelectedIds(new Set());
+  };
+
+  /**
+   * Shows the actor's avatar when a person triggered the notification, and
+   * falls back to the type icon for system-generated ones (which have no
+   * actor). The type icon is kept as a small badge so the kind of event is
+   * still identifiable at a glance.
+   */
+  const renderNotificationAvatar = (n: any) => {
+    const actor = n.actor;
+    if (!actor) return getNotificationIcon(n.type);
+
+    const name = `${actor.firstName || ""} ${actor.lastName || ""}`.trim() || actor.email || "";
+    const initials =
+      `${(actor.firstName || actor.email || "?")[0] || ""}${(actor.lastName || "")[0] || ""}`
+        .toUpperCase() || "?";
+
+    return (
+      <div className="relative" title={name}>
+        {actor.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={actor.avatarUrl}
+            alt={name}
+            className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+          />
+        ) : (
+          <span
+            aria-label={name}
+            className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-900"
+          >
+            {initials}
+          </span>
+        )}
+        <span className="absolute -bottom-1 -right-1 text-[8px] leading-none">
+          {getNotificationTypeGlyph(n.type)}
+        </span>
+      </div>
+    );
+  };
+
+  const getNotificationTypeGlyph = (type: string) => {
+    switch (type) {
+      case "MENTION":
+        return "@";
+      case "ASSIGNMENT":
+      case "TEAM_ASSIGNMENT":
+        return "👤";
+      case "COMMENT":
+      case "REPLY":
+        return "💬";
+      case "STATUS":
+      case "PRIORITY":
+        return "🔄";
+      case "DUE_DATE":
+      case "OVERDUE":
+        return "⏰";
+      case "SPRINT":
+        return "🏃";
+      default:
+        return "";
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -657,7 +778,7 @@ export function AppHeader({
                           aria-label="Select notification"
                         />
                         <div className="shrink-0 mt-0.5">
-                          {getNotificationIcon(n.type)}
+                          {renderNotificationAvatar(n)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
