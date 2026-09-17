@@ -56,22 +56,54 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Detect @mentions (e.g. @sarah or @marcus) and notify mentioned users
     const mentions = content.match(/@([a-zA-Z0-9_.-]+)/g);
     if (mentions && issue) {
+      // Mentions are resolved against this project's members only.
+      //
+      // The previous implementation searched every user in the system, so a
+      // name collision could have delivered the comment text to someone in
+      // another organization. Scoping to project members keeps mention
+      // notifications inside the tenant that owns the issue.
+      //
+      // It also replaces a per-mention query (two queries per @token) with a
+      // single fetch plus in-memory matching.
+      const projectMembers = await prisma.projectMember.findMany({
+        where: { projectId: issue.projectId },
+        select: {
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true },
+          },
+        },
+      });
+
+      // Case-insensitive matching is done in JS because Prisma's
+      // `mode: 'insensitive'` is not supported on SQLite. The old code
+      // lowercased the token and compared it to the stored value with
+      // `equals`, so "@alex" never matched a firstName of "Alex" — meaning
+      // mention notifications never fired at all.
+      const normalize = (v?: string | null) => (v || "").trim().toLowerCase();
+
+      const matchMention = (token: string) => {
+        const t = normalize(token);
+        return projectMembers.find(({ user: m }) => {
+          if (!m) return false;
+          const emailLocalPart = normalize(m.email).split("@")[0];
+          const full = `${normalize(m.firstName)}${normalize(m.lastName)}`;
+          return (
+            normalize(m.email) === t ||
+            emailLocalPart === t ||
+            normalize(m.firstName) === t ||
+            normalize(m.lastName) === t ||
+            full === t.replace(/[._-]/g, "")
+          );
+        })?.user;
+      };
+
+      // De-duplicate so "@alex @alex" notifies once.
+      const notifiedUserIds = new Set<string>();
+
       for (const mention of mentions) {
-        const username = mention.slice(1).toLowerCase();
-        let mentionedUser = await prisma.user.findFirst({
-          where: { email: { equals: username } },
-        });
-        
-        if (!mentionedUser) {
-          mentionedUser = await prisma.user.findFirst({
-            where: {
-              OR: [
-                { firstName: { equals: username } },
-                { lastName: { equals: username } },
-              ],
-            },
-          });
-        }
+        const mentionedUser = matchMention(mention.slice(1));
+        if (mentionedUser && notifiedUserIds.has(mentionedUser.id)) continue;
+        if (mentionedUser) notifiedUserIds.add(mentionedUser.id);
         if (mentionedUser && mentionedUser.id !== user.id) {
           const { notificationEngine } = await import("@/lib/notifications");
           await notificationEngine.dispatch({
