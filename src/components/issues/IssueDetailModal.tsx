@@ -1634,30 +1634,11 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               Type <span className="text-rose-500 font-bold">*</span>
                             </label>
                           </div>
-                          {!isViewer && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTypeModalTab("ADD");
-                                setShowAddTypeModal(true);
-                              }}
-                              className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer flex items-center gap-0.5"
-                              title="Add, edit, or delete issue types for this project"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              <span>Add</span>
-                            </button>
-                          )}
                         </div>
                         <select
                           disabled={isViewer}
                           value={draftIssueType}
                           onChange={(e) => {
-                            if (e.target.value === "__ADD_TYPE__") {
-                              setTypeModalTab("ADD");
-                              setShowAddTypeModal(true);
-                              return;
-                            }
                             setDraftIssueType(e.target.value);
                             setHasChanges(true);
                           }}
@@ -1691,27 +1672,12 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               Status <span className="text-rose-500 font-bold">*</span>
                             </label>
                           </div>
-                          {!isViewer && (
-                            <button
-                              type="button"
-                              onClick={() => setShowAddStatusModal(true)}
-                              className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer flex items-center gap-0.5"
-                              title="Add custom status to this project (applicable to all tasks)"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              <span>Add</span>
-                            </button>
-                          )}
                         </div>
                         {projectStatuses.length > 0 ? (
                           <select
                             disabled={isViewer}
                             value={draftStatusId}
                             onChange={(e) => {
-                              if (e.target.value === "__ADD_STATUS__") {
-                                setShowAddStatusModal(true);
-                                return;
-                              }
                               setDraftStatusId(e.target.value);
                               setHasChanges(true);
                             }}
@@ -1758,26 +1724,11 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               Priority <span className="text-rose-500 font-bold">*</span>
                             </label>
                           </div>
-                          {!isViewer && (
-                            <button
-                              type="button"
-                              onClick={() => setShowAddPriorityModal(true)}
-                              className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer flex items-center gap-0.5"
-                              title="Add custom priority to this project (applicable to all tasks)"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              <span>Add</span>
-                            </button>
-                          )}
                         </div>
                         <select
                           disabled={isViewer}
                           value={draftPriority}
                           onChange={(e) => {
-                            if (e.target.value === "__ADD_PRIORITY__") {
-                              setShowAddPriorityModal(true);
-                              return;
-                            }
                             setDraftPriority(e.target.value);
                             setHasChanges(true);
                           }}

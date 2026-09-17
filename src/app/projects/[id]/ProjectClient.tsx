@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { KanbanBoardView } from "@/components/views/KanbanBoardView";
@@ -75,6 +75,17 @@ export function ProjectClient({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [lastSyncTimestamp, setLastSyncTimestamp] = useState<number>(Date.now());
+
+  // Deep link support: notifications and emails link to
+  // /projects/<projectId>?issue=<issueId> and expect that issue to open.
+  // The backend has always generated these links; without this the param was
+  // ignored and the user landed on the board with nothing opened.
+  const searchParams = useSearchParams();
+  const deepLinkIssueId = searchParams.get("issue");
+
+  useEffect(() => {
+    if (deepLinkIssueId) setSelectedIssueId(deepLinkIssueId);
+  }, [deepLinkIssueId]);
 
   const fetchAvailability = useCallback(async () => {
     if (!project?.id) return;
@@ -1530,6 +1541,9 @@ export function ProjectClient({
         onClose={() => {
           setSelectedIssueId(null);
           setCreateInitialStatusId(null);
+          // Drop ?issue= so a refresh (or closing and reopening) does not
+          // immediately re-open the issue the deep link pointed at.
+          if (deepLinkIssueId) router.replace(`/projects/${currentProject.id}`);
         }}
         onIssueUpdated={refreshIssues}
       />

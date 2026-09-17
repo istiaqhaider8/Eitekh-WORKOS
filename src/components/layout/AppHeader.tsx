@@ -23,10 +23,12 @@ import {
   X,
   Info,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { showError } from "@/lib/toast";
 
 interface AppHeaderProps {
   currentUser: any;
@@ -57,6 +59,8 @@ export function AppHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationTab, setNotificationTab] = useState<"all" | "unread" | "mentions" | "assignments" | "system">("all");
   const [notificationSearch, setNotificationSearch] = useState("");
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifError, setNotifError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -104,23 +108,44 @@ export function AppHeader({
     });
   };
 
+  // Debounced search term. Without this, every keystroke in the filter box
+  // fired a request and responses could land out of order, so the list
+  // flickered and showed results for a term the user had already edited.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(notificationSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [notificationSearch]);
+
+  // Guards against a slow earlier response overwriting a newer one.
+  const fetchSeqRef = useRef(0);
+
   const fetchNotifications = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
+    setNotifLoading(true);
+    setNotifError(null);
     try {
       const params = new URLSearchParams();
       if (notificationTab !== "all") params.set("filter", notificationTab);
-      if (notificationSearch.trim()) params.set("search", notificationSearch.trim());
+      if (debouncedSearch) params.set("search", debouncedSearch);
       params.set("limit", "30");
 
       const res = await fetch(`/api/notifications?${params.toString()}`);
+      if (seq !== fetchSeqRef.current) return; // a newer request superseded this one
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
+      } else {
+        setNotifError("Couldn't load notifications.");
       }
     } catch (e) {
       console.error(e);
+      if (seq === fetchSeqRef.current) setNotifError("Couldn't load notifications.");
+    } finally {
+      if (seq === fetchSeqRef.current) setNotifLoading(false);
     }
-  }, [notificationTab, notificationSearch]);
+  }, [notificationTab, debouncedSearch]);
 
   useEffect(() => {
     fetchNotifications();
@@ -129,71 +154,84 @@ export function AppHeader({
   useEffect(() => {
     if (!showNotifications) return;
     setSelectedIds(new Set());
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [showNotifications, fetchNotifications]);
+  }, [showNotifications]);
 
-  const markAllAsRead = async () => {
+  // Polling is kept in its own effect with a ref so that changing the tab or
+  // typing in the filter no longer tears down and recreates the interval.
+  const fetchRef = useRef(fetchNotifications);
+  useEffect(() => {
+    fetchRef.current = fetchNotifications;
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    const interval = setInterval(() => {
+      // Skip polling while the tab is hidden — it is wasted load.
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      fetchRef.current();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [showNotifications]);
+
+  // All mutations below previously updated local state without checking the
+  // response, so a failed request still looked like it had worked — then the
+  // next poll silently reverted it. They now verify the response and use the
+  // authoritative unreadCount the API returns instead of guessing locally.
+  const notifyRequest = async (method: "PATCH" | "DELETE", body: any, failMsg: string) => {
     try {
-      await fetch("/api/notifications", {
-        method: "PATCH",
+      const res = await fetch("/api/notifications", {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markAllRead: true }),
+        body: JSON.stringify(body),
       });
-      setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      if (!res.ok) {
+        showError(failMsg);
+        return null;
+      }
+      return await res.json().catch(() => ({}));
     } catch (e) {
       console.error(e);
+      showError(failMsg);
+      return null;
     }
+  };
+
+  const markAllAsRead = async () => {
+    const data = await notifyRequest("PATCH", { markAllRead: true }, "Couldn't mark notifications as read.");
+    if (!data) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(data.unreadCount ?? 0);
   };
 
   const markAsRead = async (id: string) => {
-    try {
-      await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (e) {
-      console.error(e);
-    }
+    const data = await notifyRequest("PATCH", { id }, "Couldn't mark that notification as read.");
+    if (!data) return;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    setUnreadCount((prev) => data.unreadCount ?? Math.max(0, prev - 1));
   };
 
   const clearAllNotifications = async () => {
-    try {
-      await fetch("/api/notifications", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clearAll: true }),
-      });
-      setNotifications([]);
-      setUnreadCount(0);
-    } catch (e) {
-      console.error(e);
-    }
+    const data = await notifyRequest("DELETE", { clearAll: true }, "Couldn't clear notifications.");
+    if (!data) return;
+    setNotifications([]);
+    setUnreadCount(data.unreadCount ?? 0);
+    setSelectedIds(new Set());
   };
 
   const deleteNotification = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await fetch("/api/notifications", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      setUnreadCount((prev) => {
-        const item = notifications.find((n) => n.id === id);
-        return item && !item.isRead ? Math.max(0, prev - 1) : prev;
-      });
-    } catch (err) {
-      console.error(err);
-    }
+    const wasUnread = notifications.some((n) => n.id === id && !n.isRead);
+    const data = await notifyRequest("DELETE", { id }, "Couldn't delete that notification.");
+    if (!data) return;
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setUnreadCount((prev) => data.unreadCount ?? (wasUnread ? Math.max(0, prev - 1) : prev));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
@@ -212,36 +250,24 @@ export function AppHeader({
 
   const markSelectedAsRead = async () => {
     const ids = Array.from(selectedIds);
-    try {
-      await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      const unreadSelected = notifications.filter((n) => ids.includes(n.id) && !n.isRead).length;
-      setNotifications((prev) => prev.map((n) => ids.includes(n.id) ? { ...n, isRead: true } : n));
-      setUnreadCount((prev) => Math.max(0, prev - unreadSelected));
-      setSelectedIds(new Set());
-    } catch (err) {
-      console.error(err);
-    }
+    if (ids.length === 0) return;
+    const unreadSelected = notifications.filter((n) => ids.includes(n.id) && !n.isRead).length;
+    const data = await notifyRequest("PATCH", { ids }, "Couldn't mark the selected notifications as read.");
+    if (!data) return;
+    setNotifications((prev) => prev.map((n) => ids.includes(n.id) ? { ...n, isRead: true } : n));
+    setUnreadCount((prev) => data.unreadCount ?? Math.max(0, prev - unreadSelected));
+    setSelectedIds(new Set());
   };
 
   const deleteSelected = async () => {
     const ids = Array.from(selectedIds);
-    try {
-      await fetch("/api/notifications", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      const unreadSelected = notifications.filter((n) => ids.includes(n.id) && !n.isRead).length;
-      setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
-      setUnreadCount((prev) => Math.max(0, prev - unreadSelected));
-      setSelectedIds(new Set());
-    } catch (err) {
-      console.error(err);
-    }
+    if (ids.length === 0) return;
+    const unreadSelected = notifications.filter((n) => ids.includes(n.id) && !n.isRead).length;
+    const data = await notifyRequest("DELETE", { ids }, "Couldn't delete the selected notifications.");
+    if (!data) return;
+    setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+    setUnreadCount((prev) => data.unreadCount ?? Math.max(0, prev - unreadSelected));
+    setSelectedIds(new Set());
   };
 
   const getNotificationIcon = (type: string) => {
@@ -584,7 +610,23 @@ export function AppHeader({
 
               {/* Notification Items List */}
               <div className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 max-h-72">
-                {notifications.length === 0 ? (
+                {notifError ? (
+                  <div className="py-8 text-center space-y-2">
+                    <p className="text-xs text-rose-600 dark:text-rose-400">{notifError}</p>
+                    <button
+                      type="button"
+                      onClick={() => fetchNotifications()}
+                      className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : notifLoading && notifications.length === 0 ? (
+                  <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Loading notifications…</span>
+                  </div>
+                ) : notifications.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-400">
                     {notificationSearch
                       ? "No matching notifications found"
