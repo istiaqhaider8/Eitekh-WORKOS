@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { issueCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
+import { deliverIssueWebhook } from "@/lib/webhooks";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -432,6 +433,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     } catch (syncErr) {
       console.error("Real-time sync event error:", syncErr);
     }
+
+    // Outbound webhook delivery. dispatchWebhook() existed but nothing ever
+    // called it, so registered webhooks silently never fired.
+    await deliverIssueWebhook("issue.created", projectId, issueToReturn);
 
     return NextResponse.json({ issue: issueToReturn }, { status: 201 });
   } catch (error: any) {

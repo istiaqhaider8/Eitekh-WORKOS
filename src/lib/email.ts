@@ -490,6 +490,7 @@ export async function sendEmail({
       logger.error(
         "EMAIL_SMTP_NOT_CONFIGURED",
         `SMTP is not configured in production; refusing to silently drop email to ${to}`,
+        undefined,
         { to, subject, templateKey: templateKey || null }
       );
       status = "FAILED";
@@ -522,11 +523,7 @@ export async function sendEmail({
     // The email audit trail is the only durable record that a send happened, so
     // losing it silently is how "0 FAILED rows" became indistinguishable from
     // "nothing ever failed". Surface it instead of swallowing it.
-    logger.error("EMAIL_LOG_WRITE_FAILED", `Failed to write emailLog row for ${to}`, {
-      to,
-      status,
-      error: e?.message,
-    });
+    logger.error("EMAIL_LOG_WRITE_FAILED", `Failed to write emailLog row for ${to}`, e, { to, status });
   }
 
   return {

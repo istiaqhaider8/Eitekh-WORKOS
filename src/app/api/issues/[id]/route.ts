@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { issueUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
+import { deliverIssueWebhook } from "@/lib/webhooks";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -564,6 +565,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       console.error("Real-time sync error:", syncErr);
     }
 
+    await deliverIssueWebhook("issue.updated", currentIssue.projectId, updatedIssue);
+
     const { logAuditEvent } = await import("@/lib/audit-logger");
     await logAuditEvent({
       actor: { id: user.id, name: `${user.firstName} ${user.lastName}`.trim(), email: user.email },
@@ -654,6 +657,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     } catch (syncErr) {
       console.error("Real-time sync error:", syncErr);
     }
+
+    await deliverIssueWebhook("issue.deleted", issue.projectId, { id, issueKey: issue.issueKey });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
