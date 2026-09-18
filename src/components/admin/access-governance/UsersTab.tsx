@@ -350,8 +350,8 @@ export function UsersTab({
         </div>
 
         {selectedUserIds.length > 0 && (
-          <div className="flex items-center gap-2 bg-indigo-600/10 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs animate-in fade-in">
-            <span className="font-bold text-indigo-300">{selectedUserIds.length} user(s) selected</span>
+          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs animate-in fade-in">
+            <span className="font-bold text-indigo-700">{selectedUserIds.length} user(s) selected</span>
             <button
               onClick={handleOpenBulkAssign}
               className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold shadow-sm"
@@ -485,7 +485,7 @@ export function UsersTab({
                     <tr
                       key={u.id}
                       className={`hover:bg-slate-50 transition-colors ${
-                        isSelected ? 'bg-indigo-600/5' : ''
+                        isSelected ? 'bg-indigo-50' : ''
                       }`}
                     >
                       <td className="p-3 text-center">
@@ -515,7 +515,7 @@ export function UsersTab({
                             u.assignedRoles.map((r: any) => (
                               <span
                                 key={r.id}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold rounded text-[10px] group"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold rounded text-[10px] group"
                               >
                                 {r.name}
                                 <button
@@ -539,7 +539,7 @@ export function UsersTab({
                               onClick={() =>
                                 setInlineDropdownUserId(inlineDropdownUserId === u.id ? null : u.id)
                               }
-                              className="px-2 py-0.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded text-[10px] font-bold flex items-center gap-1 transition-colors"
+                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors"
                             >
                               + Assign Role
                             </button>
@@ -559,7 +559,7 @@ export function UsersTab({
                                     <button
                                       key={r.id}
                                       onClick={() => handleAssignRoleInline(u.id, r.id)}
-                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-600/20 hover:text-indigo-200 text-slate-700 dark:text-slate-300 rounded text-xs flex items-center justify-between transition-colors"
+                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-100 hover:text-indigo-800 text-slate-700 dark:text-slate-300 rounded text-xs flex items-center justify-between transition-colors"
                                     >
                                       <span className="font-semibold">{r.name}</span>
                                       <span className="text-[10px] text-slate-500 font-mono">
@@ -598,8 +598,8 @@ export function UsersTab({
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             u.status === 'ACTIVE'
-                              ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-50 text-rose-600 border border-rose-200'
                           }`}
                         >
                           {u.status}
@@ -610,7 +610,7 @@ export function UsersTab({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenProfile(u)}
-                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm flex items-center gap-1 border border-indigo-500/50"
+                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm flex items-center gap-1 border border-indigo-200"
                           >
                             <UserPlus className="w-3 h-3" />
                             Assign Roles
@@ -756,13 +756,13 @@ export function UsersTab({
               )}
 
               {simulation?.conflicts?.length > 0 && (
-                <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs space-y-1">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs space-y-1">
                   <div className="font-bold text-rose-600 flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     Conflict Warnings:
                   </div>
                   {simulation.conflicts.map((c: string, idx: number) => (
-                    <div key={idx} className="text-[11px] text-rose-300">• {c}</div>
+                    <div key={idx} className="text-[11px] text-rose-700">• {c}</div>
                   ))}
                 </div>
               )}
@@ -818,8 +818,8 @@ export function UsersTab({
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       selectedUserProfile.status === 'ACTIVE'
-                        ? 'bg-emerald-500/10 text-emerald-700'
-                        : 'bg-rose-500/10 text-rose-600'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'bg-rose-50 text-rose-600'
                     }`}
                   >
                     {selectedUserProfile.status}
@@ -841,7 +841,7 @@ export function UsersTab({
                   </h4>
                   <button
                     onClick={() => onInspectUser(selectedUserProfile.id)}
-                    className="text-xs text-indigo-600 hover:text-indigo-300 font-semibold flex items-center gap-1"
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     Inspect Effective Access
@@ -902,7 +902,7 @@ export function UsersTab({
 
                         <button
                           onClick={() => handleRemoveRoleFromUserProfile(role.id, role.name)}
-                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-500/10 rounded"
+                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded"
                           title="Remove Role"
                         >
                           <X className="w-4 h-4" />

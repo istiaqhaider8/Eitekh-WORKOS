@@ -172,7 +172,7 @@ export function PlatformReportsHubView() {
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-500 text-[10px] uppercase font-semibold">Sync Success Rate</span>
-              <div className="text-lg font-bold text-teal-400">{reportData.syncMetrics?.successRate || 100}%</div>
+              <div className="text-lg font-bold text-teal-700">{reportData.syncMetrics?.successRate || 100}%</div>
               <p className="text-[10px] text-slate-500">0 events dropped</p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export function PlatformReportsHubView() {
                       <tr key={l.id}>
                         <td className="p-2.5 text-slate-600 dark:text-slate-400 text-[11px]">{new Date(l.createdAt).toLocaleTimeString()}</td>
                         <td className="p-2.5 font-semibold text-slate-800 dark:text-slate-200">{l.action}</td>
-                        <td className="p-2.5 text-indigo-300">{l.targetResource}</td>
+                        <td className="p-2.5 text-indigo-700">{l.targetResource}</td>
                         <td className="p-2.5 text-slate-600 dark:text-slate-400 font-mono text-[11px]">{l.actorId.slice(0, 10)}...</td>
                       </tr>
                     ))}

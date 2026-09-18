@@ -419,7 +419,7 @@ export function PlatformUserDirectoryView({
               <Users className="w-5 h-5 text-indigo-600" />
               Platform User Directory & Identity Governance
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
               {totalRecords} Accounts
             </span>
           </div>
@@ -571,14 +571,14 @@ export function PlatformUserDirectoryView({
                       {/* Name & Identity */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-300">
+                          <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-[10px] font-bold text-indigo-700">
                             {initials}
                           </div>
                           <div>
                             <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                               <span>{u.firstName} {u.lastName}</span>
                               {u.id === currentUserId && (
-                                <span className="text-[9px] px-1 bg-indigo-500/20 text-indigo-300 rounded font-normal">
+                                <span className="text-[9px] px-1 bg-indigo-50 text-indigo-700 rounded font-normal">
                                   You
                                 </span>
                               )}
@@ -611,7 +611,7 @@ export function PlatformUserDirectoryView({
                       {/* Authority */}
                       <td className="p-3.5">
                         {u.isSuperAdmin ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold">
                             <Shield className="w-3 h-3 text-indigo-600" />
                             SUPER ADMIN
                           </span>
@@ -658,8 +658,8 @@ export function PlatformUserDirectoryView({
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             isSusp
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           }`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${isSusp ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
@@ -673,7 +673,7 @@ export function PlatformUserDirectoryView({
                           {/* Set Password Button */}
                           <button
                             onClick={() => handleOpenPassword(u)}
-                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-amber-700 hover:text-amber-800 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                             title="Set or Reset Password"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -693,8 +693,8 @@ export function PlatformUserDirectoryView({
                             onClick={() => handleToggleStatus(u)}
                             className={`px-2 py-1 rounded text-[10px] font-semibold border transition-colors ${
                               isSusp
-                                ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-600 border-rose-500/30 hover:bg-rose-500/20'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
                             }`}
                             title={isSusp ? 'Reactivate Account' : 'Suspend Account'}
                           >
@@ -705,7 +705,7 @@ export function PlatformUserDirectoryView({
                           <button
                             onClick={() => handleOpenDelete(u)}
                             disabled={u.id === currentUserId}
-                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-900/40 text-slate-600 dark:text-slate-400 hover:text-rose-300 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 disabled:opacity-30 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 text-slate-600 dark:text-slate-400 hover:text-rose-800 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 disabled:opacity-30 transition-colors"
                             title={u.id === currentUserId ? 'Cannot delete current session' : 'Delete Account'}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -839,7 +839,7 @@ export function PlatformUserDirectoryView({
                       const pwd = 'Eitekh#' + Math.floor(1000 + Math.random() * 9000) + '!kL';
                       setCreateForm({ ...createForm, password: pwd });
                     }}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-300 flex items-center gap-1"
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>Generate</span>
@@ -1093,7 +1093,7 @@ export function PlatformUserDirectoryView({
                   <button
                     type="button"
                     onClick={generateStrongPassword}
-                    className="text-[11px] text-amber-700 hover:text-amber-300 font-semibold flex items-center gap-1 transition-colors"
+                    className="text-[11px] text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 transition-colors"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>Generate Strong Password</span>
@@ -1206,7 +1206,7 @@ export function PlatformUserDirectoryView({
             <p className="text-xs text-slate-700 dark:text-slate-300">
               Are you sure you want to permanently delete user account <strong className="text-white">{selectedUser.email}</strong>?
             </p>
-            <p className="text-xs text-rose-400/90 bg-rose-950/40 p-2.5 rounded-lg border border-rose-900/50">
+            <p className="text-xs text-rose-400/90 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
               Warning: This action is irreversible. All sessions, workspace memberships, and project bindings will be removed.
             </p>
 

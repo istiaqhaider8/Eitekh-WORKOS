@@ -149,9 +149,9 @@ export function SecurityCenterView() {
                   key={al.id}
                   className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isCrit
-                      ? 'bg-rose-950/20 border-rose-500/30 text-rose-200'
+                      ? 'bg-rose-50 border-rose-200 text-rose-700'
                       : isHigh
-                      ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                      ? 'bg-amber-50 border-amber-200 text-amber-700'
                       : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
                   }`}
                 >
@@ -160,10 +160,10 @@ export function SecurityCenterView() {
                       <span
                         className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
                           isCrit
-                            ? 'bg-rose-500/20 text-rose-300'
+                            ? 'bg-rose-50 text-rose-700'
                             : isHigh
-                            ? 'bg-amber-500/20 text-amber-300'
-                            : 'bg-blue-500/20 text-blue-300'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-blue-50 text-blue-700'
                         }`}
                       >
                         {al.severity}
@@ -208,7 +208,7 @@ export function SecurityCenterView() {
                     <div className="font-semibold text-slate-900 dark:text-slate-100">{s.userName}</div>
                     <div className="text-[10px] text-slate-600 dark:text-slate-400">{s.userEmail}</div>
                   </td>
-                  <td className="p-3 font-mono text-[11px] text-indigo-300">{s.ipAddress}</td>
+                  <td className="p-3 font-mono text-[11px] text-indigo-700">{s.ipAddress}</td>
                   <td className="p-3 text-slate-700 dark:text-slate-300">{s.browser} on {s.os}</td>
                   <td className="p-3 text-slate-600 dark:text-slate-400">{s.location}</td>
                   <td className="p-3 text-slate-600 dark:text-slate-400">{new Date(s.lastActiveAt).toLocaleTimeString()}</td>
@@ -216,7 +216,7 @@ export function SecurityCenterView() {
                     <button
                       onClick={() => handleSecurityAction({ action: 'REVOKE_SESSION', sessionId: s.id })}
                       disabled={actionLoading}
-                      className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-500/30 rounded text-[10px] font-semibold"
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded text-[10px] font-semibold"
                     >
                       Revoke
                     </button>

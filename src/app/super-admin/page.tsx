@@ -593,7 +593,7 @@ export default function SuperAdminCommandCenterPage() {
                 <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   Eitekh Platform Command Center
                 </h1>
-                <span className="px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider leading-none shadow-sm">
+                <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 rounded text-[10px] font-bold uppercase tracking-wider leading-none shadow-sm">
                   ROOT
                 </span>
               </div>
@@ -697,7 +697,7 @@ export default function SuperAdminCommandCenterPage() {
                   window.history.replaceState(null, "", "?tab=cache");
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
               title="System Refresh & Cache Management"
             >
               <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -744,7 +744,7 @@ export default function SuperAdminCommandCenterPage() {
                   window.history.replaceState(null, "", `?tab=${item.tab}`);
                 }
               }}
-              className={`cursor-pointer bg-white dark:bg-slate-900/90 bg-gradient-to-br ${item.bg} hover:border-indigo-500/50 dark:hover:border-indigo-500/50 border border-slate-200 dark:border-slate-800 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-sm dark:shadow-sm hover:scale-[1.02]`}
+              className={`cursor-pointer bg-white dark:bg-slate-900/90 bg-gradient-to-br ${item.bg} hover:border-indigo-200 dark:hover:border-indigo-500/50 border border-slate-200 dark:border-slate-800 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-sm dark:shadow-sm hover:scale-[1.02]`}
             >
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">{item.label}</span>
               <div className={`text-lg font-bold ${item.color}`}>{item.value}</div>
@@ -797,7 +797,7 @@ export default function SuperAdminCommandCenterPage() {
                 aria-selected={isActive}
                 // focus-visible (not focus) so keyboard users get a clear ring
                 // while a mouse click does not leave one behind.
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-900 ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-900 ${
                   isActive
                     ? isCache
                       ? "bg-cyan-700 text-white shadow-sm font-bold"
@@ -810,7 +810,7 @@ export default function SuperAdminCommandCenterPage() {
                 <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : isCache ? "text-cyan-600 dark:text-cyan-400" : "text-slate-500 dark:text-slate-400"}`} />
                 <span>{tab.label}</span>
                 {tab.badge && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-500/40 uppercase">
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-cyan-50 text-cyan-700 dark:text-cyan-300 border border-cyan-200 uppercase">
                     {tab.badge}
                   </span>
                 )}
@@ -836,7 +836,7 @@ export default function SuperAdminCommandCenterPage() {
                       window.history.replaceState(null, "", "?tab=cache");
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/80 text-cyan-800 dark:text-cyan-300 rounded-lg text-xs font-bold border border-cyan-500/40 shadow-sm transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/80 text-cyan-800 dark:text-cyan-300 rounded-lg text-xs font-bold border border-cyan-200 shadow-sm transition-all cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>System Refresh & Cache</span>
@@ -857,28 +857,28 @@ export default function SuperAdminCommandCenterPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab("security-threats")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-500/30 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-300 rounded-lg text-xs font-semibold border border-rose-200 transition-all cursor-pointer"
                 >
                   <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                   <span>Threat Ops Queue</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("reports")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-500/30 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-200 transition-all cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Enterprise Reports Hub</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("sync")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded-lg text-xs font-semibold border border-emerald-500/30 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded-lg text-xs font-semibold border border-emerald-200 transition-all cursor-pointer"
                 >
                   <Radio className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>Sync Telemetry</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("health")}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold border border-purple-500/30 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold border border-purple-200 transition-all cursor-pointer"
                 >
                   <Server className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                   <span>Run Subsystem Probes</span>
@@ -908,7 +908,7 @@ export default function SuperAdminCommandCenterPage() {
                         <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{h.service}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 px-1.5 py-0.5 rounded">
                           {h.status}
                         </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">{h.latencyMs} ms</span>
@@ -938,7 +938,7 @@ export default function SuperAdminCommandCenterPage() {
                       <div key={log.id} className="p-3 bg-slate-50 dark:bg-slate-950/80 rounded-xl border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3 text-xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-bold rounded text-[10px]">
+                            <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 font-bold rounded text-[10px]">
                               {log.action}
                             </span>
                             <span className="text-slate-800 dark:text-slate-200 font-semibold">{log.targetResource}</span>
@@ -1017,7 +1017,7 @@ export default function SuperAdminCommandCenterPage() {
                         </div>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            isSuspended ? "bg-rose-500/20 text-rose-300" : "bg-emerald-500/20 text-emerald-300"
+                            isSuspended ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
                           }`}
                         >
                           {o.status}
@@ -1039,7 +1039,7 @@ export default function SuperAdminCommandCenterPage() {
                                 <span className="text-[10px] text-slate-500 font-mono">({w.projects?.length || w._count?.projects || 0} projects)</span>
                               </div>
                               {w.projects && w.projects.length > 0 && (
-                                <div className="pl-3 border-l-2 border-indigo-500/30 space-y-0.5 mt-1">
+                                <div className="pl-3 border-l-2 border-indigo-200 space-y-0.5 mt-1">
                                   {w.projects.map((p: any) => (
                                     <div key={p.id} className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400">
                                       <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
@@ -1087,7 +1087,7 @@ export default function SuperAdminCommandCenterPage() {
                             });
                             setShowEditOrgModal(true);
                           }}
-                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                           title="Edit Organization"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -1097,7 +1097,7 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveOrg(o);
                             setShowDeleteOrgModal(true);
                           }}
-                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer"
                           title="Delete Organization"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1106,8 +1106,8 @@ export default function SuperAdminCommandCenterPage() {
                           onClick={() => handleToggleOrgStatus(o.id, o.status)}
                           className={`px-2 py-1 rounded text-[11px] font-semibold border transition-colors cursor-pointer ${
                             isSuspended
-                              ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20"
-                              : "bg-rose-500/10 text-rose-600 border-rose-500/30 hover:bg-rose-500/20"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                              : "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
                           }`}
                         >
                           {isSuspended ? "Reactivate" : "Suspend"}
@@ -1168,7 +1168,7 @@ export default function SuperAdminCommandCenterPage() {
                       <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{flag.key}</span>
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          flag.isGlobalEnabled ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          flag.isGlobalEnabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                         }`}
                       >
                         {flag.isGlobalEnabled ? "ENABLED" : "DISABLED"}
@@ -1188,7 +1188,7 @@ export default function SuperAdminCommandCenterPage() {
                         });
                         setShowEditFlagModal(true);
                       }}
-                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
+                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
                       title="Edit Feature Flag"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -1198,7 +1198,7 @@ export default function SuperAdminCommandCenterPage() {
                         setActiveFlag(flag);
                         setShowDeleteFlagModal(true);
                       }}
-                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
+                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
                       title="Delete Feature Flag"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1618,9 +1618,9 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Delete Org Confirmation */}
       {showDeleteOrgModal && activeOrg && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
@@ -1789,9 +1789,9 @@ export default function SuperAdminCommandCenterPage() {
       {/* Modal: Delete Feature Flag Confirmation */}
       {showDeleteFlagModal && activeFlag && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>

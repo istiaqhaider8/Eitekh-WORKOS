@@ -168,7 +168,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
                     </td>
 
                     <td className="p-3">
-                      <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono font-semibold rounded text-[10px]">
+                      <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono font-semibold rounded text-[10px]">
                         {log.action}
                       </span>
                     </td>
@@ -179,7 +179,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
                     </td>
 
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {log.status}
                       </span>
                     </td>
@@ -221,7 +221,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
               <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div>
                   <span className="text-slate-500 block text-[10px]">Action</span>
-                  <strong className="text-indigo-300 font-mono">{selectedLog.action}</strong>
+                  <strong className="text-indigo-700 font-mono">{selectedLog.action}</strong>
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[10px]">Timestamp</span>

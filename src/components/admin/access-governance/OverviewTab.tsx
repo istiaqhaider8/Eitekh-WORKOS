@@ -49,7 +49,7 @@ export function OverviewTab({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div
           onClick={() => onNavigateTab('roles')}
-          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
+          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
             Permission Roles
@@ -65,7 +65,7 @@ export function OverviewTab({
 
         <div
           onClick={() => onNavigateTab('users')}
-          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
+          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
             Governed Users
@@ -79,7 +79,7 @@ export function OverviewTab({
 
         <div
           onClick={() => onNavigateTab('users')}
-          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
+          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
             Role Grants
@@ -93,7 +93,7 @@ export function OverviewTab({
 
         <div
           onClick={() => onNavigateTab('roles')}
-          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
+          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
             High-Risk Roles
@@ -107,7 +107,7 @@ export function OverviewTab({
 
         <div
           onClick={() => onNavigateTab('audit')}
-          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 p-4 rounded-xl transition-all space-y-1 col-span-2 sm:col-span-1 shadow-sm dark:shadow-sm"
+          className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 col-span-2 sm:col-span-1 shadow-sm dark:shadow-sm"
         >
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
             Audit Ledger
@@ -209,7 +209,7 @@ export function OverviewTab({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           onClick={() => onNavigateTab('roles')}
-          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/30 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
+          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
         >
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Manage Permission Roles</h4>
@@ -220,7 +220,7 @@ export function OverviewTab({
 
         <div
           onClick={() => onNavigateTab('users')}
-          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/30 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
+          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
         >
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Bulk User Role Assignment</h4>
@@ -231,7 +231,7 @@ export function OverviewTab({
 
         <div
           onClick={() => onNavigateTab('inspector')}
-          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/30 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
+          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
         >
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Effective Access Inspector</h4>

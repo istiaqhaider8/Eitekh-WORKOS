@@ -186,7 +186,7 @@ export function InspectorTab({
                 {inspectData.assignedRoles?.map((r: any) => (
                   <span
                     key={r.id}
-                    className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold rounded text-[10px]"
+                    className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold rounded text-[10px]"
                   >
                     {r.name}
                   </span>
@@ -239,7 +239,7 @@ export function InspectorTab({
                     >
                       <div className="p-3 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{cat.name}</span>
-                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold">
                           {grantedCount} Granted
                         </span>
                       </div>
@@ -259,7 +259,7 @@ export function InspectorTab({
                               }}
                               className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all space-y-1 ${
                                 isSelected
-                                  ? 'bg-indigo-600/15 border-indigo-500 text-slate-900 dark:text-slate-100 shadow-sm'
+                                  ? 'bg-indigo-50 border-indigo-500 text-slate-900 dark:text-slate-100 shadow-sm'
                                   : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                               }`}
                             >
@@ -288,7 +288,7 @@ export function InspectorTab({
               </h4>
 
               {selectedTracePerm ? (
-                <div className="bg-white dark:bg-slate-900 border border-indigo-500/30 rounded-xl p-5 space-y-4 shadow-sm sticky top-4">
+                <div className="bg-white dark:bg-slate-900 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm sticky top-4">
                   <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
                     <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">
                       Evaluated Capability
@@ -308,7 +308,7 @@ export function InspectorTab({
 
                     {selectedTracePerm.tracePath?.map((step: any, idx: number) => (
                       <div key={idx} className="flex items-start gap-3 text-xs">
-                        <div className="w-5 h-5 rounded-full bg-indigo-600/20 text-indigo-300 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                        <div className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                           {idx + 1}
                         </div>
                         <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 flex-1 leading-relaxed">
@@ -331,7 +331,7 @@ export function InspectorTab({
                     ))}
                   </div>
 
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs space-y-1">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
                     <div className="font-bold text-emerald-700 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
                       Deterministic Authorization Verified

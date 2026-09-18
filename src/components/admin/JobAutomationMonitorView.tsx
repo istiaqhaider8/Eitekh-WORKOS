@@ -161,7 +161,7 @@ export function JobAutomationMonitorView() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-indigo-600 uppercase">{t.project?.key || 'PROJECT'}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.isActive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                       {t.isActive ? 'ACTIVE' : 'PAUSED'}
                     </span>
                   </div>
@@ -212,13 +212,13 @@ export function JobAutomationMonitorView() {
                 <tr key={e.id} className="hover:bg-slate-100 dark:bg-slate-800/40">
                   <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{e.to}</td>
                   <td className="p-3 text-slate-700 dark:text-slate-300">{e.subject}</td>
-                  <td className="p-3 font-mono text-[10px] text-indigo-300">{e.templateKey || 'CUSTOM'}</td>
+                  <td className="p-3 font-mono text-[10px] text-indigo-700">{e.templateKey || 'CUSTOM'}</td>
                   <td className="p-3">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                         e.status === 'SENT' || e.status === 'MOCKED'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-rose-500/20 text-rose-300'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-rose-50 text-rose-700'
                       }`}
                     >
                       {e.status}
@@ -229,7 +229,7 @@ export function JobAutomationMonitorView() {
                     {e.status === 'FAILED' && (
                       <button
                         onClick={() => handleRetryEmail(e.id)}
-                        className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 rounded text-[10px] font-semibold"
+                        className="px-2 py-0.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-[10px] font-semibold"
                       >
                         Retry
                       </button>

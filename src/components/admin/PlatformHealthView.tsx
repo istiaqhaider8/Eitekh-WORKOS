@@ -185,12 +185,12 @@ export function PlatformHealthView() {
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${
                       isOperational
-                        ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : isDegraded
-                        ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
                         : isWarning
-                        ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                        : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                        ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                        : 'bg-rose-50 text-rose-600 border border-rose-200'
                     }`}
                   >
                     <span

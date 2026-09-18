@@ -149,12 +149,12 @@ export function SecurityThreatOperationsView() {
             <div
               className={`w-16 h-16 rounded-2xl flex items-center justify-center font-extrabold text-2xl border shadow-inner ${
                 isSecure
-                  ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : isAttention
-                  ? 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : isHighRisk
-                  ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-                  : 'bg-rose-500/10 text-rose-600 border-rose-500/30'
+                  ? 'bg-orange-50 text-orange-700 border-orange-200'
+                  : 'bg-rose-50 text-rose-600 border-rose-200'
               }`}
             >
               {scoreCard.score}
@@ -165,12 +165,12 @@ export function SecurityThreatOperationsView() {
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider border ${
                     isSecure
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : isAttention
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
                       : isHighRisk
-                      ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
-                      : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                      ? 'bg-orange-50 text-orange-700 border-orange-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
                   }`}
                 >
                   {scoreCard.status.replace(/_/g, ' ')}
@@ -225,26 +225,26 @@ export function SecurityThreatOperationsView() {
 
       {/* Cross-Project Isolation Monitor */}
       {isolationViolations.length > 0 && (
-        <div className="bg-rose-950/20 border border-rose-500/30 rounded-xl p-4 space-y-3 shadow-md">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-3 shadow-md">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-rose-600" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-300">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700">
               Cross-Project Isolation Intrusion Stream (Strict PBAC Enforced)
             </h3>
           </div>
           <div className="space-y-2">
             {isolationViolations.map((v: any) => (
-              <div key={v.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-rose-500/20 flex items-center justify-between text-xs">
+              <div key={v.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-rose-200 flex items-center justify-between text-xs">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-rose-500/20 text-rose-300 rounded font-bold text-[10px] uppercase">
+                    <span className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded font-bold text-[10px] uppercase">
                       BLOCKED & PREVENTED
                     </span>
                     <span className="text-slate-800 dark:text-slate-200 font-semibold">{v.userEmail}</span>
                     <span className="text-slate-600 dark:text-slate-400">attempted unauthorized {v.actionType}</span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-mono">
-                    Attempted Project: <span className="text-indigo-300">{v.attemptedProjectId}</span> | IP: {v.ipAddress || '127.0.0.1'}
+                    Attempted Project: <span className="text-indigo-700">{v.attemptedProjectId}</span> | IP: {v.ipAddress || '127.0.0.1'}
                   </p>
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">{new Date(v.timestamp).toLocaleTimeString()}</span>
@@ -305,9 +305,9 @@ export function SecurityThreatOperationsView() {
                   key={t.id}
                   className={`p-4 rounded-xl border transition-all duration-150 flex flex-col justify-between space-y-3 ${
                     isCrit
-                      ? 'bg-rose-950/20 border-rose-500/30'
+                      ? 'bg-rose-50 border-rose-200'
                       : isHigh
-                      ? 'bg-amber-950/20 border-amber-500/30'
+                      ? 'bg-amber-50 border-amber-200'
                       : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
                   }`}
                 >
@@ -317,10 +317,10 @@ export function SecurityThreatOperationsView() {
                         <span
                           className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded border ${
                             isCrit
-                              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
                               : isHigh
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                              : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
                           }`}
                         >
                           {t.severity}
@@ -332,7 +332,7 @@ export function SecurityThreatOperationsView() {
                       </div>
                       <p className="text-xs text-slate-700 dark:text-slate-300">{t.description}</p>
                       <div className="text-[11px] text-slate-600 dark:text-slate-400 space-x-2">
-                        <span>Resource: <span className="text-indigo-300 font-mono">{t.resource}</span></span>
+                        <span>Resource: <span className="text-indigo-700 font-mono">{t.resource}</span></span>
                         <span>•</span>
                         <span>Rule: <span className="text-slate-700 dark:text-slate-300">{t.detectionRule}</span></span>
                       </div>

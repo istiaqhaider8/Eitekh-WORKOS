@@ -20,7 +20,7 @@ interface GlobalAlertBannerProps {
 export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerProps) {
   if (!alerts || alerts.length === 0) {
     return (
-      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3.5 flex items-center justify-between text-xs">
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2.5 text-emerald-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>All platform subsystems operational. No critical security, synchronization, or background job alerts detected.</span>
@@ -54,8 +54,8 @@ export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerPr
               onClick={() => onNavigateTab(alert.targetTab)}
               className={`cursor-pointer p-3 rounded-lg border transition-all duration-200 flex flex-col justify-between hover:scale-[1.01] ${
                 isCritical
-                  ? 'bg-rose-950/20 border-rose-500/30 hover:border-rose-500/60'
-                  : 'bg-amber-950/20 border-amber-500/30 hover:border-amber-500/60'
+                  ? 'bg-rose-50 border-rose-200 hover:border-rose-200'
+                  : 'bg-amber-50 border-amber-200 hover:border-amber-200'
               }`}
             >
               <div className="space-y-1">
@@ -67,7 +67,7 @@ export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerPr
                   )}
                   <span
                     className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                      isCritical ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'
+                      isCritical ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'
                     }`}
                   >
                     {alert.severity}
@@ -77,7 +77,7 @@ export function GlobalAlertBanner({ alerts, onNavigateTab }: GlobalAlertBannerPr
                 <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">{alert.description}</p>
               </div>
 
-              <div className="pt-2 flex items-center justify-between text-[11px] font-medium text-blue-600 group-hover:text-blue-300">
+              <div className="pt-2 flex items-center justify-between text-[11px] font-medium text-blue-600 group-hover:text-blue-700">
                 <span>Resolve in {alert.targetTab.toUpperCase()}</span>
                 <ArrowRight className="w-3 h-3" />
               </div>

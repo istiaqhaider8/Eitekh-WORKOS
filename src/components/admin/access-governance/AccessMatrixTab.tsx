@@ -268,8 +268,8 @@ export function AccessMatrixTab({
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           u.status === 'ACTIVE'
-                            ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-600 border border-rose-200'
                         }`}
                       >
                         {u.status}
@@ -282,7 +282,7 @@ export function AccessMatrixTab({
                           u.assignedRoles.map((r: any) => (
                             <span
                               key={r.id}
-                              className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold rounded text-[10px]"
+                              className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold rounded text-[10px]"
                             >
                               {r.name}
                             </span>
@@ -397,7 +397,7 @@ export function AccessMatrixTab({
               <button
                 onClick={() => handleExport('csv')}
                 disabled={exporting}
-                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-50 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-50 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
               >
                 <div className="flex items-center gap-2.5">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
@@ -409,7 +409,7 @@ export function AccessMatrixTab({
               <button
                 onClick={() => handleExport('excel')}
                 disabled={exporting}
-                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-50 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-50 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
               >
                 <div className="flex items-center gap-2.5">
                   <FileSpreadsheet className="w-4 h-4 text-blue-600" />
@@ -421,7 +421,7 @@ export function AccessMatrixTab({
               <button
                 onClick={() => handleExport('pdf')}
                 disabled={exporting}
-                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-50 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
+                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-50 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all"
               >
                 <div className="flex items-center gap-2.5">
                   <Printer className="w-4 h-4 text-purple-600" />

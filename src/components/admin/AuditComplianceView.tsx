@@ -177,21 +177,21 @@ export function AuditComplianceView() {
     switch (severity) {
       case 'CRITICAL':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
             <AlertOctagon className="w-3 h-3" />
             CRITICAL
           </span>
         );
       case 'WARNING':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
             <AlertTriangle className="w-3 h-3" />
             WARNING
           </span>
         );
       case 'NOTICE':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-600 border border-blue-200">
             <Info className="w-3 h-3" />
             NOTICE
           </span>
@@ -209,13 +209,13 @@ export function AuditComplianceView() {
 
   const getCategoryBadge = (category: string) => {
     const colors: Record<string, string> = {
-      AUTH: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/30',
-      PBAC: 'bg-purple-500/10 text-purple-600 border-purple-500/30',
-      PROJECT: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30',
-      ISSUE: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
-      SECURITY: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
-      CACHE: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30',
-      SETTINGS: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+      AUTH: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      PBAC: 'bg-purple-50 text-purple-600 border-purple-200',
+      PROJECT: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+      ISSUE: 'bg-blue-50 text-blue-600 border-blue-200',
+      SECURITY: 'bg-rose-50 text-rose-600 border-rose-200',
+      CACHE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      SETTINGS: 'bg-orange-50 text-orange-700 border-orange-200',
       SYSTEM: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700',
     };
     const style = colors[category] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700';
@@ -235,14 +235,14 @@ export function AuditComplianceView() {
       <div className="bg-white dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 shadow-inner">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shadow-inner">
               <History className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 Unified Audit Ledger & Compliance Engine
                 {autoRefresh && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 animate-pulse">
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 animate-pulse">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                     LIVE STREAMING
                   </span>
@@ -265,7 +265,7 @@ export function AuditComplianceView() {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               autoRefresh
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:text-slate-800 dark:text-slate-200'
             }`}
           >
@@ -314,7 +314,7 @@ export function AuditComplianceView() {
               {stats.totalEvents.toLocaleString()}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
             <History className="w-5 h-5" />
           </div>
         </div>
@@ -328,7 +328,7 @@ export function AuditComplianceView() {
               {stats.todayEvents.toLocaleString()}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-700">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
             <Activity className="w-5 h-5" />
           </div>
         </div>
@@ -342,7 +342,7 @@ export function AuditComplianceView() {
               {stats.criticalEvents.toLocaleString()}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-600">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
             <AlertOctagon className="w-5 h-5" />
           </div>
         </div>
@@ -356,7 +356,7 @@ export function AuditComplianceView() {
               {activeActorsCount}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-700">
+          <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200 flex items-center justify-center text-cyan-700">
             <User className="w-5 h-5" />
           </div>
         </div>
@@ -388,7 +388,7 @@ export function AuditComplianceView() {
       {/* Search & Filter Toolbar */}
       <div className="bg-white dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Search */}
-        <div className="flex items-center gap-2 w-full md:w-96 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus-within:border-indigo-500/60 transition-colors">
+        <div className="flex items-center gap-2 w-full md:w-96 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus-within:border-indigo-200 transition-colors">
           <Search className="w-4 h-4 text-slate-500 shrink-0" />
           <input
             type="text"
@@ -539,7 +539,7 @@ export function AuditComplianceView() {
                       {/* Actor */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2 max-w-[180px]">
-                          <div className="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-[10px] font-bold text-indigo-300 shrink-0 overflow-hidden">
+                          <div className="w-6 h-6 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-[10px] font-bold text-indigo-700 shrink-0 overflow-hidden">
                             {log.avatarUrl ? (
                               <img src={log.avatarUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -562,7 +562,7 @@ export function AuditComplianceView() {
                       {/* Target Resource */}
                       <td className="p-3.5 max-w-[200px]">
                         <span
-                          className="font-mono text-[11px] text-indigo-300 bg-indigo-950/30 border border-indigo-900/40 px-1.5 py-0.5 rounded block truncate"
+                          className="font-mono text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded block truncate"
                           title={log.targetResource}
                         >
                           {log.targetResource}
@@ -662,7 +662,7 @@ export function AuditComplianceView() {
             {/* Modal Header */}
             <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div>
@@ -732,7 +732,7 @@ export function AuditComplianceView() {
                     Authenticated Actor
                   </span>
                   <div className="flex items-center gap-2.5 pt-1">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center font-bold text-indigo-300 shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center font-bold text-indigo-700 shrink-0">
                       {selectedLog.actorName?.charAt(0) || 'U'}
                     </div>
                     <div>
@@ -748,7 +748,7 @@ export function AuditComplianceView() {
                     Target Resource Identifier
                   </span>
                   <div className="pt-1">
-                    <span className="font-mono text-xs text-indigo-300 bg-indigo-950/40 border border-indigo-900/60 px-2 py-1 rounded block break-all">
+                    <span className="font-mono text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded block break-all">
                       {selectedLog.targetResource}
                     </span>
                     {selectedLog.orgId && (
@@ -772,11 +772,11 @@ export function AuditComplianceView() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Previous State */}
-                    <div className="p-3 bg-rose-950/20 border border-rose-900/30 rounded-lg">
-                      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-rose-900/30">
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
+                      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-rose-200">
                         <span className="text-[11px] font-bold text-rose-600">Previous State</span>
                       </div>
-                      <pre className="text-[11px] font-mono text-rose-300 overflow-x-auto max-h-40 leading-relaxed">
+                      <pre className="text-[11px] font-mono text-rose-700 overflow-x-auto max-h-40 leading-relaxed">
                         {selectedLog.previousState
                           ? JSON.stringify(selectedLog.previousState, null, 2)
                           : 'None (Created / Initial)'}
@@ -784,11 +784,11 @@ export function AuditComplianceView() {
                     </div>
 
                     {/* New State */}
-                    <div className="p-3 bg-emerald-950/20 border border-emerald-900/30 rounded-lg">
-                      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-900/30">
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-emerald-200">
                         <span className="text-[11px] font-bold text-emerald-700">New State</span>
                       </div>
-                      <pre className="text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-40 leading-relaxed">
+                      <pre className="text-[11px] font-mono text-emerald-700 overflow-x-auto max-h-40 leading-relaxed">
                         {selectedLog.newState
                           ? JSON.stringify(selectedLog.newState, null, 2)
                           : selectedLog.changes
@@ -805,7 +805,7 @@ export function AuditComplianceView() {
                 <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
                   Complete Structured Details Payload
                 </span>
-                <pre className="p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-indigo-300 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">
+                <pre className="p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-indigo-700 font-mono text-xs overflow-x-auto max-h-60 leading-relaxed">
                   {JSON.stringify(selectedLog.details || {}, null, 2)}
                 </pre>
               </div>

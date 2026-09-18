@@ -444,14 +444,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       {ws.name}
                       {ws.isArchived && (
-                        <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold rounded">
+                        <span className="px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold rounded">
                           ARCHIVED
                         </span>
                       )}
                     </h3>
                     <span className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">slug: {ws.slug}</span>
                   </div>
-                  <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded text-[10px] font-semibold">
+                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-semibold">
                     {ws.organization?.name || "Global"}
                   </span>
                 </div>
@@ -475,7 +475,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       });
                       setShowEditWsModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Edit Workspace"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -485,7 +485,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveWs(ws);
                       setShowDeleteWsModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer"
                     title="Delete Workspace Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -516,7 +516,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       <span>{p.name}</span>
-                      <span className="px-1.5 py-0.2 bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono rounded">
+                      <span className="px-1.5 py-0.2 bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-mono rounded">
                         [{p.key}]
                       </span>
                     </h3>
@@ -527,9 +527,9 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       p.status === "ACTIVE"
-                        ? "bg-emerald-500/20 text-emerald-300"
+                        ? "bg-emerald-50 text-emerald-700"
                         : p.status === "COMPLETED"
-                        ? "bg-blue-500/20 text-blue-300"
+                        ? "bg-blue-50 text-blue-700"
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                     }`}
                   >
@@ -573,7 +573,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       });
                       setShowEditProjModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-purple-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-purple-800 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Edit Project"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -583,7 +583,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveProj(p);
                       setShowDeleteProjModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer"
                     title="Delete Project Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -770,9 +770,9 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Delete Workspace Confirmation */}
       {showDeleteWsModal && activeWs && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
@@ -1027,9 +1027,9 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Delete Project Confirmation */}
       {showDeleteProjModal && activeProj && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>

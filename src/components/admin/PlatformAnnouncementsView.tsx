@@ -248,10 +248,10 @@ export function PlatformAnnouncementsView() {
               className={`bg-white dark:bg-slate-900/90 border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${
                 item.isActive
                   ? isCritical
-                    ? "border-rose-500/50 bg-rose-950/20"
+                    ? "border-rose-200 bg-rose-50"
                     : isWarning
-                    ? "border-amber-500/50 bg-amber-950/20"
-                    : "border-indigo-500/30"
+                    ? "border-amber-200 bg-amber-50"
+                    : "border-indigo-200"
                   : "border-slate-200 dark:border-slate-800 opacity-60"
               }`}
             >
@@ -260,17 +260,17 @@ export function PlatformAnnouncementsView() {
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                       isCritical
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        ? "bg-rose-50 text-rose-700 border border-rose-200"
                         : isWarning
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                        : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-indigo-50 text-indigo-700 border border-indigo-200"
                     }`}
                   >
                     {item.severity}
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      item.isActive ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      item.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                     }`}
                   >
                     {item.isActive ? "ACTIVE" : "INACTIVE"}
@@ -296,7 +296,7 @@ export function PlatformAnnouncementsView() {
                   className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
                     item.isActive
                       ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200"
-                      : "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                   }`}
                 >
                   {item.isActive ? "Deactivate" : "Activate"}
@@ -314,7 +314,7 @@ export function PlatformAnnouncementsView() {
                     });
                     setShowEditModal(true);
                   }}
-                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                   title="Edit Announcement"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -324,7 +324,7 @@ export function PlatformAnnouncementsView() {
                     setActiveItem(item);
                     setShowDeleteModal(true);
                   }}
-                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer"
                   title="Delete Announcement"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -542,9 +542,9 @@ export function PlatformAnnouncementsView() {
       {/* Modal: Delete Confirmation */}
       {showDeleteModal && activeItem && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>

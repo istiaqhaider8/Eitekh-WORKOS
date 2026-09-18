@@ -618,8 +618,8 @@ export function RolesTab({
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
                         role.status === 'ACTIVE'
-                          ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-600 border border-rose-200'
                       }`}
                     >
                       {role.status}
@@ -628,7 +628,7 @@ export function RolesTab({
 
                   {/* Stats Badges */}
                   <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
-                    <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-300 font-semibold rounded-md border border-indigo-500/20 flex items-center gap-1">
+                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 font-semibold rounded-md border border-indigo-200 flex items-center gap-1">
                       <Lock className="w-3 h-3" />
                       {role.permissionCount || (role.permissions || []).length} Perms
                     </span>
@@ -646,7 +646,7 @@ export function RolesTab({
                     </span>
 
                     {role.projectId ? (
-                      <span className="px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-mono text-[10px] rounded-md font-semibold flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono text-[10px] rounded-md font-semibold flex items-center gap-1">
                         🎯 {role.projectName || 'Scoped Project'}
                       </span>
                     ) : (
@@ -656,7 +656,7 @@ export function RolesTab({
                     )}
 
                     {hasHighRisk && (
-                      <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-300 text-[10px] font-bold rounded flex items-center gap-1 border border-amber-500/20">
+                      <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold rounded flex items-center gap-1 border border-amber-200">
                         <AlertTriangle className="w-3 h-3" />
                         High Risk
                       </span>
@@ -668,7 +668,7 @@ export function RolesTab({
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
                   <button
                     onClick={() => handleOpenAddUsers(role)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 rounded-lg text-xs font-semibold transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 border border-indigo-200 rounded-lg text-xs font-semibold transition-all"
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>Add Existing Users</span>
@@ -686,7 +686,7 @@ export function RolesTab({
                     <button
                       onClick={() => handleOpenEdit(role)}
                       title="Edit Role & Permissions"
-                      className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-300 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -695,7 +695,7 @@ export function RolesTab({
                       <button
                         onClick={() => handleToggleStatus(role)}
                         title={role.status === 'ACTIVE' ? 'Deactivate Role' : 'Activate Role'}
-                        className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-amber-300 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-amber-800 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors"
                       >
                         {role.status === 'ACTIVE' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                       </button>
@@ -724,7 +724,7 @@ export function RolesTab({
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-indigo-600" />
-                  Add Existing Users to Role: <span className="text-indigo-300">{addUserModalRole.name}</span>
+                  Add Existing Users to Role: <span className="text-indigo-700">{addUserModalRole.name}</span>
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   Select existing registered users to grant this Permission Role.
@@ -804,9 +804,9 @@ export function RolesTab({
                         }}
                         className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs transition-all ${
                           isAlreadyAssigned
-                            ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-900 opacity-60 cursor-not-allowed'
+                            ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 opacity-60 cursor-not-allowed'
                             : isSelected
-                            ? 'bg-indigo-600/10 border-indigo-500/50 cursor-pointer'
+                            ? 'bg-indigo-50 border-indigo-200 cursor-pointer'
                             : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:border-slate-700 cursor-pointer'
                         }`}
                       >
@@ -823,7 +823,7 @@ export function RolesTab({
                               <span className="font-bold text-slate-800 dark:text-slate-200">{u.name}</span>
                               <span className="text-slate-500 text-[11px]">({u.email})</span>
                               {u.status === 'SUSPENDED' && (
-                                <span className="px-1.5 py-0.2 bg-rose-500/20 text-rose-300 text-[9px] rounded font-bold">
+                                <span className="px-1.5 py-0.2 bg-rose-50 text-rose-700 text-[9px] rounded font-bold">
                                   SUSPENDED
                                 </span>
                               )}
@@ -885,7 +885,7 @@ export function RolesTab({
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-600" />
-                  Assigned Users: <span className="text-indigo-300">{viewUsersRole.name}</span>
+                  Assigned Users: <span className="text-indigo-700">{viewUsersRole.name}</span>
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   {roleAssignedUsers.length} total user(s) currently hold this Permission Role.
@@ -900,8 +900,8 @@ export function RolesTab({
             </div>
 
             {selectedRoleUserIds.length > 0 && (
-              <div className="p-2.5 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between px-4 text-xs">
-                <span className="text-rose-300 font-medium">
+              <div className="p-2.5 bg-rose-50 border-b border-rose-200 flex items-center justify-between px-4 text-xs">
+                <span className="text-rose-700 font-medium">
                   {selectedRoleUserIds.length} user(s) selected
                 </span>
                 <button
@@ -943,7 +943,7 @@ export function RolesTab({
 
                     <button
                       onClick={() => handleRemoveUserFromRole(u.id, `${u.firstName} ${u.lastName}`)}
-                      className="px-2 py-1 text-rose-600 hover:bg-rose-500/10 rounded text-[11px] font-medium border border-rose-500/20"
+                      className="px-2 py-1 text-rose-600 hover:bg-rose-100 rounded text-[11px] font-medium border border-rose-200"
                     >
                       Remove
                     </button>
@@ -1112,7 +1112,7 @@ export function RolesTab({
                   <tbody className="divide-y divide-slate-200">
                     {categories.map((cat) => (
                       <React.Fragment key={cat.id}>
-                        <tr className="bg-slate-50 dark:bg-slate-950/90 font-bold text-indigo-300 text-[11px]">
+                        <tr className="bg-slate-50 dark:bg-slate-950/90 font-bold text-indigo-700 text-[11px]">
                           <td colSpan={compareRoles.length + 1} className="p-2 pl-3">
                             {cat.name}
                           </td>
@@ -1286,7 +1286,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('ADMIN')}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-indigo-700 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
                       >
                         Admin Preset
                       </button>
@@ -1294,7 +1294,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('MEMBER')}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-blue-300 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-blue-700 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
                       >
                         Member Preset
                       </button>
@@ -1302,7 +1302,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={() => handleApplyPreset('VIEWER')}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-emerald-300 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-emerald-700 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 transition-colors"
                       >
                         Viewer Preset
                       </button>
@@ -1382,7 +1382,7 @@ export function RolesTab({
                                   key={p.key}
                                   className={`p-2.5 rounded-lg border flex items-start gap-2.5 cursor-pointer transition-all ${
                                     checked
-                                      ? 'bg-indigo-600/10 border-indigo-500/40 text-slate-800 dark:text-slate-200'
+                                      ? 'bg-indigo-50 border-indigo-200 text-slate-800 dark:text-slate-200'
                                       : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 hover:border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                                   }`}
                                 >
@@ -1396,7 +1396,7 @@ export function RolesTab({
                                     <div className="flex items-center gap-1.5">
                                       <span className="font-semibold text-slate-800 dark:text-slate-200">{p.label}</span>
                                       {isHighRisk && (
-                                        <span className="px-1 py-0.2 bg-rose-500/20 text-rose-300 text-[8px] font-bold rounded">
+                                        <span className="px-1 py-0.2 bg-rose-50 text-rose-700 text-[8px] font-bold rounded">
                                           {p.riskLevel}
                                         </span>
                                       )}
@@ -1427,7 +1427,7 @@ export function RolesTab({
                     <button
                       type="button"
                       onClick={() => handleOpenDelete(editingRole)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 hover:text-rose-300 border border-rose-500/20 rounded-lg text-xs font-semibold transition-all cursor-pointer" aria-label="Close"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold transition-all cursor-pointer" aria-label="Close"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Delete Role</span>
@@ -1462,7 +1462,7 @@ export function RolesTab({
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-600 shrink-0">
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 shrink-0">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div className="space-y-1">
@@ -1482,7 +1482,7 @@ export function RolesTab({
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Assigned Users:</span>
-                <span className="font-semibold text-indigo-300">{deleteModalRole.assignedUserCount || 0} user(s)</span>
+                <span className="font-semibold text-indigo-700">{deleteModalRole.assignedUserCount || 0} user(s)</span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Permission Count:</span>
@@ -1491,19 +1491,19 @@ export function RolesTab({
             </div>
 
             {deleteModalRole.isSystem && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-start gap-2 text-xs text-rose-300">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-xs text-rose-700">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
                 <span>
-                  <strong>System-Defined Role:</strong> Deleting <strong className="text-rose-200">{deleteModalRole.name}</strong> will remove default system role capabilities for this organization.
+                  <strong>System-Defined Role:</strong> Deleting <strong className="text-rose-700">{deleteModalRole.name}</strong> will remove default system role capabilities for this organization.
                 </span>
               </div>
             )}
 
             {(deleteModalRole.assignedUserCount || 0) > 0 && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2 text-xs text-amber-300">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-xs text-amber-700">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  This role is currently assigned to <strong className="text-amber-200">{deleteModalRole.assignedUserCount} user(s)</strong>. Selecting "Force Delete & Unassign Users" will remove this role from all assigned members before deleting it.
+                  This role is currently assigned to <strong className="text-amber-700">{deleteModalRole.assignedUserCount} user(s)</strong>. Selecting "Force Delete & Unassign Users" will remove this role from all assigned members before deleting it.
                 </span>
               </div>
             )}

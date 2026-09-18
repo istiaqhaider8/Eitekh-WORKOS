@@ -364,7 +364,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
               {tab.badge && (
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                    isActive ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-300 dark:bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-600 dark:text-slate-400'
+                    isActive ? 'bg-indigo-700 text-indigo-700' : 'bg-slate-300 dark:bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   {tab.badge}
