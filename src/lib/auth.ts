@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { prisma } from "./prisma";
@@ -103,7 +104,16 @@ export async function createSession(
   return { sessionRecord, jwtToken };
 }
 
-export async function getCurrentUser() {
+// `lastActiveAt` drives the "Active 5 minutes ago" line in the session lists
+// and the admin security view. It is display metadata: session expiry is
+// enforced by `expiresAt`, which is read and checked on every request below.
+// Refreshing it on every request turned each authenticated READ into a write,
+// and on SQLite writes serialise -- so a ten-request page load paid for ten
+// write transactions. A minute of granularity is finer than anything the UI
+// renders, so only write once the stored value is actually that stale.
+const SESSION_ACTIVITY_REFRESH_MS = 60_000;
+
+async function loadCurrentUser() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -117,7 +127,7 @@ export async function getCurrentUser() {
     if (payload.sessionId) {
       const session = await prisma.session.findUnique({
         where: { id: payload.sessionId },
-        select: { id: true, userId: true, expiresAt: true },
+        select: { id: true, userId: true, expiresAt: true, lastActiveAt: true },
       });
       if (
         !session ||
@@ -127,9 +137,14 @@ export async function getCurrentUser() {
         return null;
       }
       // Best-effort activity refresh; never block the request on it.
-      prisma.session
-        .update({ where: { id: session.id }, data: { lastActiveAt: new Date() } })
-        .catch(() => {});
+      if (
+        Date.now() - new Date(session.lastActiveAt).getTime() >=
+        SESSION_ACTIVITY_REFRESH_MS
+      ) {
+        prisma.session
+          .update({ where: { id: session.id }, data: { lastActiveAt: new Date() } })
+          .catch(() => {});
+      }
     } else {
       // Legacy tokens without a session id are no longer trusted.
       return null;
@@ -171,5 +186,23 @@ export async function getCurrentUser() {
     return null;
   }
 }
+
+/**
+ * Request-scoped memoisation of the session check.
+ *
+ * A single route commonly resolves the current user two or three times: the
+ * handler calls `getCurrentUser()` itself, then `assertProjectAccess()` (or
+ * `assertProjectPermission()`, which wraps it) calls it again, and
+ * `logAuditEvent()` will call it a third time when no actor is passed. 57 route
+ * handlers hit that pattern, so each request was paying for the cookie parse,
+ * the JWT verify and two queries several times over.
+ *
+ * `cache()` is scoped to one request by React's own context, so the result is
+ * never shared between requests or between users, and the security properties
+ * are unchanged: the session is still validated against the database on every
+ * request -- just once per request instead of repeatedly. A revoked session
+ * still fails the very next request.
+ */
+export const getCurrentUser = cache(loadCurrentUser);
 
 export { COOKIE_NAME };

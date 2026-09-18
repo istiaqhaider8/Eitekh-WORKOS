@@ -118,13 +118,9 @@ export default function SuperAdminCommandCenterPage() {
     smtpPass: "",
     isSecure: false,
   });
-  const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
-  const [emailLogs, setEmailLogs] = useState<any[]>([]);
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>("WELCOME");
-  const [templateEdit, setTemplateEdit] = useState<{ subject: string; bodyHtml: string }>({
-    subject: "",
-    bodyHtml: "",
-  });
+  // The email config is only rendered by the "emails" tab, so it is fetched
+  // when that tab is first opened rather than on mount.
+  const [emailLoaded, setEmailLoaded] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [configSaving, setConfigSaving] = useState(false);
@@ -176,15 +172,33 @@ export default function SuperAdminCommandCenterPage() {
   });
   const [savingFlag, setSavingFlag] = useState(false);
 
+  // Fetched the first time the "emails" tab is opened. Keeping it off the mount
+  // path means the panel does not pay for a response no visible tab is using.
+  const loadEmailSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/super-admin/email-settings");
+      if (res.ok) {
+        const eData = await res.json();
+        if (eData.config) setEmailConfig(eData.config);
+      }
+    } catch (e) {
+      console.error("Failed to load email settings", e);
+    } finally {
+      setEmailLoaded(true);
+    }
+  }, []);
+
   const loadAllData = useCallback(async () => {
     try {
-      const [statsRes, orgsRes, usersRes, flagsRes, emailRes, tplRes, analyticsRes] = await Promise.all([
+      // Only what the panel renders before a tab is chosen. The email config is
+      // loaded by the "emails" tab on demand, and the email-templates request
+      // that used to run here was dropped: it was the largest response of the
+      // seven (~35KB) and its result was stored in state that nothing read.
+      const [statsRes, orgsRes, usersRes, flagsRes, analyticsRes] = await Promise.all([
         fetch("/api/super-admin/stats"),
         fetch("/api/super-admin/orgs"),
         fetch("/api/super-admin/users"),
         fetch("/api/super-admin/features"),
-        fetch("/api/super-admin/email-settings"),
-        fetch("/api/super-admin/email-templates"),
         fetch("/api/super-admin/analytics"),
       ]);
 
@@ -202,22 +216,6 @@ export default function SuperAdminCommandCenterPage() {
         setAnalyticsData(await analyticsRes.json());
       }
 
-      if (emailRes.ok) {
-        const eData = await emailRes.json();
-        if (eData.config) setEmailConfig(eData.config);
-        if (eData.logs) setEmailLogs(eData.logs);
-      }
-
-      if (tplRes.ok) {
-        const tData = await tplRes.json();
-        const templates = tData.templates || [];
-        setEmailTemplates(templates);
-        const currentTpl = templates.find((t: any) => t.key === "WELCOME") || templates[0];
-        if (currentTpl) {
-          setSelectedTemplateKey(currentTpl.key);
-          setTemplateEdit({ subject: currentTpl.subject, bodyHtml: currentTpl.bodyHtml });
-        }
-      }
     } catch (e: any) {
       console.error(e);
       showError("Error loading command center telemetry");
@@ -260,6 +258,10 @@ export default function SuperAdminCommandCenterPage() {
     const interval = setInterval(loadAllData, 15000);
     return () => clearInterval(interval);
   }, [loadAllData]);
+
+  useEffect(() => {
+    if (activeTab === "emails" && !emailLoaded) loadEmailSettings();
+  }, [activeTab, emailLoaded, loadEmailSettings]);
 
   // Global search handler
   const handleGlobalSearch = async (query: string) => {

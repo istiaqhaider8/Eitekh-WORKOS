@@ -283,7 +283,22 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     if (ctx.epics) setProjectEpics(ctx.epics);
   }, []);
 
+  // One request for all of the project metadata below. Nine separate endpoints
+  // still exist for their other consumers, but the modal needs every one of
+  // them before it can render, and each was paying its own auth round-trip.
   const fetchProjectContext = async (pId: string) => {
+    try {
+      const res = await fetch(`/api/projects/${pId}/context`);
+      if (res.ok) return await res.json();
+    } catch {
+      // fall through to the per-resource requests below
+    }
+    return fetchProjectContextIndividually(pId);
+  };
+
+  // Retained as a fallback so a failure of the combined endpoint degrades to
+  // the previous behaviour rather than an empty form.
+  const fetchProjectContextIndividually = async (pId: string) => {
     const [sRes, cfRes, mRes, aRes, wfRes, tRes, pRes, tmRes, epRes] = await Promise.all([
       fetch(`/api/sprints?projectId=${pId}`),
       fetch(`/api/custom-fields?projectId=${pId}`),

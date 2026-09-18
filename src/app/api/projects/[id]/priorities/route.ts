@@ -1,15 +1,10 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_PRIORITIES, resolveProjectPriorities } from "@/lib/project-context";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { priorityCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
-const DEFAULT_PRIORITIES = [
-  { name: "Critical", value: "CRITICAL", color: "#f43f5e" },
-  { name: "High", value: "HIGH", color: "#f59e0b" },
-  { name: "Medium", value: "MEDIUM", color: "#3b82f6" },
-  { name: "Low", value: "LOW", color: "#10b981" },
-];
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,36 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     await assertProjectAccess(projectId);
 
-    // Look for project priorities custom field
-    const cf = await prisma.customField.findFirst({
-      where: {
-        scopeType: "PROJECT",
-        scopeId: projectId,
-        name: "PROJECT_PRIORITIES",
-      },
-    });
-
-    let customList: Array<{ name: string; value: string; color: string }> = [];
-    if (cf?.optionsJson) {
-      try {
-        const parsed = JSON.parse(cf.optionsJson);
-        if (Array.isArray(parsed)) {
-          customList = parsed;
-        }
-      } catch (e) {
-        console.error("Failed to parse project priorities JSON:", e);
-      }
-    }
-
-    // Merge defaults with custom list without duplicates by value/name
-    const existingValues = new Set(DEFAULT_PRIORITIES.map((p) => p.value.toUpperCase()));
-    const finalCustom = customList.filter((cp) => !existingValues.has(cp.value?.toUpperCase() || cp.name.toUpperCase()));
-
-    return NextResponse.json({
-      defaults: DEFAULT_PRIORITIES,
-      custom: finalCustom,
-      priorities: [...DEFAULT_PRIORITIES, ...finalCustom],
-    });
+    return NextResponse.json(await resolveProjectPriorities(projectId));
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to fetch priorities" },

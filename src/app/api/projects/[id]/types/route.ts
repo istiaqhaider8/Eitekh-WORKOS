@@ -2,14 +2,9 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { DEFAULT_ISSUE_TYPES, resolveProjectIssueTypes } from "@/lib/project-context";
 import { issueTypeCreateSchema, issueTypeUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
-const DEFAULT_ISSUE_TYPES = [
-  { name: "Task", value: "TASK", color: "#0ea5e9", icon: "CheckSquare", description: "Standard actionable work item" },
-  { name: "Bug", value: "BUG", color: "#f43f5e", icon: "AlertCircle", description: "Defect, error or problem in functionality" },
-  { name: "Story", value: "STORY", color: "#10b981", icon: "Bookmark", description: "User requirement or scenario" },
-  { name: "Epic", value: "EPIC", color: "#a855f7", icon: "Layers", description: "Large body of work encompassing multiple tasks" },
-];
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,42 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     await assertProjectAccess(projectId);
 
-    // Look for custom issue types configured for this project
-    const cf = await prisma.customField.findFirst({
-      where: {
-        scopeType: "PROJECT",
-        scopeId: projectId,
-        name: "PROJECT_ISSUE_TYPES",
-      },
-    });
-
-    let customList: Array<{ name: string; value: string; color: string; icon?: string; description?: string }> = [];
-    if (cf?.optionsJson) {
-      try {
-        const parsed = JSON.parse(cf.optionsJson);
-        if (Array.isArray(parsed)) {
-          customList = parsed;
-        }
-      } catch (e) {
-        console.error("Failed to parse project issue types JSON:", e);
-      }
-    }
-
-    const customValues = new Set(customList.map((ct) => ct.value.toUpperCase()));
-    const finalDefaults = DEFAULT_ISSUE_TYPES.filter((dt) => !customValues.has(dt.value.toUpperCase()));
-    const merged = [
-      ...DEFAULT_ISSUE_TYPES.map((dt) => {
-        const customOverride = customList.find((c) => c.value.toUpperCase() === dt.value.toUpperCase());
-        return customOverride || dt;
-      }),
-      ...customList.filter((c) => !DEFAULT_ISSUE_TYPES.some((d) => d.value.toUpperCase() === c.value.toUpperCase())),
-    ];
-
-    return NextResponse.json({
-      defaults: DEFAULT_ISSUE_TYPES,
-      custom: customList,
-      types: merged,
-    });
+    return NextResponse.json(await resolveProjectIssueTypes(projectId));
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Failed to fetch issue types" },
