@@ -60,23 +60,22 @@ One High-severity item remains open: **DEP-1** (postcss CVEs via Next.js — nee
 
 | Gate | Meaning | Progress |
 |---|---|---|
-| Gate 0 — Blockers | Blocks any multi-tenant production launch | **0/8** (PROD-0 added 2026-09-18) |
+| Gate 0 — Blockers | Blocks any multi-tenant production launch | **1/8** (PROD-0 done 2026-09-18) |
 | Gate 1 — Pre-launch hardening | Blocks public/paid launch | 0/8 (PROD-18/19/20 added) |
 | Gate 2 — Maintainability | Post-launch | 0/8 (PROD-21/22/23 added) |
 
-**Current state (2026-09-18): even a FRESH single-instance deploy is blocked by PROD-0.** The
-running pilot works only because its database was built with `db push`. Multi-tenant production
-is roughly **40%** ready — Gate 0 is 8 items with 0 complete.
+**Current state (2026-09-18): a fresh single-instance deploy is no longer blocked** — PROD-0 is
+done, so `migrate deploy` builds the schema the app expects. Multi-tenant production is roughly
+**45%** ready — Gate 0 is 8 items with 1 complete.
 
 | Target | Ready | Gating |
 |---|---|---|
-| Fresh single-instance deploy | **blocked** | PROD-0 alone |
-| Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-20 advisable |
-| Multi-tenant paid production | **~40%** | all of Gate 0 |
+| Fresh single-instance deploy | ✅ **unblocked** | — |
+| Single-instance pilot, trusted tenants | ~85% | PROD-7, PROD-20 advisable |
+| Multi-tenant paid production | **~45%** | the remaining 7 of Gate 0 |
 
 Verified 2026-09-18: `npx tsc --noEmit` clean, lint 0 errors (64 pre-existing warnings), 74 unit
-tests pass, boot-time config guard works, `.env` untracked. Blockers: **migration drift (PROD-0)**,
-SQLite in production, all shared state in-process (no Redis) *including the PBAC store on local
+tests pass, boot-time config guard works, `.env` untracked. Blockers: SQLite in production, all shared state in-process (no Redis) *including the PBAC store on local
 disk*, zero tenant-isolation/authz tests, no error tracking, 1 high + 1 moderate CVE.
 
 ### Security audit findings (history)
@@ -121,7 +120,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| 0 | **PROD-0** | **Blocker** | PENDING | **Migration drift — blocks every deployment.** `migrate deploy` on a fresh DB omits `OtpCode` and `Invitation`; OTP login and invitations fail on first use. `prisma migrate status` reports "up to date" and does **not** catch this — use `migrate diff`. See `PRODUCTION-READINESS.md` §PROD-0 | `prisma/migrations/` |
+| ~~0~~ | ~~**PROD-0**~~ | **Blocker** | ✅ **DONE 2026-09-18** | Was: **migration drift — blocked every deployment.** `migrate deploy` on a fresh DB omits `OtpCode` and `Invitation`; OTP login and invitations fail on first use. `prisma migrate status` reports "up to date" and does **not** catch this — use `migrate diff`. See `PRODUCTION-READINESS.md` §PROD-0 | `prisma/migrations/` |
 | 1 | **DEP-1** | High | PENDING | 2 dependency CVEs (1 high, 1 moderate) in `postcss` via Next.js. Exposure is low (build-time only). **Do NOT run `npm audit fix --force`** — it installs `next@16`, a breaking upgrade. Now specced as **PROD-19**; schedule on its own branch | `package.json` |
 
 ### 🔴 GATE A — PERFORMANCE (app is slow; see `PERFORMANCE-PLAN.md`)
@@ -147,8 +146,8 @@ Full task specs, acceptance criteria and verification commands are in
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| 0 | **PROD-0** | Blocker | **PENDING ← START HERE** | **Migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation`, so OTP/MFA login and invitations break on any new database — including a pilot. Dev works only because it was `db push`ed. Cheapest item in Gate 0; blocks every deploy. Found 2026-09-18 | `prisma/migrations/`, `prisma/schema.prisma` |
-| 1 | PROD-1 | Blocker | PENDING | Migrate SQLite → PostgreSQL (unblocks most others; do after PROD-0) | `prisma/schema.prisma`, `prisma/migrations/` |
+| ~~0~~ | ~~**PROD-0**~~ | Blocker | ✅ **DONE 2026-09-18** (`0007_repair_schema_drift`) | Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation`, so OTP/MFA login and invitations break on any new database — including a pilot. Dev works only because it was `db push`ed. Cheapest item in Gate 0; blocks every deploy. Found 2026-09-18 | `prisma/migrations/`, `prisma/schema.prisma` |
+| 1 | PROD-1 | Blocker | **PENDING ← START HERE** | Migrate SQLite → PostgreSQL (unblocks most others). PROD-0 is done, so the history now reproduces the schema — regenerate it against Postgres rather than porting the SQLite files | `prisma/schema.prisma`, `prisma/migrations/` |
 | 2 | PROD-5 | Blocker | PENDING | Tenant-isolation integration tests (highest risk reduction) | `__tests__/integration/` |
 | 3 | PROD-2 | Blocker | PENDING | Move rate limiting to Redis (in-process = N× limit with N instances) | `src/lib/rate-limit.ts` |
 | 4 | PROD-3 | Blocker | PENDING | Move cache to Redis (stale PBAC across instances = authz bug) | `src/lib/cache-manager.ts` |
@@ -324,6 +323,54 @@ Kept for traceability. **Reopened items are listed in Gate 0/1 above — work th
 ## SESSION LOG
 
 > Every AI session adds an entry here. This is the audit trail.
+
+### 2026-09-18 — Claude Opus 5 (1M context) — PROD-0: migration drift repaired
+
+First Gate 0 item closed. `prisma/migrations/0007_repair_schema_drift`.
+
+**What was wrong.** The migration history did not reproduce `schema.prisma`. A clean
+`migrate deploy` produced a database with **no `OtpCode` and no `Invitation` table** while
+printing "All migrations have been successfully applied", so OTP/MFA login
+([`src/lib/otp.ts`](src/lib/otp.ts)) and the whole invitation flow failed on first use in any
+environment not built with `db push`. `prisma migrate status` reported "up to date" throughout —
+it only checks whether the local database has the recorded migrations applied, not whether those
+migrations describe the schema.
+
+**What was done.** Generated the repair migration with `migrate diff --script`, read the SQL
+before committing it, applied it, and proved the result from empty. Marked it
+`migrate resolve --applied` on the dev database, which already had those tables from `db push`.
+
+**Evidence.**
+- `migrate diff --from-migrations … --to-schema-datamodel …` → **"No difference detected."**
+- A migrations-only database has 47 tables including `OtpCode`, `Invitation`,
+  `OtpCode_email_purpose_idx`, `Invitation_tokenHash_key`, `Invitation_email_idx`.
+- Ran the real code paths against that database — **12/12**: OTP issued with defaults, verify
+  lookup finds it, a consumed code is not reusable; invitation created with defaults, found by
+  token hash, hash uniqueness enforced, acceptance works, `orgId` FK enforced; data-retention
+  queries over both tables run.
+- Not destructive: two `CREATE TABLE`s plus a `SystemEmailConfig` rebuild needed only because its
+  `senderName` default changed from `'Zenith WorkOS'` to `'Eitekh WorkOS'` at the rebrand. Defaults
+  apply to new rows; the `INSERT...SELECT` copies every existing column. SQLite cannot alter a
+  default in place.
+
+**CI now guards it** — two steps added to `.github/workflows/ci.yml`:
+1. A schema/migration drift check via `migrate diff --exit-code`. **Proved able to fail**:
+   appending a throwaway model to `schema.prisma` made it exit 2 and name the model; a clean tree
+   exits 0.
+2. `migrate deploy` onto a **seeded** database, then `migrate status` — applying cleanly to an
+   empty database proves less than applying to one with rows.
+
+**Honest notes.**
+- The dev database keeps the old `senderName` default, because the migration was resolved rather
+  than re-run there. Cosmetic: it applies only to rows that do not exist yet.
+- Earlier in this session I removed a real project member (Istiaq Haider from Customer Portal) via
+  a test script running as super admin — found in the audit log as `PROJECT_MEMBER_REMOVED` and
+  restored. Test fixtures are now always created accounts, never existing ones.
+
+**Next: PROD-1 (PostgreSQL).** Now that the history reproduces the schema, regenerate it against
+Postgres rather than porting the SQLite files, and carry the SQLite-semantics list (notably F5:
+`contains` is case-insensitive on SQLite and case-sensitive on Postgres, so search silently
+regresses without `mode: "insensitive"`).
 
 ### 2026-09-18 — Claude Opus 5 (1M context) — Dark theme, four-flow performance, readiness re-baseline
 

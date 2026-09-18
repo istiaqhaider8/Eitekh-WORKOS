@@ -33,6 +33,36 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      # PROD-0. The migration history must reproduce schema.prisma.
+      #
+      # It did not: a clean `migrate deploy` produced a database with no OtpCode
+      # and no Invitation table, so OTP/MFA login and invitations failed on
+      # first use in any environment not built with `db push`. Nothing caught it
+      # because `prisma migrate status` answers a narrower question -- whether
+      # the local database has the recorded migrations applied, not whether
+      # those migrations describe the schema.
+      #
+      # `migrate diff` is the check that would have caught it, so it runs here.
+      # A non-empty diff means someone changed schema.prisma without a
+      # migration; generate one with `prisma migrate dev --create-only`.
+      - name: Schema / migration drift check
+        run: |
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "file:./drift-shadow.db" \
+            --exit-code
+        # --exit-code makes a detected difference fail the job (exit 2).
+
+      # A migration that applies cleanly to an empty database is not proof it
+      # applies to one with rows in it. Seed first, then migrate.
+      - name: Migrations apply to a populated database
+        run: |
+          rm -f ./ci-populated.db
+          DATABASE_URL="file:./ci-populated.db" npx prisma migrate deploy
+          DATABASE_URL="file:./ci-populated.db" node prisma/seed.js
+          DATABASE_URL="file:./ci-populated.db" npx prisma migrate status
+
       - name: TypeScript type-check
         run: npx tsc --noEmit
 

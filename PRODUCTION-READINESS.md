@@ -66,7 +66,7 @@ Each row lists how to re-verify it.
 | TypeScript clean, lint 0 errors | 64 warnings, all pre-existing **(re-verified 2026-09-18)** | `npx tsc --noEmit && npm run lint` |
 | CI runs typecheck + test + lint + build | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | read the file |
 | Secrets not committed | `.env` gitignored, 0 tracked | `git check-ignore -v .env` |
-| Migration **files** exist | 4 under `prisma/migrations` — but they do **not** reproduce the schema, see B9 | `ls prisma/migrations` |
+| Migrations reproduce the schema | 7 under `prisma/migrations`; `migrate diff` reports **no difference** **(2026-09-18, PROD-0)** | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` |
 | Health endpoints exist | `/api/health`, `/api/super-admin/health` | `ls src/app/api/health` |
 | All 10 Critical security findings fixed | Phase 1, audit §5 | see `SECURITY-AUDIT.md` |
 | Boot-time config guard works | refuses a production boot on missing `JWT_SECRET` / `FIELD_ENCRYPTION_KEY` / `BASE_URL` **(re-verified 2026-09-18)** | [`src/instrumentation.ts`](src/instrumentation.ts); read the dev-server banner |
@@ -122,7 +122,7 @@ scale-related risks are B10 (unbounded payloads) and PROD-8 (load testing).
 | B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
 | B7 | `/projects/[id]` ships 310 kB First Load JS | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
-| **B9** | **Migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
+| ~~**B9**~~ | ✅ **FIXED 2026-09-18** (`0007_repair_schema_drift`, PROD-0). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
 | **B10** | **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
 | **B11** | **Rate limiting is keyed per IP, not per user** (100 reads/min). Behind office NAT a whole team shares one budget, and the Super Admin panel self-polls every 15 s on top of it. Tripped repeatedly during profiling. | `RATE_LIMIT_MAX = 100` at [`src/middleware.ts:7`](src/middleware.ts); `setInterval(loadAllData, 15000)` in [`src/app/super-admin/page.tsx`](src/app/super-admin/page.tsx) |
 | **B12** | **Known dependency CVEs**: 1 high, 1 moderate via postcss, reachable only through a Next major upgrade. | `npm audit --omit=dev` |
@@ -146,27 +146,25 @@ verification command in that task passes.
 
 ### What is safe today
 
-A **single-instance pilot with a handful of trusted tenants** is reasonable — but **only on the
-existing `db push`-ed database**. B9 means a *fresh* deployment of any size is broken before it
-serves a request: `migrate deploy` would build a schema with no `OtpCode` and no `Invitation`
-table, so OTP/MFA login and invitations fail immediately. PROD-0 therefore blocks every path,
-including the pilot, and it is the cheapest item in this document.
+A **single-instance pilot with a handful of trusted tenants** is reasonable, and as of
+2026-09-18 a *fresh* deployment is no longer broken before it serves a request: PROD-0 is done,
+so `migrate deploy` now builds the schema the application expects.
 
-With PROD-0 done, the product works, the critical vulnerabilities are fixed, and real usage
-would teach you more than more auditing would. Gate 0 is what separates that pilot from genuine
-multi-tenant production.
+The product works, the critical vulnerabilities are fixed, and real usage would teach you more
+than more auditing would. Gate 0 is what separates that pilot from genuine multi-tenant
+production.
 
 ### Readiness estimate (2026-09-18)
 
 | Target | Ready | Gating |
 |---|---|---|
-| Fresh single-instance deploy | **blocked** | PROD-0 alone |
+| Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~40%** | all of Gate 0 — 8 items, 0 complete |
+| **Multi-tenant paid production** | **~45%** | all of Gate 0 — 8 items, **1 complete** |
 
-The percentage is a judgement, not a measurement. The countable part: **0 of 8 Gate 0 items are
-complete**, and the two largest (PROD-1 Postgres, PROD-5 tenant-isolation tests) have not been
-started.
+The percentage is a judgement, not a measurement. The countable part: **1 of 8 Gate 0 items is
+complete** (PROD-0), and the two largest (PROD-1 Postgres, PROD-5 tenant-isolation tests) have
+not been started.
 
 ---
 
@@ -179,11 +177,39 @@ started.
 
 | | |
 |---|---|
-| **Severity** | Blocker (blocks *every* deployment, including the pilot) |
-| **Status** | PENDING |
-| **Depends on** | nothing — **do this before anything else** |
-| **Files** | `prisma/migrations/`, `prisma/schema.prisma`, `.github/workflows/ci.yml` |
+| **Severity** | Blocker (blocked *every* deployment, including the pilot) |
+| **Status** | **COMPLETED 2026-09-18** — `prisma/migrations/0007_repair_schema_drift` |
+| **Depends on** | nothing — was done before anything else |
+| **Files** | `prisma/migrations/0007_repair_schema_drift/`, `.github/workflows/ci.yml` |
 | **Found** | 2026-09-18 |
+
+> **Closed.** Evidence, in the order the acceptance criteria ask for it:
+>
+> - `migrate diff --from-migrations … --to-schema-datamodel …` → **"No difference detected."**
+> - A database built **only** by `migrate deploy` on an empty file now contains
+>   `OtpCode`, `Invitation` and `SystemEmailConfig`, 47 tables, with
+>   `OtpCode_email_purpose_idx`, `Invitation_tokenHash_key` and
+>   `Invitation_email_idx` present.
+> - The two broken features were exercised against that migrations-only
+>   database, **12/12**: an OTP is issued with its defaults, the verify lookup
+>   finds it, a consumed code cannot be reused; an invitation is created, found
+>   by token hash, the hash is unique, it can be accepted, and its `orgId`
+>   foreign key is enforced. The data-retention queries over both tables run.
+> - Nothing destructive. The generated SQL adds two tables and rebuilds
+>   `SystemEmailConfig` — needed only because its `senderName` default changed
+>   from `'Zenith WorkOS'` to `'Eitekh WorkOS'` at the rebrand, which affects
+>   new rows only, and the `INSERT...SELECT` copies every existing column.
+>   SQLite cannot alter a column default in place, so the rebuild is Prisma's
+>   standard approach.
+> - CI now fails on drift, and **the check was proved able to fail**: adding a
+>   throwaway model to `schema.prisma` made `migrate diff --exit-code` exit 2
+>   and name it. Clean tree exits 0. A second step applies the full history to a
+>   **seeded** database, because applying cleanly to an empty one proves less.
+> - The dev database was marked with `migrate resolve --applied` rather than
+>   re-running the migration, since `db push` had already created those tables
+>   there. Its `SystemEmailConfig.senderName` default therefore still reads
+>   `'Zenith WorkOS'`; that is cosmetic, applies only to rows that do not exist,
+>   and a fresh deploy gets the new default.
 
 **Why**: the migration history and `schema.prisma` disagree. `prisma migrate status` says
 "up to date" — that only proves the *dev* database has the existing migrations applied. The real
@@ -824,8 +850,9 @@ These do not block launch. They are the cost of changing the system safely later
 Do them in this order. Parallel tracks are marked.
 
 ```
-PROD-0  Migration drift .............. START HERE (hours, not days; blocks every deploy)
+PROD-0  Migration drift .............. DONE 2026-09-18 (0007_repair_schema_drift)
    │
+PROD-1  Postgres ..................... START HERE now
 PROD-1  Postgres ..................... then this (unblocks almost everything)
    │
    ├── PROD-2  Shared rate limiting  (both limiters; re-key off raw IP)
@@ -866,7 +893,7 @@ particular depend on how much SQLite-ism the schema turns out to hold.
 
 | Stage | Items | Gets you |
 |---|---|---|
-| 1 | PROD-0 | a deployable build |
+| ~~1~~ | ~~PROD-0~~ ✅ **done 2026-09-18** | a deployable build |
 | 2 | PROD-1 | a database that can back more than one instance |
 | 3 | PROD-2, 3, 4 | correctness with >1 instance running |
 | 4 | PROD-5, 6 | protection against cross-tenant and privilege-escalation regressions |
@@ -971,3 +998,4 @@ make that specific sentence false?* If not, the task is not done.
 |---|---|---|
 | 2026-09-17 | Claude Opus 5 (1M context) | Created. Baseline verified against the repo; ARCH-2 over-claim documented; 17 tasks defined across 3 gates. |
 | 2026-09-18 | Claude Opus 5 (1M context) | Re-baselined for multi-tenant paid production. **Added PROD-0** (migration drift — migrations omit `OtpCode`/`Invitation`, breaking OTP login and invitations on any fresh database; found via `migrate diff`, verified). Added PROD-18 (unbounded relation loads), PROD-19 (dependency CVEs), PROD-20 (production config + runbook), and PROD-21..23 to Gate 2. Added measured problems B9–B14. Added a performance baseline for the four flows and a readiness estimate. **Corrected PROD-8**: the task-open waterfall it recorded as fixed on 2026-09-17 was still costing 744 ms on 2026-09-18 — the earlier work cached the cost rather than removing it. Sharpened PROD-1 (WAL does not lift the multi-instance ceiling), PROD-2 (two limiters; per-IP keying breaks teams behind NAT), PROD-3 (PBAC is file-backed split-brain, not a cache problem). Gate 0 is now **8 items, 0 complete**. |
+| 2026-09-18 | Claude Opus 5 (1M context) | **PROD-0 CLOSED** — `prisma/migrations/0007_repair_schema_drift`. `migrate diff` now reports "No difference detected", and a database built only by `migrate deploy` contains `OtpCode`, `Invitation` and their indexes. Both previously-broken features were exercised against that migrations-only database (**12/12**: OTP issue/verify/single-use, invitation create/lookup-by-token-hash/unique-hash/accept/orgId FK, plus the data-retention queries). Nothing destructive — the `SystemEmailConfig` rebuild exists only because its `senderName` default changed at the rebrand, and the `INSERT...SELECT` copies every column. Added two CI steps: a schema-drift check, **proved able to fail** (a throwaway model makes `migrate diff --exit-code` exit 2; a clean tree exits 0), and a `migrate deploy` onto a **seeded** database, because applying to an empty one proves less. Gate 0 is now **1 of 8**. |
