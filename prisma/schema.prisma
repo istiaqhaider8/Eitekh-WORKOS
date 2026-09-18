@@ -919,3 +919,27 @@ model DelegationHistory {
 }
 
 
+
+/// PROD-2. The shared backing store for rate limiting.
+///
+/// This table exists because a rate limit held in a process-local `Map` is not
+/// a rate limit once there is more than one process: N instances behind a load
+/// balancer give an attacker N x the configured ceiling, and every deploy
+/// resets every counter. The failure is silent -- the code reads correctly and
+/// the tests pass -- which is what made it a blocker rather than a nit.
+///
+/// One row per (bucket, subject) window. Increments go through a single
+/// INSERT ... ON CONFLICT DO UPDATE ... RETURNING, so the read and the write
+/// are one atomic statement; see src/lib/rate-limit-store.ts for why a
+/// read-then-write here would race.
+///
+/// Rows are disposable: `resetAt` in the past means the window has lapsed and
+/// the next hit restarts it, so a sweep only reclaims space and can never
+/// affect a decision.
+model RateLimitCounter {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}

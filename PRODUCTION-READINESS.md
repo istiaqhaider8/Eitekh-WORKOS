@@ -34,7 +34,9 @@ marked COMPLETED that was **not actually resolved**:
 > **ARCH-2** — "In-memory singletons as infrastructure (won't scale)" was marked COMPLETED.
 > What was actually delivered is [`src/lib/container.ts`](src/lib/container.ts), a dependency-injection
 > helper for **testability**. Its own docstring says *"Production code uses the real singletons by default."*
-> The in-process state it was supposed to fix is still in-process. See PROD-2/3/4 below.
+> The in-process state it was supposed to fix is still in-process for the cache and the SSE
+> registry. The rate limiters were moved to a shared store on 2026-09-18 (PROD-2); see
+> PROD-3/4 below for what remains.
 
 **Consequence for you**: do not trust a COMPLETED status in any tracker. Verify against the code
 before deciding a task is done. Section 8 tells you how. If you find another over-claim, correct
@@ -62,11 +64,11 @@ Each row lists how to re-verify it.
 |---|---|---|
 | Production build passes | exit 0, clean isolated worktree | `npm run build` (see note below) |
 | TypeScript compiles clean | exit 0, ~70k lines | `npx tsc --noEmit` |
-| Unit tests pass | 6 suites, 74 tests, 0 failures **(re-verified 2026-09-18)** | `npm test` |
+| Unit tests pass | 11 suites, 182 tests, 0 failures **(re-verified 2026-09-18, PROD-2)** | `npm test` |
 | TypeScript clean, lint 0 errors | 64 warnings, all pre-existing **(re-verified 2026-09-18)** | `npx tsc --noEmit && npm run lint` |
 | CI runs typecheck + test + lint + build | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | read the file |
 | Secrets not committed | `.env` gitignored, 0 tracked | `git check-ignore -v .env` |
-| Migrations reproduce the schema | 7 under `prisma/migrations`; `migrate diff` reports **no difference** **(2026-09-18, PROD-0)** | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` |
+| Migrations reproduce the schema | 3 under `prisma/migrations`; `migrate diff` reports **no difference** **(re-verified 2026-09-18, PROD-2)** | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "$SHADOW_DATABASE_URL" --exit-code` — the shadow URL must be a **separate Postgres database**; the old `file:` form is a leftover from before PROD-1 |
 | Health endpoints exist | `/api/health`, `/api/super-admin/health` | `ls src/app/api/health` |
 | All 10 Critical security findings fixed | Phase 1, audit §5 | see `SECURITY-AUDIT.md` |
 | Boot-time config guard works | refuses a production boot on missing `JWT_SECRET` / `FIELD_ENCRYPTION_KEY` / `BASE_URL` **(re-verified 2026-09-18)** | [`src/instrumentation.ts`](src/instrumentation.ts); read the dev-server banner |
@@ -155,19 +157,19 @@ be pointed at `dev.db` by accident.
 | ID | Problem | Evidence |
 |---|---|---|
 | ~~B1~~ | ✅ **FIXED 2026-09-18** (PROD-1). Was: SQLite in a multi-tenant SaaS | `prisma/schema.prisma` → `provider = "postgresql"` |
-| B2 | Rate limiting is in-process | `new Map()` at [`src/lib/rate-limit.ts:11`](src/lib/rate-limit.ts) |
+| ~~B2~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting in-process. Both limiters now go through a shared Postgres-backed store. | [`src/lib/rate-limit-store.ts`](src/lib/rate-limit-store.ts); verified across 2 live instances, see PROD-2 below |
 | B3 | Cache is in-process | `private store: Map` at [`src/lib/cache-manager.ts:66`](src/lib/cache-manager.ts) |
 | B4 | SSE client registry is in-process | `private clients: Map` at [`src/lib/sync-engine.ts:79`](src/lib/sync-engine.ts) |
 | B5 | Zero authorization / tenant-isolation tests | grep for `assertProjectAccess`/`tenant` in tests → no matches |
 | B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
 | B7 | `/projects/[id]` ships 310 kB First Load JS | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
-| ~~**B9**~~ | ✅ **FIXED 2026-09-18** (`0007_repair_schema_drift`, PROD-0). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
+| ~~**B9**~~ | ✅ **FIXED 2026-09-18** (PROD-0, originally `0007_repair_schema_drift`; the SQLite history was archived to `prisma/migrations-sqlite-archive/` when PROD-1 regenerated it for Postgres). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
 | **B10** | **MEASURED 2026-09-18: 682 KB for one issue.** **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
-| **B11** | **Rate limiting is keyed per IP, not per user** (100 reads/min). Behind office NAT a whole team shares one budget, and the Super Admin panel self-polls every 15 s on top of it. Tripped repeatedly during profiling. | `RATE_LIMIT_MAX = 100` at [`src/middleware.ts:7`](src/middleware.ts); `setInterval(loadAllData, 15000)` in [`src/app/super-admin/page.tsx`](src/app/super-admin/page.tsx) |
+| ~~**B11**~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting keyed per IP, so a team behind one NAT shared a single 100 reads/min budget. Authenticated traffic is now keyed per user, with a much looser per-IP backstop (600 reads/min) so that many stolen sessions from one host are still bounded. | `resolveSubject()` in [`src/middleware.ts`](src/middleware.ts); live test T2 — two users on one IP do not consume each other's budget |
 | **B12** | **Known dependency CVEs**: 1 high, 1 moderate via postcss, reachable only through a Next major upgrade. | `npm audit --omit=dev` |
 | **B13** | **PBAC state is process-local *and* file-local** — in-memory `Map`s plus `.data/pbac-store.json`. Across instances, authorization state itself diverges, not just a cache. | `private roles: Map` at [`src/lib/pbac-engine.ts:287`](src/lib/pbac-engine.ts), plus `storeFilePath` at :298 |
-| **B14** | **Two independent in-process rate limiters** — `src/lib/rate-limit.ts` (login/account) and a separate store inside `src/middleware.ts`. Both must move in PROD-2. | `new Map()` at [`src/lib/rate-limit.ts:11`](src/lib/rate-limit.ts) and `rateLimitStore` in [`src/middleware.ts`](src/middleware.ts) |
+| ~~**B14**~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: two independent in-process rate limiters. **Both** moved — verified live: the middleware limit and the `forgot-password` limit each refuse in aggregate across two instances. | [`src/lib/rate-limit.ts`](src/lib/rate-limit.ts) and [`src/middleware.ts`](src/middleware.ts) both call `getRateLimitStore()`; guarded by a test that greps the sources |
 
 ---
 
@@ -200,12 +202,12 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~60%** | all of Gate 0 — 8 items, **2 complete** |
+| **Multi-tenant paid production** | **~65%** | all of Gate 0 — 8 items, **3 complete** |
 
-The percentage is a judgement, not a measurement. The countable part: **2 of 8 Gate 0 items are
-complete** (PROD-0, PROD-1). PROD-1 was the dependency for PROD-2/3/4/5, so those are now
-unblocked; PROD-5 (tenant-isolation tests) is the largest remaining item and the one with the
-worst failure mode.
+The percentage is a judgement, not a measurement. The countable part: **3 of 8 Gate 0 items are
+complete** (PROD-0, PROD-1, PROD-2). PROD-1 was the dependency for PROD-2/3/4/5; PROD-2 is now
+done, and PROD-3/4/5 are unblocked. PROD-5 (tenant-isolation tests) is the largest remaining
+item and the one with the worst failure mode.
 
 ---
 
@@ -426,42 +428,106 @@ statements, and they are guarded by a `file:` check that must be removed with th
 | | |
 |---|---|
 | **Severity** | Blocker (security control) |
-| **Status** | PENDING |
-| **Depends on** | PROD-1 (pick the infra first) |
-| **Files** | `src/lib/rate-limit.ts`, `src/middleware.ts`, `.env.example` |
+| **Status** | ✅ **DONE 2026-09-18** |
+| **Depends on** | PROD-1 (done) |
+| **Files** | `src/lib/rate-limit-store.ts` (new), `src/lib/rate-limit.ts`, `src/lib/session-token.ts` (new), `src/middleware.ts`, `src/instrumentation.ts`, `prisma/migrations/0003_rate_limit_counter`, `.env.example` |
 
-**Why**: `rateLimitStore` is a process-local `Map`. With N instances behind a load balancer an
-attacker gets **N× the configured limit**, and every deploy resets all counters. This is a
-security control that silently degrades the moment you scale — the most dangerous kind of bug,
-because the code looks correct and the tests pass.
+**Why it mattered**: both limiters were a process-local `Map`. With N instances behind a load
+balancer an attacker got **N × the configured limit**, and every deploy reset every counter. The
+code read correctly and the tests passed — the limiter was accurate about the one process it could
+see. That is what made it a blocker rather than a nit.
 
-**Do this**:
-1. Add Redis (managed: Upstash / ElastiCache / Redis Cloud).
-2. Reimplement the limiter on Redis using an atomic primitive — `INCR` + `EXPIRE` in a
-   `MULTI`, or a sliding window via sorted sets. **Do not** read-then-write; that races.
-3. Keep the existing exported function signatures so the 121 routes need no changes.
-4. Fail **closed** on a Redis outage for auth-sensitive routes (login, register, password reset);
-   failing open re-opens the brute-force window the Phase 1 audit closed.
-5. **Move both limiters** (B14). There are two independent in-process stores: the account/login
-   limiter in `src/lib/rate-limit.ts` and a separate one inside `src/middleware.ts`. Migrating
-   only the first leaves the general API limit process-local.
-6. **Re-key the general limit off raw IP** (B11). At 100 reads/min per IP, one office NAT shares a
-   single budget across a whole team, and the Super Admin panel spends ~20 req/min of it polling
-   by itself. Key authenticated traffic by user or session and keep IP keying for unauthenticated
-   routes, where it is the only identifier available. Note middleware runs on the edge runtime, so
-   confirm your Redis client works there or move the check into the route layer.
+**What was done**
 
-**Acceptance criteria**:
-- [ ] No process-local `Map` backing **either** limiter
-- [ ] Limit is enforced *in aggregate* across ≥2 concurrently running instances
-- [ ] Counter increments are atomic (no read-then-write)
-- [ ] Redis unavailable → auth routes deny, documented behaviour
-- [ ] Authenticated traffic keyed per user/session, not per IP
-- [ ] Two users behind one IP do not consume each other's budget (test it)
-- [ ] Public call signatures unchanged; no route edits required
+1. **A shared store** — [`src/lib/rate-limit-store.ts`](src/lib/rate-limit-store.ts), backed by a
+   new `RateLimitCounter` table (migration `0003_rate_limit_counter`).
+2. **Atomic increments.** The window read, the window reset and the increment are a single
+   `INSERT … ON CONFLICT DO UPDATE … RETURNING`. A read-then-write races precisely under the load
+   a limiter exists to handle: two requests both read 99, both decide they are under 100, both
+   write 100. The window boundary is evaluated by the **database** clock, not the instance's,
+   because with several instances theirs disagree.
+3. **Both limiters moved** (B14) — the middleware limit and the login/account limiter in
+   `rate-limit.ts`. Migrating only one would have left the general API limit process-local.
+4. **Re-keyed off raw IP** (B11). Authenticated traffic is keyed per user; unauthenticated traffic
+   keeps IP keying, where it is the only identifier available. A token that fails verification
+   counts as unauthenticated, so a forged cookie cannot mint a private budget.
+5. **A per-IP backstop** the roadmap did not ask for. Per-user keying alone means an attacker
+   holding many valid sessions gets a fresh budget per account. A second, much looser ceiling
+   (600 reads / 200 mutations per minute per address) bounds that, while sitting far above what a
+   shared office NAT ever reaches. Both ceilings are charged in **one** round-trip via a multi-row
+   upsert, with keys sorted so that concurrent statements cannot deadlock by taking row locks in
+   opposite orders.
+6. **Fails closed.** If the store is unreachable, requests are denied. This differs from the usual
+   Redis advice — failing open is defensible when Redis being down does not mean the app is down —
+   because here the store *is* the application's Postgres. If it is unreachable, every route that
+   touches the database is already failing, so denying costs nothing that was working, while
+   failing open would remove the brute-force ceiling on login and password reset during exactly
+   the incident that caused it.
+7. **A per-process store cannot reach production.** `RATE_LIMIT_STORE=memory` exists for local
+   development without a database; `assertProductionRateLimitStore()` makes the process refuse to
+   start with it in production.
 
-**Verify**: start two instances against one Redis, script `limit + 1` requests across both,
-confirm the last one is rejected.
+**Why Postgres and not Redis**: the roadmap named Redis. What the acceptance criteria actually
+require is a store that is *shared* and increments *atomically*, and Postgres is both. No managed
+Redis has been chosen — that decision is still open — so a Redis limiter could have been written
+but not run, and an unverified security control is worse than a verified one with a slower store.
+Postgres is already a hard dependency after PROD-1, so this adds no new infrastructure, failure
+domain or secret. The cost is one round-trip per API request, **measured at p50 1.2 ms / p95
+1.8 ms / p99 2.0 ms** over 300 iterations. `RateLimitStore` is the seam if that ever becomes
+material: implement `hit`/`hitMany`/`reset` against Redis and change `resolveStore()`. Nothing
+else in the codebase knows which store it is talking to.
+
+**One dependency worth recording**: the middleware now runs on the **Node** runtime
+(`export const runtime = "nodejs"` plus `experimental.nodeMiddleware`), because Prisma cannot run
+on the edge. That flag is experimental in Next 15.5 — the build prints `Unrecognized key(s) in
+object: nodeMiddleware` and enables it anyway — and **stable in Next 16**, which PROD-19 already
+plans. It is a step towards that upgrade, not a bet against it. If the flag were ever dropped, the
+build fails on the Prisma import rather than silently falling back to edge, and `isNodeRuntime()`
+in the middleware refuses to serve if it somehow does.
+
+> **A trap worth documenting.** Middleware must not import `@/lib/auth`: that module imports
+> `next/headers`, and pulling it into the middleware module graph makes **every** response a bare
+> 500 — with the middleware itself running to completion, setting its headers, and logging
+> nothing. It cost a debugging cycle here. The JWT primitives were therefore split into
+> [`src/lib/session-token.ts`](src/lib/session-token.ts), which has no framework imports;
+> `auth.ts` re-exports them, so no caller changed.
+
+**Deviation from the plan**: the roadmap's criterion "public call signatures unchanged; no route
+edits required" could not be met. A shared store is a network round-trip, so `checkRateLimit` and
+`resetRateLimit` are now `async`, and the 11 call sites in `src/app/api/auth/*` gained an `await`.
+A synchronous shim was rejected: it would be a fast path that answers confidently from the wrong
+data.
+
+**Acceptance criteria**
+- [x] No process-local `Map` backing **either** limiter — enforced by a test that greps both sources
+- [x] Limit enforced *in aggregate* across ≥2 concurrently running instances — live T1
+- [x] Counter increments are atomic (no read-then-write) — single-statement upsert
+- [x] Store unavailable → deny, documented behaviour — live T7 (503) and a unit test
+- [x] Authenticated traffic keyed per user/session, not per IP — live T2
+- [x] Two users behind one IP do not consume each other's budget — live T2
+- [ ] Public call signatures unchanged; no route edits required — **not met**, see Deviation above
+
+**Verified live, 2026-09-18** — two instances (ports 3111/3112) plus a third against a dead
+database, all sharing one Postgres. 10 checks, **10 passed, 0 failed**:
+
+| Test | Result |
+|---|---|
+| T1 mutation ceiling of 30 enforced across both instances, alternating | first 429 at request **#31**; one shared row held `count=32` |
+| T1 the first 30 were not refused | all 404 (reached the route) |
+| T2 user A exhausted; user B on the **same IP** still allowed | A 429, B 404 |
+| T3 unauthenticated IP limit enforced in aggregate | first 429 at **#31** |
+| T4 forged token does not mint a private budget | 429, charged to the spent IP bucket |
+| T5 read bucket unaffected by a spent mutation budget | GET 404 |
+| T6 a second process sees the spent budget (no per-deploy reset) | 429 |
+| T7 store unreachable → denied, not waved through | **503** |
+| Second limiter (`forgot-password`, limit 5) across both instances | 5 allowed, **6th refused** |
+
+Unit coverage: 12 tests in
+[`src/lib/__tests__/rate-limit.test.ts`](src/lib/__tests__/rate-limit.test.ts), including the
+fail-closed path and a structural guard against the `Map` returning.
+
+**Re-verify with**: start two instances against one database, script `limit + 1` requests across
+both, and confirm the last is rejected. A per-process store would let 2 × limit through.
 
 ---
 
@@ -471,7 +537,7 @@ confirm the last one is rejected.
 |---|---|
 | **Severity** | Blocker |
 | **Status** | PENDING |
-| **Depends on** | PROD-2 (reuse the Redis client) |
+| **Depends on** | PROD-2 (**done**) — but note PROD-2 chose Postgres, not Redis. A cache has the opposite trade-off to a rate limiter: it is read on nearly every request and tolerates being lost, so Redis is the better fit here and the reason to introduce it. Do not reuse `RateLimitStore` for this. |
 | **Files** | `src/lib/cache-manager.ts`, `src/lib/pbac-engine.ts` |
 
 **Why**: `SystemCacheManager.store` is a process-local `Map`. Across instances the caches diverge,
@@ -516,7 +582,7 @@ a cache backend swap.
 |---|---|
 | **Severity** | Blocker |
 | **Status** | PENDING |
-| **Depends on** | PROD-2 |
+| **Depends on** | PROD-2 (**done**), and in practice PROD-3: fan-out needs a pub/sub channel, which Postgres `LISTEN/NOTIFY` can do but not well at this shape — it holds a connection per listener. Decide the cache infrastructure first and publish over that. |
 | **Files** | `src/lib/sync-engine.ts`, `src/app/api/sync/events/route.ts` |
 
 **Why**: `syncEngine.clients` is a process-local `Map`, so an event published on instance A never

@@ -12,6 +12,8 @@
  * A process that cannot do its job should refuse to start, not fail per-request.
  */
 
+import { assertProductionRateLimitStore } from "./lib/rate-limit-store";
+
 const HEX_64 = /^[0-9a-f]{64}$/i;
 
 // The all-zeros key is the CI fallback in .github/workflows/ci.yml. It must
@@ -80,6 +82,11 @@ function validateProductionConfig(): string[] {
   if (publicUrl && baseUrl && publicUrl.replace(/\/$/, "") !== baseUrl.replace(/\/$/, "")) {
     warnings.push(`NEXT_PUBLIC_APP_URL (${publicUrl}) does not match BASE_URL (${baseUrl}).`);
   }
+
+  // PROD-2. A per-process rate-limit store in production is the defect PROD-2
+  // exists to remove: it silently grants N x the configured limit once there is
+  // more than one instance. Refuse rather than scale into it.
+  errors.push(...assertProductionRateLimitStore());
 
   for (const w of warnings) {
     console.warn(`[config] WARNING: ${w}`);

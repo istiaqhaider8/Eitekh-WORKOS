@@ -106,3 +106,26 @@ jobs:
 
       - name: Next.js build
         run: npm run build
+
+      # PROD-2. The general rate limit lives in middleware and is backed by a
+      # Postgres store, which Prisma cannot reach from the edge runtime. The
+      # middleware therefore must build as a NODE function.
+      #
+      # This is asserted rather than assumed because the failure is silent in
+      # the direction that matters: 'experimental.nodeMiddleware' is not in
+      # Next 15.5's config schema (the build prints "Unrecognized key(s)" and
+      # honours it anyway), so a future patch release could stop honouring it.
+      # A middleware that quietly runs on the edge is a middleware with no
+      # working rate limiter.
+      - name: Middleware builds for the Node runtime
+        run: |
+          node -e '
+            const m = require("./.next/server/functions-config-manifest.json");
+            const rt = m.functions?.["/_middleware"]?.runtime;
+            if (rt !== "nodejs") {
+              console.error("Middleware runtime is " + rt + ", expected nodejs. " +
+                "The shared rate-limit store is unreachable from the edge runtime.");
+              process.exit(1);
+            }
+            console.log("middleware runtime: nodejs");
+          '

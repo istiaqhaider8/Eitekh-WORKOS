@@ -7,7 +7,7 @@ import { forgotPasswordSchema, parseBody, parseJsonBody } from "@/lib/validation
 export async function POST(req: Request) {
   try {
     const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anonymous";
-    const rl = checkRateLimit(`forgot-pass:${ipAddress}`, { limit: 5, windowSeconds: 60 });
+    const rl = await checkRateLimit(`forgot-pass:${ipAddress}`, { limit: 5, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many requests. Please try again in ${rl.resetInSeconds} seconds.` },

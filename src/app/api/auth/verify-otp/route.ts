@@ -9,7 +9,7 @@ import crypto from "crypto";
 export async function POST(req: Request) {
   try {
     const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anonymous";
-    const rl = checkRateLimit(`verify-otp:${ipAddress}`, { limit: 10, windowSeconds: 60 });
+    const rl = await checkRateLimit(`verify-otp:${ipAddress}`, { limit: 10, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many verification attempts. Please try again in ${rl.resetInSeconds} seconds.` },

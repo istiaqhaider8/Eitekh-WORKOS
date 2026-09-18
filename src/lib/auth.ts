@@ -1,41 +1,25 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { prisma } from "./prisma";
 
-// JWT secret must be supplied via env. No in-source fallback: a hardcoded
-// default is publicly known and lets anyone forge tokens for any user.
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error(
-    "JWT_SECRET environment variable is required. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\""
-  );
-}
-const JWT_ISSUER = "eitekh-workos";
-const JWT_AUDIENCE = "eitekh-workos-web";
-const COOKIE_NAME = "eitekh_session_token";
+// The JWT primitives moved to ./session-token (PROD-2) so that middleware can
+// import them without pulling in next/headers, Prisma or bcrypt. The comment
+// at the top of that file explains why that matters: importing next/headers
+// into the middleware module graph fails silently, and turns every response
+// into a bare 500 with nothing in the log.
+import {
+  COOKIE_NAME,
+  SESSION_EXPIRY_DAYS,
+  SESSION_COOKIE_MAX_AGE,
+  createToken,
+  verifyToken,
+  type TokenPayload,
+} from "./session-token";
+
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 64;
-
-// Session lifetime — configurable via SESSION_EXPIRY_DAYS (default 7).
-// Must be a positive integer; invalid values fall back to the default.
-function parseSessionExpiryDays(): number {
-  const raw = process.env.SESSION_EXPIRY_DAYS;
-  if (!raw) return 7;
-  const parsed = parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 7;
-}
-export const SESSION_EXPIRY_DAYS = parseSessionExpiryDays();
-export const SESSION_COOKIE_MAX_AGE = SESSION_EXPIRY_DAYS * 24 * 60 * 60;
-
-export interface TokenPayload {
-  userId: string;
-  email: string;
-  isSuperAdmin: boolean;
-  sessionId: string;
-}
 
 export async function hashPassword(password: string): Promise<string> {
   // bcrypt silently truncates at 72 bytes; cap earlier so a long passphrase
@@ -48,27 +32,6 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
-}
-
-export function createToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET as string, {
-    expiresIn: `${SESSION_EXPIRY_DAYS}d`,
-    algorithm: "HS256",
-    issuer: JWT_ISSUER,
-    audience: JWT_AUDIENCE,
-  });
-}
-
-export function verifyToken(token: string): TokenPayload | null {
-  try {
-    return jwt.verify(token, JWT_SECRET as string, {
-      algorithms: ["HS256"],
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-    }) as TokenPayload;
-  } catch {
-    return null;
-  }
 }
 
 export async function createSession(
@@ -205,4 +168,13 @@ async function loadCurrentUser() {
  */
 export const getCurrentUser = cache(loadCurrentUser);
 
-export { COOKIE_NAME };
+// Re-exported so that the existing importers of "@/lib/auth" are unaffected
+// by the move to ./session-token.
+export {
+  COOKIE_NAME,
+  SESSION_EXPIRY_DAYS,
+  SESSION_COOKIE_MAX_AGE,
+  createToken,
+  verifyToken,
+};
+export type { TokenPayload };

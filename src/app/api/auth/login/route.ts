@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     // Per-IP ceiling. 60/min was far too permissive for a credential-stuffing
     // defence (3,600 attempts/hour from one address), so it is tightened here.
-    const rl = checkRateLimit(`login:ip:${ipAddress}`, { limit: LOGIN_IP_LIMIT, windowSeconds: 60 });
+    const rl = await checkRateLimit(`login:ip:${ipAddress}`, { limit: LOGIN_IP_LIMIT, windowSeconds: 60 });
     if (!rl.allowed) {
       await logAuditEvent({
         action: 'AUTH_RATE_LIMITED',
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     // distributed attack against a single account was unconstrained, because
     // the only limiter was keyed on the source address.
     const accountKey = `login:acct:${email.trim().toLowerCase()}`;
-    const acctRl = checkRateLimit(accountKey, {
+    const acctRl = await checkRateLimit(accountKey, {
       limit: LOGIN_ACCOUNT_LIMIT,
       windowSeconds: LOGIN_ACCOUNT_WINDOW_SECONDS,
     });
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
 
     // Credentials were correct, so discharge the per-account failure counter.
     // Only consecutive failures should count towards the lockout ceiling.
-    resetRateLimit(accountKey);
+    await resetRateLimit(accountKey);
 
     const { jwtToken } = await createSession(
       user.id,

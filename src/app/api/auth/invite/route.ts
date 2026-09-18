@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anonymous";
-    const rl = checkRateLimit(`invite:${user.id}`, { limit: 20, windowSeconds: 60 });
+    const rl = await checkRateLimit(`invite:${user.id}`, { limit: 20, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many invitations. Please try again in ${rl.resetInSeconds} seconds.` },
