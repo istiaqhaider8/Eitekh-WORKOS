@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/config";
-import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody, parseJsonBody, DEFAULT_USER_TYPE } from "@/lib/validation";
 
 // GET /api/super-admin/users
 export async function GET(req: Request) {
@@ -57,6 +57,7 @@ export async function GET(req: Request) {
         avatarUrl: true,
         company: true,
         jobTitle: true,
+        userType: true,
         timezone: true,
         language: true,
         status: true,
@@ -117,6 +118,7 @@ export async function POST(req: Request) {
       firstName,
       lastName,
       jobTitle,
+      userType,
       company,
       timezone,
       language,
@@ -148,6 +150,7 @@ export async function POST(req: Request) {
         firstName: firstName?.trim() || "Team",
         lastName: lastName?.trim() || "Member",
         jobTitle: jobTitle?.trim() || null,
+        userType: userType || DEFAULT_USER_TYPE,
         company: company?.trim() || null,
         timezone: timezone || "UTC",
         language: language || "en",
@@ -237,6 +240,7 @@ export async function PATCH(req: Request) {
       lastName,
       email,
       jobTitle,
+      userType,
       company,
       timezone,
       language,
@@ -267,6 +271,9 @@ export async function PATCH(req: Request) {
     if (lastName !== undefined) updateData.lastName = lastName.trim();
     if (email !== undefined && email.includes("@")) updateData.email = email.trim().toLowerCase();
     if (jobTitle !== undefined) updateData.jobTitle = jobTitle?.trim() || null;
+    // Validated by superAdminUserUpdateSchema via userTypeSchema, and the column
+    // carries a CHECK constraint, so an out-of-range value cannot be stored.
+    if (userType !== undefined) updateData.userType = userType;
     if (company !== undefined) updateData.company = company?.trim() || null;
     if (timezone !== undefined) updateData.timezone = timezone;
     if (language !== undefined) updateData.language = language;

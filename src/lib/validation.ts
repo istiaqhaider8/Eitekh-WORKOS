@@ -33,6 +33,24 @@ export const optionalCuidSchema = z.string().max(50).nullable().optional();
  */
 export const pbacRoleIdSchema = z.string().min(1).max(200);
 
+/**
+ * User.userType — the single source of truth for the allowed values.
+ *
+ * EMPLOYEE is internal staff; CLIENT is an external customer contact. The
+ * database enforces the same pair with a CHECK constraint (migration
+ * 0005_user_type), so a value that slips past the API is still refused by
+ * SQLite rather than stored.
+ */
+export const USER_TYPES = ["EMPLOYEE", "CLIENT"] as const;
+export type UserType = (typeof USER_TYPES)[number];
+export const DEFAULT_USER_TYPE: UserType = "EMPLOYEE";
+export const userTypeSchema = z.enum(USER_TYPES);
+
+/** Human label for a userType, for UI use. */
+export function userTypeLabel(value?: string | null): string {
+  return value === "CLIENT" ? "Client" : "Employee";
+}
+
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -185,6 +203,10 @@ export const projectMemberSchema = z.object({
   lastName: z.string().max(100).trim().optional(),
   password: z.string().max(64).optional(),
   role: z.string().max(50).optional(),
+  // Only meaningful when inviting a NEW person: it classifies the account being
+  // created. Ignored when assigning someone who already exists, whose type is
+  // an attribute of their account, not of this project.
+  userType: userTypeSchema.optional(),
 });
 
 // ── Resource creation schemas ──────────────────────────────────────
@@ -595,6 +617,7 @@ export const superAdminUserCreateSchema = z.object({
   isSuperAdmin: z.boolean().optional(),
   password: z.string().max(64).optional(),
   status: z.string().max(50).optional(),
+  userType: userTypeSchema.optional(),
 });
 
 export const superAdminUserUpdateSchema = z.object({
@@ -613,6 +636,7 @@ export const superAdminUserUpdateSchema = z.object({
   revokeSessions: z.boolean().optional(),
   orgId: cuidSchema.optional(),
   role: z.string().max(50).optional(),
+  userType: userTypeSchema.optional(),
 });
 
 export const superAdminSecurityActionSchema = z.object({

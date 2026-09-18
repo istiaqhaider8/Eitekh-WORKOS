@@ -328,6 +328,9 @@ export function ProjectClient({
   const [inviteFirstName, setInviteFirstName] = useState("");
   const [inviteLastName, setInviteLastName] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
+  // EMPLOYEE or CLIENT. Applies only to an account being created by this
+  // invite; someone who already exists keeps the type on their account.
+  const [inviteUserType, setInviteUserType] = useState("EMPLOYEE");
   const [invitePassword, setInvitePassword] = useState("");
   const [inviteCreatedUser, setInviteCreatedUser] = useState<{ email: string; tempPassword?: string } | null>(null);
 
@@ -908,6 +911,7 @@ export function ProjectClient({
           firstName: inviteFirstName.trim(),
           lastName: inviteLastName.trim(),
           role: inviteRole,
+          userType: inviteUserType,
           password: invitePassword.trim() || undefined,
         }),
       });
@@ -928,6 +932,7 @@ export function ProjectClient({
       setInviteFirstName("");
       setInviteLastName("");
       setInvitePassword("");
+      setInviteUserType("EMPLOYEE");
       refreshMembers();
       fetchOrgMembers();
     } catch (err: any) {
@@ -2104,7 +2109,21 @@ export function ProjectClient({
                         />
                       </div>
 
-                      <div className="sm:col-span-5">
+                      <div className="sm:col-span-3">
+                        <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                          Type
+                        </label>
+                        <select
+                          value={inviteUserType}
+                          onChange={(e) => setInviteUserType(e.target.value)}
+                          className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
+                        >
+                          <option value="EMPLOYEE">Employee</option>
+                          <option value="CLIENT">Client</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
                         <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
                           Project Role
                         </label>
@@ -2177,6 +2196,20 @@ export function ProjectClient({
                               {isSelf && (
                                 <span className="text-[10px] bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold px-1.5 py-0.2 rounded border border-blue-200 dark:border-blue-900">
                                   You
+                                </span>
+                              )}
+                              {/* Type is an attribute of the account, not of
+                                  this membership, so it is shown here and
+                                  edited in the platform user directory. A
+                                  project admin changing it here would silently
+                                  reclassify the person across every project. */}
+                              {userObj.userType === "CLIENT" ? (
+                                <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-semibold px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800">
+                                  Client
+                                </span>
+                              ) : (
+                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
+                                  Employee
                                 </span>
                               )}
                             </div>

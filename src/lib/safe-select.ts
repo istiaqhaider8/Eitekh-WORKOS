@@ -11,6 +11,10 @@ export const publicUserSelect = {
   lastName: true,
   avatarUrl: true,
   jobTitle: true,
+  // EMPLOYEE or CLIENT. Included here so every member and assignee list can
+  // show it without each call site remembering to ask; it is ordinary
+  // non-sensitive profile data, like jobTitle.
+  userType: true,
 } as const;
 
 export const publicUserRelation = { select: publicUserSelect } as const;

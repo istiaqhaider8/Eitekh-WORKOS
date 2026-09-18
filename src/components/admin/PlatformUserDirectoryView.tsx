@@ -11,6 +11,7 @@ import {
   Trash2,
   CheckCircle2,
   Ban,
+  Briefcase,
   Shield,
   ShieldAlert,
   Building2,
@@ -66,6 +67,7 @@ export function PlatformUserDirectoryView({
     email: '',
     password: '',
     jobTitle: '',
+    userType: 'EMPLOYEE',
     company: '',
     timezone: 'UTC',
     language: 'en',
@@ -81,6 +83,7 @@ export function PlatformUserDirectoryView({
     lastName: '',
     email: '',
     jobTitle: '',
+    userType: 'EMPLOYEE',
     company: '',
     timezone: 'UTC',
     language: 'en',
@@ -182,6 +185,7 @@ export function PlatformUserDirectoryView({
       email: '',
       password: '',
       jobTitle: '',
+      userType: 'EMPLOYEE',
       company: '',
       timezone: 'UTC',
       language: 'en',
@@ -232,6 +236,7 @@ export function PlatformUserDirectoryView({
       lastName: user.lastName || '',
       email: user.email || '',
       jobTitle: user.jobTitle || '',
+      userType: user.userType || 'EMPLOYEE',
       company: user.company || '',
       timezone: user.timezone || 'UTC',
       language: user.language || 'en',
@@ -818,6 +823,17 @@ export function PlatformUserDirectoryView({
                   />
                 </div>
                 <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Type *</label>
+                  <select
+                    value={createForm.userType}
+                    onChange={(e) => setCreateForm({ ...createForm, userType: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
+                  >
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="CLIENT">Client</option>
+                  </select>
+                </div>
+                <div>
                   <label className="text-slate-600 dark:text-slate-400 block mb-1">Company</label>
                   <input
                     type="text"
@@ -989,6 +1005,17 @@ export function PlatformUserDirectoryView({
                     onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
                   />
+                </div>
+                <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Type *</label>
+                  <select
+                    value={editForm.userType}
+                    onChange={(e) => setEditForm({ ...editForm, userType: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
+                  >
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="CLIENT">Client</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-slate-600 dark:text-slate-400 block mb-1">Company</label>

@@ -24,6 +24,11 @@ model User {
   isSuperAdmin    Boolean   @default(false)
   isSupportAdmin  Boolean   @default(false)
   status          String    @default("ACTIVE") // ACTIVE, SUSPENDED, PENDING_VERIFY
+  // EMPLOYEE for internal staff, CLIENT for external customer contacts.
+  // Kept as a String with a CHECK constraint in the migration because this
+  // schema uses no Prisma enums and SQLite has no native enum type; the allowed
+  // values live in ONE place, USER_TYPES in src/lib/validation.ts.
+  userType        String    @default("EMPLOYEE") // EMPLOYEE, CLIENT
   mfaEnabled      Boolean   @default(false)
   mfaSecret       String?
   recoveryCodes   String?   // JSON array of hashed recovery codes
@@ -55,6 +60,8 @@ model User {
   receivedDelegations  TaskDelegation[]    @relation("DelegationDelegateUser")
   createdDelegations   TaskDelegation[]    @relation("DelegationCreator")
   delegationHistories  DelegationHistory[]
+
+  @@index([userType])
 }
 
 

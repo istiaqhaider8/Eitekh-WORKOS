@@ -1,11 +1,12 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { getBaseUrl } from "@/lib/config";
-import { projectMemberSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { projectMemberSchema, memberUserIdSchema, parseBody, parseJsonBody, DEFAULT_USER_TYPE } from "@/lib/validation";
 
 // Only these project-scoped role strings may be assigned to a ProjectMember.
 // This blocks privilege escalation via an injected org-scoped PBAC role id
@@ -34,7 +35,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const members = await prisma.projectMember.findMany({
       where: { projectId: id },
       include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true } }
+        // publicUserRelation rather than an inline select, so this list picks
+        // up userType (and anything else added to the shared select) instead of
+        // silently omitting it.
+        user: publicUserRelation,
       }
     });
     return NextResponse.json(members);
@@ -73,6 +77,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             firstName: body.firstName?.trim() || "Team",
             lastName: body.lastName?.trim() || "Member",
             status: "ACTIVE",
+            // EMPLOYEE or CLIENT, chosen on the invite form. Only applied when
+            // the account is being created here; an existing user keeps the type
+            // already on their account, since it describes the person rather
+            // than this project membership.
+            userType: body.userType || DEFAULT_USER_TYPE,
             emailVerifiedAt: new Date(),
           },
         });
