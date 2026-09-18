@@ -341,7 +341,7 @@ export function UsersTab({
       <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-600" />
+            <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             Existing Users Directory ({totalRecords})
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -350,8 +350,8 @@ export function UsersTab({
         </div>
 
         {selectedUserIds.length > 0 && (
-          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs animate-in fade-in">
-            <span className="font-bold text-indigo-700">{selectedUserIds.length} user(s) selected</span>
+          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs animate-in fade-in dark:bg-indigo-950/40 dark:border-indigo-800">
+            <span className="font-bold text-indigo-700 dark:text-indigo-400">{selectedUserIds.length} user(s) selected</span>
             <button
               onClick={handleOpenBulkAssign}
               className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold shadow-sm"
@@ -360,7 +360,7 @@ export function UsersTab({
             </button>
             <button
               onClick={() => setSelectedUserIds([])}
-              className="px-2 py-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+              className="px-2 py-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             >
               Clear
             </button>
@@ -453,7 +453,7 @@ export function UsersTab({
                     type="checkbox"
                     checked={users.length > 0 && users.every((u) => selectedUserIds.includes(u.id))}
                     onChange={handleSelectPage}
-                    className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
+                    className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer dark:text-indigo-400"
                   />
                 </th>
                 <th className="p-3 font-bold text-slate-700 dark:text-slate-300">User Details</th>
@@ -485,7 +485,7 @@ export function UsersTab({
                     <tr
                       key={u.id}
                       className={`hover:bg-slate-50 transition-colors ${
-                        isSelected ? 'bg-indigo-50' : ''
+                        isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''
                       }`}
                     >
                       <td className="p-3 text-center">
@@ -497,7 +497,7 @@ export function UsersTab({
                               e.target.checked ? [...prev, u.id] : prev.filter((id) => id !== u.id)
                             );
                           }}
-                          className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer"
+                          className="rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-indigo-600 cursor-pointer dark:text-indigo-400"
                         />
                       </td>
 
@@ -515,13 +515,13 @@ export function UsersTab({
                             u.assignedRoles.map((r: any) => (
                               <span
                                 key={r.id}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold rounded text-[10px] group"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold rounded text-[10px] group dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800"
                               >
                                 {r.name}
                                 <button
                                   onClick={() => handleRemoveRoleInline(u.id, r.id, r.name)}
                                   title={`Remove ${r.name}`}
-                                  className="text-indigo-600 hover:text-rose-600 ml-0.5 font-bold"
+                                  className="text-indigo-600 hover:text-rose-600 ml-0.5 font-bold dark:text-indigo-400 dark:hover:text-rose-300"
                                 >
                                   ×
                                 </button>
@@ -539,7 +539,7 @@ export function UsersTab({
                               onClick={() =>
                                 setInlineDropdownUserId(inlineDropdownUserId === u.id ? null : u.id)
                               }
-                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors"
+                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold flex items-center gap-1 transition-colors dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 dark:text-indigo-400 dark:border-indigo-800"
                             >
                               + Assign Role
                             </button>
@@ -559,7 +559,7 @@ export function UsersTab({
                                     <button
                                       key={r.id}
                                       onClick={() => handleAssignRoleInline(u.id, r.id)}
-                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-100 hover:text-indigo-800 text-slate-700 dark:text-slate-300 rounded text-xs flex items-center justify-between transition-colors"
+                                      className="w-full text-left px-2 py-1.5 hover:bg-indigo-100 hover:text-indigo-800 text-slate-700 dark:text-slate-300 rounded text-xs flex items-center justify-between transition-colors dark:hover:bg-indigo-900/50"
                                     >
                                       <span className="font-semibold">{r.name}</span>
                                       <span className="text-[10px] text-slate-500 font-mono">
@@ -571,7 +571,7 @@ export function UsersTab({
                                 <div className="pt-1 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                                   <button
                                     onClick={() => setInlineDropdownUserId(null)}
-                                    className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 px-2 py-0.5"
+                                    className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 px-2 py-0.5"
                                   >
                                     Close
                                   </button>
@@ -583,7 +583,7 @@ export function UsersTab({
                       </td>
 
                       <td className="p-3">
-                        <span className="font-mono font-bold text-indigo-600">
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                           {u.effectivePermissionsCount || 0}
                         </span>
                         <span className="text-[10px] text-slate-500 ml-1">capabilities</span>
@@ -598,9 +598,9 @@ export function UsersTab({
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             u.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-rose-50 text-rose-600 border border-rose-200'
-                          }`}
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                          } dark:text-emerald-400 dark:text-rose-400`}
                         >
                           {u.status}
                         </span>
@@ -610,7 +610,7 @@ export function UsersTab({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenProfile(u)}
-                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm flex items-center gap-1 border border-indigo-200"
+                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm flex items-center gap-1 border border-indigo-200 dark:border-indigo-800"
                           >
                             <UserPlus className="w-3 h-3" />
                             Assign Roles
@@ -620,7 +620,7 @@ export function UsersTab({
                             title="Inspect Access Provenance"
                             className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded text-xs font-medium border border-slate-300 dark:border-slate-700 flex items-center gap-1"
                           >
-                            <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                            <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                             Inspect Provenance
                           </button>
                         </div>
@@ -645,14 +645,14 @@ export function UsersTab({
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(1)}
-                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
+                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100"
               >
                 First
               </button>
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
+                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -664,14 +664,14 @@ export function UsersTab({
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
+                className="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(totalPages)}
-                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100 dark:bg-slate-800"
+                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded disabled:opacity-40 hover:bg-slate-100"
               >
                 Last
               </button>
@@ -687,7 +687,7 @@ export function UsersTab({
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-indigo-600" />
+                  <UserPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   Bulk Assign Permission Role
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -696,7 +696,7 @@ export function UsersTab({
               </div>
               <button
                 onClick={() => setIsBulkAssignOpen(false)}
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -725,13 +725,13 @@ export function UsersTab({
             <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 <span>Pre-Flight Impact Assessment</span>
-                {simulating && <span className="text-indigo-600 text-[10px]">Calculating...</span>}
+                {simulating && <span className="text-indigo-600 text-[10px] dark:text-indigo-400">Calculating...</span>}
               </div>
 
               {simulation ? (
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-lg font-bold text-emerald-700">
+                    <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
                       {simulation.newAssignments}
                     </div>
                     <span className="text-[10px] text-slate-600 dark:text-slate-400">New Assignments</span>
@@ -745,7 +745,7 @@ export function UsersTab({
                   </div>
 
                   <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-lg font-bold text-rose-600">
+                    <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
                       {simulation.cannotBeAssigned}
                     </div>
                     <span className="text-[10px] text-slate-600 dark:text-slate-400">Cannot Assign</span>
@@ -756,13 +756,13 @@ export function UsersTab({
               )}
 
               {simulation?.conflicts?.length > 0 && (
-                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs space-y-1">
-                  <div className="font-bold text-rose-600 flex items-center gap-1.5">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs space-y-1 dark:bg-rose-950/40 dark:border-rose-800">
+                  <div className="font-bold text-rose-600 flex items-center gap-1.5 dark:text-rose-400">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     Conflict Warnings:
                   </div>
                   {simulation.conflicts.map((c: string, idx: number) => (
-                    <div key={idx} className="text-[11px] text-rose-700">• {c}</div>
+                    <div key={idx} className="text-[11px] text-rose-700 dark:text-rose-400">• {c}</div>
                   ))}
                 </div>
               )}
@@ -797,14 +797,14 @@ export function UsersTab({
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-600" />
+                  <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   User Access Profile
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">{selectedUserProfile.name} ({selectedUserProfile.email})</p>
               </div>
               <button
                 onClick={() => setIsProfileOpen(false)}
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 p-1"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -818,8 +818,8 @@ export function UsersTab({
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       selectedUserProfile.status === 'ACTIVE'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-rose-50 text-rose-600'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
                     }`}
                   >
                     {selectedUserProfile.status}
@@ -841,7 +841,7 @@ export function UsersTab({
                   </h4>
                   <button
                     onClick={() => onInspectUser(selectedUserProfile.id)}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 dark:text-indigo-400 dark:hover:text-indigo-300"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     Inspect Effective Access
@@ -893,7 +893,7 @@ export function UsersTab({
                         <div className="space-y-0.5">
                           <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                             {role.name}
-                            <span className="text-[10px] text-indigo-600 font-mono">
+                            <span className="text-[10px] text-indigo-600 font-mono dark:text-indigo-400">
                               ({role.permissions?.length || role.permissionCount || 0} perms)
                             </span>
                           </div>
@@ -902,7 +902,7 @@ export function UsersTab({
 
                         <button
                           onClick={() => handleRemoveRoleFromUserProfile(role.id, role.name)}
-                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded"
+                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded dark:hover:text-rose-300 dark:hover:bg-rose-900/50"
                           title="Remove Role"
                         >
                           <X className="w-4 h-4" />

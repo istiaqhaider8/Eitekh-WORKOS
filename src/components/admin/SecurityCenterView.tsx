@@ -85,7 +85,7 @@ export function SecurityCenterView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-600" />
+            <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             Platform Security & Threat Operations Center
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -113,17 +113,17 @@ export function SecurityCenterView() {
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Active Sessions</span>
-          <div className="text-lg font-bold text-indigo-600">{metrics.activeSessionsCount}</div>
+          <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{metrics.activeSessionsCount}</div>
           <p className="text-[10px] text-slate-500">Live JWT authenticated tokens</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Suspended Accounts</span>
-          <div className="text-lg font-bold text-rose-600">{metrics.suspendedUsersCount}</div>
+          <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{metrics.suspendedUsersCount}</div>
           <p className="text-[10px] text-slate-500">Locked out accounts</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Cross-Project Leaks</span>
-          <div className="text-lg font-bold text-emerald-700">0</div>
+          <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">0</div>
           <p className="text-[10px] text-slate-500">Zero data breach record</p>
         </div>
       </div>
@@ -131,7 +131,7 @@ export function SecurityCenterView() {
       {/* Real-time Security Alerts */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-700" />
+          <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-400" />
           Active Security Alerts ({alerts.length})
         </h3>
 
@@ -149,9 +149,9 @@ export function SecurityCenterView() {
                   key={al.id}
                   className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isCrit
-                      ? 'bg-rose-50 border-rose-200 text-rose-700'
+                      ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
                       : isHigh
-                      ? 'bg-amber-50 border-amber-200 text-amber-700'
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
                       : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
                   }`}
                 >
@@ -160,10 +160,10 @@ export function SecurityCenterView() {
                       <span
                         className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
                           isCrit
-                            ? 'bg-rose-50 text-rose-700'
+                            ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300'
                             : isHigh
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-blue-50 text-blue-700'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                            : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
                         }`}
                       >
                         {al.severity}
@@ -185,7 +185,7 @@ export function SecurityCenterView() {
       {/* Active Device Sessions Telemetry */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <Monitor className="w-4 h-4 text-indigo-600" />
+          <Monitor className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           Active Device Sessions & Token Registry ({sessions.length})
         </h3>
 
@@ -208,7 +208,7 @@ export function SecurityCenterView() {
                     <div className="font-semibold text-slate-900 dark:text-slate-100">{s.userName}</div>
                     <div className="text-[10px] text-slate-600 dark:text-slate-400">{s.userEmail}</div>
                   </td>
-                  <td className="p-3 font-mono text-[11px] text-indigo-700">{s.ipAddress}</td>
+                  <td className="p-3 font-mono text-[11px] text-indigo-700 dark:text-indigo-400">{s.ipAddress}</td>
                   <td className="p-3 text-slate-700 dark:text-slate-300">{s.browser} on {s.os}</td>
                   <td className="p-3 text-slate-600 dark:text-slate-400">{s.location}</td>
                   <td className="p-3 text-slate-600 dark:text-slate-400">{new Date(s.lastActiveAt).toLocaleTimeString()}</td>
@@ -216,7 +216,7 @@ export function SecurityCenterView() {
                     <button
                       onClick={() => handleSecurityAction({ action: 'REVOKE_SESSION', sessionId: s.id })}
                       disabled={actionLoading}
-                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded text-[10px] font-semibold"
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded text-[10px] font-semibold dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-400 dark:border-rose-800"
                     >
                       Revoke
                     </button>

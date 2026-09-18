@@ -102,7 +102,7 @@ export function JobAutomationMonitorView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-600" />
+            <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Background Job, Schedulers & Automation Monitor
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -128,17 +128,17 @@ export function JobAutomationMonitorView() {
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Automation Rules</span>
-          <div className="text-lg font-bold text-indigo-600">{summary.activeAutomationRules} / {summary.totalAutomationRules}</div>
+          <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{summary.activeAutomationRules} / {summary.totalAutomationRules}</div>
           <p className="text-[10px] text-slate-500">Active trigger listeners</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Webhooks Configured</span>
-          <div className="text-lg font-bold text-purple-600">{summary.activeWebhooks} / {summary.totalWebhooks}</div>
+          <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{summary.activeWebhooks} / {summary.totalWebhooks}</div>
           <p className="text-[10px] text-slate-500">Outbound dispatchers</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Email Deliveries</span>
-          <div className="text-lg font-bold text-emerald-700">{summary.deliveredEmailDispatches}</div>
+          <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{summary.deliveredEmailDispatches}</div>
           <p className="text-[10px] text-slate-500">{summary.failedEmailDispatches} failures logged</p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export function JobAutomationMonitorView() {
       {/* Recurring Tasks Grid */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-indigo-600" />
+          <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           Recurring Tasks & Schedulers ({recurringTasks.length})
         </h3>
 
@@ -160,8 +160,8 @@ export function JobAutomationMonitorView() {
               <div key={t.id} className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 flex flex-col justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-indigo-600 uppercase">{t.project?.key || 'PROJECT'}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                    <span className="text-[10px] font-bold text-indigo-600 uppercase dark:text-indigo-400">{t.project?.key || 'PROJECT'}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.isActive ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                       {t.isActive ? 'ACTIVE' : 'PAUSED'}
                     </span>
                   </div>
@@ -191,7 +191,7 @@ export function JobAutomationMonitorView() {
       {/* Email Queue & Dispatch Failures */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <Mail className="w-4 h-4 text-indigo-600" />
+          <Mail className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           Email Dispatch Logs & Retry Queue ({emailLogs.length})
         </h3>
 
@@ -209,16 +209,16 @@ export function JobAutomationMonitorView() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {emailLogs.map((e: any) => (
-                <tr key={e.id} className="hover:bg-slate-100 dark:bg-slate-800/40">
+                <tr key={e.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/40">
                   <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{e.to}</td>
                   <td className="p-3 text-slate-700 dark:text-slate-300">{e.subject}</td>
-                  <td className="p-3 font-mono text-[10px] text-indigo-700">{e.templateKey || 'CUSTOM'}</td>
+                  <td className="p-3 font-mono text-[10px] text-indigo-700 dark:text-indigo-400">{e.templateKey || 'CUSTOM'}</td>
                   <td className="p-3">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                         e.status === 'SENT' || e.status === 'MOCKED'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-rose-50 text-rose-700'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300'
                       }`}
                     >
                       {e.status}
@@ -229,7 +229,7 @@ export function JobAutomationMonitorView() {
                     {e.status === 'FAILED' && (
                       <button
                         onClick={() => handleRetryEmail(e.id)}
-                        className="px-2 py-0.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-[10px] font-semibold"
+                        className="px-2 py-0.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded text-[10px] font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-900/50"
                       >
                         Retry
                       </button>

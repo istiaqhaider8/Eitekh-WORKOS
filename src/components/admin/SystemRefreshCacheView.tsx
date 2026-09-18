@@ -273,17 +273,17 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
     <div className="space-y-6">
       {/* 1. Header & Data Safety Guarantee Banner */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-50 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-50 rounded-full blur-3xl pointer-events-none dark:bg-emerald-950/40" />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+              <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                 System Refresh & Cache Management
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-600 font-mono">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-600 font-mono dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-400">
                 v{cacheVersion}
               </span>
             </div>
@@ -299,9 +299,9 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                 type="button"
                 onClick={() => handleExecute('BUMP_CACHE_VERSION')}
                 disabled={executingAction !== null}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
               >
-                <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span>Bump Version</span>
               </button>
             )}
@@ -310,7 +310,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               type="button"
               onClick={loadStatus}
               disabled={loading || executingAction !== null}
-              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-600 dark:text-slate-400 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh Metrics</span>
@@ -319,12 +319,12 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
         </div>
 
         {/* DATA SAFETY GUARANTEE BOX */}
-        <div className="mt-5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-start gap-3.5">
-          <Shield className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+        <div className="mt-5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-start gap-3.5 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
+          <Shield className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5 dark:text-emerald-400" />
           <div className="space-y-1">
-            <div className="font-bold text-emerald-700 flex items-center gap-2">
+            <div className="font-bold text-emerald-700 flex items-center gap-2 dark:text-emerald-400">
               <span>CRITICAL DATA SAFETY GUARANTEE (Zero Business Data Loss)</span>
-              <span className="px-2 py-0.2 bg-emerald-50 text-emerald-700 rounded text-[10px]">
+              <span className="px-2 py-0.2 bg-emerald-50 text-emerald-700 rounded text-[10px] dark:bg-emerald-950/40 dark:text-emerald-400">
                 Active Enforced Policy
               </span>
             </div>
@@ -344,12 +344,12 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Cache Version
               </span>
-              <Cpu className="w-4 h-4 text-indigo-600" />
+              <Cpu className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">
               {metrics.cacheVersion}
             </div>
-            <div className="text-[10px] text-emerald-700 flex items-center gap-1 mt-0.5">
+            <div className="text-[10px] text-emerald-700 flex items-center gap-1 mt-0.5 dark:text-emerald-400">
               <CheckCircle2 className="w-3 h-3" /> Auto-Invalidating on Upgrade
             </div>
           </div>
@@ -359,7 +359,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Memory Footprint
               </span>
-              <HardDrive className="w-4 h-4 text-blue-600" />
+              <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
               {metrics.memoryFormatted}
@@ -374,9 +374,9 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Cache Efficiency
               </span>
-              <Activity className="w-4 h-4 text-emerald-700" />
+              <Activity className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
             </div>
-            <div className="text-lg font-bold text-emerald-700">
+            <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
               {metrics.hitRatioPercent}% Hit Ratio
             </div>
             <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
@@ -389,9 +389,9 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 PBAC Engine Cache
               </span>
-              <ShieldCheck className="w-4 h-4 text-purple-600" />
+              <ShieldCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
-            <div className="text-sm font-bold text-purple-700">
+            <div className="text-sm font-bold text-purple-700 dark:text-purple-400">
               Deterministic
             </div>
             <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
@@ -404,9 +404,9 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 Real-Time Channels
               </span>
-              <Wifi className="w-4 h-4 text-cyan-700" />
+              <Wifi className="w-4 h-4 text-cyan-700 dark:text-cyan-400" />
             </div>
-            <div className="text-sm font-bold text-cyan-700">
+            <div className="text-sm font-bold text-cyan-700 dark:text-cyan-400">
               Live Synchronized
             </div>
             <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">
@@ -418,10 +418,10 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
 
       {/* 3. Live Execution Terminal / Progress Checklist */}
       {lastExecutionResult && (
-        <div className="bg-slate-50 dark:bg-slate-950 border border-emerald-200 rounded-2xl p-5 space-y-4 shadow-xl animate-in fade-in duration-300">
+        <div className="bg-slate-50 dark:bg-slate-950 border border-emerald-200 rounded-2xl p-5 space-y-4 shadow-xl animate-in fade-in duration-300 dark:border-emerald-800">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg">
+              <div className="p-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <div>
@@ -429,12 +429,12 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                   Operation Completed: {lastExecutionResult.action.replace(/_/g, ' ')}
                 </h4>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                  Executed in <span className="text-emerald-700 font-bold">{lastExecutionResult.durationMs}ms</span> • Affected items: {lastExecutionResult.itemsAffected}
+                  Executed in <span className="text-emerald-700 font-bold dark:text-emerald-400">{lastExecutionResult.durationMs}ms</span> • Affected items: {lastExecutionResult.itemsAffected}
                 </p>
               </div>
             </div>
 
-            <span className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold flex items-center gap-1.5">
+            <span className="px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold flex items-center gap-1.5 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
               <ShieldCheck className="w-3.5 h-3.5" /> Data Safety 100% Verified
             </span>
           </div>
@@ -446,7 +446,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                 key={idx}
                 className="p-3 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 text-xs"
               >
-                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5 dark:text-emerald-400" />
                 <div className="space-y-0.5">
                   <div className="font-semibold text-slate-800 dark:text-slate-200">{item.step}</div>
                   <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">{item.detail}</div>
@@ -478,8 +478,8 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                 key={card.id}
                 className={`bg-white dark:bg-slate-900/80 border rounded-xl p-5 flex flex-col justify-between transition-all duration-200 relative overflow-hidden ${
                   card.isHero
-                    ? 'border-rose-200 bg-linear-to-b from-slate-900 to-rose-950/20 hover:border-rose-200'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:border-slate-700'
+                    ? 'border-rose-200 dark:border-rose-800 bg-linear-to-b from-slate-900 to-rose-950/20 hover:border-rose-200 dark:hover:border-rose-800'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 } ${!card.allowed ? 'opacity-60' : ''}`}
               >
                 <div className="space-y-3">
@@ -537,7 +537,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
       <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-indigo-600" />
+            <History className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
               System Cache Audit Log & History
             </h4>
@@ -567,7 +567,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               </thead>
               <tbody className="divide-y divide-slate-200 font-sans">
                 {auditLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
+                  <tr key={log.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
@@ -588,7 +588,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                       {log.durationMs}ms
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
                         SUCCESS
                       </span>
                     </td>
@@ -606,7 +606,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-indigo-600" />
+                <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   {confirmModal.title}
                 </h3>
@@ -614,7 +614,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <button
                 type="button"
                 onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 cursor-pointer"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -625,8 +625,8 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
             </p>
 
             {/* MANDATORY CONFIRMATION MESSAGE FROM REQUIREMENT 4 */}
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
-              <div className="font-bold text-emerald-700 flex items-center gap-1.5">
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1 dark:bg-emerald-950/40 dark:border-emerald-800">
+              <div className="font-bold text-emerald-700 flex items-center gap-1.5 dark:text-emerald-400">
                 <CheckCircle2 className="w-4 h-4" />
                 Safe Operation Guarantee
               </div>
@@ -639,7 +639,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               <button
                 type="button"
                 onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancel
               </button>

@@ -51,14 +51,14 @@ export function OverviewTab({
           onClick={() => onNavigateTab('roles')}
           className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
             Permission Roles
           </span>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <KeyRound className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             {roles.length}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {activeRoles.length} Active / {roles.length - activeRoles.length} Inactive
           </p>
         </div>
@@ -67,56 +67,56 @@ export function OverviewTab({
           onClick={() => onNavigateTab('users')}
           className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
             Governed Users
           </span>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             {totalUsers}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Existing accounts in tenant</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Existing accounts in tenant</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('users')}
           className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
             Role Grants
           </span>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             {totalAssignments}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Active user-role mappings</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Active user-role mappings</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('roles')}
           className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 shadow-sm dark:shadow-sm"
         >
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
             High-Risk Roles
           </span>
           <div className="text-xl font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
             {highRiskRoles.length}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Contains delete or admin privileges</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Contains delete or admin privileges</p>
         </div>
 
         <div
           onClick={() => onNavigateTab('audit')}
           className="cursor-pointer bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 p-4 rounded-xl transition-all space-y-1 col-span-2 sm:col-span-1 shadow-sm dark:shadow-sm"
         >
-          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
             Audit Ledger
           </span>
           <div className="text-xl font-bold text-purple-600 dark:text-purple-400 flex items-center gap-2">
             <History className="w-5 h-5" />
             {auditLogs.length}
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Tracked governance events</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Tracked governance events</p>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export function OverviewTab({
               Unified Permission Role Authorization Flow
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Simple, powerful, and secure access governance: <span className="font-semibold text-slate-900 dark:text-slate-800 dark:text-slate-200">Role = What</span> and <span className="font-semibold text-slate-900 dark:text-slate-800 dark:text-slate-200">Membership = Where</span>.
+              Simple, powerful, and secure access governance: <span className="font-semibold text-slate-900 dark:text-slate-200">Role = What</span> and <span className="font-semibold text-slate-900 dark:text-slate-200">Membership = Where</span>.
             </p>
           </div>
 
@@ -209,33 +209,33 @@ export function OverviewTab({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div
           onClick={() => onNavigateTab('roles')}
-          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
+          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
         >
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Manage Permission Roles</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Configure 18 permission categories & assign users</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Configure 18 permission categories & assign users</p>
           </div>
           <ArrowRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         </div>
 
         <div
           onClick={() => onNavigateTab('users')}
-          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
+          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
         >
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Bulk User Role Assignment</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Multi-select existing users with pre-flight simulation</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Multi-select existing users with pre-flight simulation</p>
           </div>
           <ArrowRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         </div>
 
         <div
           onClick={() => onNavigateTab('inspector')}
-          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
+          className="cursor-pointer p-4 bg-white dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 rounded-xl transition-all flex items-center justify-between shadow-sm dark:shadow-none"
         >
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Effective Access Inspector</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-600 dark:text-slate-400">Inspect user access with "Why?" provenance traces</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Inspect user access with "Why?" provenance traces</p>
           </div>
           <ArrowRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         </div>

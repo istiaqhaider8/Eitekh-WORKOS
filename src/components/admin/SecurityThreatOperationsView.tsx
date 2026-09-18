@@ -123,7 +123,7 @@ export function SecurityThreatOperationsView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-600" />
+            <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             Platform Security & Threat Operations Center
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -149,13 +149,13 @@ export function SecurityThreatOperationsView() {
             <div
               className={`w-16 h-16 rounded-2xl flex items-center justify-center font-extrabold text-2xl border shadow-inner ${
                 isSecure
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                   : isAttention
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                   : isHighRisk
-                  ? 'bg-orange-50 text-orange-700 border-orange-200'
-                  : 'bg-rose-50 text-rose-600 border-rose-200'
-              }`}
+                  ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+              } dark:text-emerald-400 dark:text-amber-400 dark:text-orange-400 dark:text-rose-400`}
             >
               {scoreCard.score}
             </div>
@@ -165,13 +165,13 @@ export function SecurityThreatOperationsView() {
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider border ${
                     isSecure
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                       : isAttention
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                       : isHighRisk
-                      ? 'bg-orange-50 text-orange-700 border-orange-200'
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                  }`}
+                      ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                  } dark:text-emerald-400 dark:text-amber-400 dark:text-orange-400 dark:text-rose-400`}
                 >
                   {scoreCard.status.replace(/_/g, ' ')}
                 </span>
@@ -189,15 +189,15 @@ export function SecurityThreatOperationsView() {
             </div>
             <div>
               <span className="text-slate-500 block text-[11px]">Critical Issues</span>
-              <span className="text-base font-bold text-rose-600">{scoreCard.criticalIssues}</span>
+              <span className="text-base font-bold text-rose-600 dark:text-rose-400">{scoreCard.criticalIssues}</span>
             </div>
             <div>
               <span className="text-slate-500 block text-[11px]">High Issues</span>
-              <span className="text-base font-bold text-amber-700">{scoreCard.highIssues}</span>
+              <span className="text-base font-bold text-amber-700 dark:text-amber-400">{scoreCard.highIssues}</span>
             </div>
             <div>
               <span className="text-slate-500 block text-[11px]">Resolved Today</span>
-              <span className="text-base font-bold text-emerald-700">{scoreCard.resolvedToday}</span>
+              <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">{scoreCard.resolvedToday}</span>
             </div>
           </div>
         </div>
@@ -210,41 +210,41 @@ export function SecurityThreatOperationsView() {
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 text-[10px] uppercase font-semibold">Active Sessions</span>
-            <div className="font-bold text-indigo-600">{scoreCard.activeSessions}</div>
+            <div className="font-bold text-indigo-600 dark:text-indigo-400">{scoreCard.activeSessions}</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 text-[10px] uppercase font-semibold">Suspended Users</span>
-            <div className="font-bold text-rose-600">{scoreCard.suspendedUsers}</div>
+            <div className="font-bold text-rose-600 dark:text-rose-400">{scoreCard.suspendedUsers}</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 text-[10px] uppercase font-semibold">PBAC Violations (24h)</span>
-            <div className="font-bold text-emerald-700">{scoreCard.pbacViolations24h}</div>
+            <div className="font-bold text-emerald-700 dark:text-emerald-400">{scoreCard.pbacViolations24h}</div>
           </div>
         </div>
       </div>
 
       {/* Cross-Project Isolation Monitor */}
       {isolationViolations.length > 0 && (
-        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-3 shadow-md">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 space-y-3 shadow-md dark:bg-rose-950/40 dark:border-rose-800">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-rose-600" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700">
+            <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
               Cross-Project Isolation Intrusion Stream (Strict PBAC Enforced)
             </h3>
           </div>
           <div className="space-y-2">
             {isolationViolations.map((v: any) => (
-              <div key={v.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-rose-200 flex items-center justify-between text-xs">
+              <div key={v.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-rose-200 flex items-center justify-between text-xs dark:border-rose-800">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded font-bold text-[10px] uppercase">
+                    <span className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded font-bold text-[10px] uppercase dark:bg-rose-950/40 dark:text-rose-400">
                       BLOCKED & PREVENTED
                     </span>
                     <span className="text-slate-800 dark:text-slate-200 font-semibold">{v.userEmail}</span>
                     <span className="text-slate-600 dark:text-slate-400">attempted unauthorized {v.actionType}</span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-mono">
-                    Attempted Project: <span className="text-indigo-700">{v.attemptedProjectId}</span> | IP: {v.ipAddress || '127.0.0.1'}
+                    Attempted Project: <span className="text-indigo-700 dark:text-indigo-400">{v.attemptedProjectId}</span> | IP: {v.ipAddress || '127.0.0.1'}
                   </p>
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">{new Date(v.timestamp).toLocaleTimeString()}</span>
@@ -258,7 +258,7 @@ export function SecurityThreatOperationsView() {
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-700" />
+            <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-400" />
             Active Threats & Security Incidents ({filteredThreats.length})
           </h3>
 
@@ -305,9 +305,9 @@ export function SecurityThreatOperationsView() {
                   key={t.id}
                   className={`p-4 rounded-xl border transition-all duration-150 flex flex-col justify-between space-y-3 ${
                     isCrit
-                      ? 'bg-rose-50 border-rose-200'
+                      ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800'
                       : isHigh
-                      ? 'bg-amber-50 border-amber-200'
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800'
                       : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
                   }`}
                 >
@@ -317,11 +317,11 @@ export function SecurityThreatOperationsView() {
                         <span
                           className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded border ${
                             isCrit
-                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                               : isHigh
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }`}
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                              : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                          } dark:text-rose-400 dark:text-amber-400 dark:text-blue-400`}
                         >
                           {t.severity}
                         </span>
@@ -332,7 +332,7 @@ export function SecurityThreatOperationsView() {
                       </div>
                       <p className="text-xs text-slate-700 dark:text-slate-300">{t.description}</p>
                       <div className="text-[11px] text-slate-600 dark:text-slate-400 space-x-2">
-                        <span>Resource: <span className="text-indigo-700 font-mono">{t.resource}</span></span>
+                        <span>Resource: <span className="text-indigo-700 font-mono dark:text-indigo-400">{t.resource}</span></span>
                         <span>•</span>
                         <span>Rule: <span className="text-slate-700 dark:text-slate-300">{t.detectionRule}</span></span>
                       </div>
@@ -363,12 +363,12 @@ export function SecurityThreatOperationsView() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-rose-600" />
+                <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Incident Detail: {selectedThreat.id}
                 </h3>
               </div>
-              <button onClick={() => setSelectedThreat(null)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+              <button onClick={() => setSelectedThreat(null)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
                 Close
               </button>
             </div>
@@ -377,11 +377,11 @@ export function SecurityThreatOperationsView() {
               <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div>
                   <span className="text-slate-500 block">Severity</span>
-                  <span className="font-bold text-rose-600">{selectedThreat.severity}</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">{selectedThreat.severity}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block">Status</span>
-                  <span className="font-bold text-indigo-600">{selectedThreat.status}</span>
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{selectedThreat.status}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block">Target Resource</span>
@@ -406,7 +406,7 @@ export function SecurityThreatOperationsView() {
                 <div className="space-y-1.5 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg max-h-36 overflow-y-auto">
                   {selectedThreat.timeline.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-start gap-2 text-[11px]">
-                      <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                      <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5 dark:text-indigo-400" />
                       <div>
                         <span className="text-slate-600 dark:text-slate-400 font-mono text-[10px]">
                           [{new Date(item.timestamp).toLocaleTimeString()}]

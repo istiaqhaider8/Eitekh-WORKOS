@@ -104,13 +104,13 @@ export function SystemSyncMonitorView() {
       {/* Header & Live Status Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-400">
             <Radio className="w-5 h-5 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">System Synchronization Monitor</h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 <span>REAL-TIME SSE ONLINE</span>
               </span>
@@ -153,10 +153,10 @@ export function SystemSyncMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span>Live Connections</span>
-            <Users className="w-3 h-3 text-blue-600" />
+            <Users className="w-3 h-3 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{metrics.activeConnections || 0}</div>
-          <div className="text-[10px] text-emerald-700 mt-0.5 flex items-center gap-1">
+          <div className="text-[10px] text-emerald-700 mt-0.5 flex items-center gap-1 dark:text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span>Active SSE Streams</span>
           </div>
@@ -166,7 +166,7 @@ export function SystemSyncMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span>Events Processed</span>
-            <Zap className="w-3 h-3 text-amber-700" />
+            <Zap className="w-3 h-3 text-amber-700 dark:text-amber-400" />
           </div>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{metrics.totalEventsProcessed || 0}</div>
           <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Database Mutations</div>
@@ -176,9 +176,9 @@ export function SystemSyncMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span>Success Rate</span>
-            <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
           </div>
-          <div className="text-xl font-bold text-emerald-700 mt-1">{metrics.successRate || 100}%</div>
+          <div className="text-xl font-bold text-emerald-700 mt-1 dark:text-emerald-400">{metrics.successRate || 100}%</div>
           <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Zero Event Dropped</div>
         </div>
 
@@ -186,19 +186,19 @@ export function SystemSyncMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span>Database Status</span>
-            <Database className="w-3 h-3 text-sky-700" />
+            <Database className="w-3 h-3 text-sky-700 dark:text-sky-400" />
           </div>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{metrics.dbLatencyMs || 2}ms</div>
-          <div className="text-[10px] text-emerald-700 mt-0.5">Single Source of Truth</div>
+          <div className="text-[10px] text-emerald-700 mt-0.5 dark:text-emerald-400">Single Source of Truth</div>
         </div>
 
         {/* 5. API Health */}
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span>API Gateway</span>
-            <Server className="w-3 h-3 text-purple-600" />
+            <Server className="w-3 h-3 text-purple-600 dark:text-purple-400" />
           </div>
-          <div className="text-xl font-bold text-purple-600 mt-1">{metrics.apiHealth || 'OPTIMAL'}</div>
+          <div className="text-xl font-bold text-purple-600 mt-1 dark:text-purple-400">{metrics.apiHealth || 'OPTIMAL'}</div>
           <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">PBAC Protected</div>
         </div>
 
@@ -206,7 +206,7 @@ export function SystemSyncMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span>Retry Queue</span>
-            <ShieldAlert className="w-3 h-3 text-emerald-700" />
+            <ShieldAlert className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
           </div>
           <div className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{metrics.retryQueueSize || 0}</div>
           <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">No Backpressure</div>
@@ -218,14 +218,14 @@ export function SystemSyncMonitorView() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-blue-600" />
+              <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>Module Synchronization Health (12 Core Modules)</span>
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
               Verified real-time state parity across all project management views
             </p>
           </div>
-          <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+          <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 dark:text-emerald-400">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>All Modules Synced</span>
           </span>
@@ -242,7 +242,7 @@ export function SystemSyncMonitorView() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
               </div>
               <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-800/60 text-[10px]">
-                <span className="text-emerald-700 font-semibold">{mod.status}</span>
+                <span className="text-emerald-700 font-semibold dark:text-emerald-400">{mod.status}</span>
                 <span className="font-mono text-slate-600 dark:text-slate-400">{mod.latencyMs}ms</span>
               </div>
             </div>
@@ -255,7 +255,7 @@ export function SystemSyncMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Users className="w-4 h-4 text-blue-600" />
+              <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>Active Project Stream Subscribers ({activeClients.length})</span>
             </h3>
             <span className="text-xs text-slate-600 dark:text-slate-400">Authenticated SSE Connections</span>
@@ -274,19 +274,19 @@ export function SystemSyncMonitorView() {
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {activeClients.map((client: any) => (
-                  <tr key={client.id} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
+                  <tr key={client.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-2.5 px-3">
                       <div className="font-bold text-slate-800 dark:text-slate-200">{client.userName || client.userEmail}</div>
                       <div className="text-[10px] text-slate-600 dark:text-slate-400 font-mono">{client.userEmail}</div>
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-blue-600">{client.projectId}</td>
+                    <td className="py-2.5 px-3 font-mono text-blue-600 dark:text-blue-400">{client.projectId}</td>
                     <td className="py-2.5 px-3">
                       {client.isSuperAdmin ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800">
                           SUPERADMIN
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800">
                           PROJECT MEMBER
                         </span>
                       )}
@@ -306,7 +306,7 @@ export function SystemSyncMonitorView() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-700" />
+              <Activity className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
               <span>Real-Time Sync Event Log ({eventLogs.length})</span>
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -372,19 +372,19 @@ export function SystemSyncMonitorView() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {eventLogs.map((log: any) => (
-                <tr key={log.eventId} className="hover:bg-slate-100 dark:bg-slate-800/30 transition-colors">
+                <tr key={log.eventId} className="hover:bg-slate-100 dark:hover:bg-slate-800/30 transition-colors">
                   <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300">{log.eventId}</td>
                   <td className="py-2.5 px-3">
                     <span
                       className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                         log.eventType.includes('CREATE')
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                           : log.eventType.includes('DELETE')
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                           : log.eventType.includes('PING')
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}
+                          ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                          : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                      } dark:text-emerald-400 dark:text-rose-400 dark:text-purple-400 dark:text-blue-400`}
                     >
                       {log.eventType}
                     </span>
@@ -395,10 +395,10 @@ export function SystemSyncMonitorView() {
                     <span
                       className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                         log.deliveryStatus === 'DELIVERED'
-                          ? 'bg-emerald-50 text-emerald-700'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
                           : log.deliveryStatus === 'NO_SUBSCRIBERS'
                           ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                          : 'bg-rose-50 text-rose-600'
+                          : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
                       }`}
                     >
                       {log.deliveryStatus}
@@ -410,7 +410,7 @@ export function SystemSyncMonitorView() {
                     <button
                       type="button"
                       onClick={() => setSelectedLog(log)}
-                      className="p-1 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer"
+                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer"
                       title="View full event payload" aria-label="Close"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -435,15 +435,15 @@ export function SystemSyncMonitorView() {
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-100">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-100 dark:bg-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-blue-600" />
+                <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>Event Inspector: {selectedLog.eventId}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedLog(null)}
-                className="p-1 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer" aria-label="Close"
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-white rounded cursor-pointer" aria-label="Close"
               >
                 ✕
               </button>
@@ -453,7 +453,7 @@ export function SystemSyncMonitorView() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-slate-600 dark:text-slate-400">Event Type:</span>
-                  <div className="font-bold text-blue-600">{selectedLog.eventType}</div>
+                  <div className="font-bold text-blue-600 dark:text-blue-400">{selectedLog.eventType}</div>
                 </div>
                 <div>
                   <span className="text-slate-600 dark:text-slate-400">Project Scope:</span>
@@ -477,7 +477,7 @@ export function SystemSyncMonitorView() {
 
               <div>
                 <span className="text-xs text-slate-600 dark:text-slate-400 block mb-1">Raw Payload JSON:</span>
-                <pre className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] font-mono text-emerald-700 overflow-x-auto max-h-64">
+                <pre className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] font-mono text-emerald-700 overflow-x-auto max-h-64 dark:text-emerald-400">
                   {JSON.stringify(selectedLog, null, 2)}
                 </pre>
               </div>

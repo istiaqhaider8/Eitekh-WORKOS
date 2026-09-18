@@ -71,7 +71,7 @@ export function PlatformReportsHubView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-600" />
+            <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             Enterprise Platform Reports Center & Intelligence Hub
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -122,7 +122,7 @@ export function PlatformReportsHubView() {
                 className={`w-full text-left p-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
                   selectedReportId === rep.id
                     ? 'bg-indigo-600 text-white font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:bg-slate-800 hover:text-slate-800 dark:text-slate-200'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <span className="truncate">{rep.name}</span>
@@ -138,7 +138,7 @@ export function PlatformReportsHubView() {
         <div className="lg:col-span-3 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-6">
           <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">
+              <span className="text-[10px] font-bold uppercase text-indigo-600 tracking-wider dark:text-indigo-400">
                 {currentReport?.category} Report
               </span>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{currentReport?.name}</h3>
@@ -157,7 +157,7 @@ export function PlatformReportsHubView() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-500 text-[10px] uppercase font-semibold">Security Score</span>
-              <div className="text-lg font-bold text-emerald-700">{reportData.scoreCard?.score || 100} / 100</div>
+              <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{reportData.scoreCard?.score || 100} / 100</div>
               <p className="text-[10px] text-slate-500">{reportData.scoreCard?.status}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
@@ -167,12 +167,12 @@ export function PlatformReportsHubView() {
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-500 text-[10px] uppercase font-semibold">Total Users</span>
-              <div className="text-lg font-bold text-indigo-600">{reportData.kpis?.totalUsers}</div>
+              <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{reportData.kpis?.totalUsers}</div>
               <p className="text-[10px] text-slate-500">{reportData.kpis?.activeUsers} active</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-500 text-[10px] uppercase font-semibold">Sync Success Rate</span>
-              <div className="text-lg font-bold text-teal-700">{reportData.syncMetrics?.successRate || 100}%</div>
+              <div className="text-lg font-bold text-teal-700 dark:text-teal-400">{reportData.syncMetrics?.successRate || 100}%</div>
               <p className="text-[10px] text-slate-500">0 events dropped</p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export function PlatformReportsHubView() {
                       <tr key={l.id}>
                         <td className="p-2.5 text-slate-600 dark:text-slate-400 text-[11px]">{new Date(l.createdAt).toLocaleTimeString()}</td>
                         <td className="p-2.5 font-semibold text-slate-800 dark:text-slate-200">{l.action}</td>
-                        <td className="p-2.5 text-indigo-700">{l.targetResource}</td>
+                        <td className="p-2.5 text-indigo-700 dark:text-indigo-400">{l.targetResource}</td>
                         <td className="p-2.5 text-slate-600 dark:text-slate-400 font-mono text-[11px]">{l.actorId.slice(0, 10)}...</td>
                       </tr>
                     ))}

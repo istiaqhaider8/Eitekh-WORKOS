@@ -416,10 +416,10 @@ export function PlatformUserDirectoryView({
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" />
+              <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               Platform User Directory & Identity Governance
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800">
               {totalRecords} Accounts
             </span>
           </div>
@@ -571,14 +571,14 @@ export function PlatformUserDirectoryView({
                       {/* Name & Identity */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-[10px] font-bold text-indigo-700">
+                          <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-[10px] font-bold text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800 dark:text-indigo-400">
                             {initials}
                           </div>
                           <div>
                             <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                               <span>{u.firstName} {u.lastName}</span>
                               {u.id === currentUserId && (
-                                <span className="text-[9px] px-1 bg-indigo-50 text-indigo-700 rounded font-normal">
+                                <span className="text-[9px] px-1 bg-indigo-50 text-indigo-700 rounded font-normal dark:bg-indigo-950/40 dark:text-indigo-400">
                                   You
                                 </span>
                               )}
@@ -596,11 +596,11 @@ export function PlatformUserDirectoryView({
                           <span className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">{u.email}</span>
                           <button
                             onClick={() => copyEmail(u.email, u.id)}
-                            className="text-slate-500 hover:text-slate-700 dark:text-slate-300 transition-colors"
+                            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                             title="Copy email"
                           >
                             {copiedEmailId === u.id ? (
-                              <Check className="w-3 h-3 text-emerald-700" />
+                              <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
                             ) : (
                               <Copy className="w-3 h-3" />
                             )}
@@ -611,8 +611,8 @@ export function PlatformUserDirectoryView({
                       {/* Authority */}
                       <td className="p-3.5">
                         {u.isSuperAdmin ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold">
-                            <Shield className="w-3 h-3 text-indigo-600" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800">
+                            <Shield className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                             SUPER ADMIN
                           </span>
                         ) : (
@@ -644,7 +644,7 @@ export function PlatformUserDirectoryView({
                       {/* MFA */}
                       <td className="p-3.5">
                         {u.mfaEnabled ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px]">
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px] dark:text-emerald-400">
                             <CheckCircle2 className="w-3 h-3" />
                             Active
                           </span>
@@ -658,9 +658,9 @@ export function PlatformUserDirectoryView({
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             isSusp
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
+                              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                              : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                          } dark:text-rose-400 dark:text-emerald-400`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${isSusp ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
                           {u.status}
@@ -673,7 +673,7 @@ export function PlatformUserDirectoryView({
                           {/* Set Password Button */}
                           <button
                             onClick={() => handleOpenPassword(u)}
-                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-amber-700 hover:text-amber-800 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-amber-700 hover:text-amber-800 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors dark:text-amber-400 dark:hover:text-amber-300"
                             title="Set or Reset Password"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ export function PlatformUserDirectoryView({
                           {/* Edit User Button */}
                           <button
                             onClick={() => handleOpenEdit(u)}
-                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                             title="Edit User Details"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -693,9 +693,9 @@ export function PlatformUserDirectoryView({
                             onClick={() => handleToggleStatus(u)}
                             className={`px-2 py-1 rounded text-[10px] font-semibold border transition-colors ${
                               isSusp
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
-                            }`}
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/50'
+                            } dark:text-emerald-400 dark:border-emerald-800 dark:text-rose-400 dark:border-rose-800`}
                             title={isSusp ? 'Reactivate Account' : 'Suspend Account'}
                           >
                             {isSusp ? 'Reactivate' : 'Suspend'}
@@ -760,10 +760,10 @@ export function PlatformUserDirectoryView({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-indigo-600" />
+                <UserPlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 Create New Platform User Account
               </h3>
-              <button onClick={() => setIsCreateOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setIsCreateOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -839,7 +839,7 @@ export function PlatformUserDirectoryView({
                       const pwd = 'Eitekh#' + Math.floor(1000 + Math.random() * 9000) + '!kL';
                       setCreateForm({ ...createForm, password: pwd });
                     }}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1 dark:text-indigo-400 dark:hover:text-indigo-300"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>Generate</span>
@@ -896,7 +896,7 @@ export function PlatformUserDirectoryView({
                     id="createSuperAdmin"
                     checked={createForm.isSuperAdmin}
                     onChange={(e) => setCreateForm({ ...createForm, isSuperAdmin: e.target.checked })}
-                    className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500 dark:text-indigo-400"
                   />
                   <label htmlFor="createSuperAdmin" className="text-slate-800 dark:text-slate-200 font-semibold cursor-pointer">
                     Grant Platform Super Admin Authority
@@ -937,10 +937,10 @@ export function PlatformUserDirectoryView({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-600" />
+                <Edit2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 Edit User: {selectedUser.firstName} {selectedUser.lastName}
               </h3>
-              <button onClick={() => setIsEditOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setIsEditOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1031,7 +1031,7 @@ export function PlatformUserDirectoryView({
                     id="editSuperAdmin"
                     checked={editForm.isSuperAdmin}
                     onChange={(e) => setEditForm({ ...editForm, isSuperAdmin: e.target.checked })}
-                    className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 focus:ring-indigo-500 dark:text-indigo-400"
                   />
                   <label htmlFor="editSuperAdmin" className="text-slate-800 dark:text-slate-200 font-semibold cursor-pointer">
                     Super Admin Authority
@@ -1069,10 +1069,10 @@ export function PlatformUserDirectoryView({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-amber-700" />
+                <KeyRound className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                 Set / Reset User Password
               </h3>
-              <button onClick={() => setIsPasswordOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setIsPasswordOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1093,7 +1093,7 @@ export function PlatformUserDirectoryView({
                   <button
                     type="button"
                     onClick={generateStrongPassword}
-                    className="text-[11px] text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 transition-colors"
+                    className="text-[11px] text-amber-700 hover:text-amber-800 font-semibold flex items-center gap-1 transition-colors dark:text-amber-400 dark:hover:text-amber-300"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>Generate Strong Password</span>
@@ -1119,16 +1119,16 @@ export function PlatformUserDirectoryView({
                           setTimeout(() => setCopiedPassword(false), 2000);
                           showSuccess('Password copied to clipboard');
                         }}
-                        className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+                        className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                         title="Copy to clipboard"
                       >
-                        {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+                      className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                     >
                       {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -1194,11 +1194,11 @@ export function PlatformUserDirectoryView({
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-rose-600 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-600" />
+              <h3 className="text-sm font-bold text-rose-600 flex items-center gap-2 dark:text-rose-400">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                 Delete User Account Permanently
               </h3>
-              <button onClick={() => setIsDeleteOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setIsDeleteOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1206,7 +1206,7 @@ export function PlatformUserDirectoryView({
             <p className="text-xs text-slate-700 dark:text-slate-300">
               Are you sure you want to permanently delete user account <strong className="text-white">{selectedUser.email}</strong>?
             </p>
-            <p className="text-xs text-rose-400/90 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+            <p className="text-xs text-rose-400/90 bg-rose-50 p-2.5 rounded-lg border border-rose-200 dark:bg-rose-950/40 dark:border-rose-800">
               Warning: This action is irreversible. All sessions, workspace memberships, and project bindings will be removed.
             </p>
 

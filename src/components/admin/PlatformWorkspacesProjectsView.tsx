@@ -436,7 +436,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           {filteredWorkspaces.map((ws) => (
             <div
               key={ws.id}
-              className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:border-slate-700 transition-colors"
+              className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -444,14 +444,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       {ws.name}
                       {ws.isArchived && (
-                        <span className="px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold rounded">
+                        <span className="px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold rounded dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800">
                           ARCHIVED
                         </span>
                       )}
                     </h3>
                     <span className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">slug: {ws.slug}</span>
                   </div>
-                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-semibold">
+                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-semibold dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800">
                     {ws.organization?.name || "Global"}
                   </span>
                 </div>
@@ -475,7 +475,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       });
                       setShowEditWsModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Edit Workspace"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -485,7 +485,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveWs(ws);
                       setShowDeleteWsModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer dark:hover:bg-rose-900/50"
                     title="Delete Workspace Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -509,14 +509,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           {filteredProjects.map((p) => (
             <div
               key={p.id}
-              className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:border-slate-700 transition-colors"
+              className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       <span>{p.name}</span>
-                      <span className="px-1.5 py-0.2 bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-mono rounded">
+                      <span className="px-1.5 py-0.2 bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-mono rounded dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800">
                         [{p.key}]
                       </span>
                     </h3>
@@ -527,9 +527,9 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       p.status === "ACTIVE"
-                        ? "bg-emerald-50 text-emerald-700"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
                         : p.status === "COMPLETED"
-                        ? "bg-blue-50 text-blue-700"
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                     }`}
                   >
@@ -552,7 +552,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                     href={`/projects/${p.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Open Project"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -573,7 +573,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       });
                       setShowEditProjModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-purple-800 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-purple-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
                     title="Edit Project"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -583,7 +583,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveProj(p);
                       setShowDeleteProjModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors cursor-pointer dark:hover:bg-rose-900/50"
                     title="Delete Project Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -607,10 +607,10 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-600" />
+                <Plus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 Create New Workspace
               </h3>
-              <button onClick={() => setShowCreateWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setShowCreateWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -670,7 +670,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowCreateWsModal(false)}
-                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -693,10 +693,10 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-600" />
+                <Edit2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 Edit Workspace: {activeWs.name}
               </h3>
-              <button onClick={() => setShowEditWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setShowEditWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -739,7 +739,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                   id="archiveWs"
                   checked={wsForm.isArchived}
                   onChange={(e) => setWsForm({ ...wsForm, isArchived: e.target.checked })}
-                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
+                  className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600 dark:text-indigo-400"
                 />
                 <label htmlFor="archiveWs" className="text-slate-700 dark:text-slate-300">
                   Archive this workspace
@@ -750,7 +750,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowEditWsModal(false)}
-                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -770,14 +770,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Delete Workspace Confirmation */}
       {showDeleteWsModal && activeWs && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl dark:border-rose-800">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg dark:bg-rose-950/40 dark:text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Workspace Permanently</h3>
-                <p className="text-xs text-rose-600 font-semibold">Irreversible Platform Action</p>
+                <p className="text-xs text-rose-600 font-semibold dark:text-rose-400">Irreversible Platform Action</p>
               </div>
             </div>
 
@@ -791,7 +791,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               <button
                 type="button"
                 onClick={() => setShowDeleteWsModal(false)}
-                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs"
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs"
               >
                 Cancel
               </button>
@@ -813,10 +813,10 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-purple-600" />
+                <Plus className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 Create New Project
               </h3>
-              <button onClick={() => setShowCreateProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setShowCreateProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -907,7 +907,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowCreateProjModal(false)}
-                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -930,10 +930,10 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-purple-600" />
+                <Edit2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 Edit Project: {activeProj.name}
               </h3>
-              <button onClick={() => setShowEditProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
+              <button onClick={() => setShowEditProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1007,7 +1007,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 <button
                   type="button"
                   onClick={() => setShowEditProjModal(false)}
-                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
+                  className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 >
                   Cancel
                 </button>
@@ -1027,14 +1027,14 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       {/* Modal: Delete Project Confirmation */}
       {showDeleteProjModal && activeProj && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl dark:border-rose-800">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg dark:bg-rose-950/40 dark:text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Project Permanently</h3>
-                <p className="text-xs text-rose-600 font-semibold">Irreversible Platform Action</p>
+                <p className="text-xs text-rose-600 font-semibold dark:text-rose-400">Irreversible Platform Action</p>
               </div>
             </div>
 
@@ -1050,7 +1050,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               <button
                 type="button"
                 onClick={() => setShowDeleteProjModal(false)}
-                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 text-xs"
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs"
               >
                 Cancel
               </button>
