@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const format = (searchParams.get('format') || 'csv') as 'csv' | 'excel' | 'pdf';
     const search = searchParams.get('search') || '';
     const roleId = searchParams.get('roleId') || 'all';

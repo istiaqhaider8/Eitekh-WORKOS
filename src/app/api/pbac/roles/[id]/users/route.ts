@@ -11,7 +11,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
 
     // Strict Tenant Isolation
     await assertOrgAccess(orgId);
@@ -34,7 +35,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { searchParams } = new URL(req.url);
     const parsed = await parseJsonBody(req, pbacRoleUsersSchema);
     if (!parsed.success) return parsed.error;
-    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const orgId = parsed.data.orgId || searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const { userId, userIds } = parsed.data;
 
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
@@ -68,7 +70,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { searchParams } = new URL(req.url);
     const parsedDel = await parseJsonBody(req, pbacRoleUsersSchema);
     if (!parsedDel.success) return parsedDel.error;
-    const orgId = parsedDel.data.orgId || searchParams.get('orgId') || 'default-org';
+    const orgId = parsedDel.data.orgId || searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const { userId, userIds } = parsedDel.data;
 
     // Strict Tenant Isolation & Privilege Escalation Guard

@@ -41,7 +41,14 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
 
   // Multi-Tenant Org Context
   const [orgs, setOrgs] = useState<any[]>([]);
-  const [selectedOrgId, setSelectedOrgId] = useState<string>(initialOrgId || 'default-org');
+  // Starts EMPTY on purpose. This used to default to the literal string
+  // 'default-org', which is not a real tenant: the view would immediately fetch
+  // that phantom org's roles and render them, then replace them once loadOrgs()
+  // resolved the real org. That is what made the roles list show 7 entries and
+  // then 6 a moment later, with user counts changing as the role ids changed.
+  // Every fetch below is guarded on a truthy selectedOrgId, so an empty value
+  // simply means "do not query until we know which tenant we are looking at".
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(initialOrgId || '');
 
   // Project-wise Scoping State
   const [projects, setProjects] = useState<any[]>([]);
@@ -70,7 +77,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
         const json = await res.json();
         const orgList = json.organizations || json.orgs || [];
         setOrgs(orgList);
-        if (orgList.length > 0 && (!selectedOrgId || selectedOrgId === 'default-org')) {
+        if (orgList.length > 0 && !selectedOrgId) {
           setSelectedOrgId(initialOrgId || orgList[0].id);
         }
         return;
@@ -85,7 +92,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
         const meJson = await meRes.json();
         const userOrgs = meJson.user?.organizations || [];
         setOrgs(userOrgs);
-        if (userOrgs.length > 0 && (!selectedOrgId || selectedOrgId === 'default-org')) {
+        if (userOrgs.length > 0 && !selectedOrgId) {
           setSelectedOrgId(initialOrgId || userOrgs[0].id);
         }
       }
@@ -288,8 +295,10 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
               className="bg-transparent text-slate-900 dark:text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
             >
               {orgs.length === 0 ? (
-                <option value="default-org" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-800 dark:text-slate-200">
-                  Primary Organization
+                // Placeholder only — it must carry no value, or selecting it
+                // would query a tenant that does not exist.
+                <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-800 dark:text-slate-200">
+                  Loading organizations…
                 </option>
               ) : (
                 orgs.map((o) => (

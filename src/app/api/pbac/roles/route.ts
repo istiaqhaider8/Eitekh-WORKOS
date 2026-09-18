@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const projectId = searchParams.get('projectId') || undefined;
 
     // Strict Tenant Isolation
@@ -38,7 +39,8 @@ export async function POST(req: NextRequest) {
     const parsed = await parseJsonBody(req, pbacRoleCreateSchema);
     if (!parsed.success) return parsed.error;
     const { id, name, description, scope, projectId, projectName, status, permissions, cloneFromId } = parsed.data;
-    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const orgId = parsed.data.orgId || searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
 
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
 

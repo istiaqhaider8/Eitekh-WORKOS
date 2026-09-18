@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const search = searchParams.get('search') || '';
     const roleId = searchParams.get('roleId') || 'all';
     const workspaceId = searchParams.get('workspaceId') || 'all';
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const parsed = await parseJsonBody(req, pbacBulkUserActionSchema);
     if (!parsed.success) return parsed.error;
-    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const orgId = parsed.data.orgId || searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const { action, userIds, roleId, simulate } = parsed.data;
 
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);

@@ -14,7 +14,8 @@ export async function GET(
 
     const { id: roleId } = await params;
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
 
     await assertOrgAccess(orgId);
 
@@ -44,7 +45,8 @@ export async function PATCH(
     const parsed = await parseJsonBody(req, pbacRoleUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { searchParams } = new URL(req.url);
-    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const orgId = parsed.data.orgId || searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const { status, name, description, permissions, scope, projectId, projectName } = parsed.data;
 
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);
@@ -94,7 +96,8 @@ export async function DELETE(
 
     const { id: roleId } = await params;
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const force = searchParams.get('force') === 'true';
 
     // Strict Tenant Isolation (Super Admin / Org Admin / Owner required)

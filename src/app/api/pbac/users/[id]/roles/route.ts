@@ -11,7 +11,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const orgId = searchParams.get('orgId') || 'default-org';
+    const orgId = searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
 
     await assertOrgAccess(orgId);
 
@@ -32,7 +33,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { searchParams } = new URL(req.url);
     const parsed = await parseJsonBody(req, pbacUserRolesUpdateSchema);
     if (!parsed.success) return parsed.error;
-    const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
+    const orgId = parsed.data.orgId || searchParams.get('orgId');
+    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     const { roleIds } = parsed.data;
 
     await assertOrgAccess(orgId, ['OWNER', 'ADMIN']);

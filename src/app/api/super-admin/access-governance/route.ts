@@ -151,8 +151,11 @@ export async function GET(request: Request) {
     ]);
 
     const { pbacEngine, PBAC_PERMISSION_CATEGORIES } = await import("@/lib/pbac-engine");
-    const firstOrg = orgHierarchy[0]?.id || "default-org";
-    const systemRoles = await pbacEngine.getRoles(firstOrg);
+    // No phantom fallback: asking the engine for a non-existent org seeds a
+    // fictional tenant into the PBAC store, which is how a stray 'default-org'
+    // role set came to exist and leak into the roles UI.
+    const firstOrg = orgHierarchy[0]?.id;
+    const systemRoles = firstOrg ? await pbacEngine.getRoles(firstOrg) : [];
 
     const permissionRoles = systemRoles.map((r: any) => ({
       role: r.name,

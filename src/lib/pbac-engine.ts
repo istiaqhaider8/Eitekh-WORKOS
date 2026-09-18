@@ -285,6 +285,12 @@ export interface PBACAuditRecord {
 
 class UnifiedPBACEngine {
   private roles: Map<string, PBACRole> = new Map();
+  /**
+   * Organizations confirmed to exist, so the existence check in
+   * ensureOrgSeeded() costs one query per org per process rather than one per
+   * call — ensureOrgSeeded runs on nearly every PBAC operation.
+   */
+  private verifiedOrgIds: Set<string> = new Set();
   // Map of userId -> Set of roleIds
   private userRoleAssignments: Map<string, Set<string>> = new Map();
   private auditLogs: PBACAuditRecord[] = [];
@@ -421,6 +427,42 @@ class UnifiedPBACEngine {
 
   public async ensureOrgSeeded(orgId: string) {
     this.loadFromDisk();
+
+    // Refuse to provision a tenant that does not exist.
+    //
+    // This method used to seed a full system role set for ANY string it was
+    // handed. Combined with callers that defaulted a missing orgId to the
+    // literal 'default-org', that quietly created role sets for tenants that
+    // had never existed — the store had accumulated 79 roles across 13 "orgs"
+    // when only one was real, and a stale role whose id and orgId disagreed
+    // was surfacing in the roles UI as a duplicate MEMBER entry.
+    //
+    // Seeding is now gated on the organization actually being present, so a
+    // stray or deleted orgId yields no roles rather than inventing them.
+    if (!orgId) return;
+    if (!this.verifiedOrgIds.has(orgId)) {
+      try {
+        const org = await prisma.organization.findUnique({
+          where: { id: orgId },
+          select: { id: true },
+        });
+        if (!org) {
+          logger.warn(
+            'PBAC_SEED_SKIPPED_UNKNOWN_ORG',
+            `Refused to seed PBAC roles for an organization that does not exist: ${orgId}`,
+            { orgId }
+          );
+          return;
+        }
+        this.verifiedOrgIds.add(orgId);
+      } catch (e) {
+        // If the lookup itself fails, do not guess — seeding on a failed check
+        // is what allowed phantom tenants to be created.
+        console.error('PBAC: organization existence check failed for', orgId, e);
+        return;
+      }
+    }
+
     const isOrgInitialized = this.initializedOrgs.has(orgId);
     this.initializedOrgs.add(orgId);
 
