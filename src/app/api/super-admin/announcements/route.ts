@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { superAdminAnnouncementCreateSchema, superAdminAnnouncementUpdateSchema, parseBody } from "@/lib/validation";
+import { superAdminAnnouncementCreateSchema, superAdminAnnouncementUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminAnnouncementCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminAnnouncementCreateSchema);
     if (!parsed.success) return parsed.error;
     const { title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
 
@@ -99,7 +99,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminAnnouncementUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminAnnouncementUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { id, title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
 

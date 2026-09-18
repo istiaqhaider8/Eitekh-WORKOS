@@ -4,7 +4,7 @@ import { assertOrgAccess } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { syncEngine } from "@/lib/sync-engine";
 import { logger } from "@/lib/logger";
-import { leaveCreateSchema, parseBody } from "@/lib/validation";
+import { leaveCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const parsed = parseBody(leaveCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, leaveCreateSchema);
     if (!parsed.success) return parsed.error;
     const { orgId, userId, startDate, endDate, leaveType, note } = parsed.data;
 

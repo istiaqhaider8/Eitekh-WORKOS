@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAndSendOtp } from "@/lib/otp";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { forgotPasswordSchema, parseBody } from "@/lib/validation";
+import { forgotPasswordSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = parseBody(forgotPasswordSchema, await req.json());
+    const parsed = await parseJsonBody(req, forgotPasswordSchema);
     if (!parsed.success) return parsed.error;
     const normalizedEmail = parsed.data.email;
 

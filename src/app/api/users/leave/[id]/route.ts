@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
-import { leaveUpdateSchema, parseBody } from "@/lib/validation";
+import { leaveUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function PATCH(
   req: NextRequest,
@@ -37,7 +37,7 @@ export async function PATCH(
       );
     }
 
-    const parsed = parseBody(leaveUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, leaveUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { startDate, endDate, leaveType, note } = parsed.data;
 

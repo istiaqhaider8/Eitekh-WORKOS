@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
-import { dependencyCreateSchema, dependencyDeleteSchema, parseBody } from "@/lib/validation";
+import { dependencyCreateSchema, dependencyDeleteSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -48,7 +48,7 @@ export async function POST(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: sourceIssueId } = await params;
-    const parsed = parseBody(dependencyCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, dependencyCreateSchema);
     if (!parsed.success) return parsed.error;
     const { targetIssueId, type } = parsed.data;
 
@@ -110,7 +110,7 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const parsed = parseBody(dependencyDeleteSchema, await req.json());
+    const parsed = await parseJsonBody(req, dependencyDeleteSchema);
     if (!parsed.success) return parsed.error;
     const { dependencyId } = parsed.data;
 

@@ -5,7 +5,7 @@ import { sendEmail } from "@/lib/email";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { getBaseUrl } from "@/lib/config";
 import { logAuditEvent } from "@/lib/audit-logger";
-import { commentSchema, parseBody } from "@/lib/validation";
+import { commentSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const parsed = parseBody(commentSchema, await req.json());
+    const parsed = await parseJsonBody(req, commentSchema);
     if (!parsed.success) return parsed.error;
     const { content } = parsed.data;
 

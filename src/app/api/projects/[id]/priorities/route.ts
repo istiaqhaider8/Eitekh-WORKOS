@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
-import { priorityCreateSchema, parseBody } from "@/lib/validation";
+import { priorityCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 const DEFAULT_PRIORITIES = [
   { name: "Critical", value: "CRITICAL", color: "#f43f5e" },
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await assertProjectPermission(projectId, "projects:edit");
 
-    const parsed = parseBody(priorityCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, priorityCreateSchema);
     if (!parsed.success) return parsed.error;
     const { name, color } = parsed.data;
 

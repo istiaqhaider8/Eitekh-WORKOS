@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { cacheManager, CacheRefreshAction } from '@/lib/cache-manager';
 import { pbacEngine } from '@/lib/pbac-engine';
-import { cacheRefreshSchema, parseBody } from '@/lib/validation';
+import { cacheRefreshSchema, parseBody, parseJsonBody } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const parsed = parseBody(cacheRefreshSchema, await req.json());
+    const parsed = await parseJsonBody(req, cacheRefreshSchema);
     if (!parsed.success) return parsed.error;
     const action: CacheRefreshAction = parsed.data.action;
     const orgId = parsed.data.orgId || user.orgMemberships?.[0]?.organization?.id;

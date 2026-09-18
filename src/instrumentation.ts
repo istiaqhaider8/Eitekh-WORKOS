@@ -1,0 +1,110 @@
+/**
+ * Next.js startup hook. `register()` runs once when the server boots.
+ *
+ * Purpose: validate production configuration at STARTUP rather than at first
+ * use. Several config faults were previously only detectable when a user
+ * tripped over them:
+ *   - FIELD_ENCRYPTION_KEY missing threw from encryption.ts on the first
+ *     encrypt/decrypt, so the app booted "healthy" and failed later.
+ *   - SMTP unconfigured silently dropped every email (password resets, OTP,
+ *     invitations) while reporting success.
+ *   - BASE_URL unset made every email link point at localhost:3000.
+ * A process that cannot do its job should refuse to start, not fail per-request.
+ */
+
+const HEX_64 = /^[0-9a-f]{64}$/i;
+
+// The all-zeros key is the CI fallback in .github/workflows/ci.yml. It must
+// never be usable in production.
+const CI_PLACEHOLDER_KEY = "0".repeat(64);
+
+function validateProductionConfig(): string[] {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const jwt = process.env.JWT_SECRET || "";
+  if (!jwt) {
+    errors.push("JWT_SECRET is not set.");
+  } else if (jwt.length < 32) {
+    errors.push(`JWT_SECRET is too short (${jwt.length} chars); use at least 32.`);
+  } else if (jwt.includes("dev-only") || jwt.includes("change-in-production") || jwt.includes("ci-test")) {
+    errors.push("JWT_SECRET still contains a development/CI placeholder value.");
+  }
+
+  const fek = process.env.FIELD_ENCRYPTION_KEY || "";
+  if (!fek) {
+    errors.push("FIELD_ENCRYPTION_KEY is not set. Generate with: openssl rand -hex 32");
+  } else if (!HEX_64.test(fek)) {
+    errors.push("FIELD_ENCRYPTION_KEY must be a 64-character hex string.");
+  } else if (fek.toLowerCase() === CI_PLACEHOLDER_KEY) {
+    errors.push("FIELD_ENCRYPTION_KEY is the all-zeros CI placeholder; it is not a real key.");
+  }
+
+  if (!process.env.DATABASE_URL) {
+    errors.push("DATABASE_URL is not set.");
+  } else if (process.env.DATABASE_URL.startsWith("file:")) {
+    warnings.push(
+      "DATABASE_URL points at a SQLite file. SQLite has a single writer and cannot be shared " +
+        "between instances; it is not suitable for multi-tenant production traffic."
+    );
+  }
+
+  // Email: silently dropping mail is worse than refusing to boot, because the
+  // flows it breaks (reset, OTP, invitation) are exactly the ones a locked-out
+  // user cannot work around.
+  const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_PASS);
+  if (!smtpConfigured) {
+    errors.push(
+      "SMTP is not configured (SMTP_HOST and SMTP_PASS required). Without it, password " +
+        "resets, OTP codes and invitations cannot be delivered."
+    );
+  }
+
+  const baseUrl = process.env.BASE_URL || process.env.NEXTAUTH_URL;
+  if (!baseUrl) {
+    errors.push("BASE_URL is not set; links in outgoing email would point at localhost.");
+  } else if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+    errors.push(`BASE_URL points at a local address (${baseUrl}); email links would be unusable.`);
+  }
+
+  const publicUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (publicUrl && baseUrl && publicUrl.replace(/\/$/, "") !== baseUrl.replace(/\/$/, "")) {
+    warnings.push(`NEXT_PUBLIC_APP_URL (${publicUrl}) does not match BASE_URL (${baseUrl}).`);
+  }
+
+  for (const w of warnings) {
+    console.warn(`[config] WARNING: ${w}`);
+  }
+
+  return errors;
+}
+
+export async function register() {
+  // Only the Node.js runtime needs this; the edge runtime has no env access to
+  // most of these and runs per-request.
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  if (process.env.NODE_ENV !== "production") {
+    // Outside production, report the same checks as warnings so the gaps are
+    // visible during development without blocking local work.
+    const errors = validateProductionConfig();
+    if (errors.length) {
+      console.warn(
+        `[config] ${errors.length} setting(s) would FAIL a production boot:\n` +
+          errors.map((e) => `  - ${e}`).join("\n")
+      );
+    }
+    return;
+  }
+
+  const errors = validateProductionConfig();
+  if (errors.length) {
+    const message =
+      `Refusing to start: ${errors.length} invalid production configuration setting(s):\n` +
+      errors.map((e) => `  - ${e}`).join("\n");
+    console.error(`[config] ${message}`);
+    throw new Error(message);
+  }
+
+  console.log("[config] Production configuration validated.");
+}

@@ -65,8 +65,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const { attachmentSchema, parseBody } = await import("@/lib/validation");
-    const parsed = parseBody(attachmentSchema, await req.json());
+    const { attachmentSchema, parseJsonBody } = await import("@/lib/validation");
+    const parsed = await parseJsonBody(req, attachmentSchema);
     if (!parsed.success) return parsed.error;
     const { fileName, fileSize, mimeType, fileUrl } = parsed.data;
 

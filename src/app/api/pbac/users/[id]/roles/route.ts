@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
-import { pbacUserRolesUpdateSchema, parseBody } from '@/lib/validation';
+import { pbacUserRolesUpdateSchema, parseBody, parseJsonBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,7 +30,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const parsed = parseBody(pbacUserRolesUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, pbacUserRolesUpdateSchema);
     if (!parsed.success) return parsed.error;
     const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
     const { roleIds } = parsed.data;

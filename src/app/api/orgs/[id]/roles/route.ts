@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess } from "@/lib/tenant";
 import { pbacEngine, PBAC_PERMISSION_CATEGORIES, ALL_PBAC_PERMISSION_KEYS } from "@/lib/pbac-engine";
-import { orgRoleCreateSchema, parseBody } from "@/lib/validation";
+import { orgRoleCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -42,7 +42,7 @@ export async function POST(
     const { id: orgId } = await params;
     await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
 
-    const parsed = parseBody(orgRoleCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, orgRoleCreateSchema);
     if (!parsed.success) return parsed.error;
     const { name, description, scope, permissions } = parsed.data;
 

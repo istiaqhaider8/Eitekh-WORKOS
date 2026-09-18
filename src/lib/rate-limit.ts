@@ -55,3 +55,14 @@ export function checkRateLimit(
   const resetInSeconds = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
   return { allowed: true, remaining: limit - entry.count, resetInSeconds };
 }
+
+/**
+ * Clear a key's window.
+ *
+ * Used after a successful login to discharge the per-account failure counter,
+ * so that a legitimate user who signs in repeatedly is never locked out by the
+ * brute-force ceiling — only consecutive failures count against it.
+ */
+export function resetRateLimit(key: string): void {
+  rateLimitStore.delete(key);
+}

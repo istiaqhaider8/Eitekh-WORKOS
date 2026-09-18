@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
-import { pbacRoleUpdateSchema, parseBody } from '@/lib/validation';
+import { pbacRoleUpdateSchema, parseBody, parseJsonBody } from '@/lib/validation';
 
 export async function GET(
   req: NextRequest,
@@ -41,7 +41,7 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id: roleId } = await params;
-    const parsed = parseBody(pbacRoleUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, pbacRoleUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { searchParams } = new URL(req.url);
     const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';

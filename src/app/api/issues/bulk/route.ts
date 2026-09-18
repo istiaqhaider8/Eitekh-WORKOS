@@ -2,14 +2,14 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
-import { bulkIssueUpdateSchema, bulkIssueDeleteSchema, parseBody } from "@/lib/validation";
+import { bulkIssueUpdateSchema, bulkIssueDeleteSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function PATCH(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(bulkIssueUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, bulkIssueUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { issueIds, updates } = parsed.data;
 
@@ -174,7 +174,7 @@ export async function DELETE(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(bulkIssueDeleteSchema, await req.json());
+    const parsed = await parseJsonBody(req, bulkIssueDeleteSchema);
     if (!parsed.success) return parsed.error;
     const { issueIds } = parsed.data;
 

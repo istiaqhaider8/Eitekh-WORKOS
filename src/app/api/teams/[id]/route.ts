@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { teamUpdateSchema, parseBody } from "@/lib/validation";
+import { teamUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 async function checkTeamAccess(teamId: string) {
   const user = await getCurrentUser();
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const team = await prisma.team.findUnique({ where: { id } });
     if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
     
-    const parsed = parseBody(teamUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, teamUpdateSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     const updateData: any = {};

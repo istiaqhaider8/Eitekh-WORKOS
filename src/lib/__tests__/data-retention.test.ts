@@ -70,6 +70,7 @@ describe("runDataRetention (mocked prisma)", () => {
 
   const mockPrisma = {
     session: { deleteMany: mockDeleteMany },
+    otpCode: { deleteMany: mockDeleteMany },
     notification: { deleteMany: mockDeleteMany },
     activityLog: { deleteMany: mockDeleteMany },
     emailLog: { deleteMany: mockDeleteMany },
@@ -88,9 +89,11 @@ describe("runDataRetention (mocked prisma)", () => {
   it("calls deleteMany for each entity", async () => {
     const { runDataRetention } = await import("../data-retention");
     const results = await runDataRetention();
-    // One deleteMany call per entity (5 total)
-    expect(mockDeleteMany).toHaveBeenCalledTimes(5);
-    expect(results).toHaveLength(5);
+    // One deleteMany call per entity. OtpCode was added so expired one-time
+    // codes stop accumulating indefinitely.
+    const policyCount = 6;
+    expect(mockDeleteMany).toHaveBeenCalledTimes(policyCount);
+    expect(results).toHaveLength(policyCount);
     results.forEach((r) => {
       expect(r.deletedCount).toBeGreaterThanOrEqual(0);
       expect(r.cutoffDate).toBeDefined();

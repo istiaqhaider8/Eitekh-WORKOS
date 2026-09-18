@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { workspaceMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
+import { workspaceMemberSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 async function assertWorkspaceAccess(workspaceId: string, allowedRoles: string[] = ["WORKSPACE_ADMIN", "MEMBER", "VIEWER"]) {
   const user = await getCurrentUser();
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const parsed = parseBody(workspaceMemberSchema, await req.json());
+    const parsed = await parseJsonBody(req, workspaceMemberSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const parsed = parseBody(workspaceMemberSchema, await req.json());
+    const parsed = await parseJsonBody(req, workspaceMemberSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     const updated = await prisma.workspaceMember.update({
@@ -92,7 +92,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await assertWorkspaceAccess(id, ["WORKSPACE_ADMIN"]);
-    const parsed = parseBody(memberUserIdSchema, await req.json());
+    const parsed = await parseJsonBody(req, memberUserIdSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 

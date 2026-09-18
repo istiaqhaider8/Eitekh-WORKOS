@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
-import { componentCreateSchema, parseBody } from "@/lib/validation";
+import { componentCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(componentCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, componentCreateSchema);
     if (!parsed.success) return parsed.error;
     const { projectId, name, description, ownerId } = parsed.data;
 

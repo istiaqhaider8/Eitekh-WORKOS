@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { getCurrentUser } from "@/lib/auth";
-import { workspaceCreateSchema, parseBody } from "@/lib/validation";
+import { workspaceCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(workspaceCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, workspaceCreateSchema);
     if (!parsed.success) return parsed.error;
     const { orgId, name, description } = parsed.data;
     

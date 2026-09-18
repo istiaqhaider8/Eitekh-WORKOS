@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { prisma } from "./prisma";
+import { logger } from "./logger";
 
 export interface SendEmailOptions {
   to: string;
@@ -480,6 +481,19 @@ export async function sendEmail({
       });
       messageId = info.messageId;
       status = "SENT";
+    } else if (process.env.NODE_ENV === "production") {
+      // Fail CLOSED in production. Previously this fell through to MOCKED and
+      // was reported to the caller as success, so a missing SMTP_PASS silently
+      // voided password resets, OTP codes and invitations while every caller
+      // believed the mail had gone out — and nothing above a console.warn said
+      // otherwise. A hard failure is the only safe behaviour here.
+      logger.error(
+        "EMAIL_SMTP_NOT_CONFIGURED",
+        `SMTP is not configured in production; refusing to silently drop email to ${to}`,
+        { to, subject, templateKey: templateKey || null }
+      );
+      status = "FAILED";
+      errorMessage = "SMTP is not configured (missing smtpPass/smtpHost) — email was not sent";
     } else {
       console.warn(`[Email] SMTP not configured (no smtpPass). Email to ${to} was NOT sent. Subject: "${subject}"`);
       status = "MOCKED";
@@ -504,11 +518,21 @@ export async function sendEmail({
         error: errorMessage,
       },
     });
-  } catch (e) {
-    // Ignore logging errors
+  } catch (e: any) {
+    // The email audit trail is the only durable record that a send happened, so
+    // losing it silently is how "0 FAILED rows" became indistinguishable from
+    // "nothing ever failed". Surface it instead of swallowing it.
+    logger.error("EMAIL_LOG_WRITE_FAILED", `Failed to write emailLog row for ${to}`, {
+      to,
+      status,
+      error: e?.message,
+    });
   }
 
   return {
+    // MOCKED deliberately still counts as success: it only occurs outside
+    // production, where a developer without SMTP must not have every flow that
+    // sends mail fail. In production the branch above turns it into FAILED.
     success: status !== "FAILED",
     from: config.senderEmail,
     to,

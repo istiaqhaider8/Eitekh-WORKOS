@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
-import { commentUpdateSchema, parseBody } from "@/lib/validation";
+import { commentUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function PATCH(
   req: Request,
@@ -14,7 +14,7 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const parsed = parseBody(commentUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, commentUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { content } = parsed.data;
 

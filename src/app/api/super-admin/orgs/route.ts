@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { pbacEngine } from "@/lib/pbac-engine";
-import { superAdminOrgCreateSchema, superAdminOrgUpdateSchema, parseBody } from "@/lib/validation";
+import { superAdminOrgCreateSchema, superAdminOrgUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminOrgCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminOrgCreateSchema);
     if (!parsed.success) return parsed.error;
     const { name, slug, domain, timezone, language } = parsed.data;
 
@@ -132,7 +132,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed2 = parseBody(superAdminOrgUpdateSchema, await req.json());
+    const parsed2 = await parseJsonBody(req, superAdminOrgUpdateSchema);
     if (!parsed2.success) return parsed2.error;
     const { orgId, name, slug, domain, status, timezone, language, dateFormat, workingDays, workingHours } = parsed2.data;
 

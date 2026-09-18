@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/config";
-import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody } from "@/lib/validation";
+import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 // GET /api/super-admin/users
 export async function GET(req: Request) {
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminUserCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminUserCreateSchema);
     if (!parsed.success) return parsed.error;
     const {
       email,
@@ -229,7 +229,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminUserUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminUserUpdateSchema);
     if (!parsed.success) return parsed.error;
     const {
       userId,

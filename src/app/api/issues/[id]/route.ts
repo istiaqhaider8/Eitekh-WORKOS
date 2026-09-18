@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
-import { issueUpdateSchema, parseBody } from "@/lib/validation";
+import { issueUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -139,7 +139,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const parsed = parseBody(issueUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, issueUpdateSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 

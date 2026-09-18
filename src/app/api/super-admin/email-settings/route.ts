@@ -2,7 +2,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailConfig } from "@/lib/email";
-import { superAdminEmailSettingsUpdateSchema, parseBody } from "@/lib/validation";
+import { superAdminEmailSettingsUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -38,7 +38,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Super Admin required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminEmailSettingsUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminEmailSettingsUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { senderEmail, senderName, smtpHost, smtpPort, smtpUser, smtpPass, isSecure, isEnabled } = parsed.data;
 

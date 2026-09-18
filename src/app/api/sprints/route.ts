@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
-import { sprintCreateSchema, sprintUpdateSchema, sprintReorderSchema, parseBody } from "@/lib/validation";
+import { sprintCreateSchema, sprintUpdateSchema, sprintReorderSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(sprintCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, sprintCreateSchema);
     if (!parsed.success) return parsed.error;
     const { projectId, name, goal, startDate, endDate } = parsed.data;
 
@@ -116,7 +116,7 @@ export async function PUT(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(sprintReorderSchema, await req.json());
+    const parsed = await parseJsonBody(req, sprintReorderSchema);
     if (!parsed.success) return parsed.error;
     const { projectId, sprintOrders } = parsed.data;
 
@@ -168,7 +168,7 @@ export async function PATCH(req: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(sprintUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, sprintUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes, position } = parsed.data;
 
@@ -223,8 +223,18 @@ export async function PATCH(req: Request) {
 
     const updateData: any = {};
 
-    // When starting a sprint, snapshot initial planned points and timestamps
-    if (status === "ACTIVE" && sprint.status !== "ACTIVE") {
+    // When starting a sprint, snapshot initial planned points and timestamps.
+    //
+    // The backfill condition matters: the snapshot used to be taken ONLY on the
+    // FUTURE -> ACTIVE transition, so a sprint that became ACTIVE any other way
+    // (seeded directly, or edited while already active) kept plannedPoints null
+    // forever, leaving velocity with no baseline. Backfilling an already-ACTIVE
+    // sprint that has no snapshot repairs that without overwriting a real one.
+    const becomingActive = status === "ACTIVE" && sprint.status !== "ACTIVE";
+    const activeButNeverSnapshotted =
+      sprint.status === "ACTIVE" && sprint.plannedPoints === null;
+
+    if (becomingActive || activeButNeverSnapshotted) {
       const primaryIssues = sprint.issues.filter((i) => i.parentIssueId === null);
       updateData.plannedPoints = primaryIssues.reduce((sum, i) => sum + (i.estimatePoints || 0), 0);
       if (!sprint.startDate && !startDate) {

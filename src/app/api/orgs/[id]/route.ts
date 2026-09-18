@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
-import { orgUpdateSchema, parseBody } from "@/lib/validation";
+import { orgUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const parsed = parseBody(orgUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, orgUpdateSchema);
     if (!parsed.success) return parsed.error;
     const updated = await prisma.organization.update({
       where: { id },

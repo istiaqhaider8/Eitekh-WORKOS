@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailTemplates, DEFAULT_TEMPLATES, renderTemplate } from "@/lib/email";
-import { superAdminEmailTemplateUpdateSchema, superAdminEmailTemplatePreviewSchema, parseBody } from "@/lib/validation";
+import { superAdminEmailTemplateUpdateSchema, superAdminEmailTemplatePreviewSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(
   req: NextRequest,
@@ -41,7 +41,7 @@ export async function PATCH(
     }
 
     const { key } = await params;
-    const parsed = parseBody(superAdminEmailTemplateUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminEmailTemplateUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { subject, bodyHtml, resetToDefault } = parsed.data;
 

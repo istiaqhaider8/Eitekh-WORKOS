@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { projectCreateSchema, parseBody } from "@/lib/validation";
+import { projectCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const parsed = parseBody(projectCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, projectCreateSchema);
     if (!parsed.success) return parsed.error;
     const { workspaceId, name, key, description, template, teamId } = parsed.data;
     

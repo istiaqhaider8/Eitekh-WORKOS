@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
-import { timeEntryCreateSchema, parseBody } from "@/lib/validation";
+import { timeEntryCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,7 +24,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const parsed = parseBody(timeEntryCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, timeEntryCreateSchema);
     if (!parsed.success) return parsed.error;
     const { durationMinutes, description, workDate } = parsed.data;
 

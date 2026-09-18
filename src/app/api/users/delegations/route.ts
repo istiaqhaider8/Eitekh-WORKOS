@@ -7,7 +7,7 @@ import { notificationEngine } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
 import { autoProcessExpiredDelegations } from "@/lib/delegation-engine";
 import { formatLeaveRange } from "@/lib/leave-engine";
-import { delegationCreateSchema, parseBody } from "@/lib/validation";
+import { delegationCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const parsed = parseBody(delegationCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, delegationCreateSchema);
     if (!parsed.success) return parsed.error;
     const { leaveId, delegateUserId, scope, issueIds, startDate, endDate, reason } = parsed.data;
 

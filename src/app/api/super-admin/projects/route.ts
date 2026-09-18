@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { superAdminProjectCreateSchema, superAdminProjectUpdateSchema, parseBody } from "@/lib/validation";
+import { superAdminProjectCreateSchema, superAdminProjectUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed = parseBody(superAdminProjectCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, superAdminProjectCreateSchema);
     if (!parsed.success) return parsed.error;
     const {
       workspaceId,
@@ -180,7 +180,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const parsed2 = parseBody(superAdminProjectUpdateSchema, await req.json());
+    const parsed2 = await parseJsonBody(req, superAdminProjectUpdateSchema);
     if (!parsed2.success) return parsed2.error;
     const {
       projectId,

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
-import { pbacRoleUsersSchema, parseBody } from '@/lib/validation';
+import { pbacRoleUsersSchema, parseBody, parseJsonBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const parsed = parseBody(pbacRoleUsersSchema, await req.json());
+    const parsed = await parseJsonBody(req, pbacRoleUsersSchema);
     if (!parsed.success) return parsed.error;
     const orgId = parsed.data.orgId || searchParams.get('orgId') || 'default-org';
     const { userId, userIds } = parsed.data;
@@ -66,7 +66,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const parsedDel = parseBody(pbacRoleUsersSchema, await req.json());
+    const parsedDel = await parseJsonBody(req, pbacRoleUsersSchema);
     if (!parsedDel.success) return parsedDel.error;
     const orgId = parsedDel.data.orgId || searchParams.get('orgId') || 'default-org';
     const { userId, userIds } = parsedDel.data;

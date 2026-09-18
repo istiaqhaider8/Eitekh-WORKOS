@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession, COOKIE_NAME, SESSION_COOKIE_MAX_AGE } from "@/lib/auth";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit-logger";
-import { loginSchema, parseBody } from "@/lib/validation";
+import { loginSchema, parseBody, parseJsonBody } from "@/lib/validation";
+
+// Login throttling. Both ceilings apply: the IP one stops one host hammering
+// many accounts, the account one stops many hosts hammering one account.
+const LOGIN_IP_LIMIT = 10;                 // per 60s per IP
+const LOGIN_ACCOUNT_LIMIT = 8;             // per window per email address
+const LOGIN_ACCOUNT_WINDOW_SECONDS = 900;  // 15 minutes
 
 export async function POST(req: Request) {
   try {
     const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anonymous";
-    const rl = checkRateLimit(`login:${ipAddress}`, { limit: 60, windowSeconds: 60 });
+
+    // Per-IP ceiling. 60/min was far too permissive for a credential-stuffing
+    // defence (3,600 attempts/hour from one address), so it is tightened here.
+    const rl = checkRateLimit(`login:ip:${ipAddress}`, { limit: LOGIN_IP_LIMIT, windowSeconds: 60 });
     if (!rl.allowed) {
       await logAuditEvent({
         action: 'AUTH_RATE_LIMITED',
@@ -17,7 +26,7 @@ export async function POST(req: Request) {
         status: 'FAILURE',
         targetResource: `IP:${ipAddress}`,
         ipAddress: ipAddress === 'anonymous' ? '127.0.0.1' : ipAddress,
-        details: { ip: ipAddress, limit: 60 },
+        details: { ip: ipAddress, limit: LOGIN_IP_LIMIT, scope: 'IP' },
       });
       return NextResponse.json(
         { error: `Too many login attempts. Please try again in ${rl.resetInSeconds} seconds.` },
@@ -25,9 +34,35 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = parseBody(loginSchema, await req.json());
+    const parsed = await parseJsonBody(req, loginSchema);
     if (!parsed.success) return parsed.error;
     const { email, password } = parsed.data;
+
+    // Per-account ceiling, checked in addition to the per-IP one. Without this a
+    // distributed attack against a single account was unconstrained, because
+    // the only limiter was keyed on the source address.
+    const accountKey = `login:acct:${email.trim().toLowerCase()}`;
+    const acctRl = checkRateLimit(accountKey, {
+      limit: LOGIN_ACCOUNT_LIMIT,
+      windowSeconds: LOGIN_ACCOUNT_WINDOW_SECONDS,
+    });
+    if (!acctRl.allowed) {
+      await logAuditEvent({
+        action: 'AUTH_ACCOUNT_LOCKED',
+        category: 'SECURITY',
+        severity: 'WARNING',
+        status: 'FAILURE',
+        targetResource: `account:${email}`,
+        ipAddress: ipAddress === 'anonymous' ? '127.0.0.1' : ipAddress,
+        details: { email, limit: LOGIN_ACCOUNT_LIMIT, windowSeconds: LOGIN_ACCOUNT_WINDOW_SECONDS, scope: 'ACCOUNT' },
+      });
+      // Deliberately the same wording as the IP-based message: revealing that a
+      // specific account is being throttled would confirm the address exists.
+      return NextResponse.json(
+        { error: `Too many login attempts. Please try again in ${acctRl.resetInSeconds} seconds.` },
+        { status: 429, headers: { "Retry-After": String(acctRl.resetInSeconds) } }
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -83,6 +118,10 @@ export async function POST(req: Request) {
     }
 
     const userAgent = req.headers.get("user-agent") || undefined;
+
+    // Credentials were correct, so discharge the per-account failure counter.
+    // Only consecutive failures should count towards the lockout ceiling.
+    resetRateLimit(accountKey);
 
     const { jwtToken } = await createSession(
       user.id,

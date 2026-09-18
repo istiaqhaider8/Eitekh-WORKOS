@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
-import { issueCreateSchema, parseBody } from "@/lib/validation";
+import { issueCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -115,7 +115,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const parsed = parseBody(issueCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, issueCreateSchema);
     if (!parsed.success) return parsed.error;
     const {
       title,

@@ -42,6 +42,13 @@ export function getRetentionPolicies(): RetentionPolicy[] {
       description: 'Expired and old auth sessions',
     },
     {
+      entity: 'OtpCode',
+      // Not a retention window: the purge condition is expiry, not age. The
+      // value is kept only so the policy reports consistently.
+      retentionDays: getRetentionDays('OTP_RETENTION_DAYS', 1),
+      description: 'Expired one-time passcodes (purged once expired)',
+    },
+    {
       entity: 'Notification',
       retentionDays: getRetentionDays('NOTIFICATION_RETENTION_DAYS', 90),
       description: 'Read in-app notifications',
@@ -80,6 +87,15 @@ async function purgeEntity(
       case 'Session': {
         const r = await container.prisma.session.deleteMany({
           where: { expiresAt: { lt: cutoff } },
+        });
+        return { deletedCount: r.count };
+      }
+      case 'OtpCode': {
+        // Expired one-time codes are spent secrets — purge on expiry rather
+        // than after a retention window. Previously nothing purged them at all,
+        // so every code ever issued stayed in the table indefinitely.
+        const r = await container.prisma.otpCode.deleteMany({
+          where: { expiresAt: { lt: new Date() } },
         });
         return { deletedCount: r.count };
       }

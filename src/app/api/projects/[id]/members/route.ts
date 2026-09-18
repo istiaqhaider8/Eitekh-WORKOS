@@ -5,7 +5,7 @@ import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { getBaseUrl } from "@/lib/config";
-import { projectMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
+import { projectMemberSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 // Only these project-scoped role strings may be assigned to a ProjectMember.
 // This blocks privilege escalation via an injected org-scoped PBAC role id
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
     
-    const parsed = parseBody(projectMemberSchema, await req.json());
+    const parsed = await parseJsonBody(req, projectMemberSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     let targetUserId = body.userId;
@@ -208,7 +208,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
-    const parsed = parseBody(memberUserIdSchema, await req.json());
+    const parsed = await parseJsonBody(req, memberUserIdSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     const safeRole = normalizeProjectRole((body as any).role);
@@ -254,7 +254,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     const { role, project, user: currentUser } = await assertProjectPermission(id, "projects:manage_members");
-    const parsed = parseBody(memberUserIdSchema, await req.json());
+    const parsed = await parseJsonBody(req, memberUserIdSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     await prisma.projectMember.delete({

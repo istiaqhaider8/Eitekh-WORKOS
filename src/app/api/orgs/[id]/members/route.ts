@@ -4,7 +4,7 @@ import { assertOrgAccess } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/config";
-import { orgMemberCreateSchema, orgMemberUpdateSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
+import { orgMemberCreateSchema, orgMemberUpdateSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const parsed = parseBody(orgMemberCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, orgMemberCreateSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 
@@ -128,7 +128,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const parsed = parseBody(orgMemberUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, orgMemberUpdateSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     const updated = await prisma.organizationMember.update({
@@ -154,7 +154,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await assertOrgAccess(id, ["OWNER", "ADMIN"]);
-    const parsed = parseBody(memberUserIdSchema, await req.json());
+    const parsed = await parseJsonBody(req, memberUserIdSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 

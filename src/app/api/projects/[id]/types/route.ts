@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
-import { issueTypeCreateSchema, issueTypeUpdateSchema, parseBody } from "@/lib/validation";
+import { issueTypeCreateSchema, issueTypeUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 const DEFAULT_ISSUE_TYPES = [
   { name: "Task", value: "TASK", color: "#0ea5e9", icon: "CheckSquare", description: "Standard actionable work item" },
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await assertProjectPermission(projectId, "projects:edit");
 
-    const parsed = parseBody(issueTypeCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, issueTypeCreateSchema);
     if (!parsed.success) return parsed.error;
     const { name, color, icon, description, value: customVal } = parsed.data;
 
@@ -156,7 +156,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await assertProjectPermission(projectId, "projects:edit");
 
-    const parsed = parseBody(issueTypeUpdateSchema, await req.json());
+    const parsed = await parseJsonBody(req, issueTypeUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { originalValue, name, color, icon, description, newValue } = parsed.data;
 

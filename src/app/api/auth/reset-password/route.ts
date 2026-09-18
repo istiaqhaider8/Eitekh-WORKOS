@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { resetPasswordSchema, parseBody } from "@/lib/validation";
+import { resetPasswordSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = parseBody(resetPasswordSchema, await req.json());
+    const parsed = await parseJsonBody(req, resetPasswordSchema);
     if (!parsed.success) return parsed.error;
     const { token, newPassword } = parsed.data;
 

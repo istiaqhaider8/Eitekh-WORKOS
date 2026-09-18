@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { pbacClassicActionSchema, parseBody } from '@/lib/validation';
+import { pbacClassicActionSchema, parseBody, parseJsonBody } from '@/lib/validation';
 
 export async function GET(req: NextRequest) {
   try {
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Super Admin required' }, { status: 403 });
     }
 
-    const parsed = parseBody(pbacClassicActionSchema, await req.json());
+    const parsed = await parseJsonBody(req, pbacClassicActionSchema);
     if (!parsed.success) return parsed.error;
     const { userId, projectId, role, action } = parsed.data;
 

@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { teamMemberSchema, memberUserIdSchema, parseBody } from "@/lib/validation";
+import { teamMemberSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 async function checkTeamAdmin(teamId: string) {
   const user = await getCurrentUser();
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     await checkTeamAdmin(id);
-    const parsed = parseBody(teamMemberSchema, await req.json());
+    const parsed = await parseJsonBody(req, teamMemberSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 
@@ -103,7 +103,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     await checkTeamAdmin(id);
-    const parsed = parseBody(memberUserIdSchema, await req.json());
+    const parsed = await parseJsonBody(req, memberUserIdSchema);
     if (!parsed.success) return parsed.error;
     await prisma.teamMember.delete({
       where: { teamId_userId: { teamId: id, userId: parsed.data.userId } }

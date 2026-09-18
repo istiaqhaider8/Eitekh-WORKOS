@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { verifyEmailSchema, parseBody } from "@/lib/validation";
+import { verifyEmailSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = parseBody(verifyEmailSchema, await req.json());
+    const parsed = await parseJsonBody(req, verifyEmailSchema);
     if (!parsed.success) return parsed.error;
     const { token } = parsed.data;
 

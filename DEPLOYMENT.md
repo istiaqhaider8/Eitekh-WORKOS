@@ -183,8 +183,37 @@ Set `FORCE_HTTPS=true` in `.env` after enabling TLS.
 - [ ] TLS is enabled on the public endpoint (no plain HTTP)
 - [ ] Firewall blocks all ports except 80 and 443 (app binds on 3000, only accessible via Nginx)
 - [ ] Automated SQLite backups scheduled (cron calling `POST /api/super-admin/backup`)
+- [ ] **Recurring tasks scheduled** — see "Scheduled work" below. Without this they never run.
+- [ ] **Data retention scheduled** — see "Scheduled work" below.
 - [ ] Health check monitored: `GET /api/health`
 - [ ] SMTP credentials are app-specific passwords, not primary account passwords
+- [ ] `BASE_URL` set to the public URL (email links use it; unset means links point at localhost)
+- [ ] `NEXT_PUBLIC_APP_URL` matches `BASE_URL`
+
+---
+
+## 7a. Scheduled work (REQUIRED — nothing schedules itself)
+
+The application has **no internal scheduler**. Anything time-based must be driven by an external
+cron, systemd timer, or platform scheduler. If you skip this section the features below are
+silently inert — they will appear configured in the UI and simply never execute.
+
+| What | Endpoint | Suggested cadence |
+|---|---|---|
+| Recurring tasks | `POST /api/recurring-tasks/trigger` | every 15 min, or hourly |
+| Data retention purge | `POST /api/super-admin/jobs` (retention job) | daily, off-peak |
+| Database backup | `POST /api/super-admin/backup` | daily |
+
+Example crontab (authenticate as a super-admin; use a dedicated service account):
+
+```cron
+*/15 * * * * curl -fsS -X POST https://your-domain/api/recurring-tasks/trigger -H "Cookie: token=$SERVICE_TOKEN" >> /var/log/eitekh-cron.log 2>&1
+15 3   * * * curl -fsS -X POST https://your-domain/api/super-admin/backup      -H "Cookie: token=$SERVICE_TOKEN" >> /var/log/eitekh-cron.log 2>&1
+```
+
+> **Known gaps as of 2026-09-18** — see [`PRE-PRODUCTION-VERIFICATION.md`](PRE-PRODUCTION-VERIFICATION.md):
+> **automation rules** and **webhooks** have CRUD endpoints and UI but **no execution engine at
+> all**, so no schedule will make them fire. Do not promise those features to customers yet.
 
 ---
 

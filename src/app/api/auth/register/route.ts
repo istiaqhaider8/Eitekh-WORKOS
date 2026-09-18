@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { createAndSendOtp } from "@/lib/otp";
-import { registerSchema, parseBody } from "@/lib/validation";
+import { registerSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const parsed = parseBody(registerSchema, await req.json());
+    const parsed = await parseJsonBody(req, registerSchema);
     if (!parsed.success) return parsed.error;
     const { firstName, lastName, email, password, company, jobTitle } = parsed.data;
 

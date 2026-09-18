@@ -899,3 +899,27 @@ export function parseQuery<T extends z.ZodTypeAny>(
   params.forEach((v, k) => { obj[k] = v; });
   return parseBody(schema, obj);
 }
+
+/**
+ * Read and validate a JSON request body in one step.
+ *
+ * `parseBody(schema, await req.json())` was the established pattern, but
+ * `req.json()` throws a SyntaxError on a malformed body BEFORE validation runs,
+ * which propagated to each route's catch block and surfaced as a 500. A client
+ * sending bad JSON is a client error, so it must be a 400.
+ */
+export async function parseJsonBody<T extends z.ZodTypeAny>(
+  req: { json: () => Promise<unknown> },
+  schema: T,
+): Promise<{ success: true; data: z.infer<T> } | { success: false; error: NextResponse }> {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return {
+      success: false,
+      error: NextResponse.json({ error: "Request body must be valid JSON" }, { status: 400 }),
+    };
+  }
+  return parseBody(schema, raw);
+}

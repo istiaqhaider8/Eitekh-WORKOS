@@ -4,7 +4,7 @@ import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
-import { subtaskCreateSchema, parseBody } from "@/lib/validation";
+import { subtaskCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
 
-    const parsed = parseBody(subtaskCreateSchema, await req.json());
+    const parsed = await parseJsonBody(req, subtaskCreateSchema);
     if (!parsed.success) return parsed.error;
     const { title, assigneeId, estimateHours, dueDate } = parsed.data;
 
