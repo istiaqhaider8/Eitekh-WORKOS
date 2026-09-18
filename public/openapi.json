@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Eitekh WorkOS API",
-    "description": "Multi-tenant SaaS Work Management Platform — REST API. All endpoints require a valid JWT session cookie unless marked public.",
+    "description": "Multi-tenant SaaS Work Management Platform — REST API. All endpoints require a valid JWT session cookie unless marked public. Coverage note: this specification is partial. It documents the endpoints listed below, not the full surface (the application exposes roughly 120 route handlers). Undocumented endpoints are still supported; they simply are not described here yet.",
     "version": "2.0.0",
     "contact": {
       "name": "Eitekh Engineering",
@@ -10,10 +10,15 @@
     }
   },
   "servers": [
-    { "url": "/api", "description": "Current server" }
+    {
+      "url": "/api",
+      "description": "Current server"
+    }
   ],
   "security": [
-    { "cookieAuth": [] }
+    {
+      "cookieAuth": []
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -27,67 +32,147 @@
       "Error": {
         "type": "object",
         "properties": {
-          "error": { "type": "string" }
+          "error": {
+            "type": "string"
+          }
         }
       },
       "Pagination": {
         "type": "object",
         "properties": {
-          "page": { "type": "integer", "minimum": 1 },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
-          "total": { "type": "integer" },
-          "pages": { "type": "integer" }
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer"
+          },
+          "pages": {
+            "type": "integer"
+          }
         }
       },
       "User": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
-          "firstName": { "type": "string" },
-          "lastName": { "type": "string" },
-          "avatarUrl": { "type": "string", "nullable": true },
-          "role": { "type": "string", "enum": ["USER", "SUPER_ADMIN", "SUPPORT"] }
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SUPER_ADMIN",
+              "SUPPORT"
+            ]
+          }
         }
       },
       "Issue": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "issueKey": { "type": "string" },
-          "title": { "type": "string" },
-          "description": { "type": "string", "nullable": true },
-          "status": { "type": "object" },
-          "priority": { "type": "string" },
-          "assignee": { "$ref": "#/components/schemas/User", "nullable": true },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string"
+          },
+          "issueKey": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "object"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/User",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       }
     },
     "responses": {
       "Unauthorized": {
         "description": "Not authenticated",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
       },
       "Forbidden": {
         "description": "Insufficient permissions",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
       },
       "NotFound": {
         "description": "Resource not found",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
       },
       "ValidationError": {
         "description": "Invalid request parameters",
-        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
       }
     }
   },
   "paths": {
     "/health": {
       "get": {
-        "tags": ["Operations"],
+        "tags": [
+          "Operations"
+        ],
         "summary": "Health check",
         "description": "Public health probe that returns server status and DB latency.",
         "security": [],
@@ -99,10 +184,21 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string", "example": "ok" },
-                    "db": { "type": "string", "example": "ok" },
-                    "dbLatencyMs": { "type": "integer" },
-                    "timestamp": { "type": "string", "format": "date-time" }
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "db": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "dbLatencyMs": {
+                      "type": "integer"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
                   }
                 }
               }
@@ -113,7 +209,9 @@
     },
     "/auth/register": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Register a new account",
         "security": [],
         "requestBody": {
@@ -122,28 +220,57 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["firstName", "lastName", "email", "password"],
+                "required": [
+                  "firstName",
+                  "lastName",
+                  "email",
+                  "password"
+                ],
                 "properties": {
-                  "firstName": { "type": "string", "maxLength": 100 },
-                  "lastName": { "type": "string", "maxLength": 100 },
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "minLength": 8, "maxLength": 64 },
-                  "company": { "type": "string", "maxLength": 200 }
+                  "firstName": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 64
+                  },
+                  "company": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Account created and session started" },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "409": { "description": "Email already registered" }
+          "201": {
+            "description": "Account created and session started"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "409": {
+            "description": "Email already registered"
+          }
         }
       }
     },
     "/auth/login": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Log in",
         "security": [],
         "requestBody": {
@@ -152,52 +279,80 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email", "password"],
+                "required": [
+                  "email",
+                  "password"
+                ],
                 "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string" }
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Authenticated — sets session cookie" },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "description": "Invalid credentials" }
+          "200": {
+            "description": "Authenticated — sets session cookie"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
         }
       }
     },
     "/auth/logout": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Log out",
         "responses": {
-          "200": { "description": "Session invalidated" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Session invalidated"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/auth/me": {
       "get": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Get current user",
         "responses": {
           "200": {
             "description": "Current authenticated user",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/User" }
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/auth/forgot-password": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "summary": "Request a password reset email",
         "security": [],
         "requestBody": {
@@ -206,28 +361,60 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email"],
+                "required": [
+                  "email"
+                ],
                 "properties": {
-                  "email": { "type": "string", "format": "email" }
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Reset email sent (always 200 to prevent email enumeration)" },
-          "400": { "$ref": "#/components/responses/ValidationError" }
+          "200": {
+            "description": "Reset email sent (always 200 to prevent email enumeration)"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          }
         }
       }
     },
     "/issues": {
       "get": {
-        "tags": ["Issues"],
+        "tags": [
+          "Issues"
+        ],
         "summary": "List issues",
         "parameters": [
-          { "name": "projectId", "in": "query", "required": true, "schema": { "type": "string" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -237,19 +424,32 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "issues": { "type": "array", "items": { "$ref": "#/components/schemas/Issue" } },
-                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Issue"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
                   }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
-        "tags": ["Issues"],
+        "tags": [
+          "Issues"
+        ],
         "summary": "Create an issue",
         "requestBody": {
           "required": true,
@@ -257,45 +457,116 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["title", "projectId"],
+                "required": [
+                  "title",
+                  "projectId"
+                ],
                 "properties": {
-                  "title": { "type": "string", "maxLength": 500 },
-                  "description": { "type": "string", "maxLength": 50000 },
-                  "projectId": { "type": "string" },
-                  "priority": { "type": "string", "enum": ["URGENT", "HIGH", "MEDIUM", "LOW", "NO_PRIORITY"] },
-                  "assigneeId": { "type": "string", "nullable": true }
+                  "title": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 50000
+                  },
+                  "projectId": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "URGENT",
+                      "HIGH",
+                      "MEDIUM",
+                      "LOW",
+                      "NO_PRIORITY"
+                    ]
+                  },
+                  "assigneeId": {
+                    "type": "string",
+                    "nullable": true
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Issue created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Issue" } } } },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "201": {
+            "description": "Issue created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Issue"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/issues/{id}": {
       "get": {
-        "tags": ["Issues"],
+        "tags": [
+          "Issues"
+        ],
         "summary": "Get issue by ID",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Issue detail", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Issue" } } } },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "200": {
+            "description": "Issue detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Issue"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "patch": {
-        "tags": ["Issues"],
+        "tags": [
+          "Issues"
+        ],
         "summary": "Update an issue",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -303,52 +574,110 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": { "type": "string", "maxLength": 500 },
-                  "description": { "type": "string", "maxLength": 50000 },
-                  "priority": { "type": "string" },
-                  "assigneeId": { "type": "string", "nullable": true }
+                  "title": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 50000
+                  },
+                  "priority": {
+                    "type": "string"
+                  },
+                  "assigneeId": {
+                    "type": "string",
+                    "nullable": true
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Issue updated" },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "200": {
+            "description": "Issue updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "delete": {
-        "tags": ["Issues"],
+        "tags": [
+          "Issues"
+        ],
         "summary": "Delete an issue",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Issue deleted" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "200": {
+            "description": "Issue deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
     "/projects": {
       "get": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "List projects for an organization or workspace",
         "parameters": [
-          { "name": "orgId", "in": "query", "schema": { "type": "string" } },
-          { "name": "workspaceId", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "orgId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Project list" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Project list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       },
       "post": {
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "summary": "Create a project",
         "requestBody": {
           "required": true,
@@ -356,54 +685,115 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "workspaceId"],
+                "required": [
+                  "name",
+                  "workspaceId"
+                ],
                 "properties": {
-                  "name": { "type": "string", "maxLength": 200 },
-                  "description": { "type": "string", "maxLength": 2000 },
-                  "workspaceId": { "type": "string" }
+                  "name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Project created" },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "201": {
+            "description": "Project created"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
     "/notifications": {
       "get": {
-        "tags": ["Notifications"],
+        "tags": [
+          "Notifications"
+        ],
         "summary": "Get notifications for the current user",
         "parameters": [
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Notification list" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Notification list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/webhooks": {
       "get": {
-        "tags": ["Webhooks"],
+        "tags": [
+          "Webhooks"
+        ],
         "summary": "List webhooks for an org or project",
         "parameters": [
-          { "name": "orgId", "in": "query", "schema": { "type": "string" } },
-          { "name": "projectId", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "orgId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Webhook list (secrets masked)" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "200": {
+            "description": "Webhook list (secrets masked)"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       },
       "post": {
-        "tags": ["Webhooks"],
+        "tags": [
+          "Webhooks"
+        ],
         "summary": "Create a webhook",
         "requestBody": {
           "required": true,
@@ -411,24 +801,363 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["orgId", "targetUrl", "secret", "events"],
+                "required": [
+                  "orgId",
+                  "targetUrl",
+                  "secret",
+                  "events"
+                ],
                 "properties": {
-                  "orgId": { "type": "string" },
-                  "projectId": { "type": "string", "nullable": true },
-                  "targetUrl": { "type": "string", "format": "uri" },
-                  "secret": { "type": "string", "description": "Signing secret sent as X-Webhook-Secret header" },
-                  "events": { "type": "array", "items": { "type": "string" } },
-                  "isActive": { "type": "boolean", "default": true }
+                  "orgId": {
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "targetUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "description": "Signing secret sent as X-Webhook-Secret header"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Webhook created" },
-          "400": { "$ref": "#/components/responses/ValidationError" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "201": {
+            "description": "Webhook created"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/projects/{id}/import": {
+      "post": {
+        "tags": [
+          "Bulk Import"
+        ],
+        "summary": "Bulk upload tasks from CSV",
+        "description": "Validates and optionally imports tasks. Requires the export:import_data project permission. Every relationship (status, assignee, sprint, epic) is resolved against this project only, and rows whose title already exists are reported as skipped, so re-uploading the same file is safe.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Project id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "csvData"
+                ],
+                "properties": {
+                  "csvData": {
+                    "type": "string",
+                    "maxLength": 5000000,
+                    "description": "Raw CSV text. Lines beginning with # are ignored, so a downloaded template can be uploaded as-is."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "validate",
+                      "import"
+                    ],
+                    "default": "validate",
+                    "description": "validate performs every check and writes nothing (the preview). import re-runs the same validation and writes only the rows that pass."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-row outcome for every data row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "validate",
+                        "import"
+                      ]
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "created": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "failed": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "row": {
+                            "type": "integer",
+                            "description": "1-based row number as it appears in the spreadsheet"
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "created",
+                              "skipped",
+                              "failed"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string",
+                            "description": "Task title, or member email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "description": "Why the row was skipped or failed"
+                          },
+                          "createdId": {
+                            "type": "string"
+                          },
+                          "createdKey": {
+                            "type": "string",
+                            "description": "Issue key, e.g. CP-12"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed CSV, a missing required column, or more rows than the per-upload maximum (2000)"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Caller lacks the required project permission"
+          }
+        }
+      }
+    },
+    "/projects/{id}/import/template": {
+      "get": {
+        "tags": [
+          "Bulk Import"
+        ],
+        "summary": "Download a CSV import template",
+        "description": "Returns a CSV template generated from this project's live data — its real workflow statuses, sprints, epics, member emails and allowed roles — so a template cannot drift from what the importer accepts. Each template requires the same permission as the upload it feeds.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Project id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Which template to return. Defaults to tasks.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "tasks",
+                "members"
+              ],
+              "default": "tasks"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV template as a file download",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Caller lacks export:import_data (tasks) or projects:manage_members (members)"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        }
+      }
+    },
+    "/projects/{id}/members/bulk": {
+      "post": {
+        "tags": [
+          "Bulk Import"
+        ],
+        "summary": "Bulk add project members from CSV",
+        "description": "Validates and optionally imports project memberships. Requires the projects:manage_members permission. Target users must already exist AND belong to this project organization; a user in another organization is reported identically to one that does not exist, so the endpoint cannot be used to probe for accounts elsewhere. It never creates users and never sends invitations.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Project id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "csvData"
+                ],
+                "properties": {
+                  "csvData": {
+                    "type": "string",
+                    "maxLength": 2000000,
+                    "description": "Raw CSV text. Lines beginning with # are ignored, so a downloaded template can be uploaded as-is."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "validate",
+                      "import"
+                    ],
+                    "default": "validate",
+                    "description": "validate performs every check and writes nothing (the preview). import re-runs the same validation and writes only the rows that pass."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-row outcome for every data row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "validate",
+                        "import"
+                      ]
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "created": {
+                      "type": "integer"
+                    },
+                    "skipped": {
+                      "type": "integer"
+                    },
+                    "failed": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "row": {
+                            "type": "integer",
+                            "description": "1-based row number as it appears in the spreadsheet"
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "created",
+                              "skipped",
+                              "failed"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string",
+                            "description": "Task title, or member email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "description": "Why the row was skipped or failed"
+                          },
+                          "createdId": {
+                            "type": "string"
+                          },
+                          "createdKey": {
+                            "type": "string",
+                            "description": "Issue key, e.g. CP-12"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed CSV, a missing required column, or more rows than the per-upload maximum (2000)"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Caller lacks the required project permission"
+          }
         }
       }
     }
