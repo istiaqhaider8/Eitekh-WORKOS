@@ -39,8 +39,8 @@ export async function GET(req: Request) {
 
     if (search.trim()) {
       whereClause.OR = [
-        { title: { contains: search.trim() } },
-        { message: { contains: search.trim() } },
+        { title: { contains: search.trim(), mode: "insensitive" } },
+        { message: { contains: search.trim(), mode: "insensitive" } },
       ];
     }
 

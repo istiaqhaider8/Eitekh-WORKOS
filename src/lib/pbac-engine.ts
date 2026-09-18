@@ -1650,10 +1650,10 @@ class UnifiedPBACEngine {
     if (filters?.search) {
       const s = filters.search.toLowerCase();
       where.OR = [
-        { email: { contains: s } },
-        { firstName: { contains: s } },
-        { lastName: { contains: s } },
-        { jobTitle: { contains: s } },
+        { email: { contains: s, mode: "insensitive" } },
+        { firstName: { contains: s, mode: "insensitive" } },
+        { lastName: { contains: s, mode: "insensitive" } },
+        { jobTitle: { contains: s, mode: "insensitive" } },
       ];
     }
     if (filters?.status && filters.status !== 'all') {

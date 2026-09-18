@@ -11,8 +11,28 @@ jobs:
     name: Type-check, Lint & Build
     runs-on: ubuntu-latest
 
+    # A real Postgres, because CI must exercise the engine production uses.
+    # Running the suite on SQLite while shipping Postgres is precisely how F5
+    # stayed invisible: `contains` is case-insensitive on SQLite and
+    # case-sensitive on Postgres, so search silently returned nothing.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eitekh_ci
+        ports: ["5432:5432"]
+        # Without the healthcheck the first migration races the server start.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
-      DATABASE_URL: file:./test.db
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eitekh_ci?schema=public
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eitekh_ci_shadow
       JWT_SECRET: ci-test-jwt-secret-do-not-use-in-production
       FIELD_ENCRYPTION_KEY: ${{ secrets.FIELD_ENCRYPTION_KEY || '0000000000000000000000000000000000000000000000000000000000000000' }}
       NODE_ENV: test
@@ -45,12 +65,17 @@ jobs:
       # `migrate diff` is the check that would have caught it, so it runs here.
       # A non-empty diff means someone changed schema.prisma without a
       # migration; generate one with `prisma migrate dev --create-only`.
+      - name: Create the shadow database
+        run: |
+          echo 'CREATE DATABASE eitekh_ci_shadow;' | npx prisma db execute \
+            --url "postgresql://postgres:postgres@localhost:5432/postgres" --stdin
+
       - name: Schema / migration drift check
         run: |
           npx prisma migrate diff \
             --from-migrations prisma/migrations \
             --to-schema-datamodel prisma/schema.prisma \
-            --shadow-database-url "file:./drift-shadow.db" \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
             --exit-code
         # --exit-code makes a detected difference fail the job (exit 2).
 
@@ -58,10 +83,9 @@ jobs:
       # applies to one with rows in it. Seed first, then migrate.
       - name: Migrations apply to a populated database
         run: |
-          rm -f ./ci-populated.db
-          DATABASE_URL="file:./ci-populated.db" npx prisma migrate deploy
-          DATABASE_URL="file:./ci-populated.db" node prisma/seed.js
-          DATABASE_URL="file:./ci-populated.db" npx prisma migrate status
+          npx prisma migrate deploy
+          node prisma/seed.js
+          npx prisma migrate status
 
       # S4/F7. A mutating route must not read a request body without a schema.
       # Eight did. One of them, auth/invite, took `role` from the body with no

@@ -23,11 +23,11 @@ export async function GET(req: Request) {
     if (search) {
       const s = search.toLowerCase();
       where.OR = [
-        { email: { contains: s } },
-        { firstName: { contains: s } },
-        { lastName: { contains: s } },
-        { jobTitle: { contains: s } },
-        { company: { contains: s } },
+        { email: { contains: s, mode: "insensitive" } },
+        { firstName: { contains: s, mode: "insensitive" } },
+        { lastName: { contains: s, mode: "insensitive" } },
+        { jobTitle: { contains: s, mode: "insensitive" } },
+        { company: { contains: s, mode: "insensitive" } },
       ];
     }
 

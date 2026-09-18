@@ -43,9 +43,18 @@ function validateProductionConfig(): string[] {
   if (!process.env.DATABASE_URL) {
     errors.push("DATABASE_URL is not set.");
   } else if (process.env.DATABASE_URL.startsWith("file:")) {
+    // An error now, not a warning. Before PROD-1 a file: URL worked and was
+    // merely unwise; the Prisma provider is postgresql, so it cannot work at
+    // all and the app would fail on its first query instead of at boot.
+    errors.push(
+      "DATABASE_URL points at a SQLite file, but the Prisma provider is postgresql. " +
+        "Set a postgresql:// URL. SQLite support was removed in PROD-1: it has a single " +
+        "writer and is file-local, so it cannot back more than one instance."
+    );
+  } else if (!/^postgres(ql)?:\/\//.test(process.env.DATABASE_URL)) {
     warnings.push(
-      "DATABASE_URL points at a SQLite file. SQLite has a single writer and cannot be shared " +
-        "between instances; it is not suitable for multi-tenant production traffic."
+      `DATABASE_URL does not look like a PostgreSQL URL (${process.env.DATABASE_URL.split(":")[0]}:...). ` +
+        "The Prisma provider is postgresql."
     );
   }
 

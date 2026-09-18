@@ -55,9 +55,9 @@ export async function GET(req: Request) {
         where: {
           projectId: { in: allowedProjectIds },
           OR: [
-            { title: { contains: q } },
-            { description: { contains: q } },
-            { issueKey: { contains: q } },
+            { title: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+            { issueKey: { contains: q, mode: "insensitive" } },
           ]
         },
         orderBy: { createdAt: "desc" },
@@ -70,7 +70,7 @@ export async function GET(req: Request) {
       results.comments = await prisma.comment.findMany({
         where: {
           issue: { projectId: { in: allowedProjectIds } },
-          content: { contains: q },
+          content: { contains: q, mode: "insensitive" },
         },
         take: limit,
         include: { 
@@ -85,9 +85,9 @@ export async function GET(req: Request) {
         where: {
           id: { in: allowedProjectIds },
           OR: [
-            { name: { contains: q } },
-            { key: { contains: q } },
-            { description: { contains: q } },
+            { name: { contains: q, mode: "insensitive" } },
+            { key: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
           ]
         },
         take: limit,

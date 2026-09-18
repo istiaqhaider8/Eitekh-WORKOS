@@ -2,6 +2,23 @@ import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync, unlinkSync 
 import { join, resolve } from "path";
 import { logger } from "./logger";
 
+/**
+ * OBSOLETE AFTER PROD-1, AND DELIBERATELY FAILING.
+ *
+ * This module copied the SQLite file at prisma/dev.db. The database is now
+ * PostgreSQL, so that file is either absent or a stale snapshot from before the
+ * migration. Copying it would report success and produce something that looks
+ * like a backup and is not one, which is strictly worse than having no backup
+ * feature at all: it would be discovered during a restore.
+ *
+ * So every entry point below refuses. Replacing this with Postgres-native
+ * backup (managed PITR, or scheduled pg_dump to off-host storage) plus an
+ * actually-performed restore drill is PROD-9.
+ */
+const POSTGRES_NOTICE =
+  "File-copy backup is not available: the database is PostgreSQL, not a local file. " +
+  "Use managed point-in-time recovery or a scheduled pg_dump to off-host storage (PROD-9).";
+
 const DB_PATH = resolve(process.cwd(), "prisma/dev.db");
 const BACKUP_DIR = resolve(process.cwd(), "backups");
 const MAX_BACKUPS = 10;
@@ -12,34 +29,14 @@ function ensureBackupDir(): void {
   }
 }
 
-export function createBackup(label?: string): { success: boolean; path?: string; error?: string } {
-  try {
-    if (!existsSync(DB_PATH)) {
-      return { success: false, error: "Database file not found" };
-    }
-
-    ensureBackupDir();
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const suffix = label ? `-${label.replace(/[^a-zA-Z0-9-_]/g, "")}` : "";
-    const backupName = `backup-${timestamp}${suffix}.db`;
-    const backupPath = join(BACKUP_DIR, backupName);
-
-    copyFileSync(DB_PATH, backupPath);
-
-    const walPath = DB_PATH + "-wal";
-    if (existsSync(walPath)) {
-      copyFileSync(walPath, backupPath + "-wal");
-    }
-
-    pruneOldBackups();
-
-    logger.info("BACKUP_CREATED", `Database backup created: ${backupName}`, { path: backupPath });
-    return { success: true, path: backupPath };
-  } catch (error: any) {
-    logger.error("BACKUP_FAILED", `Database backup failed: ${error.message}`, { error: error.message });
-    return { success: false, error: error.message };
-  }
+export function createBackup(_label?: string): { success: boolean; path?: string; error?: string } {
+  // The file-copy implementation is gone rather than left unreachable: the
+  // point is that this cannot appear to work. It copied prisma/dev.db, which
+  // after PROD-1 is either absent or a pre-migration snapshot — and reporting
+  // success for that is how a team discovers it has no backups during a
+  // restore.
+  logger.warn("BACKUP_UNAVAILABLE", POSTGRES_NOTICE);
+  return { success: false, error: POSTGRES_NOTICE };
 }
 
 export function listBackups(): Array<{ name: string; size: number; createdAt: string }> {

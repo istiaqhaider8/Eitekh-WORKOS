@@ -62,7 +62,7 @@ export async function GET() {
       },
       {
         id: "database",
-        name: "Relational Database (Prisma SQLite/Postgres)",
+        name: "Relational Database (PostgreSQL via Prisma)",
         category: "Storage & Persistence",
         status: dbLatency < 50 ? "Operational" : dbLatency < 150 ? "Degraded" : "Critical",
         responseTimeMs: dbLatency,

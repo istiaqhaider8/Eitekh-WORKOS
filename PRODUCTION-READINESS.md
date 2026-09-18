@@ -83,7 +83,7 @@ Each row lists how to re-verify it.
 | Next.js | `^15.1.0` (15.5.25 installed) |
 | React | `^19.0.0` |
 | Prisma | `^5.22.0` |
-| Database | **SQLite** (`provider = "sqlite"`), `journal_mode=WAL` since 2026-09-18 |
+| Database | **PostgreSQL** (`provider = "postgresql"`) since 2026-09-18 (PROD-1) |
 | API routes | **121** `route.ts` files (was 118) |
 | Test files | 6 suites, in `__tests__/` and `src/lib/__tests__/` — all library-level |
 | Authorization / tenant tests | **0** |
@@ -154,7 +154,7 @@ be pointed at `dev.db` by accident.
 
 | ID | Problem | Evidence |
 |---|---|---|
-| B1 | SQLite in a multi-tenant SaaS | `prisma/schema.prisma` → `provider = "sqlite"` |
+| ~~B1~~ | ✅ **FIXED 2026-09-18** (PROD-1). Was: SQLite in a multi-tenant SaaS | `prisma/schema.prisma` → `provider = "postgresql"` |
 | B2 | Rate limiting is in-process | `new Map()` at [`src/lib/rate-limit.ts:11`](src/lib/rate-limit.ts) |
 | B3 | Cache is in-process | `private store: Map` at [`src/lib/cache-manager.ts:66`](src/lib/cache-manager.ts) |
 | B4 | SSE client registry is in-process | `private clients: Map` at [`src/lib/sync-engine.ts:79`](src/lib/sync-engine.ts) |
@@ -200,11 +200,12 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~45%** | all of Gate 0 — 8 items, **1 complete** |
+| **Multi-tenant paid production** | **~60%** | all of Gate 0 — 8 items, **2 complete** |
 
-The percentage is a judgement, not a measurement. The countable part: **1 of 8 Gate 0 items is
-complete** (PROD-0), and the two largest (PROD-1 Postgres, PROD-5 tenant-isolation tests) have
-not been started.
+The percentage is a judgement, not a measurement. The countable part: **2 of 8 Gate 0 items are
+complete** (PROD-0, PROD-1). PROD-1 was the dependency for PROD-2/3/4/5, so those are now
+unblocked; PROD-5 (tenant-isolation tests) is the largest remaining item and the one with the
+worst failure mode.
 
 ---
 
@@ -339,9 +340,47 @@ DATABASE_URL="file:/tmp/fresh.db" npx prisma migrate diff \
 | | |
 |---|---|
 | **Severity** | Blocker |
-| **Status** | PENDING |
-| **Depends on** | PROD-0 (fix the schema before translating it) |
+| **Status** | **COMPLETED 2026-09-18** — provider is `postgresql`, history regenerated |
+| **Depends on** | PROD-0 (done first, so the schema was consistent before translating) |
 | **Files** | `prisma/schema.prisma`, `prisma/migrations/`, `.env.example`, `DEPLOYMENT.md`, `.github/workflows/ci.yml`, `src/lib/prisma.ts` |
+
+> **Closed.** Verified against a real PostgreSQL 18, not asserted:
+>
+> - `provider = "postgresql"`; the SQLite migration history is archived at
+>   `prisma/migrations-sqlite-archive/` (not deleted) and replaced by a regenerated
+>   `0001_init_postgres` — 46 tables, 1,232 lines — plus `0002_value_constraints`.
+> - **The CHECK constraints had to be rescued.** 0005/0006 added them as hand-written SQL, so
+>   they are not in `schema.prisma` and did **not** survive regeneration. Without
+>   `0002_value_constraints` PROD-1 would have silently dropped validation that was explicitly
+>   verified. Confirmed restored at the database level: a raw
+>   `UPDATE "User" SET "userType" = 'CONTRACTOR'` fails with
+>   `violates check constraint "User_userType_check"`.
+> - **F5 confirmed and fixed.** On this Postgres, `contains: "implement"` returned **0** rows
+>   where SQLite returned 1 — search would have silently found nothing. `mode: "insensitive"`
+>   added to **41 of 44** `contains` sites across 7 files. The other **3** were left exact on
+>   purpose: they match application-written JSON such as `'"severity":"CRITICAL"'`, where the
+>   case is ours, not the user's.
+> - Live acceptance **22/22**: auth, core reads, writes (create/update/delete), the three pages,
+>   and case-insensitive search proved in three casings across three different endpoints.
+> - `migrate diff` against Postgres: **no difference**. tsc clean, jest 170/170, lint 0 errors.
+> - The SQLite pragma block is gone from `src/lib/prisma.ts`; pool sizing moved to
+>   `DATABASE_URL` (`connection_limit`), documented in `.env.example`.
+> - CI now runs a `postgres:16-alpine` service with a healthcheck. **Running the suite on SQLite
+>   while shipping Postgres is exactly how F5 stayed invisible**, so this matters more than it
+>   looks.
+> - `src/lib/backup.ts` now **refuses** instead of copying `prisma/dev.db`. It would have
+>   reported success while producing a pre-migration snapshot — worse than having no backup
+>   feature, because it is discovered during a restore. Real backup is PROD-9.
+> - The boot guard treats a `file:` URL as an **error**, not a warning: it can no longer work.
+>
+> **Two decisions I made in the absence of an answer, both reversible.**
+> 1. **Data was not migrated.** Postgres was seeded fresh. `prisma/dev.db` is untouched on disk
+>    (2.28 MB), so nothing is lost — but rows created in SQLite after the last seed, including
+>    issues CP-525..529, exist only there. Migrating them is an export/import job if wanted.
+> 2. **Verification used a local embedded PostgreSQL 18** on port 54329, installed with
+>    `npm install --no-save` so it is not a committed dependency. The migrations and code are
+>    Postgres-generic, so choosing a managed provider does not change any of this work — only
+>    `DATABASE_URL`.
 
 **Why**: SQLite has a single writer lock and is file-local. In a multi-tenant SaaS this means
 concurrent writes from different tenants serialize and then fail under load, and you cannot run
@@ -892,7 +931,9 @@ Do them in this order. Parallel tracks are marked.
 ```
 PROD-0  Migration drift .............. DONE 2026-09-18 (0007_repair_schema_drift)
    │
-PROD-1  Postgres ..................... START HERE now
+PROD-1  Postgres ..................... DONE 2026-09-18
+   │
+PROD-5  Tenant-isolation tests ....... START HERE now (highest risk reduction)
 PROD-1  Postgres ..................... then this (unblocks almost everything)
    │
    ├── PROD-2  Shared rate limiting  (both limiters; re-key off raw IP)

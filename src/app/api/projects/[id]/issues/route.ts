@@ -45,9 +45,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
     if (search) {
       where.OR = [
-        { title: { contains: search } },
-        { issueKey: { contains: search } },
-        { description: { contains: search } },
+        { title: { contains: search, mode: "insensitive" } },
+        { issueKey: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 

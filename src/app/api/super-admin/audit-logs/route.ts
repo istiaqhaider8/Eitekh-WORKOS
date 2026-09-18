@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
     if (search.trim()) {
       andConditions.push({
         OR: [
-          { action: { contains: search.trim() } },
-          { targetResource: { contains: search.trim() } },
-          { details: { contains: search.trim() } },
-          { actorId: { contains: search.trim() } },
+          { action: { contains: search.trim(), mode: "insensitive" } },
+          { targetResource: { contains: search.trim(), mode: "insensitive" } },
+          { details: { contains: search.trim(), mode: "insensitive" } },
+          { actorId: { contains: search.trim(), mode: "insensitive" } },
         ],
       });
     }

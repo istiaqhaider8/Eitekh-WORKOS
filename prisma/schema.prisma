@@ -1,5 +1,10 @@
 datasource db {
-  provider = "sqlite"
+  // PROD-1. SQLite has a single writer and is file-local: concurrent writes
+  // from different tenants serialise, and more than one app instance cannot
+  // share the database. WAL (added 2026-09-18) removed reader/writer contention
+  // and is why task open is fast, but it still allows exactly one writer, so it
+  // never lifted that ceiling.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

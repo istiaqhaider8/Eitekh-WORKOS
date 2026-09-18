@@ -34,9 +34,9 @@ export async function GET(request: Request) {
       prisma.organization.findMany({
         where: {
           OR: [
-            { name: { contains: query } },
-            { slug: { contains: query } },
-            { domain: { contains: query } },
+            { name: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
+            { domain: { contains: query, mode: "insensitive" } },
           ],
         },
         take: 5,
@@ -44,10 +44,10 @@ export async function GET(request: Request) {
       prisma.user.findMany({
         where: {
           OR: [
-            { email: { contains: query } },
-            { firstName: { contains: query } },
-            { lastName: { contains: query } },
-            { company: { contains: query } },
+            { email: { contains: query, mode: "insensitive" } },
+            { firstName: { contains: query, mode: "insensitive" } },
+            { lastName: { contains: query, mode: "insensitive" } },
+            { company: { contains: query, mode: "insensitive" } },
           ],
         },
         select: { id: true, email: true, firstName: true, lastName: true, isSuperAdmin: true, status: true },
@@ -56,8 +56,8 @@ export async function GET(request: Request) {
       prisma.workspace.findMany({
         where: {
           OR: [
-            { name: { contains: query } },
-            { slug: { contains: query } },
+            { name: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
           ],
         },
         include: { organization: { select: { name: true } } },
@@ -66,8 +66,8 @@ export async function GET(request: Request) {
       prisma.project.findMany({
         where: {
           OR: [
-            { name: { contains: query } },
-            { key: { contains: query } },
+            { name: { contains: query, mode: "insensitive" } },
+            { key: { contains: query, mode: "insensitive" } },
           ],
         },
         include: { workspace: { select: { name: true } } },
@@ -76,8 +76,8 @@ export async function GET(request: Request) {
       prisma.issue.findMany({
         where: {
           OR: [
-            { title: { contains: query } },
-            { issueKey: { contains: query } },
+            { title: { contains: query, mode: "insensitive" } },
+            { issueKey: { contains: query, mode: "insensitive" } },
           ],
         },
         include: { project: { select: { key: true, name: true } } },
@@ -86,9 +86,9 @@ export async function GET(request: Request) {
       prisma.platformAuditLog.findMany({
         where: {
           OR: [
-            { action: { contains: query } },
-            { targetResource: { contains: query } },
-            { details: { contains: query } },
+            { action: { contains: query, mode: "insensitive" } },
+            { targetResource: { contains: query, mode: "insensitive" } },
+            { details: { contains: query, mode: "insensitive" } },
           ],
         },
         take: 5,
