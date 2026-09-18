@@ -60,15 +60,24 @@ One High-severity item remains open: **DEP-1** (postcss CVEs via Next.js — nee
 
 | Gate | Meaning | Progress |
 |---|---|---|
-| Gate 0 — Blockers | Blocks any multi-tenant production launch | **0/7** |
-| Gate 1 — Pre-launch hardening | Blocks public/paid launch | 0/5 |
-| Gate 2 — Maintainability | Post-launch | 0/5 |
+| Gate 0 — Blockers | Blocks any multi-tenant production launch | **0/8** (PROD-0 added 2026-09-18) |
+| Gate 1 — Pre-launch hardening | Blocks public/paid launch | 0/8 (PROD-18/19/20 added) |
+| Gate 2 — Maintainability | Post-launch | 0/8 (PROD-21/22/23 added) |
 
-**Current state: single-instance pilot viable. Multi-tenant production NOT viable until Gate 0 passes.**
+**Current state (2026-09-18): even a FRESH single-instance deploy is blocked by PROD-0.** The
+running pilot works only because its database was built with `db push`. Multi-tenant production
+is roughly **40%** ready — Gate 0 is 8 items with 0 complete.
 
-Verified 2026-09-17: production build passes (exit 0), `npx tsc --noEmit` clean, 74 unit tests pass,
-CI runs typecheck/test/lint/build, `.env` untracked. Blockers: SQLite in production, all shared
-state in-process (no Redis), zero tenant-isolation/authz tests, no error tracking.
+| Target | Ready | Gating |
+|---|---|---|
+| Fresh single-instance deploy | **blocked** | PROD-0 alone |
+| Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-20 advisable |
+| Multi-tenant paid production | **~40%** | all of Gate 0 |
+
+Verified 2026-09-18: `npx tsc --noEmit` clean, lint 0 errors (64 pre-existing warnings), 74 unit
+tests pass, boot-time config guard works, `.env` untracked. Blockers: **migration drift (PROD-0)**,
+SQLite in production, all shared state in-process (no Redis) *including the PBAC store on local
+disk*, zero tenant-isolation/authz tests, no error tracking, 1 high + 1 moderate CVE.
 
 ### Security audit findings (history)
 
@@ -112,7 +121,8 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| 0 | **DEP-1** | High | PENDING | 2 dependency CVEs (1 high, 1 moderate) in `postcss` via Next.js. Exposure is low (build-time only). **Do NOT run `npm audit fix --force`** — it installs `next@16`, a breaking upgrade. Schedule with PROD-14. | `package.json` |
+| 0 | **PROD-0** | **Blocker** | PENDING | **Migration drift — blocks every deployment.** `migrate deploy` on a fresh DB omits `OtpCode` and `Invitation`; OTP login and invitations fail on first use. `prisma migrate status` reports "up to date" and does **not** catch this — use `migrate diff`. See `PRODUCTION-READINESS.md` §PROD-0 | `prisma/migrations/` |
+| 1 | **DEP-1** | High | PENDING | 2 dependency CVEs (1 high, 1 moderate) in `postcss` via Next.js. Exposure is low (build-time only). **Do NOT run `npm audit fix --force`** — it installs `next@16`, a breaking upgrade. Now specced as **PROD-19**; schedule on its own branch | `package.json` |
 
 ### 🔴 GATE A — PERFORMANCE (app is slow; see `PERFORMANCE-PLAN.md`)
 
@@ -122,7 +132,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | A2 | PERF-P2 | High | PENDING | Analytics loads all issues into memory, then ~20 JS `.filter()` passes — use `groupBy`/`count` | `api/projects/[id]/analytics/route.ts` |
 | A3 | PERF-P3 | High | PENDING | **65 of 93** `findMany` calls have no `take:` (reopens PERF-4 as partial) | ~65 files in `src/app/api/` |
 | A4 | PERF-P4 | High | PENDING | `/projects/[id]` ships 310 kB First Load JS — code-split views (reopens PERF-8) | `ProjectClient.tsx`, `components/views/` |
-| A5 | PERF-P5 | Medium | PENDING | Polling: super-admin 15 s, notifications 30 s site-wide; move to existing SSE, pause on hidden tabs | `super-admin/page.tsx:260`, `AppHeader.tsx:133` |
+| A5 | PERF-P5 | Medium | **PARTIAL** | Polling intervals **unchanged** (super-admin still 15 s, notifications still 30 s). What changed 2026-09-18: each super-admin poll now fetches 5 endpoints/21 KB instead of 7/68 KB, so the per-tick cost dropped ~68%. The task itself — move to SSE, pause on hidden tabs — is still open | `super-admin/page.tsx`, `AppHeader.tsx:133` |
 | A6 | PERF-P6 | Medium | PENDING | N+1 write loops (`await` inside `for`) | `orgs/[id]/members`, `projects/[id]/issues`, `issues/[id]/comments` |
 | ~~A7~~ | ~~PERF-P7~~ | Medium | ✅ FIXED `6719b2d` | Narrowed the 3 server-side `user: true` over-fetches | 3 route files |
 
@@ -137,7 +147,8 @@ Full task specs, acceptance criteria and verification commands are in
 
 | # | ID | Severity | Status | Description | Key Files |
 |---|---|---|---|---|---|
-| 1 | PROD-1 | Blocker | PENDING | Migrate SQLite → PostgreSQL (start here — unblocks most others) | `prisma/schema.prisma`, `prisma/migrations/` |
+| 0 | **PROD-0** | Blocker | **PENDING ← START HERE** | **Migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation`, so OTP/MFA login and invitations break on any new database — including a pilot. Dev works only because it was `db push`ed. Cheapest item in Gate 0; blocks every deploy. Found 2026-09-18 | `prisma/migrations/`, `prisma/schema.prisma` |
+| 1 | PROD-1 | Blocker | PENDING | Migrate SQLite → PostgreSQL (unblocks most others; do after PROD-0) | `prisma/schema.prisma`, `prisma/migrations/` |
 | 2 | PROD-5 | Blocker | PENDING | Tenant-isolation integration tests (highest risk reduction) | `__tests__/integration/` |
 | 3 | PROD-2 | Blocker | PENDING | Move rate limiting to Redis (in-process = N× limit with N instances) | `src/lib/rate-limit.ts` |
 | 4 | PROD-3 | Blocker | PENDING | Move cache to Redis (stale PBAC across instances = authz bug) | `src/lib/cache-manager.ts` |
@@ -313,6 +324,73 @@ Kept for traceability. **Reopened items are listed in Gate 0/1 above — work th
 ## SESSION LOG
 
 > Every AI session adds an entry here. This is the audit trail.
+
+### 2026-09-18 — Claude Opus 5 (1M context) — Dark theme, four-flow performance, readiness re-baseline
+
+**Dark theme repair** (`97abdd1`) — the earlier white-theme passes had regressed the dark theme.
+263 class-level fixes: 224 light values (`bg-rose-50`, accent text at -600/-700,
+`border-<fam>-200`) that had no `dark:` counterpart and so rendered pastel-on-`#080c14`; 37
+`dark:` utilities written after a `hover:` of the same property, which win unconditionally in
+dark mode and so pinned the colour and killed the hover; 2 duplicate-variant conflicts. Also
+repaired 6 multi-line `className` blocks that a bulk dedup script had collapsed and truncated
+mid-string — **I broke the build doing that and had to restore them from the previous commit.**
+Recorded because the same script had silently promoted ~46 hover values to base colours.
+
+**Performance, all four flows profiled before changing anything** (`9a899e4`). The queries were
+never the problem: the 20-relation issue-detail query runs in **10 ms over 19 statements** and
+the whole database is 460 rows. Real causes: SQLite in rollback-journal mode (writers block
+readers), a `Session.lastActiveAt` write on **every** authenticated request, and
+`getCurrentUser()` running 2–3× per request because `assertProjectAccess` re-invokes it (57
+routes affected) — all multiplied by a 10-request fan-out on task open.
+
+| Flow | Before | After |
+|---|---|---|
+| Sign-in | 97 ms | ~100 ms — **unchanged**, bcrypt-bound by design |
+| Task open | 744 ms · 10 req | **~90 ms · 2 req** |
+| Super Admin mount | 249 ms · 7 req · 68 KB | **~120 ms · 5 req · 21 KB** |
+| Sign-out | 39 ms | ~50 ms — **unchanged**, within noise |
+
+Fixes: WAL mode; `lastActiveAt` refreshed at most once a minute (display-only field — expiry is
+still checked every request); `getCurrentUser` wrapped in React `cache()` (request-scoped, so a
+revoked session still fails the next request — tested); new `GET /api/projects/[id]/context`
+replacing the modal's 9 metadata requests behind the *same* gate all nine applied; type/priority
+merge rules moved to `src/lib/project-context.ts` as a single source; dropped the super-admin
+`email-templates` fetch, which was the largest response of the seven and was stored in state
+**nothing read**.
+
+Verified: 29/29 live checks across the four flows, including that the issue payload still carries
+all 28 bound fields, that the combined endpoint matches all 10 datasets of the nine it replaces,
+and that a logged-out cookie is refused immediately by four separate endpoints. tsc clean, lint
+0 errors, jest 74/74.
+
+**Honest notes**
+- Sign-in and sign-out were **not** improved, because they were not slow. Both then do a full
+  document load; for sign-out that is the safe choice (it guarantees in-memory state is
+  discarded) and I did not trade it for ~150 ms. The seconds felt in dev are route compilation.
+- My first version of the WAL change **silently failed**: `PRAGMA journal_mode = WAL` returns a
+  row, which `$executeRaw` rejects, so WAL was set by side effect and the throw skipped
+  `synchronous` and `busy_timeout`. Caught while verifying. Those two remain best-effort —
+  Prisma pools connections, so a per-connection pragma lands on whichever connection served it.
+- **PERF-P5 is PARTIAL, not fixed** — polling intervals are unchanged; only the per-tick payload
+  shrank.
+- PERF-P1..P4, P6 untouched.
+
+**Found a new Gate 0 blocker — PROD-0.** `prisma migrate diff` shows the migration history does
+not reproduce `schema.prisma`: `OtpCode` and `Invitation` are missing entirely and
+`SystemEmailConfig` differs. Both tables are used at runtime (OTP/MFA login, invitations, data
+retention), so a fresh `migrate deploy` produces a database where those features fail on first
+use. Dev works only because it was built with `db push`. `prisma migrate status` prints
+"Database schema is up to date!" and does **not** detect this. This now blocks every deploy
+including a pilot, and it is the cheapest item in Gate 0.
+
+**Readiness re-baseline.** `PRODUCTION-READINESS.md` updated for multi-tenant paid production:
+added PROD-0, PROD-18 (unbounded relation loads — `/api/issues/[id]` has no `take` on
+activityLogs/comments/timeEntries/attachments), PROD-19 (dependency CVEs), PROD-20 (prod config
++ runbook), PROD-21..23 (Gate 2); added measured problems B9–B14; added a performance baseline
+and a readiness estimate (**multi-tenant paid production ~40%; Gate 0 is 8 items, 0 complete**).
+Also **corrected PROD-8**, which recorded the task-open waterfall as fixed on 2026-09-17 — it
+was still costing 744 ms on 2026-09-18; that work had cached the cost rather than removing it.
+Second time a performance item was marked done while the underlying cost remained.
 
 ### 2026-09-15 — Claude Opus (Session 1)
 - Phase 1: Fixed 10 critical vulnerabilities (AUTH-1/2/3, TENANT-1/2, DATA-1/6, ADMIN-1, NOTIF-1)

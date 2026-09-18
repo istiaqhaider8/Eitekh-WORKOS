@@ -52,7 +52,8 @@ foundation underneath it.
 
 ## 2. Verified Baseline
 
-Everything in this section was verified by running commands against the repo on **2026-09-17**.
+Everything in this section was verified by running commands against the repo. Rows marked
+**(re-verified 2026-09-18)** were checked again on that date; the rest date from **2026-09-17**.
 Each row lists how to re-verify it.
 
 ### What is genuinely working
@@ -61,12 +62,15 @@ Each row lists how to re-verify it.
 |---|---|---|
 | Production build passes | exit 0, clean isolated worktree | `npm run build` (see note below) |
 | TypeScript compiles clean | exit 0, ~70k lines | `npx tsc --noEmit` |
-| Unit tests pass | 6 suites, 74 tests, 0 failures | `npm test` |
+| Unit tests pass | 6 suites, 74 tests, 0 failures **(re-verified 2026-09-18)** | `npm test` |
+| TypeScript clean, lint 0 errors | 64 warnings, all pre-existing **(re-verified 2026-09-18)** | `npx tsc --noEmit && npm run lint` |
 | CI runs typecheck + test + lint + build | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | read the file |
 | Secrets not committed | `.env` gitignored, 0 tracked | `git check-ignore -v .env` |
-| Migrations exist | `0001_init`, `0002_…`, `0003_…` | `ls prisma/migrations` |
+| Migration **files** exist | 4 under `prisma/migrations` — but they do **not** reproduce the schema, see B9 | `ls prisma/migrations` |
 | Health endpoints exist | `/api/health`, `/api/super-admin/health` | `ls src/app/api/health` |
 | All 10 Critical security findings fixed | Phase 1, audit §5 | see `SECURITY-AUDIT.md` |
+| Boot-time config guard works | refuses a production boot on missing `JWT_SECRET` / `FIELD_ENCRYPTION_KEY` / `BASE_URL` **(re-verified 2026-09-18)** | [`src/instrumentation.ts`](src/instrumentation.ts); read the dev-server banner |
+| Task-open latency fixed | ~744 ms → ~90 ms, 10 requests → 2 **(2026-09-18)** | see §2 "Performance baseline" |
 
 > **Build note**: `next build` **fails** if `next dev` is running — both write to `.next`, producing a
 > misleading `PageNotFoundError: Cannot find module for page: /api/auth/login`. Stop the dev server
@@ -79,10 +83,32 @@ Each row lists how to re-verify it.
 | Next.js | `^15.1.0` (15.5.25 installed) |
 | React | `^19.0.0` |
 | Prisma | `^5.22.0` |
-| Database | **SQLite** (`provider = "sqlite"`) |
-| API routes | 118 `route.ts` files |
-| Test files | 6 (all library-level) |
+| Database | **SQLite** (`provider = "sqlite"`), `journal_mode=WAL` since 2026-09-18 |
+| API routes | **121** `route.ts` files (was 118) |
+| Test files | 6 suites, in `__tests__/` and `src/lib/__tests__/` — all library-level |
+| Authorization / tenant tests | **0** |
 | External state store | **none** (no Redis / Memcached / Upstash) |
+| Known CVEs | 1 high, 1 moderate (postcss via Next) — see B12 |
+
+### Performance baseline (2026-09-18)
+
+Medians, dev server, seed data (460 rows). Measured by flipping the code and the SQLite journal
+mode back and forth on one server, so before/after are directly comparable.
+
+| Flow | Before | After |
+|---|---|---|
+| Sign-in (API) | 97 ms | ~100 ms — unchanged, bcrypt-bound by design |
+| Task open | 744 ms · 10 req · 16.2 KB | **~90 ms · 2 req · 12.9 KB** |
+| Super Admin mount | 249 ms · 7 req · 67.6 KB | **~120 ms · 5 req · 21.4 KB** |
+| Sign-out (API) | 39 ms | ~50 ms — unchanged, within noise |
+
+The root cause was never query cost: the 20-relation issue-detail query runs in **10 ms over 19
+statements**. It was write contention (SQLite rollback-journal mode + a `Session.lastActiveAt`
+write on every request + `getCurrentUser()` running 2–3× per request) multiplied by a
+ten-request fan-out. Fixed in `9a899e4`.
+
+**Do not read these as production numbers.** They are dev-server figures on 460 rows. The
+scale-related risks are B10 (unbounded payloads) and PROD-8 (load testing).
 
 ### Measured problems
 
@@ -96,6 +122,12 @@ Each row lists how to re-verify it.
 | B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
 | B7 | `/projects/[id]` ships 310 kB First Load JS | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
+| **B9** | **Migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
+| **B10** | **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
+| **B11** | **Rate limiting is keyed per IP, not per user** (100 reads/min). Behind office NAT a whole team shares one budget, and the Super Admin panel self-polls every 15 s on top of it. Tripped repeatedly during profiling. | `RATE_LIMIT_MAX = 100` at [`src/middleware.ts:7`](src/middleware.ts); `setInterval(loadAllData, 15000)` in [`src/app/super-admin/page.tsx`](src/app/super-admin/page.tsx) |
+| **B12** | **Known dependency CVEs**: 1 high, 1 moderate via postcss, reachable only through a Next major upgrade. | `npm audit --omit=dev` |
+| **B13** | **PBAC state is process-local *and* file-local** — in-memory `Map`s plus `.data/pbac-store.json`. Across instances, authorization state itself diverges, not just a cache. | `private roles: Map` at [`src/lib/pbac-engine.ts:287`](src/lib/pbac-engine.ts), plus `storeFilePath` at :298 |
+| **B14** | **Two independent in-process rate limiters** — `src/lib/rate-limit.ts` (login/account) and a separate store inside `src/middleware.ts`. Both must move in PROD-2. | `new Map()` at [`src/lib/rate-limit.ts:11`](src/lib/rate-limit.ts) and `rateLimitStore` in [`src/middleware.ts`](src/middleware.ts) |
 
 ---
 
@@ -114,9 +146,27 @@ verification command in that task passes.
 
 ### What is safe today
 
-A **single-instance pilot with a handful of trusted tenants** is reasonable right now. The
-product works, the critical vulnerabilities are fixed, and real usage would teach you more than
-more auditing would. Gate 0 is what separates that pilot from genuine multi-tenant production.
+A **single-instance pilot with a handful of trusted tenants** is reasonable — but **only on the
+existing `db push`-ed database**. B9 means a *fresh* deployment of any size is broken before it
+serves a request: `migrate deploy` would build a schema with no `OtpCode` and no `Invitation`
+table, so OTP/MFA login and invitations fail immediately. PROD-0 therefore blocks every path,
+including the pilot, and it is the cheapest item in this document.
+
+With PROD-0 done, the product works, the critical vulnerabilities are fixed, and real usage
+would teach you more than more auditing would. Gate 0 is what separates that pilot from genuine
+multi-tenant production.
+
+### Readiness estimate (2026-09-18)
+
+| Target | Ready | Gating |
+|---|---|---|
+| Fresh single-instance deploy | **blocked** | PROD-0 alone |
+| Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
+| **Multi-tenant paid production** | **~40%** | all of Gate 0 — 8 items, 0 complete |
+
+The percentage is a judgement, not a measurement. The countable part: **0 of 8 Gate 0 items are
+complete**, and the two largest (PROD-1 Postgres, PROD-5 tenant-isolation tests) have not been
+started.
 
 ---
 
@@ -125,19 +175,123 @@ more auditing would. Gate 0 is what separates that pilot from genuine multi-tena
 > Nothing in this gate is optional. Each item is a correctness or security problem under
 > real multi-tenant load, not a nice-to-have.
 
+### PROD-0 — Repair the migration drift
+
+| | |
+|---|---|
+| **Severity** | Blocker (blocks *every* deployment, including the pilot) |
+| **Status** | PENDING |
+| **Depends on** | nothing — **do this before anything else** |
+| **Files** | `prisma/migrations/`, `prisma/schema.prisma`, `.github/workflows/ci.yml` |
+| **Found** | 2026-09-18 |
+
+**Why**: the migration history and `schema.prisma` disagree. `prisma migrate status` says
+"up to date" — that only proves the *dev* database has the existing migrations applied. The real
+question is whether the migrations *reproduce* the schema, and they do not:
+
+```
+$ npx prisma migrate diff --from-migrations prisma/migrations \
+    --to-schema-datamodel prisma/schema.prisma \
+    --shadow-database-url "file:./_shadow.db"
+
+[+] Added tables
+  - OtpCode
+  - Invitation
+[*] Redefined table `SystemEmailConfig`
+[*] Changed the `Invitation` table
+  [+] Added unique index on columns (tokenHash)
+  [+] Added index on columns (email)
+[*] Changed the `OtpCode` table
+  [+] Added index on columns (email, purpose)
+```
+
+Confirmed end to end on a clean database rather than inferred from the diff — note what
+`migrate deploy` reports while doing it:
+
+```
+$ DATABASE_URL="file:/tmp/fresh.db" npx prisma migrate deploy
+All migrations have been successfully applied.
+
+$ # ... then list the tables in that database:
+  OtpCode              MISSING
+  Invitation           MISSING
+  SystemEmailConfig    present
+  User                 present
+```
+
+`OtpCode` and `Invitation` are not optional: they back OTP/MFA login
+([`src/lib/otp.ts`](src/lib/otp.ts)) and the whole invitation flow
+([`src/app/api/auth/invitation/route.ts`](src/app/api/auth/invitation/route.ts),
+[`invite/route.ts`](src/app/api/auth/invite/route.ts)), and are read by
+[`src/lib/data-retention.ts`](src/lib/data-retention.ts). A fresh production database gets
+neither table, so those features fail on the first request. The local database works only
+because it was built with `db push`, which writes the schema without recording a migration.
+
+This is the classic shape of the failure this document exists to prevent: a green status command
+covering a red fact.
+
+**Do this**:
+1. Generate the missing migration from the diff — do **not** hand-write it:
+   `npx prisma migrate dev --name otp_invitation_email_config --create-only`
+2. Read the generated SQL before applying it. Confirm it only *adds* `OtpCode`, `Invitation` and
+   their indexes and redefines `SystemEmailConfig`; if it proposes dropping or recreating any
+   table holding data, stop and rework it as expand-contract.
+3. Prove it from empty: apply the full history to a clean database and re-run the diff. The
+   second diff must report no changes.
+4. Verify the affected features against that freshly-migrated database — request an OTP and
+   create an invitation. A passing migration is not proof the feature works.
+5. Add the drift check to CI so this cannot recur. This is the cheap half of PROD-11 and should
+   land here rather than waiting for it.
+
+**Acceptance criteria**:
+- [ ] `migrate diff --from-migrations … --to-schema-datamodel …` reports **no** difference
+- [ ] A clean database built only by `migrate deploy` contains `OtpCode` and `Invitation`
+- [ ] OTP request and invitation creation both succeed against that database
+- [ ] No migration in the history drops or recreates a populated table
+- [ ] CI fails on schema/migration drift
+- [ ] `npx tsc --noEmit` clean, `npm test` passes
+
+**Verify**:
+```bash
+rm -f /tmp/fresh.db
+DATABASE_URL="file:/tmp/fresh.db" npx prisma migrate deploy
+DATABASE_URL="file:/tmp/fresh.db" npx prisma migrate diff \
+  --from-migrations prisma/migrations \
+  --to-schema-datamodel prisma/schema.prisma \
+  --shadow-database-url "file:/tmp/shadow.db"   # must report no difference
+```
+
+> **Note for PROD-1**: SQLite migrations are not portable to Postgres, so this migration will be
+> discarded when PROD-1 regenerates the history. Do it anyway — PROD-1 is a multi-day change, and
+> until it lands every deploy is broken without PROD-0. It also proves the schema is internally
+> consistent *before* you translate it, which is much easier to debug than doing both at once.
+
+---
+
 ### PROD-1 — Migrate SQLite → PostgreSQL
 
 | | |
 |---|---|
 | **Severity** | Blocker |
 | **Status** | PENDING |
-| **Depends on** | nothing (do this first) |
-| **Files** | `prisma/schema.prisma`, `prisma/migrations/`, `.env.example`, `DEPLOYMENT.md`, `.github/workflows/ci.yml` |
+| **Depends on** | PROD-0 (fix the schema before translating it) |
+| **Files** | `prisma/schema.prisma`, `prisma/migrations/`, `.env.example`, `DEPLOYMENT.md`, `.github/workflows/ci.yml`, `src/lib/prisma.ts` |
 
 **Why**: SQLite has a single writer lock and is file-local. In a multi-tenant SaaS this means
 concurrent writes from different tenants serialize and then fail under load, and you cannot run
 more than one app instance against the same database. `DEPLOYMENT.md` already flags SQLite as
-unsuitable beyond ~10 concurrent writers — that ceiling is below a real customer base.
+unsuitable beyond ~10 concurrent writers — that ceiling is below a real customer base. The
+application's own boot banner says the same thing.
+
+> **WAL does not change this.** On 2026-09-18 the database was switched to `journal_mode=WAL`
+> ([`src/lib/prisma.ts`](src/lib/prisma.ts)), which stopped writers blocking readers and cut the
+> concurrency-10 write penalty from ~200 ms to ~40 ms. That is a real single-instance win and it
+> is why task open is now fast — but WAL still permits exactly **one writer** and is still a
+> local file. The multi-instance ceiling is unchanged. Do not let the improved latency read as
+> progress against this task.
+
+When PROD-1 lands, delete the SQLite pragma block in `src/lib/prisma.ts`; Postgres rejects those
+statements, and they are guarded by a `file:` check that must be removed with them.
 
 **Do this**:
 1. Change `datasource db { provider = "postgresql" }`.
@@ -180,15 +334,25 @@ because the code looks correct and the tests pass.
 1. Add Redis (managed: Upstash / ElastiCache / Redis Cloud).
 2. Reimplement the limiter on Redis using an atomic primitive — `INCR` + `EXPIRE` in a
    `MULTI`, or a sliding window via sorted sets. **Do not** read-then-write; that races.
-3. Keep the existing exported function signatures so the 118 routes need no changes.
+3. Keep the existing exported function signatures so the 121 routes need no changes.
 4. Fail **closed** on a Redis outage for auth-sensitive routes (login, register, password reset);
    failing open re-opens the brute-force window the Phase 1 audit closed.
+5. **Move both limiters** (B14). There are two independent in-process stores: the account/login
+   limiter in `src/lib/rate-limit.ts` and a separate one inside `src/middleware.ts`. Migrating
+   only the first leaves the general API limit process-local.
+6. **Re-key the general limit off raw IP** (B11). At 100 reads/min per IP, one office NAT shares a
+   single budget across a whole team, and the Super Admin panel spends ~20 req/min of it polling
+   by itself. Key authenticated traffic by user or session and keep IP keying for unauthenticated
+   routes, where it is the only identifier available. Note middleware runs on the edge runtime, so
+   confirm your Redis client works there or move the check into the route layer.
 
 **Acceptance criteria**:
-- [ ] No process-local `Map` backing the limiter
+- [ ] No process-local `Map` backing **either** limiter
 - [ ] Limit is enforced *in aggregate* across ≥2 concurrently running instances
 - [ ] Counter increments are atomic (no read-then-write)
 - [ ] Redis unavailable → auth routes deny, documented behaviour
+- [ ] Authenticated traffic keyed per user/session, not per IP
+- [ ] Two users behind one IP do not consume each other's budget (test it)
 - [ ] Public call signatures unchanged; no route edits required
 
 **Verify**: start two instances against one Redis, script `limit + 1` requests across both,
@@ -210,18 +374,32 @@ so the same user can get different answers from different instances. This matter
 **PBAC**: a revoked permission cached on instance B is a live authorization bug, not a stale-UI
 annoyance.
 
+**PBAC is worse than a cache problem** (B13). The engine keeps roles and assignments in
+in-memory `Map`s *and* persists them to a local file, `.data/pbac-store.json`
+([`src/lib/pbac-engine.ts:287`](src/lib/pbac-engine.ts), `storeFilePath` at :298). Two instances
+therefore hold two divergent copies of the authorization model itself, each writing its own file
+— so this is not a stale-read issue but split-brain in the permission system. A role edited on
+instance A may simply not exist on instance B. Treat the PBAC store as its own migration, not as
+a cache backend swap.
+
 **Do this**:
 1. Back the cache with Redis, keeping the `CacheNamespace` API and TTL semantics.
 2. Make invalidation **global** — a permission change must evict on every instance
    (Redis pub/sub, or delete the shared key).
-3. Preserve the existing PBAC invalidation hooks (PBAC-2/PBAC-4 work); do not regress them.
-4. Cache misses must fall back to the DB, never to a stale local copy.
+3. **Move the PBAC store to the database.** Roles and assignments are relational, durable,
+   tenant-scoped data; a JSON file on one instance's disk cannot be any of those. Keep the
+   in-memory `Map` as a read-through cache only, invalidated per (2).
+4. Preserve the existing PBAC invalidation hooks (PBAC-2/PBAC-4 work); do not regress them.
+5. Cache misses must fall back to the DB, never to a stale local copy.
 
 **Acceptance criteria**:
 - [ ] Cache reads/writes hit the shared store
 - [ ] A role change on instance A is reflected on instance B within its documented TTL
 - [ ] `cacheManager` public API unchanged
 - [ ] PBAC invalidation still fires on role/permission mutation
+- [ ] **No authorization state in `.data/pbac-store.json`**; roles and assignments live in the DB
+- [ ] A role created on instance A exists on instance B, and the file is gone
+- [ ] Existing `.data/pbac-store.json` contents are migrated, not silently dropped
 
 **Verify**: two instances, change a role via A, assert B denies the permission.
 
@@ -272,7 +450,7 @@ product the catastrophic failure is **one tenant reading another's data**. The a
 a cross-tenant injection bug already existed once (TENANT-1/DATA-1). Today **nothing** would catch
 its return: all 74 tests are library-level (encryption, sanitization, validation, retention, DI),
 and there are **zero** tests exercising `assertProjectAccess` / `assertOrgAccess` through a route.
-118 routes have no integration coverage.
+121 routes have no integration coverage.
 
 **Do this**:
 1. Add an integration test setup: ephemeral Postgres (Docker or CI service), seed two
@@ -382,10 +560,25 @@ and alerts fire.
 the result — SQLite's single writer lock will be the bottleneck and it will mask everything behind
 it. Measure the architecture you intend to ship, not the one you are replacing.
 
-Also note: the slowness reported during development was **not** a load problem. Opening a task
-took ~780 ms because of an 11-request serial waterfall in `IssueDetailModal` (fixed 2026-09-17,
-see `AI-STATUS.md` session log). Confirm that class of N+1/waterfall bug is gone before load
-testing, or you will just be measuring application bugs at scale.
+Also note: the slowness reported during development was **not** a load problem. Confirm that
+class of fan-out/N+1 bug is gone before load testing, or you will just be measuring application
+bugs at scale.
+
+> **Correction (2026-09-18)** — an earlier revision of this section stated the task-open
+> waterfall was "fixed 2026-09-17". It was not. On 2026-09-18 opening a task still issued **ten**
+> requests and cost **744 ms**; the 2026-09-17 work had added a client-side context cache, which
+> hid the cost on repeat opens without removing it. The actual causes were write contention and
+> duplicated auth, fixed in `9a899e4`. Recording this because it is the same over-claim pattern
+> §8 warns about, and because it is the second time a performance item has been marked done
+> while the underlying cost remained.
+
+**Before load testing, do a data-volume pass instead** — it is cheaper and, at your current
+scale, more likely to find something. The whole database is 460 rows, so nothing here has met
+real data. Seed 10k–50k issues with proportionate comments and activity, then re-profile. The
+specific prediction to test is B10: `GET /api/issues/[id]` has no `take` on `activityLogs`,
+`comments`, `timeEntries` or `attachments`, so a long-lived issue's payload grows without bound.
+Concurrency is not required to trigger that, and it will re-slow task open for a completely
+different reason than the one just fixed.
 
 **Do this**:
 1. Write realistic scenarios (k6 / Artillery): login, board load, issue CRUD, comment, search,
@@ -459,14 +652,19 @@ that procedure *before* you need it).
 
 | | |
 |---|---|
-| **Severity** | Medium |
+| **Severity** | Medium → **raise to High if PROD-0 shipped without its CI check** |
 | **Status** | PENDING |
-| **Depends on** | PROD-1 |
+| **Depends on** | PROD-1; PROD-0 lands the drift half of this |
 | **Files** | `.github/workflows/ci.yml`, `DEPLOYMENT.md` |
 
 **Why**: CI currently builds and tests but never proves a migration applies cleanly to a
 **populated** database. Migrations are the highest-risk deploy step: they are hard to reverse and
 they run against real customer data.
+
+B9 is the proof that this gap is not theoretical: migrations drifted from the schema and no
+check caught it, so the defect reached the point where it would have failed a production launch.
+PROD-0 adds the drift check; this task adds the rest — applying to a *populated* database, and
+the rollback policy.
 
 **Do this**: add a CI job applying migrations to a seeded Postgres via a shadow database; detect
 drift between schema and migrations; document the rollback stance for destructive changes
@@ -503,6 +701,107 @@ loads; set a CI budget that fails on regression.
 
 ---
 
+### PROD-18 — Bound the unbounded relation loads
+
+| | |
+|---|---|
+| **Severity** | High |
+| **Status** | PENDING |
+| **Depends on** | nothing, but only measurable with volume data (see PROD-8) |
+| **Files** | `src/app/api/issues/[id]/route.ts`, `src/components/issues/IssueDetailModal.tsx` |
+| **Found** | 2026-09-18 |
+
+**Why** (B10): `GET /api/issues/[id]` loads `activityLogs`, `comments`, `timeEntries` and
+`attachments` with **no `take`**. Today that is 19 activity rows and a 9.4 KB payload, so it does
+not register. On an issue open for a year it is every row ever written, on the request that gates
+the task modal opening.
+
+This was deliberately **not** fixed during the 2026-09-18 performance work: adding a `take`
+silently truncates visible history, which is a product decision, not an optimisation. It needs a
+UI answer first.
+
+**Do this**:
+1. Decide the product behaviour per relation — most likely: newest N inline plus an explicit
+   "load older" affordance. Comments and activity probably differ; attachments probably do not
+   need paging at all.
+2. Add `take` to match that decision, keeping the existing `orderBy` so "newest N" is what
+   callers actually get.
+3. Add the paging endpoint or cursor the UI needs, and use it — a `take` with no way to reach the
+   rest is data loss from the user's point of view.
+4. Re-profile against the volume dataset and record the payload size.
+
+**Acceptance criteria**:
+- [ ] No unbounded relation include remains in the issue-detail route
+- [ ] Every truncated list is reachable in full through the UI
+- [ ] Payload size measured on an issue with ≥1,000 activity rows, recorded here
+- [ ] No feature regression in the task modal's activity, comments, time or attachment panels
+
+**Verify**: seed an issue with 1,000+ activity rows; confirm bounded payload and that older
+entries are still reachable.
+
+---
+
+### PROD-19 — Resolve the dependency CVEs
+
+| | |
+|---|---|
+| **Severity** | High |
+| **Status** | PENDING |
+| **Depends on** | nothing, but schedule it away from Gate 0 work |
+| **Files** | `package.json`, `package-lock.json` |
+
+**Why** (B12): `npm audit --omit=dev` reports 1 high and 1 moderate, both postcss reached through
+Next. The advisory range covers the installed version, and the only clean remedy is a **Next
+major upgrade** (`next@16`), which also carries the React and build-pipeline changes that come
+with it. This is why it has been deferred rather than patched.
+
+**Do this**: upgrade Next deliberately on its own branch, not bundled with Gate 0 changes. Read
+the Next 16 upgrade guide; expect churn in `next.config.ts` (the security headers and CSP block),
+middleware, and any `params`/`searchParams` awaiting. Re-run the full gate set plus a manual pass
+over the four flows in §2's performance baseline.
+
+**Acceptance criteria**:
+- [ ] `npm audit --omit=dev` reports 0 high and 0 moderate
+- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` all clean
+- [ ] CSP and security headers verified still present on a response
+- [ ] Sign-in, task open, Super Admin, sign-out re-tested manually
+
+**Verify**: `npm audit --omit=dev && npm run build && npm test`
+
+---
+
+### PROD-20 — Production configuration and deployment runbook
+
+| | |
+|---|---|
+| **Severity** | High |
+| **Status** | PENDING |
+| **Depends on** | PROD-1 (the DB URL changes), PROD-10 (secret source) |
+| **Files** | `.env.example`, `DEPLOYMENT.md` |
+
+**Why**: the boot guard in [`src/instrumentation.ts`](src/instrumentation.ts) currently reports
+**2 settings that would fail a production boot** — `FIELD_ENCRYPTION_KEY` and `BASE_URL` — plus
+the SQLite warning. That guard working is good news and needs no code change; what is missing is
+the operational side. No environment has been stood up with a complete, valid configuration, so
+the first real production boot would be the first time the full set is exercised.
+
+Note `FIELD_ENCRYPTION_KEY` is not merely a missing string: setting it *after* data exists means
+deciding what happens to already-unencrypted rows. Settle that before launch, not during it.
+
+**Do this**: produce a complete production env matrix; stand up a staging environment that boots
+with zero config warnings; document the `FIELD_ENCRYPTION_KEY` initialisation and rotation
+procedure including existing-data handling; record the deploy and rollback steps.
+
+**Acceptance criteria**:
+- [ ] Staging boots with **no** entries in the "would FAIL a production boot" list and no warnings
+- [ ] Every required variable documented in `.env.example` with generation instructions
+- [ ] `FIELD_ENCRYPTION_KEY` initialisation *and* rotation documented, incl. existing rows
+- [ ] Deploy + rollback runbook in `DEPLOYMENT.md`, walked through once end to end
+
+**Verify**: boot staging, confirm the config banner is clean.
+
+---
+
 ## Gate 2 — Post-Launch / Maintainability
 
 These do not block launch. They are the cost of changing the system safely later.
@@ -511,9 +810,12 @@ These do not block launch. They are the cost of changing the system safely later
 |---|---|---|---|
 | **PROD-13** | Decompose `IssueDetailModal` | 4,466 lines in one component — every change risks the whole task UI, and it resisted a simple dropdown edit in practice | `src/components/issues/IssueDetailModal.tsx` |
 | **PROD-14** | Upgrade Prisma 5.22 → 6.x | Staying current on the data layer; do it deliberately, not under pressure | `package.json`, `prisma/` |
-| **PROD-15** | Service layer between routes and Prisma | Already filed as ARCH-3 and explicitly deferred. Revisit only after Gate 0/1 — it touches all 118 routes | `src/lib/`, `src/app/api/` |
+| **PROD-15** | Service layer between routes and Prisma | Already filed as ARCH-3 and explicitly deferred. Revisit only after Gate 0/1 — it touches all 121 routes | `src/lib/`, `src/app/api/` |
 | **PROD-16** | Coverage thresholds in CI | Stops coverage silently decaying once PROD-5/6 exist | `jest.config.js`, CI |
 | **PROD-17** | Decompose remaining large views | `AnalyticsChartsView`, `ScrumBacklogView`, `CalendarView`, `WorkloadView` are all >2,400 lines | `src/components/views/` |
+| **PROD-21** | Delete or adopt `design-system.ts` | 241 lines with **zero importers** — written during the white-theme work and never wired up. Its light-only tokens are also the last remaining hits in the dark-theme audit, so leaving it invites someone to apply it and regress the dark theme | `src/components/admin/design-system.ts` |
+| **PROD-22** | Consolidate the duplicated default lists | `DEFAULT_PRIORITIES` exists in `src/lib/designSystem.ts` and `src/components/views/ListView.tsx` as well as the new single source in `src/lib/project-context.ts`. The issue-type/priority lists have already drifted across copies once and caused a user-visible bug | `src/lib/project-context.ts`, `src/lib/designSystem.ts`, `src/components/views/ListView.tsx` |
+| **PROD-23** | Generate the inert notification preference types | 7 of 10 notification preference types are never produced by any code path, so the settings UI offers toggles that do nothing | `src/lib/notifications*`, notification preference UI |
 
 ---
 
@@ -522,32 +824,58 @@ These do not block launch. They are the cost of changing the system safely later
 Do them in this order. Parallel tracks are marked.
 
 ```
-PROD-1  Postgres ..................... START HERE (unblocks almost everything)
+PROD-0  Migration drift .............. START HERE (hours, not days; blocks every deploy)
    │
-   ├── PROD-2  Redis rate limiting
-   │      ├── PROD-3  Redis cache
-   │      └── PROD-4  Redis SSE fan-out
+PROD-1  Postgres ..................... then this (unblocks almost everything)
+   │
+   ├── PROD-2  Shared rate limiting  (both limiters; re-key off raw IP)
+   │      ├── PROD-3  Shared cache + move PBAC store into the DB
+   │      └── PROD-4  Cross-instance SSE fan-out
    │
    ├── PROD-5  Tenant-isolation tests   (highest risk-reduction per hour)
    │      └── PROD-6  PBAC / authz tests
    │
    ├── PROD-9  Backup + restore drill
-   └── PROD-11 Migration safety in CI
+   └── PROD-11 Migration safety in CI   (PROD-0 lands the drift check; this adds the rest)
 
 PROD-7  Monitoring ................... parallel, no dependencies
 PROD-10 Secrets ...................... parallel, no dependencies
 PROD-12 Bundle budget ................ parallel, no dependencies
-
-PROD-8  Load testing ................. ONLY after PROD-1/2/3/4 are done
+PROD-19 Dependency CVEs .............. parallel, but on its own branch
 
 ────────── Gate 0 complete ⇒ multi-tenant production is viable ──────────
 
-PROD-13..17 .......................... after launch
+PROD-18 Bound relation loads ......... needs volume data
+PROD-8  Load testing ................. ONLY after PROD-1/2/3/4, and after PROD-18
+PROD-20 Prod config + runbook ........ after PROD-1/PROD-10
+
+PROD-13..17, 21..23 .................. after launch
 ```
 
-**If you only have time for two things**: PROD-1 (Postgres) and PROD-5 (tenant-isolation tests).
-The first removes the hard scaling ceiling; the second protects against the failure that would
-actually end the business.
+**If you only have time for one thing**: PROD-0. It is the cheapest item here and the only one
+that breaks a deployment before it serves its first request.
+
+**If you have time for three**: PROD-0, then PROD-1 (Postgres) and PROD-5 (tenant-isolation
+tests). The first removes the hard scaling ceiling; the second protects against the failure that
+would actually end the business.
+
+### Rough sequencing for multi-tenant paid production
+
+Order is firm; the durations are planning estimates, not commitments — PROD-1 and PROD-5 in
+particular depend on how much SQLite-ism the schema turns out to hold.
+
+| Stage | Items | Gets you |
+|---|---|---|
+| 1 | PROD-0 | a deployable build |
+| 2 | PROD-1 | a database that can back more than one instance |
+| 3 | PROD-2, 3, 4 | correctness with >1 instance running |
+| 4 | PROD-5, 6 | protection against cross-tenant and privilege-escalation regressions |
+| 5 | PROD-7, 10, 20 | the ability to operate it and see failures |
+| 6 | PROD-18, 8, 9, 11, 12, 19 | evidence it holds under real data and traffic |
+
+Stages 1–4 are Gate 0 and are not negotiable for paid multi-tenant use. Stage 5 is what makes the
+difference between running a service and guessing. Stage 6 is where a load test finally means
+something — see PROD-8 on why it is last and not first.
 
 ---
 
@@ -556,11 +884,21 @@ actually end the business.
 Because the trackers have over-claimed before, verify rather than trust. Cheap checks:
 
 ```bash
+# Do the migrations actually reproduce the schema? (PROD-0)
+# `migrate status` does NOT answer this -- it only checks the local DB. Use diff:
+npx prisma migrate diff --from-migrations prisma/migrations \
+  --to-schema-datamodel prisma/schema.prisma \
+  --shadow-database-url "file:./_shadow.db"   # must report no difference
+
 # Is it really Postgres yet?
 grep -A2 'datasource' prisma/schema.prisma
 
 # Is state really shared, or still a process-local Map?
-grep -rn 'new Map(' src/lib/rate-limit.ts src/lib/cache-manager.ts src/lib/sync-engine.ts
+grep -rn 'new Map(' src/lib/rate-limit.ts src/lib/cache-manager.ts \
+  src/lib/sync-engine.ts src/lib/pbac-engine.ts src/middleware.ts
+
+# Is authorization state still on one instance's disk? (B13)
+ls -la .data/pbac-store.json 2>/dev/null && echo "PBAC still file-backed"
 
 # Is there an external store at all?
 grep -rn 'redis\|ioredis\|upstash' package.json src/lib/
@@ -571,9 +909,20 @@ grep -rln 'assertProjectAccess\|assertOrgAccess\|crossTenant' __tests__ src/lib/
 # What do the tests really cover?
 npx jest --listTests
 
+# Are the relation loads still unbounded? (B10)
+grep -c 'take:' 'src/app/api/issues/[id]/route.ts'
+
+# Known CVEs
+npm audit --omit=dev
+
 # Baseline gates
-npx tsc --noEmit && npm test
+npx tsc --noEmit && npm run lint && npm test
 ```
+
+> **On green status commands**: PROD-0 exists because `prisma migrate status` printed
+> "Database schema is up to date!" while the migrations were missing two tables the app needs at
+> runtime. The command was not lying — it answers a narrower question than it appears to. When a
+> check passes, confirm it is checking the thing you care about.
 
 ### Rules for marking a task COMPLETED
 
@@ -602,7 +951,7 @@ make that specific sentence false?* If not, the task is not done.
 2. **Pick the top PENDING task** respecting the dependency order in §7. Do not start PROD-8
    before its dependencies — the results would be meaningless.
 3. **Set the task to IN_PROGRESS** in both this doc and `AI-STATUS.md` before starting.
-4. **Follow existing patterns.** Keep public function signatures stable so the 118 routes need no
+4. **Follow existing patterns.** Keep public function signatures stable so the 121 routes need no
    edits. Read `src/lib/validation.ts` for the established validation pattern.
 5. **`npx tsc --noEmit` must be clean before every commit.**
 6. **Update both trackers** when done: tick the boxes here, update status + session log in
@@ -621,3 +970,4 @@ make that specific sentence false?* If not, the task is not done.
 | Date | Who | Change |
 |---|---|---|
 | 2026-09-17 | Claude Opus 5 (1M context) | Created. Baseline verified against the repo; ARCH-2 over-claim documented; 17 tasks defined across 3 gates. |
+| 2026-09-18 | Claude Opus 5 (1M context) | Re-baselined for multi-tenant paid production. **Added PROD-0** (migration drift — migrations omit `OtpCode`/`Invitation`, breaking OTP login and invitations on any fresh database; found via `migrate diff`, verified). Added PROD-18 (unbounded relation loads), PROD-19 (dependency CVEs), PROD-20 (production config + runbook), and PROD-21..23 to Gate 2. Added measured problems B9–B14. Added a performance baseline for the four flows and a readiness estimate. **Corrected PROD-8**: the task-open waterfall it recorded as fixed on 2026-09-17 was still costing 744 ms on 2026-09-18 — the earlier work cached the cost rather than removing it. Sharpened PROD-1 (WAL does not lift the multi-instance ceiling), PROD-2 (two limiters; per-IP keying breaks teams behind NAT), PROD-3 (PBAC is file-backed split-brain, not a cache problem). Gate 0 is now **8 items, 0 complete**. |
