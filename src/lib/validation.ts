@@ -812,6 +812,20 @@ export const csvImportSchema = z.object({
   csvData: z.string().min(1, "Missing csvData").max(5_000_000),
 });
 
+
+// ── Bulk import schemas ──────────────────────────────────────────
+// mode defaults to "validate" so an omitted mode previews rather than writes.
+// Getting this default backwards would mean an accidental import.
+export const bulkTaskImportSchema = z.object({
+  csvData: z.string().min(1, "Missing csvData").max(5_000_000),
+  mode: z.enum(["validate", "import"]).default("validate"),
+});
+
+export const bulkMemberImportSchema = z.object({
+  csvData: z.string().min(1, "Missing csvData").max(2_000_000),
+  mode: z.enum(["validate", "import"]).default("validate"),
+});
+
 // ── Member action schemas (delete/role update) ───────────────────
 
 export const memberUserIdSchema = z.object({
