@@ -354,7 +354,7 @@ export function UsersTab({
             <span className="font-bold text-indigo-300">{selectedUserIds.length} user(s) selected</span>
             <button
               onClick={handleOpenBulkAssign}
-              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold shadow-xs"
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold shadow-sm"
             >
               + Assign Role
             </button>
@@ -443,7 +443,7 @@ export function UsersTab({
       </div>
 
       {/* Users Table */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead>
@@ -610,7 +610,7 @@ export function UsersTab({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenProfile(u)}
-                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-xs flex items-center gap-1 border border-indigo-500/50"
+                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm flex items-center gap-1 border border-indigo-500/50"
                           >
                             <UserPlus className="w-3 h-3" />
                             Assign Roles
@@ -781,7 +781,7 @@ export function UsersTab({
                 type="button"
                 disabled={applyingBulk || !bulkRoleId}
                 onClick={handleApplyBulkAssign}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-sm"
               >
                 {applyingBulk ? 'Applying Changes...' : 'Apply Changes'}
               </button>

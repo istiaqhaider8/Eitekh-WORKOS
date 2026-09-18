@@ -344,7 +344,7 @@ export function SecurityThreatOperationsView() {
                       </span>
                       <button
                         onClick={() => setSelectedThreat(t)}
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-xs"
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm"
                       >
                         Inspect Incident
                       </button>

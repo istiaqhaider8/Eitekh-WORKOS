@@ -259,7 +259,7 @@ export function InspectorTab({
                               }}
                               className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all space-y-1 ${
                                 isSelected
-                                  ? 'bg-indigo-600/15 border-indigo-500 text-slate-900 dark:text-slate-100 shadow-xs'
+                                  ? 'bg-indigo-600/15 border-indigo-500 text-slate-900 dark:text-slate-100 shadow-sm'
                                   : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                               }`}
                             >
@@ -288,7 +288,7 @@ export function InspectorTab({
               </h4>
 
               {selectedTracePerm ? (
-                <div className="bg-white dark:bg-slate-900 border border-indigo-500/30 rounded-xl p-5 space-y-4 shadow-xs sticky top-4">
+                <div className="bg-white dark:bg-slate-900 border border-indigo-500/30 rounded-xl p-5 space-y-4 shadow-sm sticky top-4">
                   <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
                     <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">
                       Evaluated Capability

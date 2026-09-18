@@ -242,9 +242,12 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
   ];
 
   return (
-    <div className="space-y-6">
+    // sa-panel also applied here because this view is rendered standalone under
+    // /settings/roles, outside the super-admin shell, and must get the same
+    // focus, table and reduced-motion treatment.
+    <div className="sa-panel space-y-6">
       {/* Top Banner & Multi-Tenant Org Selector */}
-      <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs dark:shadow-sm">
+      <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm dark:shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -352,7 +355,7 @@ export function AccessGovernanceView({ initialOrgId, showHeader = true }: Access
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-700 dark:text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-100 dark:bg-slate-800/60'
               }`}
             >

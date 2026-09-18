@@ -129,7 +129,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead>

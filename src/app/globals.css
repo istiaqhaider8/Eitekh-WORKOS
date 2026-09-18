@@ -196,3 +196,74 @@ select option {
   border-color: rgba(244, 63, 94, 0.5);
   color: #ffffff;
 }
+
+/* ===========================================================================
+   Super Admin Panel — White Theme foundation
+   ===========================================================================
+   Scoped to .sa-panel so nothing here affects the rest of the application.
+
+   Why CSS rather than per-element utilities: the panel has 224 <button>
+   elements, and essentially none carried a visible focus state, so keyboard
+   users had no way to tell where they were. Adding a ring to each one by hand
+   would mean 224 edits to long, conditional className strings — far more risk
+   than a single scoped rule that also covers any control added later.
+   =========================================================================== */
+
+/* One focus treatment for every interactive element in the panel.
+   :focus-visible (not :focus) so a mouse click does not leave a ring behind,
+   while Tab navigation stays clearly traceable. */
+.sa-panel :is(button, a, select, textarea, input, [role='tab'], [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid #4f46e5; /* indigo-600 — 4.9:1 on white */
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Inputs get the ring on plain :focus too: a text field being active is
+   meaningful regardless of how focus arrived. */
+.sa-panel :is(input, select, textarea):focus {
+  border-color: #6366f1; /* indigo-500 */
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Disabled controls must read as unavailable rather than merely faint. */
+.sa-panel :is(button, input, select, textarea):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Tables: keep numeric columns aligned and give long tables a sticky header
+   so column meaning survives a scroll. */
+.sa-panel table {
+  font-variant-numeric: tabular-nums;
+}
+.sa-panel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #f8fafc; /* slate-50 */
+}
+.dark .sa-panel thead th {
+  background-color: #020617; /* slate-950 */
+}
+
+/* Horizontal tab/filter rails are scrolled, not hidden — but the scrollbar
+   itself should not add visual noise on a clean white surface. */
+.sa-panel .scrollbar-none {
+  scrollbar-width: none;
+}
+.sa-panel .scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Respect a user's reduced-motion preference: the panel animates spinners,
+   pulses and transitions on almost every surface. */
+@media (prefers-reduced-motion: reduce) {
+  .sa-panel *,
+  .sa-panel *::before,
+  .sa-panel *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

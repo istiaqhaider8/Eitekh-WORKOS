@@ -543,7 +543,7 @@ export default function SuperAdminCommandCenterPage() {
       // stayed slate-700/900, so in the white theme this screen rendered dark
       // text on a dark slab — effectively invisible while the panel loaded.
       <div
-        className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex items-center justify-center"
+        className="sa-panel min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex items-center justify-center"
         role="status"
         aria-live="polite"
       >
@@ -560,9 +560,9 @@ export default function SuperAdminCommandCenterPage() {
   const actionRequired = stats?.actionRequired || [];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-16 transition-colors duration-200">
+    <div className="sa-panel min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white pb-16 transition-colors duration-200">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3 shadow-xs dark:shadow-none transition-colors duration-200">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 py-3 shadow-sm dark:shadow-none transition-colors duration-200">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -581,7 +581,7 @@ export default function SuperAdminCommandCenterPage() {
                 }
                 router.push("/");
               }}
-              className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
               title="Return to Workspace / Previous Page"
             >
               <ArrowLeft className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -589,11 +589,11 @@ export default function SuperAdminCommandCenterPage() {
             </button>
             <div>
               <div className="flex items-center gap-2.5">
-                <img src="/leaf-logo.png" alt="Eitekh" className="w-6 h-6 object-contain shrink-0 drop-shadow-xs" />
+                <img src="/leaf-logo.png" alt="Eitekh" className="w-6 h-6 object-contain shrink-0 drop-shadow-sm" />
                 <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-none">
                   Eitekh Platform Command Center
                 </h1>
-                <span className="px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider leading-none shadow-2xs">
+                <span className="px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider leading-none shadow-sm">
                   ROOT
                 </span>
               </div>
@@ -697,7 +697,7 @@ export default function SuperAdminCommandCenterPage() {
                   window.history.replaceState(null, "", "?tab=cache");
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
               title="System Refresh & Cache Management"
             >
               <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -744,7 +744,7 @@ export default function SuperAdminCommandCenterPage() {
                   window.history.replaceState(null, "", `?tab=${item.tab}`);
                 }
               }}
-              className={`cursor-pointer bg-white dark:bg-slate-900/90 bg-gradient-to-br ${item.bg} hover:border-indigo-500/50 dark:hover:border-indigo-500/50 border border-slate-200 dark:border-slate-800 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-2xs dark:shadow-xs hover:scale-[1.02]`}
+              className={`cursor-pointer bg-white dark:bg-slate-900/90 bg-gradient-to-br ${item.bg} hover:border-indigo-500/50 dark:hover:border-indigo-500/50 border border-slate-200 dark:border-slate-800 p-3 rounded-xl transition-all duration-200 space-y-1 shadow-sm dark:shadow-sm hover:scale-[1.02]`}
             >
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">{item.label}</span>
               <div className={`text-lg font-bold ${item.color}`}>{item.value}</div>
@@ -823,7 +823,7 @@ export default function SuperAdminCommandCenterPage() {
         {activeTab === "overview" && (
           <div className="space-y-6">
             {/* Quick Actions Row */}
-            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-2xs dark:shadow-xs">
+            <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm dark:shadow-sm">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                 Super Admin Operational Quick Actions
@@ -836,14 +836,14 @@ export default function SuperAdminCommandCenterPage() {
                       window.history.replaceState(null, "", "?tab=cache");
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/80 text-cyan-800 dark:text-cyan-300 rounded-lg text-xs font-bold border border-cyan-500/40 shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-cyan-50 dark:bg-cyan-950/60 hover:bg-cyan-100 dark:hover:bg-cyan-900/80 text-cyan-800 dark:text-cyan-300 rounded-lg text-xs font-bold border border-cyan-500/40 shadow-sm transition-all cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>System Refresh & Cache</span>
                 </button>
                 <button
                   onClick={() => setShowAddOrgModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Create Organization</span>
@@ -889,7 +889,7 @@ export default function SuperAdminCommandCenterPage() {
             {/* Health Snapshot & Live Stream Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Health Snapshot */}
-              <div className="lg:col-span-1 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4 shadow-2xs dark:shadow-xs">
+              <div className="lg:col-span-1 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4 shadow-sm dark:shadow-sm">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <Server className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -919,7 +919,7 @@ export default function SuperAdminCommandCenterPage() {
               </div>
 
               {/* Live Platform Activity Feed */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4 shadow-2xs dark:shadow-xs">
+              <div className="lg:col-span-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4 shadow-sm dark:shadow-sm">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <History className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -993,7 +993,7 @@ export default function SuperAdminCommandCenterPage() {
               </div>
               <button
                 onClick={() => setShowAddOrgModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>New Organization</span>
@@ -1150,7 +1150,7 @@ export default function SuperAdminCommandCenterPage() {
                   setFlagForm({ key: "", description: "", isGlobalEnabled: true });
                   setShowCreateFlagModal(true);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>New Feature Flag</span>

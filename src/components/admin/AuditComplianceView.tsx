@@ -276,7 +276,7 @@ export function AuditComplianceView() {
           {/* Export CSV */}
           <button
             onClick={() => handleExport('csv')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-sm transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-indigo-600" />
             <span>CSV</span>
@@ -285,7 +285,7 @@ export function AuditComplianceView() {
           {/* Export JSON */}
           <button
             onClick={() => handleExport('json')}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 shadow-sm transition-colors"
           >
             <Download className="w-3.5 h-3.5 text-purple-600" />
             <span>JSON</span>
@@ -305,7 +305,7 @@ export function AuditComplianceView() {
 
       {/* KPI Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Total Logged Events
@@ -319,7 +319,7 @@ export function AuditComplianceView() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Today's Activity
@@ -333,7 +333,7 @@ export function AuditComplianceView() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Critical & High Risk
@@ -347,7 +347,7 @@ export function AuditComplianceView() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
               Active Actors (Page)
@@ -375,7 +375,7 @@ export function AuditComplianceView() {
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:bg-slate-800'
               }`}
             >
@@ -593,7 +593,7 @@ export function AuditComplianceView() {
                       <td className="p-3.5 text-right whitespace-nowrap">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 hover:text-white rounded-lg text-[11px] font-semibold border border-slate-300 dark:border-slate-700 transition-colors shadow-xs"
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 hover:text-white rounded-lg text-[11px] font-semibold border border-slate-300 dark:border-slate-700 transition-colors shadow-sm"
                         >
                           <Eye className="w-3 h-3 inline mr-1 text-indigo-600" />
                           Inspect

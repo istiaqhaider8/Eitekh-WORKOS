@@ -523,7 +523,7 @@ export function RolesTab({
 
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Create Permission Role</span>
@@ -596,7 +596,7 @@ export function RolesTab({
             return (
               <div
                 key={role.id}
-                className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:border-slate-700 rounded-xl p-4.5 flex flex-col justify-between gap-4 transition-all shadow-xs"
+                className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:border-slate-700 rounded-xl p-4.5 flex flex-col justify-between gap-4 transition-all shadow-sm"
               >
                 <div className="space-y-3">
                   {/* Title & Badges */}
@@ -867,7 +867,7 @@ export function RolesTab({
                   type="button"
                   disabled={selectedUserIds.length === 0 || assigningUsers}
                   onClick={handleAddUsersSubmit}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs"
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-sm"
                 >
                   {assigningUsers ? 'Assigning...' : 'Assign Role'}
                 </button>
@@ -1034,7 +1034,7 @@ export function RolesTab({
               <button
                 type="submit"
                 disabled={cloning}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-xs"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-sm"
               >
                 {cloning ? 'Cloning...' : 'Save Cloned Role'}
               </button>
@@ -1277,7 +1277,7 @@ export function RolesTab({
                       <button
                         type="button"
                         onClick={handleSelectAllPerms}
-                        className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-all"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>Add Every Permission</span>
@@ -1446,7 +1446,7 @@ export function RolesTab({
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs"
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-sm"
                   >
                     {saving ? 'Saving...' : editingRole ? 'Save Changes' : 'Create Role'}
                   </button>
@@ -1522,7 +1522,7 @@ export function RolesTab({
                   type="button"
                   disabled={deleting}
                   onClick={() => handleConfirmDeleteRole(true)}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   {deleting ? 'Deleting...' : 'Force Delete Role'}
                 </button>
@@ -1531,7 +1531,7 @@ export function RolesTab({
                   type="button"
                   disabled={deleting}
                   onClick={() => handleConfirmDeleteRole(false)}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   {deleting ? 'Deleting...' : 'Delete Role'}
                 </button>

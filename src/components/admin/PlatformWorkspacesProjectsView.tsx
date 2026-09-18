@@ -309,7 +309,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
   return (
     <div className="space-y-6">
       {/* Header & Sub-Tabs */}
-      <div className="bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs dark:shadow-xs">
+      <div className="bg-white dark:bg-slate-900/90 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm dark:shadow-sm">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <FolderGit2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -333,7 +333,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 });
                 setShowCreateWsModal(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create Workspace</span>
@@ -354,7 +354,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                 });
                 setShowCreateProjModal(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-sm transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Create Project</span>
@@ -372,13 +372,13 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
       </div>
 
       {/* Filter and Switch Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/90 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs dark:shadow-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900/90 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-sm">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSubTab("workspaces")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               subTab === "workspaces"
-                ? "bg-indigo-600 text-white shadow-2xs"
+                ? "bg-indigo-600 text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80"
             }`}
           >
@@ -389,7 +389,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
             onClick={() => setSubTab("projects")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               subTab === "projects"
-                ? "bg-purple-600 text-white shadow-2xs"
+                ? "bg-purple-600 text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800/80"
             }`}
           >

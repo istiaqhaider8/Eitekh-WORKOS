@@ -412,7 +412,7 @@ export function PlatformUserDirectoryView({
   return (
     <div className="space-y-4">
       {/* Top Header & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -438,7 +438,7 @@ export function PlatformUserDirectoryView({
           </button>
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Create User Account</span>

@@ -299,7 +299,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                 type="button"
                 onClick={() => handleExecute('BUMP_CACHE_VERSION')}
                 disabled={executingAction !== null}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+                className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
               >
                 <Layers className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Bump Version</span>
@@ -310,7 +310,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               type="button"
               onClick={loadStatus}
               disabled={loading || executingAction !== null}
-              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-600 dark:text-slate-400 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh Metrics</span>
