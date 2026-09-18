@@ -85,7 +85,7 @@ export function SecurityCenterView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-400" />
+            <ShieldAlert className="w-5 h-5 text-rose-600" />
             Platform Security & Threat Operations Center
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -96,7 +96,7 @@ export function SecurityCenterView() {
         <div className="flex items-center gap-3">
           <button
             onClick={loadData}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Rescan Threats</span>
@@ -113,17 +113,17 @@ export function SecurityCenterView() {
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Active Sessions</span>
-          <div className="text-lg font-bold text-indigo-400">{metrics.activeSessionsCount}</div>
+          <div className="text-lg font-bold text-indigo-600">{metrics.activeSessionsCount}</div>
           <p className="text-[10px] text-slate-500">Live JWT authenticated tokens</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Suspended Accounts</span>
-          <div className="text-lg font-bold text-rose-400">{metrics.suspendedUsersCount}</div>
+          <div className="text-lg font-bold text-rose-600">{metrics.suspendedUsersCount}</div>
           <p className="text-[10px] text-slate-500">Locked out accounts</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Cross-Project Leaks</span>
-          <div className="text-lg font-bold text-emerald-400">0</div>
+          <div className="text-lg font-bold text-emerald-700">0</div>
           <p className="text-[10px] text-slate-500">Zero data breach record</p>
         </div>
       </div>
@@ -131,7 +131,7 @@ export function SecurityCenterView() {
       {/* Real-time Security Alerts */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <AlertTriangle className="w-4 h-4 text-amber-700" />
           Active Security Alerts ({alerts.length})
         </h3>
 
@@ -185,7 +185,7 @@ export function SecurityCenterView() {
       {/* Active Device Sessions Telemetry */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <Monitor className="w-4 h-4 text-indigo-400" />
+          <Monitor className="w-4 h-4 text-indigo-600" />
           Active Device Sessions & Token Registry ({sessions.length})
         </h3>
 
@@ -201,7 +201,7 @@ export function SecurityCenterView() {
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-200">
               {sessions.map((s: any) => (
                 <tr key={s.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors">
                   <td className="p-3">
@@ -216,7 +216,7 @@ export function SecurityCenterView() {
                     <button
                       onClick={() => handleSecurityAction({ action: 'REVOKE_SESSION', sessionId: s.id })}
                       disabled={actionLoading}
-                      className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded text-[10px] font-semibold"
+                      className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-500/30 rounded text-[10px] font-semibold"
                     >
                       Revoke
                     </button>

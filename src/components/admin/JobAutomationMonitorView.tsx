@@ -102,7 +102,7 @@ export function JobAutomationMonitorView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-400" />
+            <Clock className="w-5 h-5 text-indigo-600" />
             Background Job, Schedulers & Automation Monitor
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -112,7 +112,7 @@ export function JobAutomationMonitorView() {
 
         <button
           onClick={loadData}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh Queues</span>
@@ -128,17 +128,17 @@ export function JobAutomationMonitorView() {
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Automation Rules</span>
-          <div className="text-lg font-bold text-indigo-400">{summary.activeAutomationRules} / {summary.totalAutomationRules}</div>
+          <div className="text-lg font-bold text-indigo-600">{summary.activeAutomationRules} / {summary.totalAutomationRules}</div>
           <p className="text-[10px] text-slate-500">Active trigger listeners</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Webhooks Configured</span>
-          <div className="text-lg font-bold text-purple-400">{summary.activeWebhooks} / {summary.totalWebhooks}</div>
+          <div className="text-lg font-bold text-purple-600">{summary.activeWebhooks} / {summary.totalWebhooks}</div>
           <p className="text-[10px] text-slate-500">Outbound dispatchers</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Email Deliveries</span>
-          <div className="text-lg font-bold text-emerald-400">{summary.deliveredEmailDispatches}</div>
+          <div className="text-lg font-bold text-emerald-700">{summary.deliveredEmailDispatches}</div>
           <p className="text-[10px] text-slate-500">{summary.failedEmailDispatches} failures logged</p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export function JobAutomationMonitorView() {
       {/* Recurring Tasks Grid */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-indigo-400" />
+          <Calendar className="w-4 h-4 text-indigo-600" />
           Recurring Tasks & Schedulers ({recurringTasks.length})
         </h3>
 
@@ -160,7 +160,7 @@ export function JobAutomationMonitorView() {
               <div key={t.id} className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 flex flex-col justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase">{t.project?.key || 'PROJECT'}</span>
+                    <span className="text-[10px] font-bold text-indigo-600 uppercase">{t.project?.key || 'PROJECT'}</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.isActive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
                       {t.isActive ? 'ACTIVE' : 'PAUSED'}
                     </span>
@@ -191,7 +191,7 @@ export function JobAutomationMonitorView() {
       {/* Email Queue & Dispatch Failures */}
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <Mail className="w-4 h-4 text-indigo-400" />
+          <Mail className="w-4 h-4 text-indigo-600" />
           Email Dispatch Logs & Retry Queue ({emailLogs.length})
         </h3>
 
@@ -207,7 +207,7 @@ export function JobAutomationMonitorView() {
                 <th className="p-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-200">
               {emailLogs.map((e: any) => (
                 <tr key={e.id} className="hover:bg-slate-100 dark:bg-slate-800/40">
                   <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{e.to}</td>

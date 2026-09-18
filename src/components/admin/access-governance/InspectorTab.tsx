@@ -110,7 +110,7 @@ export function InspectorTab({
       <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Eye className="w-4 h-4 text-indigo-400" />
+            <Eye className="w-4 h-4 text-indigo-600" />
             Effective Access Inspector & Provenance Trace
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -198,8 +198,8 @@ export function InspectorTab({
               <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
                 Effective Capabilities
               </span>
-              <div className="text-xl font-bold text-emerald-400 flex items-center gap-1.5">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <div className="text-xl font-bold text-emerald-700 flex items-center gap-1.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-700" />
                 {inspectData.totalEffectivePermissions ?? inspectData.effectivePermissionsCount ?? 0}
               </div>
               <p className="text-[10px] text-slate-500">Deduplicated from active roles</p>
@@ -239,7 +239,7 @@ export function InspectorTab({
                     >
                       <div className="p-3 bg-slate-50 dark:bg-slate-950/80 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{cat.name}</span>
-                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-bold">
+                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 rounded text-[10px] font-bold">
                           {grantedCount} Granted
                         </span>
                       </div>
@@ -265,10 +265,10 @@ export function InspectorTab({
                             >
                               <div className="flex items-center justify-between">
                                 <span className="font-semibold text-slate-800 dark:text-slate-200">{p.label}</span>
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                               </div>
                               <div className="text-[10px] text-slate-500 font-mono">{p.key}</div>
-                              <div className="text-[9px] text-indigo-400 pt-0.5">
+                              <div className="text-[9px] text-indigo-600 pt-0.5">
                                 Origin: {p.sources?.map((s: any) => s.roleName).join(' + ') || 'Role'}
                               </div>
                             </div>
@@ -290,7 +290,7 @@ export function InspectorTab({
               {selectedTracePerm ? (
                 <div className="bg-white dark:bg-slate-900 border border-indigo-500/30 rounded-xl p-5 space-y-4 shadow-xs sticky top-4">
                   <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">
                       Evaluated Capability
                     </span>
                     <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">
@@ -317,7 +317,7 @@ export function InspectorTab({
                           ) : step && typeof step === 'object' ? (
                             <div className="space-y-0.5">
                               {step.node && (
-                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
                                   {step.node}
                                 </div>
                               )}
@@ -332,7 +332,7 @@ export function InspectorTab({
                   </div>
 
                   <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs space-y-1">
-                    <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <div className="font-bold text-emerald-700 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
                       Deterministic Authorization Verified
                     </div>

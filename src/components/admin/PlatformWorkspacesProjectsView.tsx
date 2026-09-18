@@ -401,7 +401,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
         <div className="flex flex-wrap items-center gap-2">
           {/* Org Filter */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs">
-            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+            <Building2 className="w-3.5 h-3.5 text-slate-500" />
             <select
               value={selectedOrgId}
               onChange={(e) => setSelectedOrgId(e.target.value)}
@@ -418,7 +418,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
           {/* Search input */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 w-48 sm:w-64 focus-within:border-indigo-500 transition-colors">
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
             <input
               type="text"
               placeholder={`Search ${subTab}...`}
@@ -485,7 +485,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveWs(ws);
                       setShowDeleteWsModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                     title="Delete Workspace Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -583,7 +583,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
                       setActiveProj(p);
                       setShowDeleteProjModal(true);
                     }}
-                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                     title="Delete Project Permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -607,7 +607,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-400" />
+                <Plus className="w-4 h-4 text-indigo-600" />
                 Create New Workspace
               </h3>
               <button onClick={() => setShowCreateWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -693,7 +693,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" />
+                <Edit2 className="w-4 h-4 text-indigo-600" />
                 Edit Workspace: {activeWs.name}
               </h3>
               <button onClick={() => setShowEditWsModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -772,12 +772,12 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Workspace Permanently</h3>
-                <p className="text-xs text-rose-400 font-semibold">Irreversible Platform Action</p>
+                <p className="text-xs text-rose-600 font-semibold">Irreversible Platform Action</p>
               </div>
             </div>
 
@@ -813,7 +813,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-purple-400" />
+                <Plus className="w-4 h-4 text-purple-600" />
                 Create New Project
               </h3>
               <button onClick={() => setShowCreateProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -930,7 +930,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-purple-400" />
+                <Edit2 className="w-4 h-4 text-purple-600" />
                 Edit Project: {activeProj.name}
               </h3>
               <button onClick={() => setShowEditProjModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1029,12 +1029,12 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Project Permanently</h3>
-                <p className="text-xs text-rose-400 font-semibold">Irreversible Platform Action</p>
+                <p className="text-xs text-rose-600 font-semibold">Irreversible Platform Action</p>
               </div>
             </div>
 

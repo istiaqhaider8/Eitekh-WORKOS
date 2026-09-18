@@ -71,7 +71,7 @@ export function PlatformReportsHubView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-400" />
+            <FileText className="w-5 h-5 text-indigo-600" />
             Enterprise Platform Reports Center & Intelligence Hub
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -89,7 +89,7 @@ export function PlatformReportsHubView() {
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print PDF</span>
@@ -138,7 +138,7 @@ export function PlatformReportsHubView() {
         <div className="lg:col-span-3 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-6">
           <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] font-bold uppercase text-indigo-400 tracking-wider">
+              <span className="text-[10px] font-bold uppercase text-indigo-600 tracking-wider">
                 {currentReport?.category} Report
               </span>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{currentReport?.name}</h3>
@@ -157,7 +157,7 @@ export function PlatformReportsHubView() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-500 text-[10px] uppercase font-semibold">Security Score</span>
-              <div className="text-lg font-bold text-emerald-400">{reportData.scoreCard?.score || 100} / 100</div>
+              <div className="text-lg font-bold text-emerald-700">{reportData.scoreCard?.score || 100} / 100</div>
               <p className="text-[10px] text-slate-500">{reportData.scoreCard?.status}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
@@ -167,7 +167,7 @@ export function PlatformReportsHubView() {
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
               <span className="text-slate-500 text-[10px] uppercase font-semibold">Total Users</span>
-              <div className="text-lg font-bold text-indigo-400">{reportData.kpis?.totalUsers}</div>
+              <div className="text-lg font-bold text-indigo-600">{reportData.kpis?.totalUsers}</div>
               <p className="text-[10px] text-slate-500">{reportData.kpis?.activeUsers} active</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
@@ -212,7 +212,7 @@ export function PlatformReportsHubView() {
                       <th className="p-2.5">Actor</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-slate-200">
                     {reportData.auditLogs?.slice(0, 10).map((l: any) => (
                       <tr key={l.id}>
                         <td className="p-2.5 text-slate-600 dark:text-slate-400 text-[11px]">{new Date(l.createdAt).toLocaleTimeString()}</td>

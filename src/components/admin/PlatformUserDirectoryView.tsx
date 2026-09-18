@@ -161,7 +161,7 @@ export function PlatformUserDirectoryView({
 
   // Password Strength Evaluator
   const getPasswordStrength = (pwd: string) => {
-    if (!pwd) return { score: 0, label: 'None', color: 'bg-slate-700' };
+    if (!pwd) return { score: 0, label: 'None', color: 'bg-slate-300' };
     let score = 0;
     if (pwd.length >= 8) score++;
     if (pwd.length >= 12) score++;
@@ -416,7 +416,7 @@ export function PlatformUserDirectoryView({
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-400" />
+              <Users className="w-5 h-5 text-indigo-600" />
               Platform User Directory & Identity Governance
             </h2>
             <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
@@ -431,7 +431,7 @@ export function PlatformUserDirectoryView({
         <div className="flex items-center gap-2.5">
           <button
             onClick={onRefresh}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh</span>
@@ -553,7 +553,7 @@ export function PlatformUserDirectoryView({
                 <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-200">
               {paginatedUsers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
@@ -600,7 +600,7 @@ export function PlatformUserDirectoryView({
                             title="Copy email"
                           >
                             {copiedEmailId === u.id ? (
-                              <Check className="w-3 h-3 text-emerald-400" />
+                              <Check className="w-3 h-3 text-emerald-700" />
                             ) : (
                               <Copy className="w-3 h-3" />
                             )}
@@ -612,7 +612,7 @@ export function PlatformUserDirectoryView({
                       <td className="p-3.5">
                         {u.isSuperAdmin ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded text-[10px] font-bold">
-                            <Shield className="w-3 h-3 text-indigo-400" />
+                            <Shield className="w-3 h-3 text-indigo-600" />
                             SUPER ADMIN
                           </span>
                         ) : (
@@ -644,7 +644,7 @@ export function PlatformUserDirectoryView({
                       {/* MFA */}
                       <td className="p-3.5">
                         {u.mfaEnabled ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-[11px]">
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px]">
                             <CheckCircle2 className="w-3 h-3" />
                             Active
                           </span>
@@ -673,7 +673,7 @@ export function PlatformUserDirectoryView({
                           {/* Set Password Button */}
                           <button
                             onClick={() => handleOpenPassword(u)}
-                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                             title="Set or Reset Password"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ export function PlatformUserDirectoryView({
                           {/* Edit User Button */}
                           <button
                             onClick={() => handleOpenEdit(u)}
-                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
+                            className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700 transition-colors"
                             title="Edit User Details"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -693,8 +693,8 @@ export function PlatformUserDirectoryView({
                             onClick={() => handleToggleStatus(u)}
                             className={`px-2 py-1 rounded text-[10px] font-semibold border transition-colors ${
                               isSusp
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+                                ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-600 border-rose-500/30 hover:bg-rose-500/20'
                             }`}
                             title={isSusp ? 'Reactivate Account' : 'Suspend Account'}
                           >
@@ -733,7 +733,7 @@ export function PlatformUserDirectoryView({
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-30"
+                className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 disabled:opacity-30"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -743,7 +743,7 @@ export function PlatformUserDirectoryView({
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-30"
+                className="p-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 disabled:opacity-30"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -760,7 +760,7 @@ export function PlatformUserDirectoryView({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-indigo-400" />
+                <UserPlus className="w-4 h-4 text-indigo-600" />
                 Create New Platform User Account
               </h3>
               <button onClick={() => setIsCreateOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -839,7 +839,7 @@ export function PlatformUserDirectoryView({
                       const pwd = 'Eitekh#' + Math.floor(1000 + Math.random() * 9000) + '!kL';
                       setCreateForm({ ...createForm, password: pwd });
                     }}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                    className="text-[11px] text-indigo-600 hover:text-indigo-300 flex items-center gap-1"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>Generate</span>
@@ -911,7 +911,7 @@ export function PlatformUserDirectoryView({
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -937,7 +937,7 @@ export function PlatformUserDirectoryView({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" />
+                <Edit2 className="w-4 h-4 text-indigo-600" />
                 Edit User: {selectedUser.firstName} {selectedUser.lastName}
               </h3>
               <button onClick={() => setIsEditOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1043,7 +1043,7 @@ export function PlatformUserDirectoryView({
                 <button
                   type="button"
                   onClick={() => setIsEditOpen(false)}
-                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -1069,7 +1069,7 @@ export function PlatformUserDirectoryView({
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <KeyRound className="w-4 h-4 text-amber-400" />
+                <KeyRound className="w-4 h-4 text-amber-700" />
                 Set / Reset User Password
               </h3>
               <button onClick={() => setIsPasswordOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1093,7 +1093,7 @@ export function PlatformUserDirectoryView({
                   <button
                     type="button"
                     onClick={generateStrongPassword}
-                    className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 transition-colors"
+                    className="text-[11px] text-amber-700 hover:text-amber-300 font-semibold flex items-center gap-1 transition-colors"
                   >
                     <Sparkles className="w-3 h-3" />
                     <span>Generate Strong Password</span>
@@ -1122,7 +1122,7 @@ export function PlatformUserDirectoryView({
                         className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200"
                         title="Copy to clipboard"
                       >
-                        {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     )}
                     <button
@@ -1169,7 +1169,7 @@ export function PlatformUserDirectoryView({
                 <button
                   type="button"
                   onClick={() => setIsPasswordOpen(false)}
-                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
+                  className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                 >
                   Cancel
                 </button>
@@ -1194,8 +1194,8 @@ export function PlatformUserDirectoryView({
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-400" />
+              <h3 className="text-sm font-bold text-rose-600 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
                 Delete User Account Permanently
               </h3>
               <button onClick={() => setIsDeleteOpen(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1214,7 +1214,7 @@ export function PlatformUserDirectoryView({
               <button
                 type="button"
                 onClick={() => setIsDeleteOpen(false)}
-                className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
+                className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
               >
                 Cancel
               </button>

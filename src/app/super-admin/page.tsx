@@ -539,11 +539,18 @@ export default function SuperAdminCommandCenterPage() {
 
   if (loading && !stats) {
     return (
-      <div className="min-h-screen bg-[#080c14] text-slate-900 dark:text-slate-100 flex items-center justify-center">
+      // The background was hardcoded to #080c14 (near-black) while the text
+      // stayed slate-700/900, so in the white theme this screen rendered dark
+      // text on a dark slab — effectively invisible while the panel loaded.
+      <div
+        className="min-h-screen bg-slate-50 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex items-center justify-center"
+        role="status"
+        aria-live="polite"
+      >
         <div className="text-center space-y-3">
-          <RefreshCw className="w-10 h-10 animate-spin mx-auto text-indigo-500" />
-          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-300">Initializing Eitekh Platform Command Center...</h2>
-          <p className="text-xs text-slate-500">Loading governance, security telemetry, threat queues, and sync engines</p>
+          <RefreshCw className="w-10 h-10 animate-spin mx-auto text-indigo-600" aria-hidden="true" />
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">Initializing Eitekh Platform Command Center…</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400">Loading governance, security telemetry, threat queues, and sync engines</p>
         </div>
       </div>
     );
@@ -600,7 +607,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-72">
               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus-within:border-indigo-500 transition-colors">
-                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                 <input
                   type="text"
                   placeholder="Global platform search..."
@@ -616,7 +623,7 @@ export default function SuperAdminCommandCenterPage() {
                 <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3 z-50 max-h-96 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Search Results</span>
-                    <button onClick={() => setSearchResults(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">
+                    <button onClick={() => setSearchResults(null)} className="text-slate-500 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -750,7 +757,11 @@ export default function SuperAdminCommandCenterPage() {
         <GlobalAlertBanner alerts={actionRequired} onNavigateTab={(t) => setActiveTab(t as any)} />
 
         {/* Navigation Tabs Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-200/60 dark:bg-slate-900/80 p-1.5 rounded-xl border border-slate-300/70 dark:border-slate-800 scrollbar-none">
+        <div
+          role="tablist"
+          aria-label="Super admin sections"
+          className="flex items-center gap-1.5 overflow-x-auto bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 scrollbar-none"
+        >
           {[
             { id: "overview", label: "Command Overview", icon: Activity },
             { id: "cache", label: "System Refresh & Cache", icon: RefreshCw, badge: "Safe" },
@@ -782,14 +793,18 @@ export default function SuperAdminCommandCenterPage() {
                     window.history.replaceState(null, "", `?tab=${tab.id}`);
                   }
                 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 shrink-0 cursor-pointer ${
+                role="tab"
+                aria-selected={isActive}
+                // focus-visible (not focus) so keyboard users get a clear ring
+                // while a mouse click does not leave one behind.
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-900 ${
                   isActive
                     ? isCache
-                      ? "bg-cyan-600 text-white shadow-md font-bold"
-                      : "bg-indigo-600 text-white shadow-md font-bold"
+                      ? "bg-cyan-700 text-white shadow-sm font-bold"
+                      : "bg-indigo-600 text-white shadow-sm font-bold"
                     : isCache
-                    ? "text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
-                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-800/80"
+                    ? "text-cyan-800 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-500/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/60"
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800/80"
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : isCache ? "text-cyan-600 dark:text-cyan-400" : "text-slate-500 dark:text-slate-400"}`} />
@@ -969,7 +984,7 @@ export default function SuperAdminCommandCenterPage() {
             <div className="flex items-center justify-between bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-indigo-400" />
+                  <Building2 className="w-5 h-5 text-indigo-600" />
                   Organization & Tenant Management
                 </h2>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -1018,7 +1033,7 @@ export default function SuperAdminCommandCenterPage() {
                             <div key={w.id} className="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200/80 dark:border-slate-800/80 space-y-1">
                               <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                                 <span className="flex items-center gap-1">
-                                  <Layers className="w-3 h-3 text-indigo-400" />
+                                  <Layers className="w-3 h-3 text-indigo-600" />
                                   {w.name}
                                 </span>
                                 <span className="text-[10px] text-slate-500 font-mono">({w.projects?.length || w._count?.projects || 0} projects)</span>
@@ -1028,7 +1043,7 @@ export default function SuperAdminCommandCenterPage() {
                                   {w.projects.map((p: any) => (
                                     <div key={p.id} className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400">
                                       <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                                        <FolderGit2 className="w-2.5 h-2.5 text-purple-400" />
+                                        <FolderGit2 className="w-2.5 h-2.5 text-purple-600" />
                                         {p.name} <span className="text-purple-500 font-mono">[{p.key}]</span>
                                       </span>
                                       <span className="text-[9px] px-1 py-0.2 bg-slate-200 dark:bg-slate-800 rounded font-semibold uppercase">{p.status || "ACTIVE"}</span>
@@ -1054,7 +1069,7 @@ export default function SuperAdminCommandCenterPage() {
                               window.history.replaceState(null, "", "?tab=workspaces-projects");
                             }
                           }}
-                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-400 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:bg-slate-800 rounded transition-colors cursor-pointer"
                           title="Manage Workspaces & Projects for this Organization"
                         >
                           <FolderGit2 className="w-3.5 h-3.5" />
@@ -1082,7 +1097,7 @@ export default function SuperAdminCommandCenterPage() {
                             setActiveOrg(o);
                             setShowDeleteOrgModal(true);
                           }}
-                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                           title="Delete Organization"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1091,8 +1106,8 @@ export default function SuperAdminCommandCenterPage() {
                           onClick={() => handleToggleOrgStatus(o.id, o.status)}
                           className={`px-2 py-1 rounded text-[11px] font-semibold border transition-colors cursor-pointer ${
                             isSuspended
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                              : "bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
+                              ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-600 border-rose-500/30 hover:bg-rose-500/20"
                           }`}
                         >
                           {isSuspended ? "Reactivate" : "Suspend"}
@@ -1123,7 +1138,7 @@ export default function SuperAdminCommandCenterPage() {
             <div className="flex items-center justify-between bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-indigo-400" />
+                  <Sliders className="w-5 h-5 text-indigo-600" />
                   Platform Feature Flags & Capabilities Engine
                 </h2>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -1183,7 +1198,7 @@ export default function SuperAdminCommandCenterPage() {
                         setActiveFlag(flag);
                         setShowDeleteFlagModal(true);
                       }}
-                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
+                      className="p-2 text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
                       title="Delete Feature Flag"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1193,7 +1208,7 @@ export default function SuperAdminCommandCenterPage() {
                       className={`p-2 rounded-lg transition-colors border cursor-pointer ${
                         flag.isGlobalEnabled
                           ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-500"
-                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700"
+                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                       }`}
                       title={flag.isGlobalEnabled ? "Disable Flag" : "Enable Flag"}
                     >
@@ -1214,7 +1229,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Mail className="w-5 h-5 text-indigo-400" />
+                <Mail className="w-5 h-5 text-indigo-600" />
                 Email Infrastructure & Notification Templates
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -1331,7 +1346,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-indigo-400" />
+                <UserPlus className="w-4 h-4 text-indigo-600" />
                 Create New User Account
               </h3>
               <button onClick={() => setShowAddUserModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1418,7 +1433,7 @@ export default function SuperAdminCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddUserModal(false)}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1441,7 +1456,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-indigo-400" />
+                <Building2 className="w-4 h-4 text-indigo-600" />
                 Create New Organization Tenant
               </h3>
               <button onClick={() => setShowAddOrgModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1492,7 +1507,7 @@ export default function SuperAdminCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddOrgModal(false)}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1515,7 +1530,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" />
+                <Edit2 className="w-4 h-4 text-indigo-600" />
                 Edit Organization: {activeOrg.name}
               </h3>
               <button onClick={() => setShowEditOrgModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1583,7 +1598,7 @@ export default function SuperAdminCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditOrgModal(false)}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1605,12 +1620,12 @@ export default function SuperAdminCommandCenterPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Permanently Delete Organization</h3>
-                <p className="text-xs text-rose-400 font-semibold">Critical Cascading Deletion</p>
+                <p className="text-xs text-rose-600 font-semibold">Critical Cascading Deletion</p>
               </div>
             </div>
 
@@ -1624,7 +1639,7 @@ export default function SuperAdminCommandCenterPage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteOrgModal(false)}
-                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-xs"
               >
                 Cancel
               </button>
@@ -1646,7 +1661,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-indigo-400" />
+                <Sliders className="w-4 h-4 text-indigo-600" />
                 Create New Feature Flag
               </h3>
               <button onClick={() => setShowCreateFlagModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1695,7 +1710,7 @@ export default function SuperAdminCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateFlagModal(false)}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1718,7 +1733,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-indigo-400" />
+                <Edit2 className="w-4 h-4 text-indigo-600" />
                 Edit Feature Flag: {activeFlag.key}
               </h3>
               <button onClick={() => setShowEditFlagModal(false)} className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:text-slate-200">
@@ -1754,7 +1769,7 @@ export default function SuperAdminCommandCenterPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditFlagModal(false)}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg"
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -1776,12 +1791,12 @@ export default function SuperAdminCommandCenterPage() {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-900 border border-rose-900/60 rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+              <div className="p-2 bg-rose-500/20 text-rose-600 rounded-lg">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete Feature Flag</h3>
-                <p className="text-xs text-rose-400 font-semibold">Confirm Flag Removal</p>
+                <p className="text-xs text-rose-600 font-semibold">Confirm Flag Removal</p>
               </div>
             </div>
 
@@ -1794,7 +1809,7 @@ export default function SuperAdminCommandCenterPage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteFlagModal(false)}
-                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-xs"
               >
                 Cancel
               </button>

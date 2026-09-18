@@ -79,7 +79,7 @@ export function PlatformHealthView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Server className="w-5 h-5 text-indigo-400" />
+            <Server className="w-5 h-5 text-indigo-600" />
             Platform Subsystem Health Center
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -177,7 +177,7 @@ export function PlatformHealthView() {
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider block">
                       {sub.category}
                     </span>
                     <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100">{sub.name}</h3>
@@ -185,12 +185,12 @@ export function PlatformHealthView() {
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${
                       isOperational
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
                         : isDegraded
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
                         : isWarning
                         ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                     }`}
                   >
                     <span
@@ -220,7 +220,7 @@ export function PlatformHealthView() {
                 </div>
                 <div>
                   <span className="text-slate-500 block">Error Rate</span>
-                  <span className={`font-semibold ${sub.errorRatePct > 0 ? 'text-amber-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                  <span className={`font-semibold ${sub.errorRatePct > 0 ? 'text-amber-700' : 'text-slate-800 dark:text-slate-200'}`}>
                     {sub.errorRatePct.toFixed(1)}%
                   </span>
                 </div>

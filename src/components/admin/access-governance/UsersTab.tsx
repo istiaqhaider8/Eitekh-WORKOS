@@ -341,7 +341,7 @@ export function UsersTab({
       <div className="bg-white dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-400" />
+            <Users className="w-4 h-4 text-indigo-600" />
             Existing Users Directory ({totalRecords})
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -464,7 +464,7 @@ export function UsersTab({
                 <th className="p-3 font-bold text-slate-700 dark:text-slate-300 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
@@ -484,7 +484,7 @@ export function UsersTab({
                   return (
                     <tr
                       key={u.id}
-                      className={`hover:bg-slate-850/60 transition-colors ${
+                      className={`hover:bg-slate-50 transition-colors ${
                         isSelected ? 'bg-indigo-600/5' : ''
                       }`}
                     >
@@ -521,14 +521,14 @@ export function UsersTab({
                                 <button
                                   onClick={() => handleRemoveRoleInline(u.id, r.id, r.name)}
                                   title={`Remove ${r.name}`}
-                                  className="text-indigo-400 hover:text-rose-400 ml-0.5 font-bold"
+                                  className="text-indigo-600 hover:text-rose-600 ml-0.5 font-bold"
                                 >
                                   ×
                                 </button>
                               </span>
                             ))
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-500/20 font-semibold rounded text-[10px]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-500/10 text-slate-500 border border-slate-500/20 font-semibold rounded text-[10px]">
                               VIEWER (Default)
                             </span>
                           )}
@@ -583,7 +583,7 @@ export function UsersTab({
                       </td>
 
                       <td className="p-3">
-                        <span className="font-mono font-bold text-indigo-400">
+                        <span className="font-mono font-bold text-indigo-600">
                           {u.effectivePermissionsCount || 0}
                         </span>
                         <span className="text-[10px] text-slate-500 ml-1">capabilities</span>
@@ -598,8 +598,8 @@ export function UsersTab({
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             u.status === 'ACTIVE'
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
                           }`}
                         >
                           {u.status}
@@ -618,9 +618,9 @@ export function UsersTab({
                           <button
                             onClick={() => onInspectUser(u.id)}
                             title="Inspect Access Provenance"
-                            className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-medium border border-slate-300 dark:border-slate-700 flex items-center gap-1"
+                            className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded text-xs font-medium border border-slate-300 dark:border-slate-700 flex items-center gap-1"
                           >
-                            <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                            <Eye className="w-3.5 h-3.5 text-indigo-600" />
                             Inspect Provenance
                           </button>
                         </div>
@@ -687,7 +687,7 @@ export function UsersTab({
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-indigo-400" />
+                  <UserPlus className="w-4 h-4 text-indigo-600" />
                   Bulk Assign Permission Role
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -725,13 +725,13 @@ export function UsersTab({
             <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 <span>Pre-Flight Impact Assessment</span>
-                {simulating && <span className="text-indigo-400 text-[10px]">Calculating...</span>}
+                {simulating && <span className="text-indigo-600 text-[10px]">Calculating...</span>}
               </div>
 
               {simulation ? (
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-lg font-bold text-emerald-400">
+                    <div className="text-lg font-bold text-emerald-700">
                       {simulation.newAssignments}
                     </div>
                     <span className="text-[10px] text-slate-600 dark:text-slate-400">New Assignments</span>
@@ -745,7 +745,7 @@ export function UsersTab({
                   </div>
 
                   <div className="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <div className="text-lg font-bold text-rose-400">
+                    <div className="text-lg font-bold text-rose-600">
                       {simulation.cannotBeAssigned}
                     </div>
                     <span className="text-[10px] text-slate-600 dark:text-slate-400">Cannot Assign</span>
@@ -757,7 +757,7 @@ export function UsersTab({
 
               {simulation?.conflicts?.length > 0 && (
                 <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs space-y-1">
-                  <div className="font-bold text-rose-400 flex items-center gap-1.5">
+                  <div className="font-bold text-rose-600 flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     Conflict Warnings:
                   </div>
@@ -773,7 +773,7 @@ export function UsersTab({
               <button
                 type="button"
                 onClick={() => setIsBulkAssignOpen(false)}
-                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Cancel
               </button>
@@ -797,7 +797,7 @@ export function UsersTab({
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-400" />
+                  <Users className="w-4 h-4 text-indigo-600" />
                   User Access Profile
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">{selectedUserProfile.name} ({selectedUserProfile.email})</p>
@@ -818,8 +818,8 @@ export function UsersTab({
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       selectedUserProfile.status === 'ACTIVE'
-                        ? 'bg-emerald-500/10 text-emerald-400'
-                        : 'bg-rose-500/10 text-rose-400'
+                        ? 'bg-emerald-500/10 text-emerald-700'
+                        : 'bg-rose-500/10 text-rose-600'
                     }`}
                   >
                     {selectedUserProfile.status}
@@ -841,7 +841,7 @@ export function UsersTab({
                   </h4>
                   <button
                     onClick={() => onInspectUser(selectedUserProfile.id)}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
+                    className="text-xs text-indigo-600 hover:text-indigo-300 font-semibold flex items-center gap-1"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     Inspect Effective Access
@@ -893,7 +893,7 @@ export function UsersTab({
                         <div className="space-y-0.5">
                           <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                             {role.name}
-                            <span className="text-[10px] text-indigo-400 font-mono">
+                            <span className="text-[10px] text-indigo-600 font-mono">
                               ({role.permissions?.length || role.permissionCount || 0} perms)
                             </span>
                           </div>
@@ -902,7 +902,7 @@ export function UsersTab({
 
                         <button
                           onClick={() => handleRemoveRoleFromUserProfile(role.id, role.name)}
-                          className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded"
+                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-500/10 rounded"
                           title="Remove Role"
                         >
                           <X className="w-4 h-4" />
@@ -947,7 +947,7 @@ export function UsersTab({
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-right">
               <button
                 onClick={() => setIsProfileOpen(false)}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium"
               >
                 Close
               </button>

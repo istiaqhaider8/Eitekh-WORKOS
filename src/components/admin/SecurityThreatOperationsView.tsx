@@ -123,7 +123,7 @@ export function SecurityThreatOperationsView() {
       <div className="bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-400" />
+            <ShieldAlert className="w-5 h-5 text-rose-600" />
             Platform Security & Threat Operations Center
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -134,7 +134,7 @@ export function SecurityThreatOperationsView() {
         <div className="flex items-center gap-3">
           <button
             onClick={loadThreats}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-700"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Rescan Threats</span>
@@ -149,12 +149,12 @@ export function SecurityThreatOperationsView() {
             <div
               className={`w-16 h-16 rounded-2xl flex items-center justify-center font-extrabold text-2xl border shadow-inner ${
                 isSecure
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
                   : isAttention
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  ? 'bg-amber-500/10 text-amber-700 border-amber-500/30'
                   : isHighRisk
                   ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                  : 'bg-rose-500/10 text-rose-600 border-rose-500/30'
               }`}
             >
               {scoreCard.score}
@@ -189,15 +189,15 @@ export function SecurityThreatOperationsView() {
             </div>
             <div>
               <span className="text-slate-500 block text-[11px]">Critical Issues</span>
-              <span className="text-base font-bold text-rose-400">{scoreCard.criticalIssues}</span>
+              <span className="text-base font-bold text-rose-600">{scoreCard.criticalIssues}</span>
             </div>
             <div>
               <span className="text-slate-500 block text-[11px]">High Issues</span>
-              <span className="text-base font-bold text-amber-400">{scoreCard.highIssues}</span>
+              <span className="text-base font-bold text-amber-700">{scoreCard.highIssues}</span>
             </div>
             <div>
               <span className="text-slate-500 block text-[11px]">Resolved Today</span>
-              <span className="text-base font-bold text-emerald-400">{scoreCard.resolvedToday}</span>
+              <span className="text-base font-bold text-emerald-700">{scoreCard.resolvedToday}</span>
             </div>
           </div>
         </div>
@@ -210,15 +210,15 @@ export function SecurityThreatOperationsView() {
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 text-[10px] uppercase font-semibold">Active Sessions</span>
-            <div className="font-bold text-indigo-400">{scoreCard.activeSessions}</div>
+            <div className="font-bold text-indigo-600">{scoreCard.activeSessions}</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 text-[10px] uppercase font-semibold">Suspended Users</span>
-            <div className="font-bold text-rose-400">{scoreCard.suspendedUsers}</div>
+            <div className="font-bold text-rose-600">{scoreCard.suspendedUsers}</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
             <span className="text-slate-500 text-[10px] uppercase font-semibold">PBAC Violations (24h)</span>
-            <div className="font-bold text-emerald-400">{scoreCard.pbacViolations24h}</div>
+            <div className="font-bold text-emerald-700">{scoreCard.pbacViolations24h}</div>
           </div>
         </div>
       </div>
@@ -227,7 +227,7 @@ export function SecurityThreatOperationsView() {
       {isolationViolations.length > 0 && (
         <div className="bg-rose-950/20 border border-rose-500/30 rounded-xl p-4 space-y-3 shadow-md">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
+            <ShieldAlert className="w-4 h-4 text-rose-600" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-rose-300">
               Cross-Project Isolation Intrusion Stream (Strict PBAC Enforced)
             </h3>
@@ -258,7 +258,7 @@ export function SecurityThreatOperationsView() {
       <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 text-amber-700" />
             Active Threats & Security Incidents ({filteredThreats.length})
           </h3>
 
@@ -363,7 +363,7 @@ export function SecurityThreatOperationsView() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <ShieldAlert className="w-5 h-5 text-rose-600" />
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   Incident Detail: {selectedThreat.id}
                 </h3>
@@ -377,11 +377,11 @@ export function SecurityThreatOperationsView() {
               <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div>
                   <span className="text-slate-500 block">Severity</span>
-                  <span className="font-bold text-rose-400">{selectedThreat.severity}</span>
+                  <span className="font-bold text-rose-600">{selectedThreat.severity}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block">Status</span>
-                  <span className="font-bold text-indigo-400">{selectedThreat.status}</span>
+                  <span className="font-bold text-indigo-600">{selectedThreat.status}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block">Target Resource</span>
@@ -406,7 +406,7 @@ export function SecurityThreatOperationsView() {
                 <div className="space-y-1.5 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg max-h-36 overflow-y-auto">
                   {selectedThreat.timeline.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-start gap-2 text-[11px]">
-                      <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
+                      <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
                       <div>
                         <span className="text-slate-600 dark:text-slate-400 font-mono text-[10px]">
                           [{new Date(item.timestamp).toLocaleTimeString()}]
@@ -453,7 +453,7 @@ export function SecurityThreatOperationsView() {
                   <button
                     onClick={() => handleUpdateStatus(selectedThreat.id, 'FALSE_POSITIVE')}
                     disabled={actionLoading}
-                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-semibold text-[11px]"
+                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded font-semibold text-[11px]"
                   >
                     False Positive
                   </button>
