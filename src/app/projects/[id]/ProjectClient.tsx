@@ -14,6 +14,7 @@ import { DashboardView } from "@/components/views/DashboardView";
 import { AnalyticsChartsView } from "@/components/views/AnalyticsChartsView";
 import { IssueDetailModal } from "@/components/issues/IssueDetailModal";
 import { TeamManagementModal } from "@/components/teams/TeamManagementModal";
+import { BulkImportModal } from "@/components/import/BulkImportModal";
 import { CommandPalette } from "@/components/common/CommandPalette";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import {
@@ -25,6 +26,7 @@ import {
   RotateCcw,
   Users,
   Settings,
+  Upload,
   UserPlus,
   Trash2,
   Calendar,
@@ -78,6 +80,7 @@ export function ProjectClient({
   const totalIssueCount = project._count?.issues ?? embeddedIssueCount;
   const issuesWereTruncated = totalIssueCount > embeddedIssueCount;
 
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [createInitialStatusId, setCreateInitialStatusId] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -1164,6 +1167,19 @@ export function ProjectClient({
                   </button>
                 )}
 
+                {/* Bulk Upload — tasks and project members, template-driven */}
+                {canEditProject && (
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkImport(true)}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
+                    title="Bulk upload tasks or project members from a CSV template"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200" />
+                    <span className="hidden sm:inline">Bulk Upload</span>
+                  </button>
+                )}
+
                 {/* Teams Management Button */}
                 <button
                   type="button"
@@ -2217,6 +2233,18 @@ export function ProjectClient({
       )}
 
       {/* Team Management Modal */}
+      {showBulkImport && (
+        <BulkImportModal
+          projectId={currentProject.id}
+          projectKey={currentProject.key}
+          onClose={() => setShowBulkImport(false)}
+          onImported={() => {
+            refreshIssues();
+            refreshMembers();
+          }}
+        />
+      )}
+
       <TeamManagementModal
         isOpen={showTeamsModal}
         onClose={() => setShowTeamsModal(false)}
