@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicUserRelation } from "@/lib/safe-select";
 import { assertOrgAccess } from "@/lib/tenant";
 import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
@@ -13,9 +14,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const members = await prisma.organizationMember.findMany({
       where: { orgId: id },
       include: {
-        user: {
-          select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true },
-        },
+        // publicUserRelation rather than an inline select, so this list carries
+        // userType (and anything else added to the shared select). The member
+        // picker labels each candidate Employee/Client, and with the inline
+        // select the field was simply absent.
+        user: publicUserRelation,
       },
     });
     return NextResponse.json(members);

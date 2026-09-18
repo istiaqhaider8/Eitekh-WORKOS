@@ -7,25 +7,29 @@ import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { getBaseUrl } from "@/lib/config";
 import { projectMemberSchema, memberUserIdSchema, parseBody, parseJsonBody, DEFAULT_USER_TYPE } from "@/lib/validation";
+import {
+  ALLOWED_PROJECT_ROLES,
+  DEFAULT_PROJECT_ROLE,
+  projectRoleFromPbacSlug,
+} from "@/lib/project-roles";
 
-// Only these project-scoped role strings may be assigned to a ProjectMember.
-// This blocks privilege escalation via an injected org-scoped PBAC role id
-// (e.g. "role_<orgId>_org-admin"), which the engine would otherwise accept.
-const ALLOWED_PROJECT_ROLES = new Set([
-  "PROJECT_ADMIN",
-  "PROJECT_MANAGER",
-  "PROJECT_MEMBER",
-  "MEMBER",
-  "VIEWER",
-  "ADMIN",
-]);
-
+// The whitelist lives in lib/project-roles.ts, shared with the UI that builds
+// the dropdowns. It blocks privilege escalation via an injected org-scoped PBAC
+// role id (e.g. "role_<orgId>_org-admin"), which the engine would accept.
 function normalizeProjectRole(role: unknown): string {
-  if (role == null || role === "") return "PROJECT_MEMBER";
-  if (typeof role !== "string" || !ALLOWED_PROJECT_ROLES.has(role)) {
+  if (role == null || role === "") return DEFAULT_PROJECT_ROLE;
+  if (typeof role !== "string") {
     throw new Error(`Invalid project role: ${String(role)}`);
   }
-  return role;
+  // A PBAC slug is accepted and folded to its canonical value. The members UI
+  // used to submit slugs and every change failed with "Invalid project role".
+  const mapped = projectRoleFromPbacSlug(role);
+  if (!mapped) {
+    throw new Error(
+      `Invalid project role: ${role}. Expected one of ${[...ALLOWED_PROJECT_ROLES].join(", ")}`
+    );
+  }
+  return mapped;
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

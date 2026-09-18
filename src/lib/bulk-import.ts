@@ -25,18 +25,12 @@ export const MEMBER_IMPORT_HEADERS = ["email", "role"] as const;
 /**
  * Project roles a bulk upload may assign.
  *
- * Mirrors the whitelist in the single-member route, which exists to stop an
- * injected org-scoped PBAC role id (e.g. "role_<orgId>_org-admin") being
- * accepted as a project role. Bulk upload must not be a way around it.
+ * Re-exported from lib/project-roles.ts rather than redeclared: this used to be
+ * a second copy of the same set, and bulk upload must not become a way around
+ * the whitelist that stops an org-scoped PBAC role id being accepted as a
+ * project role.
  */
-export const ALLOWED_PROJECT_ROLES = new Set([
-  "PROJECT_ADMIN",
-  "PROJECT_MANAGER",
-  "PROJECT_MEMBER",
-  "MEMBER",
-  "VIEWER",
-  "ADMIN",
-]);
+export { ALLOWED_PROJECT_ROLES } from "./project-roles";
 
 export const ALLOWED_ISSUE_TYPES = new Set(["TASK", "BUG", "STORY", "EPIC", "SUBTASK"]);
 export const ALLOWED_PRIORITIES = new Set(["CRITICAL", "HIGH", "MEDIUM", "LOW"]);

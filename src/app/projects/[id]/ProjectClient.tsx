@@ -16,6 +16,11 @@ import { IssueDetailModal } from "@/components/issues/IssueDetailModal";
 import { TeamManagementModal } from "@/components/teams/TeamManagementModal";
 import { BulkImportModal } from "@/components/import/BulkImportModal";
 import { canUseProjectAction } from "@/lib/project-permissions";
+import {
+  ASSIGNABLE_PROJECT_ROLES,
+  normaliseProjectRoleValue,
+  projectRoleLabel,
+} from "@/lib/project-roles";
 import { CommandPalette } from "@/components/common/CommandPalette";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import {
@@ -326,6 +331,32 @@ export function ProjectClient({
   const [memberTab, setMemberTab] = useState<"EXISTING" | "INVITE">("EXISTING");
   const [orgMembers, setOrgMembers] = useState<any[]>([]);
   const [pbacRoles, setPbacRoles] = useState<any[]>([]);
+
+  // Role options for the member dropdowns.
+  //
+  // The option VALUE is the canonical project role the API accepts; the label
+  // prefers the organisation's PBAC role name when it has loaded. Previously the
+  // value was the PBAC slug, which the API rejected outright, and the list was
+  // built purely from the fetched roles — so before that request resolved the
+  // selects rendered with no options at all and looked broken.
+  const roleOptions = ASSIGNABLE_PROJECT_ROLES.map((r) => {
+    const pbac = pbacRoles.find(
+      (pr: any) => pr.scope === "PROJECT" && (pr.slug === r.pbacSlug || pr.id === r.pbacSlug)
+    );
+    return {
+      value: r.value,
+      label: pbac ? `${pbac.name}${pbac.isSystem ? " (System)" : ""}` : r.label,
+    };
+  });
+
+  // Organisation members not yet on this project — the candidates for "+ Add".
+  const assignedUserIds = new Set(
+    members.map((m: any) => m.userId || m.user?.id).filter(Boolean)
+  );
+  const unassignedOrgMembers = orgMembers.filter(
+    (om: any) => !assignedUserIds.has(om.userId || om.user?.id)
+  );
+
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedUserRole, setSelectedUserRole] = useState("member");
   const [memberLoading, setMemberLoading] = useState(false);
@@ -2039,45 +2070,76 @@ export function ProjectClient({
                       </button>
                     </h4>
 
+                    {/* Everyone in the organisation who is not already on the
+                        project. When that is nobody, say so — an empty dropdown
+                        with only a placeholder reads as a broken control. */}
+                    {orgMembers.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-3 text-center">
+                        <p className="text-xs text-slate-500">Loading people from {currentOrg?.name || "the organization"}…</p>
+                      </div>
+                    ) : unassignedOrgMembers.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-3 text-center space-y-1">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          Everyone in {currentOrg?.name || "this organization"} is already on this project
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          All {orgMembers.length} member{orgMembers.length === 1 ? "" : "s"} assigned.
+                          To bring in someone new, invite them by email.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setMemberTab("INVITE")}
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                        >
+                          Invite new member by email →
+                        </button>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                       <div className="sm:col-span-7">
+                        <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                          Person <span className="text-slate-500">({unassignedOrgMembers.length} available)</span>
+                        </label>
                         <select
                           value={selectedUserId}
                           onChange={(e) => setSelectedUserId(e.target.value)}
                           className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
                         >
                           <option value="">-- Select Person from {currentOrg?.name || "Org"} --</option>
-                          {orgMembers
-                            .filter((om: any) => !members.some((pm: any) => pm.userId === (om.userId || om.user?.id)))
-                            .map((om: any) => {
-                              const u = om.user || om;
-                              const name = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email;
-                              return (
-                                <option key={u.id} value={u.id}>
-                                  {name} ({u.email})
-                                </option>
-                              );
-                            })}
+                          {unassignedOrgMembers.map((om: any) => {
+                            const u = om.user || om;
+                            const name = `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email;
+                            const type = u.userType === "CLIENT" ? "Client" : "Employee";
+                            return (
+                              <option key={u.id} value={u.id}>
+                                {name} · {type} ({u.email})
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
 
                       <div className="sm:col-span-3">
+                        <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                          Project role
+                        </label>
                         <select
                           value={selectedUserRole}
                           onChange={(e) => setSelectedUserRole(e.target.value)}
                           className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium cursor-pointer"
                         >
-                          {pbacRoles
-                            .filter((r: any) => r.scope === "PROJECT")
-                            .map((r: any) => (
-                              <option key={r.id} value={r.slug || r.id}>
-                                {r.name} {r.isSystem ? "(System)" : ""}
-                              </option>
-                            ))}
+                          {roleOptions.map((r) => (
+                            <option key={r.value} value={r.value}>
+                              {r.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
                       <div className="sm:col-span-2">
+                        <label className="text-[11px] font-semibold text-transparent block mb-1 select-none" aria-hidden="true">
+                          &nbsp;
+                        </label>
                         <button
                           type="submit"
                           disabled={memberLoading || !selectedUserId}
@@ -2087,6 +2149,7 @@ export function ProjectClient({
                         </button>
                       </div>
                     </div>
+                    )}
                   </form>
                 ) : (
                   <form
@@ -2275,26 +2338,23 @@ export function ProjectClient({
                         <div className="flex items-center gap-2 shrink-0">
                           {isProjectAdmin ? (
                             <>
-                              {(() => {
-                                const normRole = member.role === "MEMBER" ? "member" : member.role === "ADMIN" ? "project-admin" : member.role === "MANAGER" ? "project-manager" : member.role === "PROJECT_MEMBER" ? "member" : member.role === "PROJECT_ADMIN" ? "project-admin" : member.role === "PROJECT_MANAGER" ? "project-manager" : member.role === "VIEWER" ? "viewer" : member.role;
-                                return (
-                                  <select
-                                    value={normRole}
-                                    onChange={(e) =>
-                                      handleUpdateMemberRole(member.userId || member.user?.id, e.target.value)
-                                    }
-                                    className="text-xs py-1 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold outline-none cursor-pointer focus:border-blue-500 shadow-2xs"
-                                  >
-                                    {pbacRoles
-                                      .filter((r: any) => r.scope === "PROJECT")
-                                      .map((r: any) => (
-                                        <option key={r.id} value={r.slug || r.id}>
-                                          {r.name} {r.isSystem ? "(System)" : ""}
-                                        </option>
-                                      ))}
-                                  </select>
-                                );
-                              })()}
+                              {/* value is the canonical role, folding the
+                                  legacy ADMIN / PROJECT_MEMBER spellings so the
+                                  select never shows blank for an old row. */}
+                              <select
+                                value={normaliseProjectRoleValue(member.role)}
+                                onChange={(e) =>
+                                  handleUpdateMemberRole(member.userId || member.user?.id, e.target.value)
+                                }
+                                title={`Project role — currently ${projectRoleLabel(member.role)}`}
+                                className="text-xs py-1 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold outline-none cursor-pointer focus:border-blue-500 shadow-2xs"
+                              >
+                                {roleOptions.map((r) => (
+                                  <option key={r.value} value={r.value}>
+                                    {r.label}
+                                  </option>
+                                ))}
+                              </select>
 
                               <button
                                 type="button"
@@ -2307,15 +2367,7 @@ export function ProjectClient({
                             </>
                           ) : (
                             <span className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                              {(() => {
-                                const r = member.role;
-                                const match = pbacRoles.find((pr: any) => pr.slug === r || pr.id === r);
-                                if (match) return match.name;
-                                if (r === "PROJECT_ADMIN" || r === "ADMIN") return "PROJECT ADMIN";
-                                if (r === "PROJECT_MANAGER" || r === "MANAGER") return "PROJECT MANAGER";
-                                if (r === "PROJECT_MEMBER" || r === "MEMBER") return "MEMBER";
-                                return r;
-                              })()}
+                              {projectRoleLabel(member.role)}
                             </span>
                           )}
                         </div>
