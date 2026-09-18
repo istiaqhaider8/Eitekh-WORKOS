@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { projectCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { PROJECT_ADMIN_PERMISSIONS } from "@/lib/project-permissions";
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,20 +52,49 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return parsed.error;
     const { workspaceId, name, key, description, template, teamId } = parsed.data;
     
-    // Validate workspace access
-    const wsMember = await prisma.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId, userId: user.id } }
+    const ws = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, orgId: true },
     });
-    
-    if (!user.isSuperAdmin && (!wsMember || wsMember.role === "VIEWER")) {
-      const ws = await prisma.workspace.findUnique({ where: { id: workspaceId } });
-      if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
 
+    // Creating a project is restricted to Super Admin, Organization Admin,
+    // Project Admin and Project Manager, expressed as the `projects:create`
+    // permission — see `lib/project-permissions.ts`.
+    //
+    // This previously admitted any workspace member who was not a VIEWER, which
+    // meant a plain MEMBER could provision projects. Membership is still
+    // required (a non-member of the organization is rejected below), but it is
+    // no longer sufficient.
+    if (!user.isSuperAdmin) {
       const orgMember = await prisma.organizationMember.findUnique({
-        where: { orgId_userId: { orgId: ws.orgId, userId: user.id } }
+        where: { orgId_userId: { orgId: ws.orgId, userId: user.id } },
+        select: { role: true },
       });
-      if (!orgMember || (orgMember.role !== "OWNER" && orgMember.role !== "ADMIN")) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      if (!orgMember) {
+        return NextResponse.json({ error: "Forbidden: not a member of this organization" }, { status: 403 });
+      }
+
+      const isOrgAdmin = orgMember.role === "OWNER" || orgMember.role === "ADMIN";
+      if (!isOrgAdmin) {
+        const { pbacEngine } = await import("@/lib/pbac-engine");
+        const allowed = await pbacEngine.hasPermission(
+          ws.orgId,
+          user.id,
+          PROJECT_ADMIN_PERMISSIONS.newProject
+        );
+        if (!allowed) {
+          const { logger } = await import("@/lib/logger");
+          logger.security(
+            "PBAC_ACCESS_DENIED",
+            `User lacks required permission: ${PROJECT_ADMIN_PERMISSIONS.newProject}`,
+            { userId: user.id, email: user.email, workspaceId, orgId: ws.orgId }
+          );
+          return NextResponse.json(
+            { error: "Forbidden: you do not have permission to create projects" },
+            { status: 403 }
+          );
+        }
       }
     }
 

@@ -504,7 +504,10 @@ class UnifiedPBACEngine {
         isSystem: true,
         createdBy: 'System Provisioning',
         permissions: [
-          'projects:view', 'projects:edit', 'projects:manage_members', 'projects:archive',
+          // projects:create is what gates "New Project" in the sidebar. A Project
+          // Admin is one of the four roles permitted to provision a project, so
+          // the permission has to be held rather than inferred from membership.
+          'projects:view', 'projects:create', 'projects:edit', 'projects:manage_members', 'projects:archive',
           'issues:view', 'issues:create', 'issues:edit', 'issues:transition', 'issues:assign', 'issues:comment', 'issues:bulk_edit', 'issues:delete',
           'tasks:view', 'tasks:create', 'tasks:edit', 'tasks:delete',
           'epics:view', 'epics:create', 'epics:edit', 'epics:delete',
@@ -535,7 +538,14 @@ class UnifiedPBACEngine {
         isSystem: true,
         createdBy: 'System Provisioning',
         permissions: [
-          'projects:view',
+          // A Project Manager is one of the four roles permitted to use New
+          // Project, Assign, Project Settings, Bulk Upload and Teams, so it holds
+          // the five permissions those actions are gated on:
+          // projects:create, projects:edit, projects:manage_members,
+          // teams:manage and export:import_data. Without them the role could see
+          // the controls only if the UI gate disagreed with the API gate, which
+          // is the bypass this set exists to prevent.
+          'projects:view', 'projects:create', 'projects:edit', 'projects:manage_members',
           'issues:view', 'issues:create', 'issues:edit', 'issues:transition', 'issues:assign', 'issues:comment', 'issues:bulk_edit',
           'tasks:view', 'tasks:create', 'tasks:edit',
           'epics:view', 'epics:create', 'epics:edit',
@@ -548,9 +558,9 @@ class UnifiedPBACEngine {
           'workload:view', 'workload:balance',
           'reports:view', 'reports:generate',
           'analytics:view',
-          'teams:view',
+          'teams:view', 'teams:manage',
           'users:view',
-          'export:csv', 'export:excel', 'export:pdf'
+          'export:csv', 'export:excel', 'export:pdf', 'export:import_data'
         ],
       },
       {
@@ -1452,7 +1462,10 @@ class UnifiedPBACEngine {
 
     const projectRole = context?.projectRole;
     const projectId = context?.projectId;
-    const cacheKey = projectRole ? `${orgId}:${userId}:${projectRole}` : `${orgId}:${userId}`;
+    // projectId is part of the key because the derived roles below are scoped to
+    // it. Keying only on projectRole would let a result computed for one project
+    // be served for another.
+    const cacheKey = `${orgId}:${userId}:${projectId || "-"}:${projectRole || "-"}`;
     const cached = this.capabilityCache.get(cacheKey);
     const now = Date.now();
     if (cached && (now - cached.timestamp) < 5000) { // 5s TTL — short to limit stale permissions after role changes
@@ -1480,52 +1493,72 @@ class UnifiedPBACEngine {
       console.error('Error checking super admin for capabilities:', e);
     }
 
-    // Auto-resolve role from database if not present in assignments
-    if (!this.userRoleAssignments.has(userId) || this.userRoleAssignments.get(userId)!.size === 0) {
-      try {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-          include: {
-            orgMemberships: { where: { orgId } },
-            projectMemberships: { where: { project: { workspace: { orgId } } } },
+    // Roles implied by org and project membership are derived from the database
+    // on every resolution, and deliberately NOT written into
+    // `userRoleAssignments`.
+    //
+    // They used to be, and only when the stored set was empty — making it a
+    // write-once cache that never noticed a membership change. That cut both
+    // ways. It denied permissions a user had genuinely been granted: a member
+    // promoted to PROJECT_ADMIN kept resolving as MEMBER, so an org-scoped check
+    // such as `projects:create` (which has no project to pass as context) said
+    // no. Worse, it ran the other way too — a user demoted from PROJECT_ADMIN
+    // kept the cached project-admin role, so the demotion did not take effect.
+    // A stale grant is a permission bypass, which is why this is derived fresh
+    // rather than repaired in place.
+    //
+    // `userRoleAssignments` now holds only roles granted explicitly through the
+    // admin UI. Those are still honoured; the derived ones are unioned on top
+    // for this call alone. The 5s capability cache above keeps the extra query
+    // off the hot path.
+    const derivedRoleIds = new Set<string>();
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          isSuperAdmin: true,
+          orgMemberships: { where: { orgId }, select: { role: true } },
+          // Scope to the project in context when there is one, so a role held on
+          // one project cannot leak into another. Without a projectId there is no
+          // project to scope to (an org-level action), so every project role in
+          // this org is considered — that is what lets a Project Admin create a
+          // project, and it is bounded by the organisation either way.
+          projectMemberships: {
+            where: projectId
+              ? { projectId }
+              : { project: { workspace: { orgId } } },
+            select: { role: true },
           },
-        });
+        },
+      });
 
-        if (dbUser) {
-          if (!this.userRoleAssignments.has(userId)) {
-            this.userRoleAssignments.set(userId, new Set<string>());
+      if (dbUser) {
+        if (dbUser.isSuperAdmin) {
+          derivedRoleIds.add(`role_${orgId}_super-admin`);
+        } else {
+          const orgRole = dbUser.orgMemberships[0]?.role;
+          if (orgRole === 'OWNER' || orgRole === 'ADMIN') {
+            derivedRoleIds.add(`role_${orgId}_org-admin`);
           }
-          const userRoles = this.userRoleAssignments.get(userId)!;
-
-          if (dbUser.isSuperAdmin) {
-            userRoles.add(`role_${orgId}_super-admin`);
-          } else {
-            const orgMember = dbUser.orgMemberships[0];
-            const projMember = dbUser.projectMemberships[0];
-
-            if (orgMember?.role === 'OWNER' || orgMember?.role === 'ADMIN') {
-              userRoles.add(`role_${orgId}_org-admin`);
-            }
-            if (projMember) {
-              const targetSlug = this.getRoleSlugForProjectRole(projMember.role);
-              const found = Array.from(this.roles.values()).find(
-                (r) => r.orgId === orgId && (r.id === projMember.role || r.slug === targetSlug || r.slug === projMember.role)
-              );
-              if (found) {
-                userRoles.add(found.id);
-              } else {
-                userRoles.add(`role_${orgId}_${targetSlug}`);
-              }
-            }
+          for (const pm of dbUser.projectMemberships) {
+            const targetSlug = this.getRoleSlugForProjectRole(pm.role);
+            const found = Array.from(this.roles.values()).find(
+              (r) => r.orgId === orgId && (r.id === pm.role || r.slug === targetSlug || r.slug === pm.role)
+            );
+            derivedRoleIds.add(found ? found.id : `role_${orgId}_${targetSlug}`);
           }
-          this.saveToDisk();
         }
-      } catch (e) {
-        console.error('Error auto-resolving user PBAC role:', e);
       }
+    } catch (e) {
+      // Deny rather than guess: leaving derivedRoleIds empty falls through to
+      // the explicit assignments, and then to the read-only VIEWER baseline.
+      console.error('Error resolving membership-derived PBAC roles:', e);
     }
 
-    const assignedRoleIds = new Set<string>(this.userRoleAssignments.get(userId) || []);
+    const assignedRoleIds = new Set<string>([
+      ...(this.userRoleAssignments.get(userId) || []),
+      ...derivedRoleIds,
+    ]);
 
     // If a projectRole is explicitly active in this context, enforce its permissions
     if (projectRole) {

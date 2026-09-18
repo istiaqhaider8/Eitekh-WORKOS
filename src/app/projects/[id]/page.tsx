@@ -157,7 +157,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   } else {
     try {
       const { pbacEngine } = await import("@/lib/pbac-engine");
-      const caps = await pbacEngine.getUserCapabilities(project.workspace.orgId, user.id);
+      // Resolved WITH this project's context. Without it the capability list is
+      // organisation-wide, so someone who is PROJECT_ADMIN on one project
+      // appeared to hold the permission on every project in the org — which is
+      // what let the admin controls render on projects where the user is only a
+      // MEMBER. An org OWNER/ADMIN still resolves through their org role.
+      const projectRole =
+        project.members?.find((m: any) => m.userId === user.id)?.role ||
+        (project.ownerId === user.id ? "PROJECT_ADMIN" : undefined);
+      const caps = await pbacEngine.getUserCapabilities(project.workspace.orgId, user.id, {
+        projectId: project.id,
+        projectRole,
+      });
       capabilities = Array.from(caps);
     } catch (e) {
       console.error("Error resolving user capabilities in page.tsx:", e);

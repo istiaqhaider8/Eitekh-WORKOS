@@ -14,7 +14,12 @@ async function checkTeamAccess(teamId: string) {
     const pm = await prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId: team.projectId, userId: user.id } }
     });
-    if (pm && pm.role === "PROJECT_ADMIN") return { user, role: "PROJECT_ADMIN" };
+    // Project Manager is one of the four roles permitted to manage teams, so it
+    // is recognised here too. Previously only PROJECT_ADMIN was, which meant a
+    // Project Manager could reach the Teams UI and then be refused by the API.
+    if (pm && (pm.role === "PROJECT_ADMIN" || pm.role === "PROJECT_MANAGER")) {
+      return { user, role: pm.role };
+    }
   }
 
   const wsMember = await prisma.workspaceMember.findUnique({
@@ -58,7 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const { role } = await checkTeamAccess(id);
-    if (!["LEAD", "WORKSPACE_ADMIN", "SUPER_ADMIN", "PROJECT_ADMIN"].includes(role)) {
+    if (!["LEAD", "WORKSPACE_ADMIN", "SUPER_ADMIN", "PROJECT_ADMIN", "PROJECT_MANAGER"].includes(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -121,7 +126,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     const { role } = await checkTeamAccess(id);
-    if (!["LEAD", "WORKSPACE_ADMIN", "SUPER_ADMIN", "PROJECT_ADMIN"].includes(role)) {
+    if (!["LEAD", "WORKSPACE_ADMIN", "SUPER_ADMIN", "PROJECT_ADMIN", "PROJECT_MANAGER"].includes(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

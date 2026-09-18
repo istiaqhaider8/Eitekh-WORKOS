@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { canUseProjectAction } from "@/lib/project-permissions";
 import {
   Kanban,
   ListTodo,
@@ -146,13 +147,19 @@ export function AppSidebar({
             {!isCollapsed && (
               <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <span>Projects</span>
-                <button
-                  onClick={onCreateProjectClick}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                  title="Create Project"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                {/* Restricted to Super Admin, Organization Admin, Project Admin
+                    and Project Manager. POST /api/projects enforces the same
+                    `projects:create` permission, so hiding this only removes the
+                    entry point -- it is not the control itself. */}
+                {canUseProjectAction(currentUser, "newProject") && (
+                  <button
+                    onClick={onCreateProjectClick}
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    title="Create Project"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
 

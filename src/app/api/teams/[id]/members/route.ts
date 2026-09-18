@@ -19,7 +19,8 @@ async function checkTeamAdmin(teamId: string) {
     const pm = await prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId: team.projectId, userId: user.id } }
     });
-    if (pm && pm.role === "PROJECT_ADMIN") return;
+    // Project Manager manages teams as well -- see lib/project-permissions.ts.
+    if (pm && (pm.role === "PROJECT_ADMIN" || pm.role === "PROJECT_MANAGER")) return;
   }
   
   const wsMember = await prisma.workspaceMember.findUnique({

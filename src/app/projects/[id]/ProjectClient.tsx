@@ -15,6 +15,7 @@ import { AnalyticsChartsView } from "@/components/views/AnalyticsChartsView";
 import { IssueDetailModal } from "@/components/issues/IssueDetailModal";
 import { TeamManagementModal } from "@/components/teams/TeamManagementModal";
 import { BulkImportModal } from "@/components/import/BulkImportModal";
+import { canUseProjectAction } from "@/lib/project-permissions";
 import { CommandPalette } from "@/components/common/CommandPalette";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import {
@@ -136,13 +137,26 @@ export function ProjectClient({
 
   const userMember = members.find((m: any) => m.userId === currentUser?.id);
   const userRoleInProject = userMember?.role || (project.ownerId === currentUser?.id ? "PROJECT_ADMIN" : "MEMBER");
-  const isProjectAdminRole = currentUser?.isSuperAdmin || userRoleInProject === "PROJECT_ADMIN" || userRoleInProject === "PROJECT_MANAGER";
-  
-  const canEditProject = currentUser?.isSuperAdmin || (
-    Array.isArray(currentUser?.capabilities)
-      ? currentUser.capabilities.includes("projects:edit")
-      : isProjectAdminRole
-  );
+  // No `isProjectAdminRole` here on purpose. It existed as a fallback for when
+  // the capability list could not be resolved, which meant a failure to resolve
+  // permissions was treated as holding them. The controls below now derive from
+  // the permission keys alone, so an unresolved list denies.
+
+  // The five project-administration controls are restricted to Super Admin,
+  // Organization Admin, Project Admin and Project Manager. Each resolves through
+  // the shared permission mapping so the button and its endpoint cannot drift
+  // apart -- see lib/project-permissions.ts.
+  //
+  // capabilities arrive from page.tsx resolved WITH this project's context, so
+  // holding a role on another project does not light these up here. A missing
+  // capability list denies rather than falls back to a role guess: the previous
+  // fallback treated "could not resolve permissions" as "is a project admin".
+  const canEditProject = canUseProjectAction(currentUser, "projectSettings");
+  const canAssignMembers = canUseProjectAction(currentUser, "assignMembers");
+  const canManageTeams = canUseProjectAction(currentUser, "manageTeams");
+  const canBulkUpload =
+    canUseProjectAction(currentUser, "bulkUploadTasks") ||
+    canUseProjectAction(currentUser, "bulkUploadMembers");
 
   const canCreateIssue = currentUser?.isSuperAdmin || (
     Array.isArray(currentUser?.capabilities)
@@ -1104,9 +1118,10 @@ export function ProjectClient({
               <div className="flex items-center gap-1.5 sm:gap-2 sm:pl-3 sm:border-l border-slate-300 dark:border-slate-800 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => setShowProjectMembersModal(true)}
+                  disabled={!canAssignMembers}
+                  onClick={() => canAssignMembers && setShowProjectMembersModal(true)}
                   className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer"
-                  title="Assign and manage project members"
+                  title={canAssignMembers ? "Assign and manage project members" : "Viewing members — assigning requires Project Admin or Project Manager"}
                 >
                   <div className="flex -space-x-1.5 overflow-hidden">
                     {members.slice(0, 3).map((m: any, idx: number) => {
@@ -1133,9 +1148,11 @@ export function ProjectClient({
                   <span className="hidden xs:inline">
                     {members.length} {members.length === 1 ? "Member" : "Members"}
                   </span>
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
-                    + Assign
-                  </span>
+                  {canAssignMembers && (
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
+                      + Assign
+                    </span>
+                  )}
                 </button>
 
                 {/* Project Settings Button */}
@@ -1168,7 +1185,7 @@ export function ProjectClient({
                 )}
 
                 {/* Bulk Upload — tasks and project members, template-driven */}
-                {canEditProject && (
+                {canBulkUpload && (
                   <button
                     type="button"
                     onClick={() => setShowBulkImport(true)}
@@ -1181,6 +1198,7 @@ export function ProjectClient({
                 )}
 
                 {/* Teams Management Button */}
+                {canManageTeams && (
                 <button
                   type="button"
                   onClick={() => setShowTeamsModal(true)}
@@ -1195,6 +1213,7 @@ export function ProjectClient({
                     </span>
                   )}
                 </button>
+                )}
               </div>
             </div>
 

@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { teamCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { PROJECT_ADMIN_PERMISSIONS } from "@/lib/project-permissions";
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,7 +61,18 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(teams);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    // assertProjectPermission / assertProjectAccess throw; without this mapping
+    // a denied request surfaced as 500 and the client could not tell a refusal
+    // from a server fault.
+    const msg = error?.message || "Internal Server Error";
+    const status = msg.includes("Unauthorized")
+      ? 401
+      : msg.includes("Forbidden") || msg.includes("permission") || msg.includes("access")
+      ? 403
+      : msg.includes("not found")
+      ? 404
+      : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -85,18 +97,14 @@ export async function POST(req: NextRequest) {
       }
       workspaceId = project.workspaceId;
 
-      // Ensure user has access to project
-      if (!user.isSuperAdmin) {
-        const pm = await prisma.projectMember.findUnique({
-          where: { projectId_userId: { projectId, userId: user.id } }
-        });
-        const wsMember = await prisma.workspaceMember.findUnique({
-          where: { workspaceId_userId: { workspaceId, userId: user.id } }
-        });
-        if (!pm && (!wsMember || wsMember.role === "VIEWER")) {
-          return NextResponse.json({ error: "Forbidden: You do not have permission to create teams in this project" }, { status: 403 });
-        }
-      }
+      // Managing project teams is restricted to Super Admin, Organization
+      // Admin, Project Admin and Project Manager, via `teams:manage`.
+      //
+      // This previously admitted ANY project member — so a MEMBER or a VIEWER
+      // who happened to be assigned to the project could create teams. Being a
+      // member is not a permission.
+      const { assertProjectPermission } = await import("@/lib/tenant");
+      await assertProjectPermission(projectId, PROJECT_ADMIN_PERMISSIONS.manageTeams);
 
       // If leadId is specified, ensure lead is an assigned member of this project
       const actualLeadId = leadId || user.id;
@@ -146,20 +154,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "workspaceId or projectId is required" }, { status: 400 });
     }
 
-    const wsMember = await prisma.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId, userId: user.id } }
-    });
-    
-    if (!user.isSuperAdmin && (!wsMember || wsMember.role === "VIEWER")) {
-      const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }});
+    // Same restriction for a workspace-level team: Super Admin, Organization
+    // Admin, or a role holding `teams:manage`. Workspace membership alone is
+    // not sufficient.
+    if (!user.isSuperAdmin) {
+      const ws = await prisma.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { id: true, orgId: true },
+      });
       if (!ws) {
         return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
       }
       const orgMember = await prisma.organizationMember.findUnique({
-        where: { orgId_userId: { orgId: ws.orgId, userId: user.id } }
+        where: { orgId_userId: { orgId: ws.orgId, userId: user.id } },
+        select: { role: true },
       });
-      if (!orgMember || (orgMember.role !== "OWNER" && orgMember.role !== "ADMIN")) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      if (!orgMember) {
+        return NextResponse.json({ error: "Forbidden: not a member of this organization" }, { status: 403 });
+      }
+      const isOrgAdmin = orgMember.role === "OWNER" || orgMember.role === "ADMIN";
+      if (!isOrgAdmin) {
+        const { pbacEngine } = await import("@/lib/pbac-engine");
+        const allowed = await pbacEngine.hasPermission(
+          ws.orgId,
+          user.id,
+          PROJECT_ADMIN_PERMISSIONS.manageTeams
+        );
+        if (!allowed) {
+          return NextResponse.json(
+            { error: "Forbidden: you do not have permission to manage teams" },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -197,6 +223,17 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(team, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    // A `teams:manage` refusal from assertProjectPermission must surface as 403.
+    // This branch returned 400 for every throw, so an authorization failure was
+    // indistinguishable from a malformed body.
+    const msg = error?.message || "Internal Server Error";
+    const status = msg.includes("Unauthorized")
+      ? 401
+      : msg.includes("Forbidden") || msg.includes("permission") || msg.includes("access")
+      ? 403
+      : msg.includes("not found")
+      ? 404
+      : 400;
+    return NextResponse.json({ error: msg }, { status });
   }
 }
