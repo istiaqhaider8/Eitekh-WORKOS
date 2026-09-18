@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { otpVerifySchema, parseJsonBody } from "@/lib/validation";
 import { verifyOtp } from "@/lib/otp";
 import { createSession, COOKIE_NAME, SESSION_COOKIE_MAX_AGE } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -16,16 +17,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { email, code, purpose } = body;
-
-    if (!email || !code || !purpose) {
-      return NextResponse.json({ error: "Email, code, and purpose are required." }, { status: 400 });
-    }
-
-    if (!["REGISTRATION", "PASSWORD_RESET"].includes(purpose)) {
-      return NextResponse.json({ error: "Invalid purpose." }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(req, otpVerifySchema);
+    if (!parsed.success) return parsed.error;
+    const { email, code, purpose } = parsed.data;
 
     const result = await verifyOtp(email, code, purpose);
     if (!result.valid) {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { otpRequestSchema, parseJsonBody } from "@/lib/validation";
 import { createAndSendOtp } from "@/lib/otp";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -13,16 +14,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { email, purpose } = body;
-
-    if (!email || !purpose) {
-      return NextResponse.json({ error: "Email and purpose are required." }, { status: 400 });
-    }
-
-    if (!["REGISTRATION", "PASSWORD_RESET"].includes(purpose)) {
-      return NextResponse.json({ error: "Invalid purpose." }, { status: 400 });
-    }
+    const parsed = await parseJsonBody(req, otpRequestSchema);
+    if (!parsed.success) return parsed.error;
+    const { email, purpose } = parsed.data;
 
     const result = await createAndSendOtp(email, purpose);
     if (!result.success) {

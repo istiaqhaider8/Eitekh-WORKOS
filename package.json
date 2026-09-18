@@ -15,7 +15,8 @@
     "prisma:seed": "node prisma/seed.js",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "check:validation": "node scripts/check-route-validation.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

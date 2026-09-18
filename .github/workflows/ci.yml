@@ -63,6 +63,14 @@ jobs:
           DATABASE_URL="file:./ci-populated.db" node prisma/seed.js
           DATABASE_URL="file:./ci-populated.db" npx prisma migrate status
 
+      # S4/F7. A mutating route must not read a request body without a schema.
+      # Eight did. One of them, auth/invite, took `role` from the body with no
+      # check on the inviter's own role, and auth/invitation creates the
+      # OrganizationMember from it -- so an org MEMBER could mint an OWNER
+      # invitation. Verified against the running app before the fix.
+      - name: API input-validation check
+        run: node scripts/check-route-validation.mjs
+
       - name: TypeScript type-check
         run: npx tsc --noEmit
 

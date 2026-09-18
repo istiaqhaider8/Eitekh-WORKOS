@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invitationAcceptSchema, parseJsonBody } from "@/lib/validation";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
@@ -61,16 +62,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { token, firstName, lastName, password } = body;
-
-    if (!token || !firstName || !lastName || !password) {
-      return NextResponse.json({ error: "All fields are required." }, { status: 400 });
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
-    }
+    // passwordSchema applies the full policy here. This route used to check
+    // only `password.length < 8`, so accepting an invitation was a way into the
+    // product with a password registration would have refused.
+    const parsed = await parseJsonBody(req, invitationAcceptSchema);
+    if (!parsed.success) return parsed.error;
+    const { token, firstName, lastName, password } = parsed.data;
 
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 

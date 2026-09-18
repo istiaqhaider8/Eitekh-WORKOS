@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invitationCreateSchema, parseJsonBody } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -22,14 +23,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { email, orgId, workspaceId, projectId, role } = body;
+    const parsed = await parseJsonBody(req, invitationCreateSchema);
+    if (!parsed.success) return parsed.error;
+    const { email, orgId, workspaceId, projectId, role } = parsed.data;
 
-    if (!email || !orgId) {
-      return NextResponse.json({ error: "Email and organization are required." }, { status: 400 });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
+    // emailSchema already lowercased and trimmed it.
+    const normalizedEmail = email;
 
     // Verify the inviter is a member of the org
     const orgMembership = await prisma.organizationMember.findUnique({
@@ -37,6 +36,32 @@ export async function POST(req: Request) {
     });
     if (!orgMembership) {
       return NextResponse.json({ error: "You are not a member of this organization." }, { status: 403 });
+    }
+
+    // Inviting someone INTO an organization is an administrative act, and it
+    // decides their org role: auth/invitation creates the OrganizationMember
+    // with `role: invitation.role`. This endpoint previously required only
+    // membership and accepted `role` verbatim, so a plain MEMBER could mint an
+    // OWNER invitation -- verified against the running app before this change.
+    //
+    // Gated the same way as POST /api/orgs/[id]/members, the equivalent
+    // endpoint, which has always required OWNER or ADMIN.
+    if (!user.isSuperAdmin) {
+      if (orgMembership.role !== "OWNER" && orgMembership.role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Forbidden: only an organization owner or admin can invite people." },
+          { status: 403 }
+        );
+      }
+      // And nobody may invite above their own level: an ADMIN cannot create an
+      // OWNER. Without this, "who may invite" would be fixed while "at what
+      // level" stayed open.
+      if (role === "OWNER" && orgMembership.role !== "OWNER") {
+        return NextResponse.json(
+          { error: "Forbidden: only an organization owner can invite another owner." },
+          { status: 403 }
+        );
+      }
     }
 
     const org = await prisma.organization.findUnique({ where: { id: orgId } });
@@ -64,7 +89,7 @@ export async function POST(req: Request) {
         orgId,
         workspaceId: workspaceId || null,
         projectId: projectId || null,
-        role: role || "MEMBER",
+        role,
         expiresAt,
       },
     });
@@ -78,7 +103,7 @@ export async function POST(req: Request) {
         inviterName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
         inviterEmail: user.email,
         organizationName: org.name,
-        roleName: role || "Member",
+        roleName: role,
         actionUrl: inviteUrl,
         recipientEmail: normalizedEmail,
       },

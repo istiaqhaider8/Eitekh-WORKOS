@@ -283,6 +283,63 @@ export const workspaceCreateSchema = z.object({
   description: safeStringSchema.trim().optional().nullable(),
 });
 
+// ── Invitation and OTP schemas ──────────────────────────────────────
+//
+// These four routes read `await req.json()` and destructured it directly, with
+// only ad-hoc truthiness checks. Three of them are unauthenticated. The gap was
+// not cosmetic:
+//
+//  * auth/invite accepted `role` verbatim with no validation and no check on
+//    the inviter's own role, and auth/invitation then creates the
+//    OrganizationMember with `role: invitation.role`. An organization MEMBER
+//    could therefore mint an OWNER invitation -- verified against the running
+//    app -- and a nonsense value such as "GOD_MODE" was stored as-is.
+//  * auth/invitation checked only `password.length < 8`, so accepting an
+//    invitation bypassed the upper/lower/digit/symbol policy that
+//    registration enforces through passwordSchema.
+//  * every one of them would 500 rather than 400 on a non-string field, because
+//    `.trim()` / `.toLowerCase()` was called on whatever arrived.
+
+/** Organization roles an invitation may carry. */
+export const ORG_ROLES = ["OWNER", "ADMIN", "MEMBER", "GUEST"] as const;
+export const orgRoleSchema = z.enum(ORG_ROLES);
+
+export const invitationCreateSchema = z.object({
+  email: emailSchema,
+  orgId: cuidSchema,
+  workspaceId: optionalCuidSchema,
+  projectId: optionalCuidSchema,
+  // Constrained to the known roles. Whether the INVITER may grant this
+  // particular role is a separate, authorization question, enforced in the
+  // route -- a schema cannot know who is asking.
+  role: orgRoleSchema.default("MEMBER"),
+});
+
+export const invitationAcceptSchema = z.object({
+  token: z.string().min(1, "Invitation token is required").max(256),
+  firstName: z.string().min(1, "First name is required").max(100).trim(),
+  lastName: z.string().min(1, "Last name is required").max(100).trim(),
+  // The same policy registration uses. Accepting an invitation was the one way
+  // into the product with a weaker password than the product demands.
+  password: passwordSchema,
+});
+
+export const OTP_PURPOSES = ["REGISTRATION", "PASSWORD_RESET"] as const;
+export const otpPurposeSchema = z.enum(OTP_PURPOSES);
+
+export const otpRequestSchema = z.object({
+  email: emailSchema,
+  purpose: otpPurposeSchema,
+});
+
+export const otpVerifySchema = z.object({
+  email: emailSchema,
+  // Six digits. Bounding the length also stops a caller submitting a huge
+  // string to the hash comparison.
+  code: z.string().regex(/^d{6}$/, "Code must be 6 digits"),
+  purpose: otpPurposeSchema,
+});
+
 export const orgMemberCreateSchema = z.object({
   email: emailSchema,
   firstName: z.string().max(100).trim().optional(),
