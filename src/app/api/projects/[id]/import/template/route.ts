@@ -157,7 +157,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
   } catch (error: any) {
     const msg = error?.message || "Failed to build template";
-    const status = msg.includes("Unauthorized") ? 401 : msg.includes("Forbidden") || msg.includes("access") ? 403 : 500;
+    const status = msg.includes("Unauthorized")
+      ? 401
+      : msg.includes("Forbidden") || msg.includes("access")
+      ? 403
+      // "Project not found" from assertProjectAccess; 500 here reported a
+      // mistyped project id as a server fault.
+      : msg.includes("not found")
+      ? 404
+      : 500;
     return NextResponse.json({ error: msg }, { status });
   }
 }
