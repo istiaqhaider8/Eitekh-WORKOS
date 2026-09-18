@@ -69,14 +69,14 @@ export interface ImportSummary {
 }
 
 /**
- * Parses a date cell as **DD-MM-YYYY** — the documented template format.
+ * Parses a date cell as **DD/MM/YYYY** — the documented template format.
  *
  * `/` and `.` are accepted as separators alongside `-`, and a single-digit day
  * or month is accepted, because a spreadsheet re-formats a typed date on save:
  * entering `01-02-2026` in Excel commonly writes `1/2/2026` back to the CSV.
  * Rejecting that would make a correctly filled template fail on export alone.
  *
- * `YYYY-MM-DD` is still accepted. It cannot be confused with `DD-MM-YYYY` (a
+ * `YYYY-MM-DD` is still accepted. It cannot be confused with `DD/MM/YYYY` (a
  * four-digit leading component is unambiguous), it is what earlier templates
  * told people to use, and files built against them should keep working.
  *
@@ -96,14 +96,14 @@ export function parseDateCell(value: string): { ok: true; date: Date | null } | 
   } else if (dmy) {
     [, day, month, year] = dmy.map(Number) as unknown as [never, number, number, number];
   } else {
-    return { ok: false, error: `date must be DD-MM-YYYY, got "${value}"` };
+    return { ok: false, error: `date must be DD/MM/YYYY, got "${value}"` };
   }
 
   if (month < 1 || month > 12) {
-    return { ok: false, error: `month must be 1-12 in "${value}" (format is DD-MM-YYYY)` };
+    return { ok: false, error: `month must be 1-12 in "${value}" (format is DD/MM/YYYY)` };
   }
   if (day < 1 || day > 31) {
-    return { ok: false, error: `day must be 1-31 in "${value}" (format is DD-MM-YYYY)` };
+    return { ok: false, error: `day must be 1-31 in "${value}" (format is DD/MM/YYYY)` };
   }
 
   const d = new Date(Date.UTC(year, month - 1, day));
