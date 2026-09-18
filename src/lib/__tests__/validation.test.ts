@@ -3,7 +3,7 @@
  * These are pure schema tests — no I/O required.
  */
 
-import { loginSchema, registerSchema, parseBody, paginationSchema } from "../validation";
+import { loginSchema, registerSchema, parseBody, paginationSchema, pbacRoleCreateSchema } from "../validation";
 
 describe("loginSchema", () => {
   it("accepts valid credentials", () => {
@@ -94,5 +94,59 @@ describe("parseBody", () => {
     if (!result.success) {
       expect(result.error).toBeDefined();
     }
+  });
+});
+
+describe("pbacRoleCreateSchema", () => {
+  // Creating a permission role was returning 400 for every role not tied to a
+  // project. The editor sends an explicit null for projectId, and the field was
+  // `.optional()` but not nullable.
+  it("accepts an explicit null projectId, as the role editor sends", () => {
+    const result = pbacRoleCreateSchema.safeParse({
+      name: "QA Reviewer",
+      scope: "ORG",
+      projectId: null,
+      projectName: null,
+      permissions: ["projects:view"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.projectId).toBeNull();
+  });
+
+  it("still accepts an omitted projectId and a real one", () => {
+    expect(pbacRoleCreateSchema.safeParse({ name: "R", permissions: [] }).success).toBe(true);
+    expect(
+      pbacRoleCreateSchema.safeParse({ name: "R", projectId: "cmu2wp2v6000mxrx2hur23je3", permissions: [] }).success
+    ).toBe(true);
+  });
+
+  // A custom role id is `role_<orgId>_<slug>_<timestamp>` — 64 characters. The
+  // 50-character cuid bound let system roles (46) through but rejected every
+  // custom role, so a role could be created and then never edited.
+  it("accepts a full-length custom role id for edits", () => {
+    const customId = "role_cmu2wp2ug0004xrx2vd989zrp_zz-qa-reviewer-25n7_1789736000503";
+    expect(customId.length).toBeGreaterThan(50);
+    const result = pbacRoleCreateSchema.safeParse({ id: customId, name: "R", permissions: [] });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a system role id too", () => {
+    const systemId = "role_cmu2wp2ug0004xrx2vd989zrp_project-manager";
+    expect(pbacRoleCreateSchema.safeParse({ id: systemId, name: "R", permissions: [] }).success).toBe(true);
+  });
+
+  it("requires a name", () => {
+    expect(pbacRoleCreateSchema.safeParse({ name: "", permissions: [] }).success).toBe(false);
+    expect(pbacRoleCreateSchema.safeParse({ permissions: [] }).success).toBe(false);
+  });
+
+  it("defaults permissions to an empty list", () => {
+    const result = pbacRoleCreateSchema.safeParse({ name: "R" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.permissions).toEqual([]);
+  });
+
+  it("rejects an invalid scope", () => {
+    expect(pbacRoleCreateSchema.safeParse({ name: "R", scope: "GALAXY", permissions: [] }).success).toBe(false);
   });
 });

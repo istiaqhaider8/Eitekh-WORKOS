@@ -1210,7 +1210,20 @@ export function RolesTab({
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Scope</label>
                       <select
                         value={roleForm.scope}
-                        onChange={(e) => setRoleForm({ ...roleForm, scope: e.target.value as any })}
+                        onChange={(e) => {
+                          const scope = e.target.value as 'PROJECT' | 'WORKSPACE' | 'ORG';
+                          // Drop the project when the scope is no longer project
+                          // level. The target-project selector is hidden for the
+                          // other scopes, so a previously chosen project would
+                          // otherwise stay in the form invisibly and be saved —
+                          // producing an ORG-scoped role pinned to one project.
+                          setRoleForm({
+                            ...roleForm,
+                            scope,
+                            projectId: scope === 'PROJECT' ? roleForm.projectId : null,
+                            projectName: scope === 'PROJECT' ? roleForm.projectName : null,
+                          });
+                        }}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
                       >
                         <option value="PROJECT">Project Level</option>

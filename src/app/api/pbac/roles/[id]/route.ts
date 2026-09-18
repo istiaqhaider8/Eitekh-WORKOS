@@ -113,9 +113,18 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: 'Role deleted successfully' });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e.message || 'Failed to delete role' },
-      { status: e.message?.includes('Forbidden') ? 403 : 500 }
-    );
+    const msg = e?.message || 'Failed to delete role';
+    // Refusing to delete a role that users still hold, or a system role, is a
+    // deliberate rule, not a server fault. Both returned 500, which reads as a
+    // crash in the UI and in error monitoring, and buries an instruction the
+    // operator needs to act on ("Unassign assigned users first...").
+    const status = msg.includes('Forbidden')
+      ? 403
+      : msg.includes('not found')
+      ? 404
+      : /assigned to|system role|cannot delete/i.test(msg)
+      ? 409
+      : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }

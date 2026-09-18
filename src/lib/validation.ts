@@ -22,6 +22,17 @@ export const passwordSchema = z
 export const cuidSchema = z.string().min(1).max(50);
 export const optionalCuidSchema = z.string().max(50).nullable().optional();
 
+/**
+ * A PBAC role id, e.g. `role_<orgId>_<slug>` for a system role and
+ * `role_<orgId>_<slug>_<timestamp>` for one created through the admin UI.
+ *
+ * These are not cuids and they are long: a system id runs to ~46 characters and
+ * a custom one to ~64. Validating them with cuidSchema (max 50) let a system
+ * role through but rejected every custom role with a 400, so a role could be
+ * created and then never edited.
+ */
+export const pbacRoleIdSchema = z.string().min(1).max(200);
+
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -506,17 +517,23 @@ export const orgRoleCreateSchema = z.object({
 
 // ── PBAC schemas (security-critical) ─────────────────────────────
 
+// `projectId` and `projectName` are nullable, not merely optional. An ORG-scoped
+// role has no project, and the role editor sends an explicit `null` for it
+// rather than omitting the field. With `.optional()` alone that null was
+// rejected — "projectId: Invalid input: expected string, received null" — so
+// creating a role failed with a 400 for every role that was not tied to a
+// project, which is the common case.
 export const pbacRoleCreateSchema = z.object({
   orgId: cuidSchema.optional(),
-  id: cuidSchema.optional(),
+  id: pbacRoleIdSchema.optional(),
   name: safeStringSchema.min(1, "Role name is required").trim(),
   description: safeStringSchema.trim().optional(),
   scope: z.enum(["PROJECT", "ORG", "WORKSPACE"]).optional(),
-  projectId: cuidSchema.optional(),
-  projectName: safeStringSchema.trim().optional(),
+  projectId: optionalCuidSchema,
+  projectName: safeStringSchema.trim().nullable().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
   permissions: z.array(z.string().max(100)).max(500).default([]),
-  cloneFromId: cuidSchema.optional(),
+  cloneFromId: pbacRoleIdSchema.optional(),
 });
 
 export const pbacRoleUpdateSchema = z.object({
@@ -526,8 +543,8 @@ export const pbacRoleUpdateSchema = z.object({
   description: safeStringSchema.trim().optional(),
   permissions: z.array(z.string().max(100)).max(500).optional(),
   scope: z.enum(["PROJECT", "ORG", "WORKSPACE"]).optional(),
-  projectId: cuidSchema.optional(),
-  projectName: safeStringSchema.trim().optional(),
+  projectId: optionalCuidSchema,
+  projectName: safeStringSchema.trim().nullable().optional(),
 });
 
 export const pbacRoleUsersSchema = z.object({
