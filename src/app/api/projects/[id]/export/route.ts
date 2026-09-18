@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
+import { csvSafeCell } from "@/lib/sanitize";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 
@@ -176,20 +177,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
       const rows = filteredIssues.map((issue) => [
         issue.issueKey,
-        `"${(issue.title || "").replace(/"/g, '""')}"`,
+        `"${csvSafeCell(issue.title)}"`,
         issue.issueType,
-        `"${(issue.status?.name || "").replace(/"/g, '""')}"`,
+        `"${csvSafeCell(issue.status?.name)}"`,
         issue.priority,
-        `"${issue.assignee ? `${issue.assignee.firstName} ${issue.assignee.lastName}` : "Unassigned"}"`,
-        `"${issue.reporter ? `${issue.reporter.firstName} ${issue.reporter.lastName}` : ""}"`,
-        `"${issue.sprint?.name || "Backlog"}"`,
-        `"${issue.epic?.name || ""}"`,
+        `"${csvSafeCell(issue.assignee ? `${issue.assignee.firstName} ${issue.assignee.lastName}` : "Unassigned")}"`,
+        `"${csvSafeCell(issue.reporter ? `${issue.reporter.firstName} ${issue.reporter.lastName}` : "")}"`,
+        `"${csvSafeCell(issue.sprint?.name || "Backlog")}"`,
+        `"${csvSafeCell(issue.epic?.name)}"`,
         issue.estimatePoints ?? "",
         issue.estimateHours ?? "",
         issue.timeSpentHours ?? 0,
         issue.dueDate ? new Date(issue.dueDate).toISOString().split("T")[0] : "",
         new Date(issue.createdAt).toISOString().split("T")[0],
-        `"${(issue.description || "").replace(/"/g, '""').replace(/\n/g, " ")}"`,
+        `"${csvSafeCell((issue.description || "").replace(/\n/g, " "))}"`,
       ].join(","));
 
       const csvContent = [headers.join(","), ...rows].join("\n");

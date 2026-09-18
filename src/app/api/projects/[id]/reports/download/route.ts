@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
+import { escapeHtml as esc } from "@/lib/sanitize";
 import { assertProjectAccess } from "@/lib/tenant";
 
 export async function GET(
@@ -283,7 +284,7 @@ export async function GET(
     // 4. Team Capacity Matrix
     const memberMap: Record<string, { email: string; count: number; points: number }> = {};
     filteredIssues.forEach((i) => {
-      const name = i.assignee ? `${i.assignee.firstName} ${i.assignee.lastName}` : "Unassigned";
+      const name = i.assignee ? `${esc(i.assignee.firstName)} ${esc(i.assignee.lastName)}` : "Unassigned";
       const email = i.assignee?.email || "—";
       if (!memberMap[name]) memberMap[name] = { email, count: 0, points: 0 };
       memberMap[name].count += 1;
@@ -510,7 +511,7 @@ export async function GET(
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${reportTitle} - ${project.name}</title>
+  <title>${esc(reportTitle)} - ${esc(project.name)}</title>
   <style>
     @page { size: A4 portrait; margin: 14mm; }
     body {
@@ -646,7 +647,7 @@ export async function GET(
     <div>
       <span class="badge">${reportCategory}</span>
       <h1 class="brand-title" style="margin-top: 6px;">${reportTitle}</h1>
-      <div class="project-sub">${project.name} (${project.key}) • Generated ${now.toLocaleString()}</div>
+      <div class="project-sub">${esc(project.name)} (${esc(project.key)}) • Generated ${now.toLocaleString()}</div>
       <div style="font-size: 10px; color: #64748b; margin-top: 3px;">${reportDescription}</div>
     </div>
     <div style="text-align: right;">
@@ -877,17 +878,17 @@ export async function GET(
         const cycleDays = i.createdAt && i.updatedAt ? Math.max(0.1, (new Date(i.updatedAt).getTime() - new Date(i.createdAt).getTime()) / (1000 * 60 * 60 * 24)).toFixed(1) : '—';
 
         return `<tr>
-          <td style="font-family: monospace; font-weight: bold; color: #2563eb;">${i.issueKey}</td>
-          <td><strong>${(i.title || "").replace(/</g, "&lt;")}</strong>${i.epic ? `<div style="font-size: 8.5px; color: #7c3aed; font-weight: bold;">Epic: ${i.epic.name}</div>` : ''}</td>
+          <td style="font-family: monospace; font-weight: bold; color: #2563eb;">${esc(i.issueKey)}</td>
+          <td><strong>${esc(i.title || "")}</strong>${i.epic ? `<div style="font-size: 8.5px; color: #7c3aed; font-weight: bold;">Epic: ${esc(i.epic.name)}</div>` : ''}</td>
 
           ${canonicalId === "risk-exception" ? `<td>${isOverdue ? `<span style="color:#dc2626; font-weight:bold; background:#fee2e2; padding:2px 4px; border-radius:3px;">+${daysPast}d Overdue</span>` : '<span style="color:#16a34a;">On Schedule</span>'}</td>` : ''}
           ${canonicalId === "quality-defect" ? `<td><span class="priority-tag ${pClass}">${i.priority || 'BUG'}</span></td>` : ''}
           ${canonicalId === "delivery-flow" ? `<td style="font-family: monospace; font-weight: bold; color: #16a34a;">${cycleDays} days</td>` : ''}
           ${canonicalId === "work-portfolio" ? `<td><span style="font-size:9px; font-weight:bold; color:#475569;">${i.issueType}</span></td>` : ''}
 
-          <td><span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; background: #f1f5f9; font-weight: 600;">${i.status?.name || ""}</span></td>
+          <td><span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; background: #f1f5f9; font-weight: 600;">${esc(i.status?.name || "")}</span></td>
           <td><span class="priority-tag ${pClass}">${i.priority}</span></td>
-          <td>${i.assignee ? `${i.assignee.firstName} ${i.assignee.lastName}` : "<span style='color:#94a3b8; font-style:italic;'>Unassigned</span>"}</td>
+          <td>${i.assignee ? `${esc(i.assignee.firstName)} ${esc(i.assignee.lastName)}` : "<span style='color:#94a3b8; font-style:italic;'>Unassigned</span>"}</td>
           <td style="text-align: right; font-weight: bold;">${i.estimatePoints ?? 0}</td>
           <td style="color: ${isOverdue ? '#dc2626; font-weight: bold;' : '#64748b;'}">${i.dueDate ? new Date(i.dueDate).toISOString().split("T")[0] : "-"}</td>
         </tr>`;
@@ -900,7 +901,7 @@ export async function GET(
   </div>
 
   <div class="footer">
-    <div>Confidential &amp; Proprietary • ${project.name} (${project.key})</div>
+    <div>Confidential &amp; Proprietary • ${esc(project.name)} (${esc(project.key)})</div>
     <div>Complete Multi-Page Audit Record (${totalCount} deliverables) • Eitekh WorkOS Reporting System</div>
   </div>
 </body>
@@ -966,12 +967,12 @@ export async function GET(
     <Cell ss:StyleID="Header"><Data ss:Type="String">Due Date</Data></Cell>
    </Row>
    ${filteredIssues.map((i) => `<Row>
-    <Cell><Data ss:Type="String">${i.issueKey}</Data></Cell>
+    <Cell><Data ss:Type="String">${esc(i.issueKey)}</Data></Cell>
     <Cell><Data ss:Type="String">${(i.title || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")}</Data></Cell>
     <Cell><Data ss:Type="String">${i.issueType}</Data></Cell>
-    <Cell><Data ss:Type="String">${i.status?.name || ""}</Data></Cell>
+    <Cell><Data ss:Type="String">${esc(i.status?.name || "")}</Data></Cell>
     <Cell><Data ss:Type="String">${i.priority}</Data></Cell>
-    <Cell><Data ss:Type="String">${i.assignee ? `${i.assignee.firstName} ${i.assignee.lastName}` : "Unassigned"}</Data></Cell>
+    <Cell><Data ss:Type="String">${i.assignee ? `${esc(i.assignee.firstName)} ${esc(i.assignee.lastName)}` : "Unassigned"}</Data></Cell>
     <Cell><Data ss:Type="Number">${i.estimatePoints ?? 0}</Data></Cell>
     <Cell><Data ss:Type="String">${i.dueDate ? new Date(i.dueDate).toISOString().split("T")[0] : ""}</Data></Cell>
    </Row>`).join("")}
@@ -1026,7 +1027,7 @@ export async function GET(
       ].join(","));
 
       const csvContent = [
-        `# Sprint Velocity Report - ${project.name} (${project.key})`,
+        `# Sprint Velocity Report - ${esc(project.name)} (${esc(project.key)})`,
         `# Average Velocity: ${vData.averageVelocity} pts/sprint | Rolling 3-Sprint: ${vData.rolling3SprintAverage} pts | Rolling 5-Sprint: ${vData.rolling5SprintAverage} pts`,
         `# Generated: ${now.toISOString()}`,
         vHeaders.join(","),
@@ -1065,7 +1066,7 @@ export async function GET(
       i.issueType,
       `"${(i.status?.name || "").replace(/"/g, '""')}"`,
       i.priority,
-      `"${i.assignee ? `${i.assignee.firstName} ${i.assignee.lastName}` : "Unassigned"}"`,
+      `"${i.assignee ? `${esc(i.assignee.firstName)} ${esc(i.assignee.lastName)}` : "Unassigned"}"`,
       `"${i.reporter ? `${i.reporter.firstName} ${i.reporter.lastName}` : ""}"`,
       `"${i.sprint?.name || "Backlog"}"`,
       `"${i.epic?.name || ""}"`,
@@ -1078,7 +1079,7 @@ export async function GET(
     ].join(","));
 
     const csvContent = [
-      `# ${reportTitle} - ${project.name} (${project.key})`,
+      `# ${reportTitle} - ${esc(project.name)} (${esc(project.key)})`,
       `# Generated: ${now.toISOString()} - Filtered Count: ${totalCount}`,
       headers.join(","),
       ...rows,

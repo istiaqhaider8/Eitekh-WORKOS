@@ -70,3 +70,24 @@ export function normalizeEmail(email: string): string {
   if (!email || typeof email !== "string") return "";
   return email.toLowerCase().trim();
 }
+
+/**
+ * Neutralises spreadsheet formula injection (CWE-1236) for a CSV field.
+ *
+ * Excel and Google Sheets evaluate a cell beginning with `=`, `+`, `-`, `@`,
+ * tab or CR as a formula — even when the field is quoted, because the quotes
+ * are consumed by the CSV parser. So a user-supplied issue title of
+ * `=HYPERLINK("http://attacker","Click")` becomes a live formula in whoever
+ * opens the export. Quoting alone does not prevent this; the value has to stop
+ * looking like a formula.
+ *
+ * Prefixing with a single quote is the conventional fix: spreadsheets treat it
+ * as "this cell is text" and do not display it.
+ */
+export function csvSafeCell(value: unknown): string {
+  const s = value === null || value === undefined ? "" : String(value);
+  const needsGuard = /^[=+\-@\t\r]/.test(s);
+  const guarded = needsGuard ? `'${s}` : s;
+  // Standard CSV escaping: double any embedded quote.
+  return guarded.replace(/"/g, '""');
+}
