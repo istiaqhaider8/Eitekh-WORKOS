@@ -19,7 +19,7 @@ import {
   Calendar,
 } from "lucide-react";
 
-import { isDelegationActive } from "@/lib/delegation-engine";
+import { isDelegationActive } from "@/lib/delegation-dates";
 import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 interface KanbanBoardViewProps {

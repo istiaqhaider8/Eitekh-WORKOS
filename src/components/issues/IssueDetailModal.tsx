@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { isUserOnLeave, doesLeaveOverlap, formatLeaveRange } from "@/lib/leave-engine";
-import { isDelegationActive } from "@/lib/delegation-engine";
+import { isDelegationActive } from "@/lib/delegation-dates";
 import { isIssueDone } from "@/lib/designSystem";
 import { sanitizeUrl } from "@/lib/sanitize";
 

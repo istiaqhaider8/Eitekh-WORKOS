@@ -1,7 +1,13 @@
-import { parseISO, startOfDay, endOfDay, isBefore, isAfter, isEqual } from 'date-fns';
+import { startOfDay } from 'date-fns';
 import { prisma } from './prisma';
 import { syncEngine } from './sync-engine';
 import { logger } from './logger';
+
+// The pure date helpers live in ./delegation-dates so that client components
+// can import them without pulling this module's Prisma and sync-engine imports
+// into the browser bundle. Re-exported here so server callers are unaffected.
+import { normalizeDelegationDateRange, isDelegationActive } from './delegation-dates';
+export { normalizeDelegationDateRange, isDelegationActive };
 
 export interface SimpleDelegation {
   id: string;
@@ -48,34 +54,6 @@ export interface SimpleDelegation {
       email: string;
     };
   }>;
-}
-
-/**
- * Normalizes date bounds (00:00:00.000 to 23:59:59.999).
- */
-export function normalizeDelegationDateRange(startInput: Date | string, endInput: Date | string) {
-  const start = typeof startInput === 'string' ? parseISO(startInput) : new Date(startInput);
-  const end = typeof endInput === 'string' ? parseISO(endInput) : new Date(endInput);
-  
-  return {
-    startDate: startOfDay(start),
-    endDate: endOfDay(end),
-  };
-}
-
-/**
- * Evaluates whether a delegation is currently active on a given target date.
- */
-export function isDelegationActive(delegation: SimpleDelegation, targetDateInput?: Date | string): boolean {
-  if (delegation.status !== 'ACTIVE') return false;
-  
-  const target = targetDateInput 
-    ? (typeof targetDateInput === 'string' ? parseISO(targetDateInput) : new Date(targetDateInput))
-    : new Date();
-
-  const { startDate, endDate } = normalizeDelegationDateRange(delegation.startDate, delegation.endDate);
-
-  return (isAfter(target, startDate) || isEqual(target, startDate)) && (isBefore(target, endDate) || isEqual(target, endDate));
 }
 
 /**

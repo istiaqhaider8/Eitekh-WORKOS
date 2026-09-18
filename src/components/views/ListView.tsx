@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 import { showSuccess, showError } from "@/lib/toast";
-import { isDelegationActive } from "@/lib/delegation-engine";
+import { isDelegationActive } from "@/lib/delegation-dates";
 import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 interface ListViewProps {

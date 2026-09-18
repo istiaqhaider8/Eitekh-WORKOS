@@ -1029,3 +1029,34 @@ model PbacAuditRecord {
   @@index([orgId, createdAt])
   @@index([actorId])
 }
+
+/// PROD-4. The cross-instance relay for real-time (SSE) events.
+///
+/// `syncEngine.clients` is a per-process Map of open SSE connections, which is
+/// correct — a connection belongs to the process holding the socket. What was
+/// missing is a way for an event published on one instance to reach the
+/// browsers connected to the others. Without it, real-time collaboration
+/// "randomly" fails depending on which instance each user landed on, and works
+/// perfectly in single-instance testing, so it would not be caught before
+/// launch.
+///
+/// Events are inserted here and announced with Postgres NOTIFY; every instance
+/// LISTENs, fetches the row and relays to its own clients. The row exists
+/// rather than the payload riding on the notification for two reasons: NOTIFY
+/// payloads are capped at 8000 bytes, and a durable row lets a client that
+/// reconnects replay what it missed via Last-Event-ID.
+///
+/// Rows are short-lived; see the retention sweep in src/lib/sync-bus.ts.
+model SyncEventOutbox {
+  id        String   @id
+  /// Project-scoped events carry a projectId; per-user events carry a userId.
+  projectId String?
+  userId    String?
+  payload   Json
+  /// The instance that published it, so it can skip its own echo.
+  originId  String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([projectId, createdAt])
+}

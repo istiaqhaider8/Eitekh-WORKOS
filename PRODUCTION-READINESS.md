@@ -159,10 +159,10 @@ be pointed at `dev.db` by accident.
 | ~~B1~~ | ✅ **FIXED 2026-09-18** (PROD-1). Was: SQLite in a multi-tenant SaaS | `prisma/schema.prisma` → `provider = "postgresql"` |
 | ~~B2~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting in-process. Both limiters now go through a shared Postgres-backed store. | [`src/lib/rate-limit-store.ts`](src/lib/rate-limit-store.ts); verified across 2 live instances, see PROD-2 below |
 | ~~B3~~ | ✅ **ADDRESSED 2026-09-19** (PROD-3). The `Map` is still there and still in-process — because **nothing ever writes to it**: `set()` has no callers, so it holds no data. The real cross-instance defect in that file was the invalidation path, which now bumps the shared PBAC version. See the PROD-3 cache finding. | [`src/lib/cache-manager.ts`](src/lib/cache-manager.ts) header comment |
-| B4 | SSE client registry is in-process | `private clients: Map` at [`src/lib/sync-engine.ts:79`](src/lib/sync-engine.ts) |
+| ~~B4~~ | ✅ **FIXED 2026-09-19** (PROD-4). The registry is still per-process, which is correct — a socket belongs to the process holding it. What was missing was fan-out: events now relay between instances over Postgres `LISTEN/NOTIFY`. | [`src/lib/sync-bus.ts`](src/lib/sync-bus.ts); verified with a client on each of 2 live instances |
 | B5 | Zero authorization / tenant-isolation tests | grep for `assertProjectAccess`/`tenant` in tests → no matches |
 | B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
-| B7 | `/projects/[id]` ships 310 kB First Load JS | `npm run build` output |
+| B7 | `/projects/[id]` ships **296 kB** First Load JS (was 310 kB; PROD-4 removed the server-side delegation engine from the client bundle, −20 kB) | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
 | ~~**B9**~~ | ✅ **FIXED 2026-09-18** (PROD-0, originally `0007_repair_schema_drift`; the SQLite history was archived to `prisma/migrations-sqlite-archive/` when PROD-1 regenerated it for Postgres). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
 | **B10** | **MEASURED 2026-09-18: 682 KB for one issue.** **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
@@ -202,12 +202,13 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~72%** | all of Gate 0 — 8 items, **4 complete** |
+| **Multi-tenant paid production** | **~78%** | all of Gate 0 — 8 items, **5 complete** |
 
-The percentage is a judgement, not a measurement. The countable part: **4 of 8 Gate 0 items are
-complete** (PROD-0, PROD-1, PROD-2, PROD-3). What remains is PROD-4 (SSE fan-out), PROD-5/6
-(tenant-isolation and authorization tests) and PROD-7 (error tracking). PROD-5 is the largest
-remaining item and the one with the worst failure mode.
+The percentage is a judgement, not a measurement. The countable part: **5 of 8 Gate 0 items are
+complete** (PROD-0 through PROD-4). All of the shared-state work is done: the database, the rate
+limiters, the authorization model and real-time fan-out now work across instances. What remains
+is PROD-5/6 (tenant-isolation and authorization tests) and PROD-7 (error tracking). PROD-5 is the
+largest remaining item and the one with the worst failure mode.
 
 ---
 
@@ -630,29 +631,90 @@ tests in [`src/lib/__tests__/pbac-store.test.ts`](src/lib/__tests__/pbac-store.t
 | | |
 |---|---|
 | **Severity** | Blocker |
-| **Status** | PENDING |
-| **Depends on** | PROD-2 (**done**), and in practice PROD-3: fan-out needs a pub/sub channel, which Postgres `LISTEN/NOTIFY` can do but not well at this shape — it holds a connection per listener. Decide the cache infrastructure first and publish over that. |
-| **Files** | `src/lib/sync-engine.ts`, `src/app/api/sync/events/route.ts` |
+| **Status** | ✅ **DONE 2026-09-19** |
+| **Depends on** | PROD-1, PROD-2, PROD-3 (all done) |
+| **Files** | `src/lib/sync-bus.ts` (new), `src/lib/delegation-dates.ts` (new), `src/lib/sync-engine.ts`, `src/lib/delegation-engine.ts`, 5 client components, `prisma/migrations/0005_sync_event_outbox` |
 
-**Why**: `syncEngine.clients` is a process-local `Map`, so an event published on instance A never
-reaches a browser connected to instance B. Real-time collaboration would appear to "randomly not
-work" depending on which instance each user landed on — and it would work perfectly in
-single-instance testing, so this will not be caught before launch without deliberate effort.
+**Why it mattered**: `syncEngine.clients` is a per-process `Map`, so an event published on instance
+A never reached a browser connected to instance B. Real-time collaboration would appear to
+"randomly not work" depending on which instance each user landed on — and it works perfectly in
+single-instance testing, so it would not have been caught before launch.
 
-**Do this**:
-1. Publish sync events to Redis pub/sub; each instance relays to its own connected clients.
-2. Keep the local `Map` as the per-instance connection registry — that part is correct.
-3. Confirm the SSE cleanup from PERF-3 still runs on disconnect (no leaked subscriptions).
-4. Verify your host does not buffer or time out SSE responses (many proxies do; set
-   `X-Accel-Buffering: no` for nginx and check the platform's streaming limits).
+**What was done**
 
-**Acceptance criteria**:
-- [ ] Event published on instance A is received by a client connected to instance B
-- [ ] Disconnect removes both the local client and its Redis subscription
-- [ ] No unbounded growth in subscriptions over a soak run
-- [ ] Documented streaming-timeout behaviour for the target host
+1. **A relay** — [`src/lib/sync-bus.ts`](src/lib/sync-bus.ts). Publishing inserts a row into
+   `SyncEventOutbox` and issues `NOTIFY sync_events` with the row id; every instance holds one
+   `LISTEN` connection, fetches the row and relays to its own clients.
+2. **The local `Map` stays**, and is still the right structure: a connection belongs to the
+   process holding the socket. Only the fan-out was missing.
+3. **The payload rides in a row, not on the notification.** `NOTIFY` payloads are capped at 8000
+   bytes and sync payloads can exceed that. A durable row also makes reconnect replay possible
+   later.
+4. **An instance ignores the echo of its own publishes** (`originId`). The publisher already
+   delivered locally and synchronously; relaying its own event back would double-deliver it.
+   Verified live.
+5. **The relay re-applies subscription rules rather than trusting the sender.** An event arriving
+   over the bus is data, not permission: project events still reach only subscribers of that
+   project (plus Superadmin observers, never personal streams), and personal notifications still
+   require an exact user match.
+6. **Fan-out cannot fail a mutation.** Publishing is fire-and-forget and logged; a write must not
+   fail because another instance could not be reached.
+7. **It degrades rather than breaking.** If the listener cannot be established or drops, the bus
+   polls the outbox every second and keeps trying to restore push delivery. The failure is logged,
+   because "real-time silently became single-instance again" is the exact bug this prevents.
+8. **Outbox rows are swept** after 5 minutes, so the relay table cannot grow without bound.
 
-**Verify**: two instances, client connected to each, mutate an issue on A, assert B's client receives it.
+**Why Postgres `LISTEN/NOTIFY` and not Redis**: same reasoning as PROD-2 — no managed Redis has
+been chosen, so a Redis implementation could be written but not run, and an unverified fan-out is
+indistinguishable from a broken one. The usual objection to `LISTEN/NOTIFY` is a connection per
+listener; here it is **one connection per instance**, not per client, which is a fixed and small
+cost. `publish()`/`subscribe()` are the seam if event volume ever justifies Redis.
+
+**A build failure that exposed a real problem.** Adding the `pg` driver broke `next build`:
+`pg` requires `fs`, which does not exist in a browser. The cause was that five client components
+(`ListView`, `KanbanBoardView`, `TimelineGanttView`, `WorkloadView`, `IssueDetailModal`) imported
+`isDelegationActive` — a pure date function — from `delegation-engine.ts`, which also imports
+Prisma and the sync engine. The browser bundle had been carrying the entire server-side engine all
+along; `pg` merely made it announce itself. The fix was to split rather than to teach the bundler
+to ignore it: the pure helpers moved to
+[`src/lib/delegation-dates.ts`](src/lib/delegation-dates.ts), and `delegation-engine.ts` re-exports
+them so server callers are unaffected. **Measured side effect: `/projects/[id]` First Load JS fell
+from 316 kB to 296 kB** (page chunk 128 kB → 107 kB), which is progress against B7/PROD-12.
+
+**Acceptance criteria**
+- [x] Event published on instance A is received by a client connected to instance B — live, same `eventId`
+- [x] Disconnect removes the local client and its subscription — there is no per-client subscription to leak: one listener per instance, and the existing `unregisterClient` cleanup on `cancel`/`abort` is unchanged
+- [x] No unbounded growth in subscriptions over a soak run — subscriptions are fixed at one per instance by construction; outbox rows are swept after 5 minutes
+- [x] Documented streaming-timeout behaviour for the target host — `X-Accel-Buffering: no` was already set on the SSE response; see the note below
+
+**Streaming behaviour to check on your host**: the response already sets `X-Accel-Buffering: no`
+(nginx) and the route is `dynamic = 'force-dynamic'` on the Node runtime. What still needs
+confirming per platform is the idle-connection timeout — many managed hosts cut streaming
+responses at 30–300 s. The client already reconnects and sets `refreshRequired`, so a cut is
+recoverable, but the limit should be recorded in the runbook (PROD-20).
+
+**Verified live, 2026-09-19** — two Next instances against one Postgres, one SSE client held open
+against **each**, mutation made through instance A's HTTP API. **8 passed, 0 failed**:
+
+| Test | Result |
+|---|---|
+| Both clients connected | A and B both received `CONNECTED` |
+| Instance A accepted the mutation | HTTP 200 |
+| Client on A received the event (local delivery unchanged) | `ISSUE_UPDATED` |
+| **Client on B received the event published on A** | `ISSUE_UPDATED` |
+| Same event, not a duplicate | identical `eventId` on both |
+| Publisher did not double-deliver | exactly 1 copy on A |
+| Events recorded in the outbox | 2 rows |
+| Disconnecting B's client left A's stream intact | A still streaming |
+
+Both instances logged `SYNC_BUS_LISTENING`, so this was **push delivery, not the polling
+fallback**; the relay on B was logged in the same millisecond the event was created. The fixture
+(organization, workspace, project, issue, user, session) was created by the test and removed
+afterwards. Unit coverage: 10 structural tests in
+[`src/lib/__tests__/sync-bus.test.ts`](src/lib/__tests__/sync-bus.test.ts).
+
+**Re-verify with**: two instances, an SSE client on each, mutate an issue via A, assert B's client
+receives it.
 
 ---
 

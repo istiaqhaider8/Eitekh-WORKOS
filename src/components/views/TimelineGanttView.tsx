@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { doesLeaveOverlap, formatLeaveRange } from "@/lib/leave-engine";
-import { isDelegationActive } from "@/lib/delegation-engine";
+import { isDelegationActive } from "@/lib/delegation-dates";
 import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
 
 

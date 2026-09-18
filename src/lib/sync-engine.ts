@@ -1,4 +1,5 @@
 import { logger } from './logger';
+import { syncBus, type SyncBusEvent } from './sync-bus';
 
 export type SyncEventType =
   | 'CONNECTED'
@@ -76,6 +77,16 @@ export interface SyncEventLogItem extends SyncEventPayload {
   errorMessage?: string;
 }
 
+/**
+ * PROD-4. Cross-instance fan-out.
+ *
+ * The `clients` Map below stays per-process and that is correct: an SSE
+ * connection belongs to the process holding the socket. What was missing is a
+ * path for an event published here to reach browsers connected to the OTHER
+ * instances, which is what `syncBus` provides. Each publish delivers locally
+ * (unchanged, synchronous) and is then announced to the other instances, which
+ * relay it to their own clients through `deliverRelayedEvent` below.
+ */
 class RealtimeSyncEngine {
   private clients: Map<string, SyncClient> = new Map();
   private eventLogs: SyncEventLogItem[] = [];
@@ -98,6 +109,7 @@ class RealtimeSyncEngine {
   }
 
   public registerClient(client: SyncClient) {
+    this.ensureBusStarted();
     this.clients.set(client.id, client);
     logger.info('SYNC_CLIENT_CONNECTED', `Client ${client.id} (${client.userEmail}) subscribed to project ${client.projectId}`, {
       clientId: client.id,
@@ -253,6 +265,10 @@ class RealtimeSyncEngine {
 
     this.recordEventLog(logItem);
 
+    // Relay to the other instances. Best-effort and deliberately not awaited:
+    // a mutation must not fail because fan-out to another instance did.
+    void syncBus.publish({ projectId: params.projectId, payload, eventId });
+
     logger.info('SYNC_EVENT_DISPATCHED', `Dispatched ${params.eventType} for project ${params.projectId} to ${deliveredCount} authorized clients`, {
       eventId,
       eventType: params.eventType,
@@ -335,7 +351,90 @@ class RealtimeSyncEngine {
       errorMessage: failedCount > 0 ? `${failedCount} client deliver(ies) failed` : undefined,
     });
 
+    // Relay to the other instances (PROD-4). A notification addressed to one
+    // person is exactly the kind of event that used to be lost when that person
+    // happened to be connected to a different instance from the one that
+    // produced it.
+    void syncBus.publish({ userId: params.userId, payload, eventId });
+
     return payload;
+  }
+
+  /**
+   * Deliver an event that ORIGINATED ON ANOTHER INSTANCE to this process's
+   * clients (PROD-4).
+   *
+   * This is the receiving half of the fan-out. It re-applies the same
+   * subscription rules as a local publish rather than trusting the relay:
+   * project events reach only clients subscribed to that project (plus
+   * Superadmin observers, never personal streams), and user events reach only
+   * that user's own connections. The relay carries no authorization of its own,
+   * so the check has to happen here — an event arriving over the bus is data,
+   * not permission.
+   *
+   * It does NOT re-publish, or two instances would echo each other forever.
+   */
+  public deliverRelayedEvent(event: SyncBusEvent): number {
+    const payload = event.payload as SyncEventPayload;
+    if (!payload?.eventId) return 0;
+
+    const sseMessage = `id: ${payload.eventId}
+event: message
+data: ${JSON.stringify(payload)}
+
+`;
+    const encoded = staticTextEncoder.encode(sseMessage);
+
+    let delivered = 0;
+    for (const [clientId, client] of this.clients.entries()) {
+      const isUserScopedStream = client.projectId.startsWith('USER:');
+
+      let shouldDeliver: boolean;
+      if (event.userId) {
+        // Personal notification: exact user match, no Superadmin fan-out.
+        shouldDeliver = client.userId === event.userId;
+      } else if (event.projectId) {
+        shouldDeliver = !isUserScopedStream
+          && (client.projectId === event.projectId || client.isSuperAdmin);
+      } else {
+        shouldDeliver = false;
+      }
+
+      if (!shouldDeliver) continue;
+
+      try {
+        client.controller.enqueue(encoded);
+        delivered++;
+      } catch (err: any) {
+        logger.error('SYNC_RELAY_DELIVERY_FAILED', `Failed to deliver relayed event ${payload.eventId} to client ${clientId}`, {
+          clientId,
+          error: err.message,
+        });
+        try { client.controller.close(); } catch (_) {}
+        this.clients.delete(clientId);
+      }
+    }
+
+    if (delivered > 0) {
+      logger.info('SYNC_EVENT_RELAYED', `Relayed ${payload.eventType} from another instance to ${delivered} local client(s)`, {
+        eventId: payload.eventId,
+        projectId: event.projectId ?? undefined,
+      });
+    }
+    return delivered;
+  }
+
+  /**
+   * Begin relaying events published by other instances.
+   *
+   * Called from registerClient rather than at module load: this app has no
+   * reliable "server ready" hook, and there is nothing to relay to until a
+   * client is connected. syncBus.start is idempotent.
+   */
+  private ensureBusStarted(): void {
+    syncBus.start((event) => {
+      this.deliverRelayedEvent(event);
+    });
   }
 
   private sendHeartbeats() {
