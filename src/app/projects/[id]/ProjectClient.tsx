@@ -70,6 +70,14 @@ export function ProjectClient({
   const [members, setMembers] = useState<any[]>(project.members || []);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [delegations, setDelegations] = useState<any[]>([]);
+  // The server embeds only the first page of issues to bound the HTML payload.
+  // If the project has more, fetch the full set once on mount — the board,
+  // timeline and workload views all filter client-side and would otherwise
+  // silently render an incomplete picture.
+  const embeddedIssueCount = (project.issues || []).length;
+  const totalIssueCount = project._count?.issues ?? embeddedIssueCount;
+  const issuesWereTruncated = totalIssueCount > embeddedIssueCount;
+
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [createInitialStatusId, setCreateInitialStatusId] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -429,6 +437,26 @@ export function ProjectClient({
       console.error(e);
     }
   };
+
+  // Top up the truncated server payload. Runs only when the project actually
+  // has more issues than were embedded, so small projects pay nothing.
+  useEffect(() => {
+    if (!issuesWereTruncated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/issues?limit=all`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.issues)) setIssues(data.issues);
+      } catch (e) {
+        console.error("Failed to load the remaining issues", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [issuesWereTruncated, project.id]);
 
   const handleUpdateIssueStatus = async (issueId: string, statusId: string) => {
     // Optimistic UI update

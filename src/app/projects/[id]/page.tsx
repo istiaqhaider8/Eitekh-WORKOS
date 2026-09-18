@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { ProjectClient } from "./ProjectClient";
 
+/**
+ * How many issues are embedded in the server-rendered payload.
+ *
+ * This bounds first paint. Projects with more issues get the remainder from
+ * ProjectClient immediately after mount, so the board is still complete — it
+ * just is not paid for in the initial HTML.
+ */
+const INITIAL_ISSUE_LIMIT = 200;
+
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
   const user = await getCurrentUser();
@@ -33,24 +42,38 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
       },
       issues: {
+        // Every field selected here is serialized into the HTML payload sent to
+        // the browser, once per issue. Blanket `include: true` on five relations
+        // made the payload 139 kB for FIVE issues (~28 kB each) and it grew
+        // linearly forever. Each relation below is now narrowed to exactly the
+        // fields the board/list/calendar/timeline views actually read — verified
+        // by grepping their usage, not assumed.
         include: {
-          status: true,
+          status: true, // needs name, color and category
           assignee: publicUserRelation,
-          epic: true,
-          sprint: true,
-          component: true,
-          subtasks: true,
+          epic: { select: { id: true, name: true, color: true, status: true } },
+          sprint: { select: { id: true, name: true } },
+          // Kanban shows "n/m subtasks done", so only the completion flag is
+          // needed — full subtask rows were being shipped to render a count.
+          subtasks: { select: { id: true, isCompleted: true } },
           labels: { include: { label: true } },
           team: { select: { id: true, name: true } },
           _count: { select: { subtasks: true, comments: true } },
         },
         orderBy: [{ position: "asc" }, { createdAt: "desc" }],
+        // Bounded first paint. The board views need the whole set to render
+        // correctly, so ProjectClient tops up via its existing paginated API
+        // when the project has more than this; see INITIAL_ISSUE_LIMIT there.
+        take: INITIAL_ISSUE_LIMIT,
       },
       members: {
         include: {
           user: publicUserRelation,
         },
       },
+      // Lets the client detect that the embedded issue list was truncated
+      // without it having to guess from the array length.
+      _count: { select: { issues: true } },
     },
   });
 

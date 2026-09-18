@@ -107,14 +107,32 @@ can register a webhook and will never receive a single event.
 exists solely in `automations/route.ts` and `validation.ts`. **There is no evaluation engine** —
 nothing consults automation rules when an issue changes. Rules can be created and will never run.
 
-### B-4 (P1) — Project page payload grows without bound (now quantified)
+### B-4 (P1) — Project page payload grows without bound
 
-Measured: `GET /projects/<id>` returns a **139 KB** payload for a project containing **5 issues**
-— roughly **28 KB per issue**, and the query has no `take:`. Straight-line extrapolation:
-500 issues ≈ 14 MB, 5,000 issues ≈ 140 MB, on every page load.
+**⚠️ CORRECTED 2026-09-18 — my original numbers here were wrong.** See the correction below.
 
-This is `PERF-P1` in `PERFORMANCE-PLAN.md`, now with a number attached. Warm page time is
-already 361 ms vs 78 ms for `/login` at trivial data volume.
+Measured: `GET /projects/<id>` returns a **139 KB** payload for a project containing **5 issues**,
+and the issues query had no `take:`.
+
+**My original claim of "~28 KB per issue" was an error**: I divided the whole page payload by the
+issue count, which attributed the entire framework/client-bundle payload to 5 issues. The
+extrapolation that followed (140 MB at 5,000 issues) was therefore badly overstated.
+
+**Correct, directly measured figures** — serializing the actual query result:
+
+| | per issue | 1,000 issues | 5,000 issues |
+|---|---|---|---|
+| Before trim | 2,109 B | ~2.0 MB | ~10.1 MB |
+| After trim | **1,516 B** (−28%) | ~1.45 MB | ~7.2 MB |
+
+So of the 139 KB page, only ~10 KB was issue data; ~129 KB is the page's own bundle/RSC payload
+(that part is `PERF-P4`, a separate finding). The **unbounded growth was still real** — 7 MB of
+serialized issue data at 5,000 issues is unacceptable — but the severity of the per-issue cost was
+overstated. The lesson is the same one as §L: derive a number, do not infer it from a ratio.
+
+**Status: FIXED** — relations narrowed to the fields the views actually read (28% per-issue
+reduction) and `take: 200` now bounds first paint, with the client topping up the full set only
+when a project exceeds it.
 
 ---
 
