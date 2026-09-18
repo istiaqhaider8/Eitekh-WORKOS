@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/email";
 import { issueUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
+import { runAutomations } from "@/lib/automation-engine";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -566,6 +567,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     await deliverIssueWebhook("issue.updated", currentIssue.projectId, updatedIssue);
+
+    // Fire the automation triggers that correspond to what actually changed,
+    // so a rule listening for a status change is not run on an unrelated edit.
+    if (body.statusId !== undefined && body.statusId !== currentIssue.statusId) {
+      await runAutomations("STATUS_CHANGED", {
+        projectId: currentIssue.projectId,
+        issueId: id,
+        actorId: user.id,
+        previous: { statusId: currentIssue.statusId },
+      });
+    }
+    if (body.assigneeId !== undefined && body.assigneeId !== currentIssue.assigneeId) {
+      await runAutomations("ASSIGNEE_CHANGED", {
+        projectId: currentIssue.projectId,
+        issueId: id,
+        actorId: user.id,
+        previous: { assigneeId: currentIssue.assigneeId },
+      });
+    }
 
     const { logAuditEvent } = await import("@/lib/audit-logger");
     await logAuditEvent({
