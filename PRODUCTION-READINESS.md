@@ -158,7 +158,7 @@ be pointed at `dev.db` by accident.
 |---|---|---|
 | ~~B1~~ | ✅ **FIXED 2026-09-18** (PROD-1). Was: SQLite in a multi-tenant SaaS | `prisma/schema.prisma` → `provider = "postgresql"` |
 | ~~B2~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting in-process. Both limiters now go through a shared Postgres-backed store. | [`src/lib/rate-limit-store.ts`](src/lib/rate-limit-store.ts); verified across 2 live instances, see PROD-2 below |
-| B3 | Cache is in-process | `private store: Map` at [`src/lib/cache-manager.ts:66`](src/lib/cache-manager.ts) |
+| ~~B3~~ | ✅ **ADDRESSED 2026-09-19** (PROD-3). The `Map` is still there and still in-process — because **nothing ever writes to it**: `set()` has no callers, so it holds no data. The real cross-instance defect in that file was the invalidation path, which now bumps the shared PBAC version. See the PROD-3 cache finding. | [`src/lib/cache-manager.ts`](src/lib/cache-manager.ts) header comment |
 | B4 | SSE client registry is in-process | `private clients: Map` at [`src/lib/sync-engine.ts:79`](src/lib/sync-engine.ts) |
 | B5 | Zero authorization / tenant-isolation tests | grep for `assertProjectAccess`/`tenant` in tests → no matches |
 | B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
@@ -168,7 +168,7 @@ be pointed at `dev.db` by accident.
 | **B10** | **MEASURED 2026-09-18: 682 KB for one issue.** **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
 | ~~**B11**~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting keyed per IP, so a team behind one NAT shared a single 100 reads/min budget. Authenticated traffic is now keyed per user, with a much looser per-IP backstop (600 reads/min) so that many stolen sessions from one host are still bounded. | `resolveSubject()` in [`src/middleware.ts`](src/middleware.ts); live test T2 — two users on one IP do not consume each other's budget |
 | **B12** | **Known dependency CVEs**: 1 high, 1 moderate via postcss, reachable only through a Next major upgrade. | `npm audit --omit=dev` |
-| **B13** | **PBAC state is process-local *and* file-local** — in-memory `Map`s plus `.data/pbac-store.json`. Across instances, authorization state itself diverges, not just a cache. | `private roles: Map` at [`src/lib/pbac-engine.ts:287`](src/lib/pbac-engine.ts), plus `storeFilePath` at :298 |
+| ~~**B13**~~ | ✅ **FIXED 2026-09-19** (PROD-3). Was: PBAC state process-local *and* file-local, so authorization state itself diverged across instances. Roles, assignments and audit records are now Postgres rows; the `Map`s are a read-through cache reloaded on a shared version counter. 18 roles / 136 assignments / 157 audit records migrated. | [`src/lib/pbac-store.ts`](src/lib/pbac-store.ts); verified across 2 live instances |
 | ~~**B14**~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: two independent in-process rate limiters. **Both** moved — verified live: the middleware limit and the `forgot-password` limit each refuse in aggregate across two instances. | [`src/lib/rate-limit.ts`](src/lib/rate-limit.ts) and [`src/middleware.ts`](src/middleware.ts) both call `getRateLimitStore()`; guarded by a test that greps the sources |
 
 ---
@@ -202,12 +202,12 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~65%** | all of Gate 0 — 8 items, **3 complete** |
+| **Multi-tenant paid production** | **~72%** | all of Gate 0 — 8 items, **4 complete** |
 
-The percentage is a judgement, not a measurement. The countable part: **3 of 8 Gate 0 items are
-complete** (PROD-0, PROD-1, PROD-2). PROD-1 was the dependency for PROD-2/3/4/5; PROD-2 is now
-done, and PROD-3/4/5 are unblocked. PROD-5 (tenant-isolation tests) is the largest remaining
-item and the one with the worst failure mode.
+The percentage is a judgement, not a measurement. The countable part: **4 of 8 Gate 0 items are
+complete** (PROD-0, PROD-1, PROD-2, PROD-3). What remains is PROD-4 (SSE fan-out), PROD-5/6
+(tenant-isolation and authorization tests) and PROD-7 (error tracking). PROD-5 is the largest
+remaining item and the one with the worst failure mode.
 
 ---
 
@@ -531,48 +531,97 @@ both, and confirm the last is rejected. A per-process store would let 2 × limit
 
 ---
 
-### PROD-3 — Move the cache to a shared store
+### PROD-3 — Move the PBAC store to the database (and the cache finding)
 
 | | |
 |---|---|
 | **Severity** | Blocker |
-| **Status** | PENDING |
-| **Depends on** | PROD-2 (**done**) — but note PROD-2 chose Postgres, not Redis. A cache has the opposite trade-off to a rate limiter: it is read on nearly every request and tolerates being lost, so Redis is the better fit here and the reason to introduce it. Do not reuse `RateLimitStore` for this. |
-| **Files** | `src/lib/cache-manager.ts`, `src/lib/pbac-engine.ts` |
+| **Status** | ✅ **DONE 2026-09-19** |
+| **Depends on** | PROD-1, PROD-2 (both done) |
+| **Files** | `src/lib/pbac-store.ts` (new), `src/lib/pbac-engine.ts`, `src/lib/cache-manager.ts`, `scripts/migrate-pbac-store.mjs` (new), `prisma/migrations/0004_pbac_store_to_database` |
 
-**Why**: `SystemCacheManager.store` is a process-local `Map`. Across instances the caches diverge,
-so the same user can get different answers from different instances. This matters most for
-**PBAC**: a revoked permission cached on instance B is a live authorization bug, not a stale-UI
-annoyance.
+**Why it mattered**: the engine held roles and assignments in in-memory `Map`s *and* persisted them
+to `.data/pbac-store.json` on the local disk. Two instances therefore held two divergent copies of
+the authorization model itself, each writing its own file. This was never a stale-cache problem: a
+role created on instance A did not exist on instance B, `invalidateUserCache()` evicted only the
+calling process, and the whole model was rewritten on every mutation, so two instances saving
+concurrently discarded one another's changes.
 
-**PBAC is worse than a cache problem** (B13). The engine keeps roles and assignments in
-in-memory `Map`s *and* persists them to a local file, `.data/pbac-store.json`
-([`src/lib/pbac-engine.ts:287`](src/lib/pbac-engine.ts), `storeFilePath` at :298). Two instances
-therefore hold two divergent copies of the authorization model itself, each writing its own file
-— so this is not a stale-read issue but split-brain in the permission system. A role edited on
-instance A may simply not exist on instance B. Treat the PBAC store as its own migration, not as
-a cache backend swap.
+**What was done**
 
-**Do this**:
-1. Back the cache with Redis, keeping the `CacheNamespace` API and TTL semantics.
-2. Make invalidation **global** — a permission change must evict on every instance
-   (Redis pub/sub, or delete the shared key).
-3. **Move the PBAC store to the database.** Roles and assignments are relational, durable,
-   tenant-scoped data; a JSON file on one instance's disk cannot be any of those. Keep the
-   in-memory `Map` as a read-through cache only, invalidated per (2).
-4. Preserve the existing PBAC invalidation hooks (PBAC-2/PBAC-4 work); do not regress them.
-5. Cache misses must fall back to the DB, never to a stale local copy.
+1. **The model moved to Postgres** — `PbacRole`, `PbacUserRoleAssignment`, `PbacAuditRecord`,
+   `PbacOrgState` (migration `0004_pbac_store_to_database`). All persistence is owned by
+   [`src/lib/pbac-store.ts`](src/lib/pbac-store.ts); the engine's `Map`s are now a read-through
+   cache.
+2. **Writes are per entity, not whole-model.** This is the point of the rewrite rather than an
+   optimisation: a whole-model write from instance A would undo a role instance B created a moment
+   earlier — the same class of bug in a new location.
+3. **Cross-instance consistency via a version counter.** `PbacOrgState.version` is bumped on every
+   mutation, by the *database* (`increment`), so two concurrent bumps cannot lose one another.
+   Readers re-check it at most every 2 s and reload when it moves. The version is also stamped into
+   capability-cache keys, so a change makes every previously computed answer unreachable with no
+   sweep to get wrong.
+4. **The version check runs before the derived-cache lookup.** Checking afterwards would return a
+   cached answer without the version ever being consulted, so a permission revoked elsewhere would
+   survive the full 5 s TTL on every repeat call.
+5. **The admin "refresh cache" action now reaches other instances.** It called
+   `pbacEngine.invalidateUserCache()`, which clears only the process that served the click — so it
+   purged one instance and reported a full system purge. It now bumps the shared version.
+6. **The existing store was migrated, not dropped** —
+   [`scripts/migrate-pbac-store.mjs`](scripts/migrate-pbac-store.mjs), run live: **18 roles, 136
+   assignments, 157 audit records, 3 organizations**. The script is idempotent, reports what it
+   skips rather than discarding it quietly, and deliberately does **not** delete its own input.
+7. **Audit records became durable.** They were a 2000-entry ring inside the JSON file, so the record
+   of who changed permissions was both lossy and per-instance; a restart erased it. They are now
+   rows, and the reader queries them instead of this process's buffer.
 
-**Acceptance criteria**:
-- [ ] Cache reads/writes hit the shared store
-- [ ] A role change on instance A is reflected on instance B within its documented TTL
-- [ ] `cacheManager` public API unchanged
-- [ ] PBAC invalidation still fires on role/permission mutation
-- [ ] **No authorization state in `.data/pbac-store.json`**; roles and assignments live in the DB
-- [ ] A role created on instance A exists on instance B, and the file is gone
-- [ ] Existing `.data/pbac-store.json` contents are migrated, not silently dropped
+**A cross-tenant bug found and fixed on the way**: `assignRolesToUser` replaced a user's *entire*
+role set across every organization, so assigning roles in org A silently dropped their grants in
+org B. That was invisible while the store was one flat JSON blob; persisting per organization made
+it visible. Both the database write and the in-memory mutation are now scoped to the organization.
 
-**Verify**: two instances, change a role via A, assert B denies the permission.
+**The cache half — a finding rather than a fix.** `SystemCacheManager` is **not currently a cache**:
+`set()` is never called anywhere in the application, so the store is always empty, `getMetrics()`
+reports on nothing, and the "6 cache tiers" in the refresh checklist describe tiers that hold no
+data. Its only consumers are the two `/api/admin/cache` endpoints. Moving an unused `Map` to Redis
+would have satisfied the letter of B3 and changed nothing real, so it was not done; the genuine
+cross-instance defect in that file was the invalidation path, which is item 5 above. The file now
+says all of this at the top. If real caching is introduced later, that is the seam, and Redis is
+the right backing store for it — a cache is read on nearly every request and tolerates being lost,
+which is the opposite trade-off to PROD-2's limiter.
+
+**The honest limitation**: propagation is by polling, so a permission revoked on one instance can
+still be honoured on another for up to **2 seconds**. That is a documented bound replacing
+"indefinitely", and the acceptance criterion asks for exactly that ("within its documented TTL").
+Push invalidation needs a pub/sub channel; PROD-4 has to introduce one for SSE fan-out, and this
+should move onto it then.
+
+**Acceptance criteria**
+- [x] Cache reads/writes hit the shared store — for PBAC, the actual state; see the cache finding above
+- [x] A role change on instance A is reflected on instance B within its documented TTL — live T1–T3
+- [x] `cacheManager` public API unchanged
+- [x] PBAC invalidation still fires on role/permission mutation — plus it now reaches other instances
+- [x] **No authorization state in `.data/pbac-store.json`** — guarded by a test; the engine no longer imports `fs`
+- [x] A role created on instance A exists on instance B — live T1
+- [x] Existing `.data/pbac-store.json` contents migrated, not silently dropped — 18/136/157/3, verified by read-back
+
+**Verified live, 2026-09-19** — two Next instances (3111/3112) against one Postgres, driven over
+HTTP so the engine's own load/reload path is what is exercised. **8 passed, 0 failed**:
+
+| Test | Result |
+|---|---|
+| T1 role created on A | HTTP 200; **instance B lists it** |
+| T2 permission added on A | B sees `["issues:view","issues:edit"]` |
+| T3 permission revoked on A | B sees `["issues:view"]` — the revocation propagated |
+| T4 role deleted on A | gone from B's listing |
+| T5 the JSON store was not written during any of it | last written 5485 s earlier |
+| T6 migrated model intact | 18 roles / 136 assignments / 157 audit records |
+
+The fixture (one organization, one user, one session) was created by the test and removed
+afterwards; counts returned to exactly 18/136/157/3, with no leftovers. Unit coverage: 9 structural
+tests in [`src/lib/__tests__/pbac-store.test.ts`](src/lib/__tests__/pbac-store.test.ts).
+
+**Re-verify with**: two instances against one database; create a role via A, list roles via B.
 
 ---
 

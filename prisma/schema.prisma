@@ -943,3 +943,89 @@ model RateLimitCounter {
 
   @@index([resetAt])
 }
+
+/// PROD-3 / B13. The PBAC authorization model, in the database.
+///
+/// This used to live in `.data/pbac-store.json` on one instance's disk, plus
+/// in-memory Maps. Two instances therefore held two divergent copies of the
+/// authorization model itself and each wrote its own file: not a stale-cache
+/// problem but split-brain in the permission system, where a role edited on
+/// instance A might simply not exist on instance B.
+///
+/// Writes are per-entity rather than whole-model, so two instances editing
+/// different roles in the same organization cannot clobber one another.
+model PbacRole {
+  id          String   @id
+  orgId       String
+  name        String
+  slug        String
+  description String   @default("")
+  scope       String   @default("ORG") // PROJECT | WORKSPACE | ORG
+  projectId   String?
+  projectName String?
+  status      String   @default("ACTIVE") // ACTIVE | INACTIVE
+  isSystem    Boolean  @default(false)
+  permissions String[]
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  assignments PbacUserRoleAssignment[]
+
+  @@index([orgId])
+  @@index([orgId, projectId])
+  @@index([orgId, slug])
+}
+
+/// Which users hold which roles. The composite primary key makes a duplicate
+/// assignment impossible at the database level rather than by convention.
+model PbacUserRoleAssignment {
+  userId    String
+  roleId    String
+  orgId     String
+  createdAt DateTime @default(now())
+
+  role PbacRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([orgId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+/// Per-organization state, and the mechanism that keeps instances consistent.
+///
+/// `version` is bumped on every mutation to the organization's authorization
+/// model. Each instance re-reads it on a short interval and reloads when it
+/// changes, which bounds how long a revoked permission can still be honoured
+/// somewhere else. The version is also stamped into capability-cache keys, so
+/// a bump makes every stale entry unreachable without an explicit sweep.
+model PbacOrgState {
+  orgId     String   @id
+  seeded    Boolean  @default(false)
+  version   Int      @default(1)
+  updatedAt DateTime @default(now())
+}
+
+/// The PBAC audit trail. Previously capped at 2000 entries inside a JSON file,
+/// which meant the record of who changed permissions was both lossy and
+/// per-instance.
+model PbacAuditRecord {
+  id            String   @id
+  orgId         String
+  actorId       String
+  actorName     String   @default("")
+  actorEmail    String   @default("")
+  action        String
+  entityType    String // ROLE | USER_ROLE | SYSTEM
+  entityId      String
+  entityName    String?
+  previousState Json?
+  newState      Json?
+  status        String   @default("SUCCESS") // SUCCESS | FAILURE
+  errorDetails  String?
+  createdAt     DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([actorId])
+}

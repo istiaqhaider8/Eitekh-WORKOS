@@ -1,8 +1,7 @@
-import fs from 'fs';
-import path from 'path';
 import { prisma } from './prisma';
 import { logger } from './logger';
 import { logAuditEvent } from './audit-logger';
+import { pbacStore, type StoredRole } from './pbac-store';
 
 export interface PermissionItem {
   key: string;
@@ -293,10 +292,11 @@ class UnifiedPBACEngine {
   private verifiedOrgIds: Set<string> = new Set();
   // Map of userId -> Set of roleIds
   private userRoleAssignments: Map<string, Set<string>> = new Map();
+  // Audit records are written straight to the database (PROD-3). This array is
+  // no longer the source of truth and is kept only as a small in-process buffer
+  // for the handful of callers that read it synchronously.
   private auditLogs: PBACAuditRecord[] = [];
   private initializedOrgs: Set<string> = new Set();
-  private storeFilePath: string;
-  private isLoadedFromDisk: boolean = false;
   // High-throughput In-Memory Capability Cache for scale (100k+ users)
   private capabilityCache: Map<string, { permissions: Set<string>; roles: Array<{ id: string; name: string; isSystem: boolean }>; timestamp: number }> = new Map();
 
@@ -330,6 +330,27 @@ class UnifiedPBACEngine {
     }
   }
 
+  /**
+   * Invalidate an organization's derived permissions EVERYWHERE, not just here
+   * (PROD-3).
+   *
+   * `invalidateUserCache` below clears only the calling process. That is why
+   * the admin panel's "refresh cache" button used to affect nothing but the
+   * one instance that happened to serve the click — on every other instance
+   * the stale permissions survived. Bumping the shared version makes every
+   * instance reload on its next check, and makes every capability-cache key
+   * computed from the old model unreachable.
+   */
+  public async invalidateOrgAcrossInstances(orgId: string): Promise<void> {
+    if (!orgId) {
+      this.invalidateUserCache();
+      return;
+    }
+    await pbacStore.bumpVersion(orgId);
+    this.loadedOrgVersions.delete(orgId);
+    this.invalidateUserCache();
+  }
+
   public invalidateUserCache(userId?: string) {
     if (userId) {
       for (const key of this.capabilityCache.keys()) {
@@ -343,90 +364,121 @@ class UnifiedPBACEngine {
   }
 
   constructor() {
-    const dataDir = path.join(process.cwd(), '.data');
-    if (!fs.existsSync(dataDir)) {
+    // Nothing to load here any more (PROD-3). The authorization model lives in
+    // Postgres and is loaded per organization, on demand, by ensureOrgLoaded().
+    // The constructor used to read `.data/pbac-store.json` synchronously, which
+    // is what made every instance's permission model its own.
+  }
+
+  /**
+   * Which role ids belong to which organization, as this process last saw it.
+   *
+   * Needed because `userRoleAssignments` is keyed by user across all
+   * organizations: to refresh one org's assignments without disturbing another
+   * org's, the reload has to know which ids it owns.
+   */
+  private orgRoleIds: Map<string, Set<string>> = new Map();
+
+  /** orgId -> the model version this process currently holds. */
+  private loadedOrgVersions: Map<string, number> = new Map();
+
+  /** In-flight loads, so concurrent requests do not each issue the same query. */
+  private inFlightLoads: Map<string, Promise<void>> = new Map();
+
+  /**
+   * Make sure this process holds a current copy of an organization's model.
+   *
+   * Reloads when the shared version has moved, which is how a role change on
+   * one instance reaches the others. `pbacStore.getVersion` only touches the
+   * database every PBAC_VERSION_POLL_MS, so calling this on the read path is
+   * cheap; between checks it is an in-memory comparison.
+   */
+  private async ensureOrgLoaded(orgId: string, force = false): Promise<void> {
+    if (!orgId) return;
+
+    const loaded = this.loadedOrgVersions.get(orgId);
+    if (!force && loaded !== undefined) {
+      const current = await pbacStore.getVersion(orgId);
+      if (current === loaded) return;
+    }
+
+    const existing = this.inFlightLoads.get(orgId);
+    if (existing) return existing;
+
+    const load = (async () => {
       try {
-        fs.mkdirSync(dataDir, { recursive: true });
+        const snapshot = await pbacStore.loadOrg(orgId);
+
+        // Replace only this organization's roles. Ids that have gone away are
+        // dropped, which is the point: a role deleted on another instance must
+        // stop existing here too.
+        const previousIds = this.orgRoleIds.get(orgId) ?? new Set<string>();
+        const nextIds = new Set(snapshot.roles.map((r) => r.id));
+        for (const id of previousIds) {
+          if (!nextIds.has(id)) this.roles.delete(id);
+        }
+        for (const role of snapshot.roles) {
+          this.roles.set(role.id, role as PBACRole);
+        }
+        this.orgRoleIds.set(orgId, nextIds);
+
+        // Same for assignments: strip every grant that belongs to this org,
+        // then apply the snapshot. Grants from other organizations are left
+        // untouched, so a user who belongs to two tenants keeps both.
+        const ownedIds = new Set<string>([...previousIds, ...nextIds]);
+        for (const [, roleSet] of this.userRoleAssignments) {
+          for (const id of ownedIds) roleSet.delete(id);
+        }
+        for (const [userId, roleIds] of snapshot.assignments) {
+          let set = this.userRoleAssignments.get(userId);
+          if (!set) {
+            set = new Set<string>();
+            this.userRoleAssignments.set(userId, set);
+          }
+          for (const id of roleIds) set.add(id);
+        }
+
+        if (snapshot.seeded) this.initializedOrgs.add(orgId);
+        this.loadedOrgVersions.set(orgId, snapshot.version);
+
+        // Anything computed from the previous model is now suspect.
+        this.invalidateUserCache();
       } catch (e) {
-        console.error('Failed to create .data dir', e);
+        logger.error('PBAC_LOAD_FAILED', `Could not load the PBAC model for org ${orgId}`, e, { orgId });
+        throw e;
+      } finally {
+        this.inFlightLoads.delete(orgId);
       }
-    }
-    this.storeFilePath = path.join(dataDir, 'pbac-store.json');
-    this.loadFromDisk();
+    })();
+
+    this.inFlightLoads.set(orgId, load);
+    return load;
   }
 
-  private loadFromDisk() {
-    if (this.isLoadedFromDisk) return;
-    try {
-      if (fs.existsSync(this.storeFilePath)) {
-        const raw = fs.readFileSync(this.storeFilePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.roles)) {
-          for (const r of parsed.roles) {
-            this.roles.set(r.id, r);
-          }
-        }
-        if (parsed.userRoleAssignments && typeof parsed.userRoleAssignments === 'object') {
-          for (const [userId, roleIds] of Object.entries(parsed.userRoleAssignments)) {
-            if (Array.isArray(roleIds)) {
-              this.userRoleAssignments.set(userId, new Set(roleIds as string[]));
-            }
-          }
-        }
-        if (Array.isArray(parsed.auditLogs)) {
-          this.auditLogs = parsed.auditLogs;
-        }
-        if (Array.isArray(parsed.initializedOrgs)) {
-          this.initializedOrgs = new Set(parsed.initializedOrgs);
-        }
-        this.isLoadedFromDisk = true;
-      }
-    } catch (e) {
-      console.error('Error loading PBAC store from disk:', e);
-    }
+  /**
+   * Record that this process's copy of an org is current as of the version its
+   * own write just produced, and drop derived caches.
+   *
+   * Called after every mutation. Without it the writer would keep serving the
+   * pre-write model until its next version poll — it would be the last to see
+   * its own change.
+   */
+  private async afterMutation(orgId: string): Promise<void> {
+    if (!orgId) return;
+    const version = await pbacStore.getVersion(orgId, true);
+    this.loadedOrgVersions.set(orgId, version);
+    this.invalidateUserCache();
   }
 
-  private isSaving: boolean = false;
-  private savePending: boolean = false;
-
-  private async saveToDisk() {
-    if (this.isSaving) {
-      this.savePending = true;
-      return;
-    }
-    this.isSaving = true;
-    this.savePending = false;
-
-    try {
-      const data = {
-        version: '1.0.0',
-        lastUpdated: new Date().toISOString(),
-        roles: Array.from(this.roles.values()),
-        userRoleAssignments: Object.fromEntries(
-          Array.from(this.userRoleAssignments.entries()).map(([userId, roleSet]) => [
-            userId,
-            Array.from(roleSet),
-          ])
-        ),
-        auditLogs: this.auditLogs.slice(0, 2000),
-        initializedOrgs: Array.from(this.initializedOrgs),
-      };
-      const tmpPath = `${this.storeFilePath}.tmp`;
-      const jsonStr = JSON.stringify(data, null, 2);
-      await fs.promises.writeFile(tmpPath, jsonStr, 'utf-8');
-      await fs.promises.rename(tmpPath, this.storeFilePath);
-    } catch (e) {
-      console.error('Error saving PBAC store atomically to disk:', e);
-    } finally {
-      this.isSaving = false;
-      if (this.savePending) {
-        this.saveToDisk();
-      }
-    }
+  /** Convert the engine's role shape to the store's. They are structurally the same. */
+  private toStored(role: PBACRole): StoredRole {
+    return role as StoredRole;
   }
 
   public async ensureOrgSeeded(orgId: string) {
-    this.loadFromDisk();
+    // Pull this organization's model, reloading if another instance has
+    // changed it. Replaces the synchronous read of .data/pbac-store.json.
+    await this.ensureOrgLoaded(orgId);
 
     // Refuse to provision a tenant that does not exist.
     //
@@ -703,8 +755,22 @@ class UnifiedPBACEngine {
     }
 
     if (storeUpdated) {
-      this.saveToDisk();
-      this.invalidateUserCache();
+      // Persist the seeded model for this organization. Roles and grants are
+      // written per entity, so a concurrent seed on another instance converges
+      // rather than clobbering.
+      const orgRoles = Array.from(this.roles.values()).filter((r) => r.orgId === orgId);
+      await pbacStore.upsertRoles(orgRoles.map((r) => this.toStored(r)));
+
+      const orgRoleIdSet = new Set(orgRoles.map((r) => r.id));
+      const pairs: Array<{ userId: string; roleId: string }> = [];
+      for (const [userId, roleSet] of this.userRoleAssignments) {
+        for (const roleId of roleSet) {
+          if (orgRoleIdSet.has(roleId)) pairs.push({ userId, roleId });
+        }
+      }
+      await pbacStore.addAssignments(orgId, pairs);
+      await pbacStore.markSeeded(orgId);
+      await this.afterMutation(orgId);
     }
   }
 
@@ -719,7 +785,10 @@ class UnifiedPBACEngine {
     if (this.auditLogs.length > 2000) {
       this.auditLogs = this.auditLogs.slice(0, 2000);
     }
-    this.saveToDisk();
+    // The durable copy. The in-process array above is now only a buffer: the
+    // old 2000-entry ring inside a JSON file meant the record of who changed
+    // permissions was both lossy and per-instance.
+    void pbacStore.recordAudit(log);
 
     // Mirror to PlatformAuditLog database table for super-admin compliance & unified ledger
     try {
@@ -865,8 +934,8 @@ class UnifiedPBACEngine {
     };
 
     this.roles.set(id, role);
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.upsertRole(this.toStored(role));
+    await this.afterMutation(orgId);
 
     this.recordAudit({
       orgId,
@@ -934,8 +1003,8 @@ class UnifiedPBACEngine {
     };
 
     this.roles.set(id, cloned);
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.upsertRole(this.toStored(cloned));
+    await this.afterMutation(orgId);
 
     this.recordAudit({
       orgId,
@@ -969,8 +1038,8 @@ class UnifiedPBACEngine {
     const previousStatus = role.status;
     role.status = status;
     role.updatedAt = new Date().toISOString();
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.upsertRole(this.toStored(role));
+    await this.afterMutation(orgId);
 
     this.recordAudit({
       orgId,
@@ -1017,8 +1086,8 @@ class UnifiedPBACEngine {
     }
 
     this.roles.delete(roleId);
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.deleteRole(orgId, roleId);
+    await this.afterMutation(orgId);
 
     this.recordAudit({
       orgId,
@@ -1065,8 +1134,8 @@ class UnifiedPBACEngine {
     }
 
     set.add(roleId);
-    this.saveToDisk();
-    this.invalidateUserCache(userId);
+    await pbacStore.addAssignments(orgId, [{ userId, roleId }]);
+    await this.afterMutation(orgId);
 
     // Sync PostgreSQL DB membership
     try {
@@ -1134,8 +1203,8 @@ class UnifiedPBACEngine {
 
     if (this.userRoleAssignments.has(userId)) {
       this.userRoleAssignments.get(userId)!.delete(roleId);
-      this.saveToDisk();
-      this.invalidateUserCache(userId);
+      await pbacStore.removeAssignments(orgId, [{ userId, roleId }]);
+      await this.afterMutation(orgId);
     }
 
     // Sync PostgreSQL DB membership
@@ -1193,6 +1262,7 @@ class UnifiedPBACEngine {
 
     let addedCount = 0;
     let skippedCount = 0;
+    const addedPairs: Array<{ userId: string; roleId: string }> = [];
 
     for (const uId of userIds) {
       if (!this.userRoleAssignments.has(uId)) {
@@ -1202,6 +1272,7 @@ class UnifiedPBACEngine {
       if (!set.has(roleId)) {
         set.add(roleId);
         addedCount++;
+        addedPairs.push({ userId: uId, roleId });
         // DB sync per user
         try {
           if (role.projectId) {
@@ -1226,8 +1297,8 @@ class UnifiedPBACEngine {
       }
     }
 
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.addAssignments(orgId, addedPairs);
+    await this.afterMutation(orgId);
 
     this.recordAudit({
       orgId,
@@ -1255,6 +1326,7 @@ class UnifiedPBACEngine {
     await this.ensureOrgSeeded(orgId);
     const role = this.roles.get(roleId);
     let removedCount = 0;
+    const removedPairs: Array<{ userId: string; roleId: string }> = [];
 
     for (const uId of userIds) {
       if (this.userRoleAssignments.has(uId)) {
@@ -1262,6 +1334,7 @@ class UnifiedPBACEngine {
         if (set.has(roleId)) {
           set.delete(roleId);
           removedCount++;
+          removedPairs.push({ userId: uId, roleId });
           // DB sync per user
           try {
             if (role && role.projectId) {
@@ -1282,8 +1355,8 @@ class UnifiedPBACEngine {
       }
     }
 
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.removeAssignments(orgId, removedPairs);
+    await this.afterMutation(orgId);
 
     this.recordAudit({
       orgId,
@@ -1324,8 +1397,18 @@ class UnifiedPBACEngine {
     }
 
     const previousRoleIds = Array.from(this.userRoleAssignments.get(userId) || []);
-    this.userRoleAssignments.set(userId, new Set(roleIds));
-    this.saveToDisk();
+
+    // Keep grants that belong to other organizations. Replacing the whole set
+    // here used to wipe them.
+    const thisOrgRoleIds = this.orgRoleIds.get(orgId) ?? new Set<string>();
+    const retained = previousRoleIds.filter((rId) => {
+      const role = this.roles.get(rId);
+      return role ? role.orgId !== orgId : !thisOrgRoleIds.has(rId);
+    });
+    this.userRoleAssignments.set(userId, new Set([...retained, ...roleIds]));
+
+    await pbacStore.replaceUserAssignments(orgId, userId, roleIds);
+    await this.afterMutation(orgId);
 
     // DB Sync
     for (const rId of roleIds) {
@@ -1424,8 +1507,12 @@ class UnifiedPBACEngine {
     }
     roleSet.add(targetRoleId);
 
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.replaceUserAssignments(
+      orgId,
+      userId,
+      Array.from(roleSet).filter((rId) => this.roles.get(rId)?.orgId === orgId)
+    );
+    await this.afterMutation(orgId);
   }
 
   // Synchronize an org member's role into PBAC store and invalidate cache
@@ -1448,8 +1535,12 @@ class UnifiedPBACEngine {
       }
     }
 
-    this.saveToDisk();
-    this.invalidateUserCache();
+    await pbacStore.replaceUserAssignments(
+      orgId,
+      userId,
+      Array.from(roleSet).filter((rId) => this.roles.get(rId)?.orgId === orgId)
+    );
+    await this.afterMutation(orgId);
   }
 
   // High-Throughput Cached Capability Resolution for Scale (100k+ Users)
@@ -1462,13 +1553,29 @@ class UnifiedPBACEngine {
 
     const projectRole = context?.projectRole;
     const projectId = context?.projectId;
+
+    // Pick up another instance's changes before consulting the derived cache.
+    // This is cheap: the version is polled at most every PBAC_VERSION_POLL_MS
+    // and is an in-memory comparison in between.
+    //
+    // It has to happen BEFORE the cache lookup. Checking afterwards would mean
+    // a cached entry is returned without the version ever being consulted, so
+    // a permission revoked on another instance would still be honoured here
+    // for the full TTL on every repeat call.
+    await this.ensureOrgLoaded(orgId);
+    const modelVersion = this.loadedOrgVersions.get(orgId) ?? 0;
+
     // projectId is part of the key because the derived roles below are scoped to
     // it. Keying only on projectRole would let a result computed for one project
     // be served for another.
-    const cacheKey = `${orgId}:${userId}:${projectId || "-"}:${projectRole || "-"}`;
+    //
+    // The model version is part of the key so that a role change anywhere in
+    // the organization makes every previously computed answer unreachable,
+    // with no sweep to get wrong.
+    const cacheKey = `${orgId}:v${modelVersion}:${userId}:${projectId || "-"}:${projectRole || "-"}`;
     const cached = this.capabilityCache.get(cacheKey);
     const now = Date.now();
-    if (cached && (now - cached.timestamp) < 5000) { // 5s TTL — short to limit stale permissions after role changes
+    if (cached && (now - cached.timestamp) < 5000) { // 5s TTL — a second bound, under the version key
       return cached.permissions;
     }
 
@@ -2293,7 +2400,13 @@ class UnifiedPBACEngine {
     }
   ) {
     await this.ensureOrgSeeded(orgId);
-    let logs = this.auditLogs.filter((l) => l.orgId === orgId);
+
+    // Read the durable record, not this process's buffer (PROD-3). The buffer
+    // holds only what this instance happened to write since it started, so
+    // before this change the audit trail an admin saw depended on which
+    // instance served the request — and a restart erased it.
+    const logs0 = (await pbacStore.getAuditRecords(orgId, 2000)) as unknown as PBACAuditRecord[];
+    let logs = logs0;
 
     if (filters?.search) {
       const s = filters.search.toLowerCase();

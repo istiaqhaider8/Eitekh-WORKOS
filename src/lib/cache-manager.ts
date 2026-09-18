@@ -1,3 +1,27 @@
+/**
+ * System cache manager — and a finding worth stating plainly (PROD-3).
+ *
+ * THIS IS NOT CURRENTLY A CACHE. `set()` is never called from anywhere in the
+ * application: the only consumers of this module are the two admin endpoints
+ * under /api/admin/cache, which read metrics and trigger a refresh. The store
+ * below is therefore always empty, `getMetrics()` reports on nothing, and the
+ * "6 cache tiers" in the refresh checklist describe tiers that hold no data.
+ *
+ * That matters for how B3 ("cache is in-process") was fixed. Moving an unused
+ * Map to Redis would have satisfied the letter of the blocker and changed
+ * nothing real. The genuine cross-instance defect in this file was the
+ * invalidation path: the admin panel's refresh called
+ * `pbacEngine.invalidateUserCache()`, which clears only the process that
+ * served the request, so on every other instance the stale permissions
+ * survived while the UI reported a full system purge. That is what was fixed —
+ * the refresh now bumps the shared PBAC version, which every instance picks up.
+ *
+ * If real caching is introduced later, this is the seam for it, and Redis is
+ * the right backing store: a cache is read on nearly every request and
+ * tolerates being lost, which is the opposite trade-off to the rate limiter in
+ * PROD-2 and the reason that one uses Postgres instead.
+ */
+
 import { prisma } from './prisma';
 import { pbacEngine } from './pbac-engine';
 
@@ -403,6 +427,9 @@ class SystemCacheManager {
       }
 
       case 'CLEAR_SERVER_CACHE': {
+        if (scope?.orgId) {
+          await pbacEngine.invalidateOrgAcrossInstances(scope.orgId);
+        }
         const apiCount = this.invalidateNamespace('api', scope && scope.orgId);
         const searchCount = this.invalidateNamespace('search', scope && scope.orgId);
         const metaCount = this.invalidateNamespace('metadata', scope && scope.orgId);
@@ -462,6 +489,11 @@ class SystemCacheManager {
       }
 
       case 'FULL_SYSTEM_REFRESH': {
+        // Reach the other instances too (PROD-3). Without this the button
+        // purges one process and reports success for the whole system.
+        if (scope?.orgId) {
+          await pbacEngine.invalidateOrgAcrossInstances(scope.orgId);
+        }
         const pbacCount = this.invalidateNamespace('pbac');
         const analyticsCount = this.invalidateNamespace('analytics');
         const apiCount = this.invalidateNamespace('api');

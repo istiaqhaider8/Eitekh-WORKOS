@@ -20,8 +20,10 @@ entry in it was verified to be over-claimed:
   helper for **testability** whose own docstring says *"Production code uses the real singletons
   by default."* The in-process state it was meant to fix is still in-process
   (`rate-limit.ts:11`, `cache-manager.ts:66`, `sync-engine.ts:79`). **ARCH-2 is reopened** as
-  PROD-3/4 in [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md). (The rate limiters, PROD-2,
-  were moved to a shared store on 2026-09-18; the cache and SSE registry were not.)
+  PROD-4 in [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md). (The rate limiters (PROD-2)
+  and the PBAC authorization store (PROD-3) have since moved to shared storage. The SSE client
+  registry has not: that is PROD-4. The cache-manager Map is still in-process but holds no data —
+  nothing ever writes to it.)
 - **OPS-3** ("No monitoring or alerting") was closed with the justification *"(health endpoint +
   logging)"*. A health endpoint is liveness, not monitoring; logs go to `console.*` with no sink
   or alerting. **Reopened** as PROD-7.
@@ -61,19 +63,19 @@ One High-severity item remains open: **DEP-1** (postcss CVEs via Next.js — nee
 
 | Gate | Meaning | Progress |
 |---|---|---|
-| Gate 0 — Blockers | Blocks any multi-tenant production launch | **3/8** (PROD-0, PROD-1, PROD-2 done 2026-09-18) |
+| Gate 0 — Blockers | Blocks any multi-tenant production launch | **4/8** (PROD-0/1/2 done 2026-09-18, PROD-3 done 2026-09-19) |
 | Gate 1 — Pre-launch hardening | Blocks public/paid launch | 0/8 (PROD-18/19/20 added) |
 | Gate 2 — Maintainability | Post-launch | 0/8 (PROD-21/22/23 added) |
 
 **Current state (2026-09-18): a fresh single-instance deploy is no longer blocked** — PROD-0 is
 done, so `migrate deploy` builds the schema the app expects. Multi-tenant production is roughly
-**65%** ready — Gate 0 is 8 items with 3 complete.
+**72%** ready — Gate 0 is 8 items with 4 complete.
 
 | Target | Ready | Gating |
 |---|---|---|
 | Fresh single-instance deploy | ✅ **unblocked** | — |
 | Single-instance pilot, trusted tenants | ~85% | PROD-7, PROD-20 advisable |
-| Multi-tenant paid production | **~65%** | the remaining 5 of Gate 0 |
+| Multi-tenant paid production | **~72%** | the remaining 4 of Gate 0 |
 
 Verified 2026-09-18: `npx tsc --noEmit` clean, lint 0 errors (64 pre-existing warnings), 74 unit
 tests pass, boot-time config guard works, `.env` untracked. Blockers: SQLite in production, all shared state in-process (no Redis) *including the PBAC store on local
@@ -151,7 +153,7 @@ Full task specs, acceptance criteria and verification commands are in
 | ~~1~~ | ~~**PROD-1**~~ | Blocker | ✅ **DONE 2026-09-18** (`ecd6d4c`) | Was: SQLite in a multi-tenant SaaS. Now `provider = "postgresql"`; history regenerated as `0001_init_postgres`, CHECK constraints rescued in `0002_value_constraints`, and the F5 case-sensitivity regression fixed at 41 call sites. SQLite history archived to `prisma/migrations-sqlite-archive/` | `prisma/schema.prisma`, `prisma/migrations/` |
 | 2 | PROD-5 | Blocker | PENDING | Tenant-isolation integration tests (highest risk reduction) | `__tests__/integration/` |
 | ~~3~~ | ~~**PROD-2**~~ | Blocker | ✅ **DONE 2026-09-18** | Was: two in-process rate limiters (N instances = N× the limit; every deploy reset all counters). Both now go through a shared **Postgres** store with single-statement atomic increments, keyed per user rather than per IP (B11) with a per-IP backstop, failing **closed**. Verified across 2 live instances: 10/10. Redis was specced but not chosen — see PROD-2 in `PRODUCTION-READINESS.md` for why Postgres | `src/lib/rate-limit-store.ts`, `src/lib/rate-limit.ts`, `src/middleware.ts` |
-| 4 | PROD-3 | Blocker | PENDING | Move cache to Redis (stale PBAC across instances = authz bug) | `src/lib/cache-manager.ts` |
+| ~~4~~ | ~~**PROD-3**~~ | Blocker | ✅ **DONE 2026-09-19** | Was: PBAC roles and assignments in in-memory Maps plus `.data/pbac-store.json` on one instance's disk — split-brain in the authorization model itself (B13). Now Postgres rows with per-entity writes and a shared version counter; 18 roles / 136 assignments / 157 audit records migrated. Also found: `cacheManager` is never written to, so B3 was dead infrastructure — the real defect there was invalidation, now cross-instance | `src/lib/pbac-store.ts`, `src/lib/pbac-engine.ts` |
 | 5 | PROD-4 | Blocker | PENDING | Cross-instance SSE fan-out via Redis pub/sub | `src/lib/sync-engine.ts` |
 | 6 | PROD-6 | Blocker | PENDING | PBAC / authorization route tests (2,254-line engine, 0 tests) | `__tests__/integration/` |
 | 7 | PROD-7 | Blocker | PENDING | Error tracking + monitoring + alerting (reopens OPS-3) | `src/lib/logger.ts` |
