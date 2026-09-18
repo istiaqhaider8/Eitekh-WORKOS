@@ -68,16 +68,53 @@ export interface ImportSummary {
   results: RowResult[];
 }
 
-/** Parses a YYYY-MM-DD (or any Date-parseable) cell. */
+/**
+ * Parses a date cell as **DD-MM-YYYY** — the documented template format.
+ *
+ * `/` and `.` are accepted as separators alongside `-`, and a single-digit day
+ * or month is accepted, because a spreadsheet re-formats a typed date on save:
+ * entering `01-02-2026` in Excel commonly writes `1/2/2026` back to the CSV.
+ * Rejecting that would make a correctly filled template fail on export alone.
+ *
+ * `YYYY-MM-DD` is still accepted. It cannot be confused with `DD-MM-YYYY` (a
+ * four-digit leading component is unambiguous), it is what earlier templates
+ * told people to use, and files built against them should keep working.
+ *
+ * The day and month are checked against the parsed date afterwards, so
+ * `31-02-2026` is rejected rather than rolling over into March.
+ */
 export function parseDateCell(value: string): { ok: true; date: Date | null } | { ok: false; error: string } {
   if (!value) return { ok: true, date: null };
-  // Require an unambiguous date so "01/02/2026" cannot silently mean either
-  // 1 February or 2 January depending on the server locale.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return { ok: false, error: `date must be YYYY-MM-DD, got "${value}"` };
+
+  let year: number, month: number, day: number;
+
+  const iso = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  const dmy = value.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+
+  if (iso) {
+    [, year, month, day] = iso.map(Number) as unknown as [never, number, number, number];
+  } else if (dmy) {
+    [, day, month, year] = dmy.map(Number) as unknown as [never, number, number, number];
+  } else {
+    return { ok: false, error: `date must be DD-MM-YYYY, got "${value}"` };
   }
-  const d = new Date(`${value}T00:00:00.000Z`);
-  if (isNaN(d.getTime())) return { ok: false, error: `"${value}" is not a real date` };
+
+  if (month < 1 || month > 12) {
+    return { ok: false, error: `month must be 1-12 in "${value}" (format is DD-MM-YYYY)` };
+  }
+  if (day < 1 || day > 31) {
+    return { ok: false, error: `day must be 1-31 in "${value}" (format is DD-MM-YYYY)` };
+  }
+
+  const d = new Date(Date.UTC(year, month - 1, day));
+  // Date.UTC rolls an impossible day into the next month, so compare it back.
+  if (
+    d.getUTCFullYear() !== year ||
+    d.getUTCMonth() !== month - 1 ||
+    d.getUTCDate() !== day
+  ) {
+    return { ok: false, error: `"${value}" is not a real date` };
+  }
   return { ok: true, date: d };
 }
 
