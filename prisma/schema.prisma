@@ -714,11 +714,44 @@ model SystemAnnouncement {
   title          String
   message        String
   severity       String    @default("INFO") // INFO, WARNING, CRITICAL
+  // Legacy free-text audience label, kept so existing rows and the old admin
+  // form keep working. Actual targeting is audienceMode + targets below.
   targetAudience String    @default("ALL") // ALL, ORGS, USERS
+  // ALL  = every signed-in user (a platform-wide broadcast)
+  // FILTERED = only users matching `targets`
+  audienceMode   String    @default("ALL") // ALL, FILTERED
+  // How targets of DIFFERENT kinds combine. Within one kind it is always OR.
+  //   ANY = match any kind        (Project X  OR  all Clients)
+  //   ALL = match every kind used (Project X AND only its Clients)
+  matchMode      String    @default("ANY") // ANY, ALL
+  // Plain column rather than a relation: an announcement outlives the admin who
+  // wrote it, and deleting that account must not cascade into the audit trail.
+  createdById    String?
   isActive       Boolean   @default(true)
   startsAt       DateTime  @default(now())
   expiresAt      DateTime?
   createdAt      DateTime  @default(now())
+
+  targets        AnnouncementTarget[]
+
+  @@index([isActive, startsAt])
+}
+
+/// One audience rule on an announcement. Several rows of the same `kind` are
+/// alternatives (OR); how kinds combine is SystemAnnouncement.matchMode.
+model AnnouncementTarget {
+  id             String @id @default(cuid())
+  announcementId String
+  // ORG | PROJECT | TEAM | USER | USER_TYPE | ORG_ROLE | PROJECT_ROLE
+  kind           String
+  /// An id for ORG/PROJECT/TEAM/USER, or a value such as CLIENT / PROJECT_ADMIN.
+  value          String
+
+  announcement   SystemAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, kind, value])
+  @@index([announcementId])
+  @@index([kind, value])
 }
 
 model PlatformAuditLog {

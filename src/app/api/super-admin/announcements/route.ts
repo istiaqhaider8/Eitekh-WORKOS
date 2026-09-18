@@ -2,6 +2,12 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { superAdminAnnouncementCreateSchema, superAdminAnnouncementUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import {
+  announcementStatus,
+  dedupeTargets,
+  resolveRecipientIds,
+  validateTargets,
+} from "@/lib/announcement-targeting";
 
 export async function GET() {
   try {
@@ -10,9 +16,15 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden: Super Admin access required" }, { status: 403 });
     }
 
-    const announcements = await prisma.systemAnnouncement.findMany({
+    const rows = await prisma.systemAnnouncement.findMany({
       orderBy: { createdAt: "desc" },
+      include: { targets: { select: { id: true, kind: true, value: true } } },
     });
+
+    // status is derived from isActive + the schedule on every read, so a
+    // scheduled announcement becomes ACTIVE and then EXPIRED without a job
+    // having to rewrite a stored column.
+    const announcements = rows.map((a) => ({ ...a, status: announcementStatus(a) }));
 
     return NextResponse.json({ announcements });
   } catch (error: any) {
@@ -29,9 +41,28 @@ export async function POST(req: Request) {
 
     const parsed = await parseJsonBody(req, superAdminAnnouncementCreateSchema);
     if (!parsed.success) return parsed.error;
-    const { title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
+    const { title, message, severity, targetAudience, isActive, startsAt, expiresAt,
+      audienceMode, matchMode, targets } = parsed.data;
 
     const { broadcast } = parsed.data as any;
+
+    const cleanTargets = dedupeTargets(targets || []);
+
+    // A FILTERED audience with no rules reaches nobody, which is almost never
+    // what the author meant — refuse it rather than publish a silent no-op.
+    if (audienceMode === "FILTERED" && cleanTargets.length === 0) {
+      return NextResponse.json(
+        { error: "A filtered audience needs at least one target. Use audienceMode ALL to reach everyone." },
+        { status: 400 }
+      );
+    }
+
+    // Ids are checked against the database so a mistyped project cannot be
+    // stored as an audience that quietly matches no one.
+    const targetErrors = await validateTargets(cleanTargets);
+    if (targetErrors.length) {
+      return NextResponse.json({ error: targetErrors.join("; ") }, { status: 400 });
+    }
 
     const announcement = await prisma.systemAnnouncement.create({
       data: {
@@ -39,29 +70,34 @@ export async function POST(req: Request) {
         message: message.trim(),
         severity,
         targetAudience,
+        audienceMode,
+        matchMode,
+        createdById: user.id,
         isActive,
         startsAt: startsAt ? new Date(startsAt) : new Date(),
         expiresAt: expiresAt ? new Date(expiresAt) : null,
+        targets: cleanTargets.length ? { create: cleanTargets } : undefined,
       },
+      include: { targets: { select: { id: true, kind: true, value: true } } },
     });
 
     let broadcastCount = 0;
     if (broadcast) {
-      const allUsers = await prisma.user.findMany({
-        where: { status: "ACTIVE" },
-        select: { id: true },
-      });
-      if (allUsers.length > 0) {
+      // Resolved through the same matcher as the feed. This previously notified
+      // EVERY active account, so a broadcast ignored the audience entirely and
+      // a project-targeted announcement reached the whole platform.
+      const recipientIds = await resolveRecipientIds(announcement.id);
+      if (recipientIds.length > 0) {
         await prisma.notification.createMany({
-          data: allUsers.map((u) => ({
-            userId: u.id,
+          data: recipientIds.map((userId) => ({
+            userId,
             title: `📢 ${title.trim()}`,
             message: message.trim(),
             type: "SYSTEM",
             linkUrl: null,
           })),
         });
-        broadcastCount = allUsers.length;
+        broadcastCount = recipientIds.length;
       }
     }
 
@@ -74,6 +110,9 @@ export async function POST(req: Request) {
           title: announcement.title,
           severity: announcement.severity,
           targetAudience: announcement.targetAudience,
+          audienceMode: announcement.audienceMode,
+          matchMode: announcement.matchMode,
+          targets: announcement.targets.map((t) => `${t.kind}:${t.value}`),
           isActive: announcement.isActive,
           createdBy: user.email,
         }),
@@ -81,7 +120,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({
-      announcement,
+      // status derived here too, so create/update/list all report it the same way
+      announcement: { ...announcement, status: announcementStatus(announcement) },
       broadcastCount,
       message: broadcast
         ? `Announcement published and broadcast to ${broadcastCount} users`
@@ -101,7 +141,8 @@ export async function PATCH(req: Request) {
 
     const parsed = await parseJsonBody(req, superAdminAnnouncementUpdateSchema);
     if (!parsed.success) return parsed.error;
-    const { id, title, message, severity, targetAudience, isActive, startsAt, expiresAt } = parsed.data;
+    const { id, title, message, severity, targetAudience, isActive, startsAt, expiresAt,
+      audienceMode, matchMode, targets } = parsed.data;
 
     const existing = await prisma.systemAnnouncement.findUnique({ where: { id } });
     if (!existing) {
@@ -116,10 +157,50 @@ export async function PATCH(req: Request) {
     if (typeof isActive === "boolean") updateData.isActive = isActive;
     if (startsAt !== undefined) updateData.startsAt = startsAt ? new Date(startsAt) : new Date();
     if (expiresAt !== undefined) updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (audienceMode !== undefined) updateData.audienceMode = audienceMode;
+    if (matchMode !== undefined) updateData.matchMode = matchMode;
 
-    const updated = await prisma.systemAnnouncement.update({
-      where: { id },
-      data: updateData,
+    // Omitting targets leaves the audience alone; sending an array replaces it.
+    const cleanTargets = targets === undefined ? null : dedupeTargets(targets);
+    const effectiveMode = audienceMode ?? existing.audienceMode;
+
+    if (cleanTargets) {
+      const targetErrors = await validateTargets(cleanTargets);
+      if (targetErrors.length) {
+        return NextResponse.json({ error: targetErrors.join("; ") }, { status: 400 });
+      }
+    }
+
+    // Guard the same no-op audience as create, including the case where only
+    // the mode is switched to FILTERED while no targets exist yet.
+    if (effectiveMode === "FILTERED") {
+      const willHave = cleanTargets
+        ? cleanTargets.length
+        : await prisma.announcementTarget.count({ where: { announcementId: id } });
+      if (willHave === 0) {
+        return NextResponse.json(
+          { error: "A filtered audience needs at least one target. Use audienceMode ALL to reach everyone." },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (cleanTargets) {
+        // Replace rather than merge, so deselecting an audience in the UI
+        // actually removes it.
+        await tx.announcementTarget.deleteMany({ where: { announcementId: id } });
+        if (cleanTargets.length) {
+          await tx.announcementTarget.createMany({
+            data: cleanTargets.map((t) => ({ announcementId: id, kind: t.kind, value: t.value })),
+          });
+        }
+      }
+      return tx.systemAnnouncement.update({
+        where: { id },
+        data: updateData,
+        include: { targets: { select: { id: true, kind: true, value: true } } },
+      });
     });
 
     await prisma.platformAuditLog.create({
@@ -134,7 +215,10 @@ export async function PATCH(req: Request) {
       },
     });
 
-    return NextResponse.json({ announcement: updated, message: "Announcement updated successfully" });
+    return NextResponse.json({
+      announcement: { ...updated, status: announcementStatus(updated) },
+      message: "Announcement updated successfully",
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }

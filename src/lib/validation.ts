@@ -719,6 +719,21 @@ export const superAdminFeatureUpdateSchema = z.object({
   description: safeStringSchema.trim().optional().nullable(),
 });
 
+// Audience targeting for announcements. The kinds and their allowed values live
+// in lib/announcement-targeting.ts, which is also what resolves a match, so the
+// request shape and the resolver cannot drift apart.
+export const announcementTargetSchema = z.object({
+  kind: z.enum(["ORG", "PROJECT", "TEAM", "USER", "USER_TYPE", "ORG_ROLE", "PROJECT_ROLE"]),
+  value: z.string().min(1, "Target value is required").max(100).trim(),
+});
+
+export const announcementAudienceFields = {
+  audienceMode: z.enum(["ALL", "FILTERED"]).default("ALL"),
+  matchMode: z.enum(["ANY", "ALL"]).default("ANY"),
+  // Bounded so one request cannot store an unbounded audience.
+  targets: z.array(announcementTargetSchema).max(200).default([]),
+};
+
 export const superAdminAnnouncementCreateSchema = z.object({
   title: safeStringSchema.min(1, "Announcement title is required").trim(),
   message: safeLongStringSchema.min(1, "Announcement message is required").trim(),
@@ -728,6 +743,7 @@ export const superAdminAnnouncementCreateSchema = z.object({
   startsAt: z.string().max(50).optional().nullable(),
   expiresAt: z.string().max(50).optional().nullable(),
   broadcast: z.boolean().default(false),
+  ...announcementAudienceFields,
 });
 
 export const superAdminAnnouncementUpdateSchema = z.object({
@@ -739,6 +755,10 @@ export const superAdminAnnouncementUpdateSchema = z.object({
   isActive: z.boolean().optional(),
   startsAt: z.string().max(50).optional().nullable(),
   expiresAt: z.string().max(50).optional().nullable(),
+  audienceMode: z.enum(["ALL", "FILTERED"]).optional(),
+  matchMode: z.enum(["ANY", "ALL"]).optional(),
+  // Omitted leaves the existing audience untouched; [] clears it.
+  targets: z.array(announcementTargetSchema).max(200).optional(),
 });
 
 export const superAdminEmailTemplateResetSchema = z.object({

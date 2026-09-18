@@ -15,8 +15,196 @@ import {
   Radio,
   Bell,
   Eye,
+  Users2,
+  Target,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
+
+/** The seven targeting dimensions, in the order the picker shows them. */
+const TARGET_KINDS = [
+  { kind: "PROJECT", label: "Projects" },
+  { kind: "USER_TYPE", label: "User type" },
+  { kind: "PROJECT_ROLE", label: "Project role" },
+  { kind: "TEAM", label: "Teams" },
+  { kind: "ORG", label: "Organizations" },
+  { kind: "ORG_ROLE", label: "Org role" },
+  { kind: "USER", label: "Individual users" },
+] as const;
+
+type TargetRule = { kind: string; value: string };
+
+/**
+ * Audience selection.
+ *
+ * Whatever this produces is re-validated and re-resolved server-side by
+ * lib/announcement-targeting.ts — the picker chooses an audience, it does not
+ * enforce one.
+ */
+function AudienceBuilder({
+  audienceMode,
+  matchMode,
+  targets,
+  options,
+  onChange,
+}: {
+  audienceMode: string;
+  matchMode: string;
+  targets: TargetRule[];
+  options: Record<string, Array<{ value: string; label: string; count: number }>>;
+  onChange: (patch: { audienceMode?: string; matchMode?: string; targets?: TargetRule[] }) => void;
+}) {
+  const [openKind, setOpenKind] = useState<string>("PROJECT");
+  const [filter, setFilter] = useState("");
+
+  const has = (kind: string, value: string) => targets.some((t) => t.kind === kind && t.value === value);
+  const toggle = (kind: string, value: string) => {
+    onChange({
+      targets: has(kind, value)
+        ? targets.filter((t) => !(t.kind === kind && t.value === value))
+        : [...targets, { kind, value }],
+    });
+  };
+  const countFor = (kind: string) => targets.filter((t) => t.kind === kind).length;
+  const usedKinds = [...new Set(targets.map((t) => t.kind))];
+
+  const list = (options[openKind] || []).filter((o) =>
+    !filter.trim() ? true : o.label.toLowerCase().includes(filter.trim().toLowerCase())
+  );
+
+  return (
+    <div className="space-y-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3">
+      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold">
+        <Users2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+        <span>Audience</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            checked={audienceMode === "ALL"}
+            onChange={() => onChange({ audienceMode: "ALL" })}
+            className="text-indigo-600"
+          />
+          <span className="text-slate-700 dark:text-slate-300">Everyone on the platform</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            checked={audienceMode === "FILTERED"}
+            onChange={() => onChange({ audienceMode: "FILTERED" })}
+            className="text-indigo-600"
+          />
+          <span className="text-slate-700 dark:text-slate-300">Only a targeted audience</span>
+        </label>
+      </div>
+
+      {audienceMode === "FILTERED" && (
+        <div className="space-y-2 pt-1">
+          {/* How kinds combine. Within one kind the values are always OR. */}
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="text-slate-600 dark:text-slate-400">Combine the groups below with</span>
+            <select
+              value={matchMode}
+              onChange={(e) => onChange({ matchMode: e.target.value })}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-200 outline-none"
+            >
+              <option value="ANY">ANY — reach a user matching any group</option>
+              <option value="ALL">ALL — only users matching every group</option>
+            </select>
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {TARGET_KINDS.map((k) => {
+              const n = countFor(k.kind);
+              const active = openKind === k.kind;
+              return (
+                <button
+                  key={k.kind}
+                  type="button"
+                  onClick={() => { setOpenKind(k.kind); setFilter(""); }}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-semibold border transition-colors cursor-pointer ${
+                    active
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  }`}
+                >
+                  {k.label}
+                  {n > 0 && (
+                    <span className={`ml-1 ${active ? "text-indigo-100" : "text-indigo-600 dark:text-indigo-400"}`}>
+                      {n}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {(options[openKind] || []).length > 8 && (
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Filter this list..."
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 text-[11px] text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
+            />
+          )}
+
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+            {list.length === 0 ? (
+              <div className="p-3 text-center text-[11px] text-slate-500">
+                {(options[openKind] || []).length === 0 ? "Nothing to target here yet." : "No match."}
+              </div>
+            ) : (
+              list.map((o) => (
+                <label
+                  key={o.value}
+                  className="flex items-center gap-2 p-1.5 text-[11px] cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                >
+                  <input
+                    type="checkbox"
+                    checked={has(openKind, o.value)}
+                    onChange={() => toggle(openKind, o.value)}
+                    className="rounded text-indigo-600"
+                  />
+                  <span className="text-slate-700 dark:text-slate-300 truncate flex-1">{o.label}</span>
+                  <span className="text-slate-500 tabular-nums">{o.count}</span>
+                </label>
+              ))
+            )}
+          </div>
+
+          {targets.length > 0 ? (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {targets.map((t) => (
+                <span
+                  key={`${t.kind}:${t.value}`}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-semibold"
+                >
+                  {t.kind.replace(/_/g, " ")}:{" "}
+                  {(options[t.kind] || []).find((o) => o.value === t.value)?.label || t.value}
+                  <button type="button" onClick={() => toggle(t.kind, t.value)} className="cursor-pointer">
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400">
+              No audience selected yet — a targeted announcement with no groups reaches nobody.
+            </p>
+          )}
+
+          {matchMode === "ALL" && usedKinds.length > 1 && (
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              Reaches only users matching <strong>all</strong> of: {usedKinds.map((k) => k.replace(/_/g, " ").toLowerCase()).join(" + ")}.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PlatformAnnouncementsView() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -36,8 +224,24 @@ export function PlatformAnnouncementsView() {
     severity: "INFO",
     targetAudience: "ALL",
     isActive: true,
+    startsAt: "",
     expiresAt: "",
+    audienceMode: "ALL",
+    matchMode: "ANY",
+    targets: [] as TargetRule[],
+    broadcast: false,
   });
+
+  const [audienceOptions, setAudienceOptions] = useState<Record<string, Array<{ value: string; label: string; count: number }>>>({});
+
+  // Loaded once: the picker's options come from live data, so it cannot offer a
+  // project that the create endpoint would then reject.
+  useEffect(() => {
+    fetch("/api/super-admin/announcements/audience")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.options && setAudienceOptions(d.options))
+      .catch(() => {});
+  }, []);
 
   const loadAnnouncements = useCallback(async () => {
     setLoading(true);
@@ -72,6 +276,7 @@ export function PlatformAnnouncementsView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
           expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
         }),
       });
@@ -85,7 +290,12 @@ export function PlatformAnnouncementsView() {
           severity: "INFO",
           targetAudience: "ALL",
           isActive: true,
+          startsAt: "",
           expiresAt: "",
+          audienceMode: "ALL",
+          matchMode: "ANY",
+          targets: [],
+          broadcast: false,
         });
         loadAnnouncements();
       } else {
@@ -109,6 +319,7 @@ export function PlatformAnnouncementsView() {
         body: JSON.stringify({
           id: activeItem.id,
           ...form,
+          startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : null,
           expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
         }),
       });
@@ -203,7 +414,12 @@ export function PlatformAnnouncementsView() {
                 severity: "INFO",
                 targetAudience: "ALL",
                 isActive: true,
+                startsAt: "",
                 expiresAt: "",
+                audienceMode: "ALL",
+                matchMode: "ANY",
+                targets: [],
+                broadcast: false,
               });
               setShowCreateModal(true);
             }}
@@ -268,14 +484,36 @@ export function PlatformAnnouncementsView() {
                   >
                     {item.severity}
                   </span>
+                  {/* Lifecycle, derived server-side from isActive plus the
+                      schedule, so SCHEDULED becomes ACTIVE and then EXPIRED on
+                      its own. `isActive` alone could not tell those apart. */}
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      item.isActive ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      item.status === "ACTIVE"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
+                        : item.status === "SCHEDULED"
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                          : item.status === "EXPIRED"
+                            ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                     }`}
                   >
-                    {item.isActive ? "ACTIVE" : "INACTIVE"}
+                    {item.status || (item.isActive ? "ACTIVE" : "DRAFT")}
                   </span>
-                  <span className="text-[11px] text-slate-600 dark:text-slate-400">Audience: {item.targetAudience}</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400">
+                    <Target className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                    {item.audienceMode === "FILTERED"
+                      ? `${(item.targets || []).length} rule${(item.targets || []).length === 1 ? "" : "s"}` +
+                        ((item.targets || []).length > 1 ? ` · match ${item.matchMode || "ANY"}` : "")
+                      : "Everyone"}
+                  </span>
+                  {item.audienceMode === "FILTERED" && (item.targets || []).length > 0 && (
+                    <span className="text-[11px] text-slate-500 truncate max-w-md">
+                      {[...new Set((item.targets || []).map((t: any) => t.kind))]
+                        .map((k: any) => String(k).replace(/_/g, " ").toLowerCase())
+                        .join(", ")}
+                    </span>
+                  )}
                   <span className="text-[11px] text-slate-500">
                     · {new Date(item.createdAt).toLocaleDateString()}
                   </span>
@@ -310,7 +548,16 @@ export function PlatformAnnouncementsView() {
                       severity: item.severity,
                       targetAudience: item.targetAudience,
                       isActive: item.isActive,
-                      expiresAt: item.expiresAt ? item.expiresAt.split(".")[0] : "",
+                      startsAt: item.startsAt ? String(item.startsAt).split(".")[0] : "",
+                      expiresAt: item.expiresAt ? String(item.expiresAt).split(".")[0] : "",
+                      // Hydrate the saved audience so opening Edit shows what is
+                      // actually stored. Without this the builder would come up
+                      // empty and saving would wipe the audience.
+                      audienceMode: item.audienceMode || "ALL",
+                      matchMode: item.matchMode || "ANY",
+                      targets: (item.targets || []).map((t: any) => ({ kind: t.kind, value: t.value })),
+                      // Editing must not silently re-notify everyone.
+                      broadcast: false,
                     });
                     setShowEditModal(true);
                   }}
@@ -394,11 +641,12 @@ export function PlatformAnnouncementsView() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Target Audience</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Label</label>
                   <select
                     value={form.targetAudience}
                     onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
+                    title="A descriptive label only. Who actually receives this is set under Audience below."
                   >
                     <option value="ALL">All Platform Users</option>
                     <option value="ORGS">Organization Admins</option>
@@ -406,6 +654,41 @@ export function PlatformAnnouncementsView() {
                   </select>
                 </div>
               </div>
+
+              {/* Publish window. Leaving "Starts" empty publishes immediately;
+                  leaving "Expires" empty means it never expires. */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">
+                    Starts <span className="text-slate-500">(blank = now)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.startsAt}
+                    onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">
+                    Expires <span className="text-slate-500">(blank = never)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.expiresAt}
+                    onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
+              </div>
+
+              <AudienceBuilder
+                audienceMode={form.audienceMode}
+                matchMode={form.matchMode}
+                targets={form.targets}
+                options={audienceOptions}
+                onChange={(patch) => setForm({ ...form, ...patch })}
+              />
 
               <div className="flex items-center gap-2 pt-1">
                 <input
@@ -416,7 +699,23 @@ export function PlatformAnnouncementsView() {
                   className="rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600 dark:text-indigo-400"
                 />
                 <label htmlFor="activeBanner" className="text-slate-700 dark:text-slate-300">
-                  Broadcast immediately (Active)
+                  Published (visible once the start time passes)
+                </label>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="broadcastNotify"
+                  checked={form.broadcast}
+                  onChange={(e) => setForm({ ...form, broadcast: e.target.checked })}
+                  className="mt-0.5 rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-indigo-600"
+                />
+                <label htmlFor="broadcastNotify" className="text-slate-700 dark:text-slate-300">
+                  Also send a notification
+                  <span className="block text-[11px] text-slate-500">
+                    Goes only to the audience selected above — resolved server-side, not to everyone.
+                  </span>
                 </label>
               </div>
 
@@ -492,11 +791,12 @@ export function PlatformAnnouncementsView() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Target Audience</label>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">Label</label>
                   <select
                     value={form.targetAudience}
                     onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
+                    title="A descriptive label only. Who actually receives this is set under Audience below."
                   >
                     <option value="ALL">All Platform Users</option>
                     <option value="ORGS">Organization Admins</option>
@@ -504,6 +804,41 @@ export function PlatformAnnouncementsView() {
                   </select>
                 </div>
               </div>
+
+              {/* Publish window. Leaving "Starts" empty publishes immediately;
+                  leaving "Expires" empty means it never expires. */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">
+                    Starts <span className="text-slate-500">(blank = now)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.startsAt}
+                    onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-600 dark:text-slate-400 block mb-1">
+                    Expires <span className="text-slate-500">(blank = never)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.expiresAt}
+                    onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 text-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
+              </div>
+
+              <AudienceBuilder
+                audienceMode={form.audienceMode}
+                matchMode={form.matchMode}
+                targets={form.targets}
+                options={audienceOptions}
+                onChange={(patch) => setForm({ ...form, ...patch })}
+              />
 
               <div className="flex items-center gap-2 pt-1">
                 <input
