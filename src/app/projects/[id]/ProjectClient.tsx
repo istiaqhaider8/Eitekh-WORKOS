@@ -154,6 +154,14 @@ export function ProjectClient({
   const canEditProject = canUseProjectAction(currentUser, "projectSettings");
   const canAssignMembers = canUseProjectAction(currentUser, "assignMembers");
   const canManageTeams = canUseProjectAction(currentUser, "manageTeams");
+  // Changing someone's Employee/Client type edits their ACCOUNT, which affects
+  // every project and organization they belong to — so it needs the
+  // user-directory permission, not the project-member one. Project Admin and
+  // Project Manager hold users:view only, and see the type read-only.
+  const canChangeUserType =
+    Boolean(currentUser?.isSuperAdmin) ||
+    (Array.isArray(currentUser?.capabilities) && currentUser.capabilities.includes("users:manage"));
+
   const canBulkUpload =
     canUseProjectAction(currentUser, "bulkUploadTasks") ||
     canUseProjectAction(currentUser, "bulkUploadMembers");
@@ -840,6 +848,32 @@ export function ProjectClient({
       showError(err.message || "Failed to assign member");
     } finally {
       setMemberLoading(false);
+    }
+  };
+
+  const handleUpdateUserType = async (userId: string, userType: string) => {
+    // Optimistic, then reconciled from the server — the API re-checks the
+    // permission and the organization boundary regardless of what the UI allows.
+    setMembers((prev: any[]) =>
+      prev.map((m) =>
+        m.userId === userId || m.user?.id === userId
+          ? { ...m, user: { ...(m.user || {}), userType } }
+          : m
+      )
+    );
+    try {
+      const res = await fetch(`/api/users/${userId}/type`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userType }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update type");
+      showSuccess(`Type set to ${userType === "CLIENT" ? "Client" : "Employee"}`);
+      refreshMembers();
+    } catch (err: any) {
+      showError(err.message || "Failed to update type");
+      refreshMembers();
     }
   };
 
@@ -2198,17 +2232,38 @@ export function ProjectClient({
                                   You
                                 </span>
                               )}
-                              {/* Type is an attribute of the account, not of
-                                  this membership, so it is shown here and
-                                  edited in the platform user directory. A
-                                  project admin changing it here would silently
-                                  reclassify the person across every project. */}
-                              {userObj.userType === "CLIENT" ? (
-                                <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-semibold px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800">
+                              {/* Employee/Client. Editable only with
+                                  users:manage, because it is an account
+                                  attribute: changing it here reclassifies the
+                                  person everywhere, not just in this project. */}
+                              {canChangeUserType ? (
+                                <select
+                                  value={userObj.userType === "CLIENT" ? "CLIENT" : "EMPLOYEE"}
+                                  onChange={(e) =>
+                                    handleUpdateUserType(member.userId || userObj.id, e.target.value)
+                                  }
+                                  title="Employee or Client — applies to this person's account across all projects"
+                                  className={`text-[10px] font-semibold px-1 py-0.2 rounded border cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                                    userObj.userType === "CLIENT"
+                                      ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                  }`}
+                                >
+                                  <option value="EMPLOYEE">Employee</option>
+                                  <option value="CLIENT">Client</option>
+                                </select>
+                              ) : userObj.userType === "CLIENT" ? (
+                                <span
+                                  title="Account type. Changing it requires the users:manage permission."
+                                  className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-semibold px-1.5 py-0.2 rounded border border-amber-200 dark:border-amber-800"
+                                >
                                   Client
                                 </span>
                               ) : (
-                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
+                                <span
+                                  title="Account type. Changing it requires the users:manage permission."
+                                  className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700"
+                                >
                                   Employee
                                 </span>
                               )}
