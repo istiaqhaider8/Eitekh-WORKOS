@@ -107,8 +107,48 @@ statements**. It was write contention (SQLite rollback-journal mode + a `Session
 write on every request + `getCurrentUser()` running 2–3× per request) multiplied by a
 ten-request fan-out. Fixed in `9a899e4`.
 
-**Do not read these as production numbers.** They are dev-server figures on 460 rows. The
-scale-related risks are B10 (unbounded payloads) and PROD-8 (load testing).
+**Do not read these as production numbers.** They are dev-server figures on 460 rows.
+
+### Volume baseline (2026-09-18, A3 dataset)
+
+Re-measured against `prisma/seed-volume.js`: **20,000 issues, 50 projects, 3 orgs, 120 users**,
+32 MB, with a deliberately skewed history tail (a few issues carrying ~370 comments and ~370
+activity rows, most carrying almost none). Medians, dev server, separate `volume.db` — the
+working database was never loaded with this.
+
+| Flow | Seed (460 rows) | Volume (20k issues) | |
+|---|---|---|---|
+| Issue detail — no history | — | 132 ms · **2.5 KB** | baseline |
+| Issue detail — 374 comments + 374 activity | ~90 ms · 9.4 KB | 193 ms · **682.3 KB** | **B10 confirmed: 273× payload** |
+| Issue detail — 2 attachments | — | 128 ms · **655.0 KB** | **F1 confirmed: base64 rides along** |
+| Project page (server render) | 148 ms · 135 KB | **1,457 ms · 939.2 KB** | **PERF-P1 confirmed** |
+| Analytics | — | 304 ms · **658.3 KB** | **PERF-P2 confirmed** |
+| Project context (modal) | 77 ms · 12.9 KB | 77 ms · 3.8 KB | holds up |
+| Issues list (paginated API) | — | 79 ms · 68.9 KB / 50 rows | holds up |
+| Search | — | 76 ms · 9.6 KB | holds up |
+| Sign-in | ~100 ms | 171 ms | bcrypt-bound |
+
+What the volume run settles:
+
+- **B10 is real and the worst of the three.** One issue with a year of ordinary discussion
+  returns **682 KB**. The four unbounded includes are the cause; 20,000 thin issues are not the
+  problem, one thick one is.
+- **F1 compounds it.** Two attachments alone put the payload at **655 KB**, because the file
+  bytes are base64 in the row and there is no way to ask for the issue without them.
+- **PERF-P1 is the worst single number.** The main application screen server-renders **939 KB**
+  of HTML in **1.46 s** — an order of magnitude worse than at seed scale — while its own
+  paginated API answers in 79 ms. The page is bypassing it.
+- The work already done holds: the consolidated context endpoint is *smaller* at volume
+  (3.8 KB) than at seed scale, and search and the paginated list are unaffected.
+
+Rebuild the dataset with:
+```bash
+DATABASE_URL="file:./volume.db" npx prisma migrate deploy
+DATABASE_URL="file:./volume.db" node prisma/seed-volume.js
+DATABASE_URL="file:./volume.db" npm run dev      # measure against it
+```
+The seed refuses to run against a database whose name does not contain "volume", so it cannot
+be pointed at `dev.db` by accident.
 
 ### Measured problems
 
@@ -123,7 +163,7 @@ scale-related risks are B10 (unbounded payloads) and PROD-8 (load testing).
 | B7 | `/projects/[id]` ships 310 kB First Load JS | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
 | ~~**B9**~~ | ✅ **FIXED 2026-09-18** (`0007_repair_schema_drift`, PROD-0). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
-| **B10** | **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
+| **B10** | **MEASURED 2026-09-18: 682 KB for one issue.** **Unbounded relation loads.** `GET /api/issues/[id]` has no `take` on `activityLogs`, `comments`, `timeEntries` or `attachments`. Harmless at 19 activity rows / 9.4 KB; unbounded on a long-lived issue. | read [`src/app/api/issues/[id]/route.ts`](src/app/api/issues/[id]/route.ts) — no `take` in those four includes |
 | **B11** | **Rate limiting is keyed per IP, not per user** (100 reads/min). Behind office NAT a whole team shares one budget, and the Super Admin panel self-polls every 15 s on top of it. Tripped repeatedly during profiling. | `RATE_LIMIT_MAX = 100` at [`src/middleware.ts:7`](src/middleware.ts); `setInterval(loadAllData, 15000)` in [`src/app/super-admin/page.tsx`](src/app/super-admin/page.tsx) |
 | **B12** | **Known dependency CVEs**: 1 high, 1 moderate via postcss, reachable only through a Next major upgrade. | `npm audit --omit=dev` |
 | **B13** | **PBAC state is process-local *and* file-local** — in-memory `Map`s plus `.data/pbac-store.json`. Across instances, authorization state itself diverges, not just a cache. | `private roles: Map` at [`src/lib/pbac-engine.ts:287`](src/lib/pbac-engine.ts), plus `storeFilePath` at :298 |
