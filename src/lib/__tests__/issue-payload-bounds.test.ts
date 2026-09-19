@@ -45,7 +45,30 @@ describe("the issue detail payload is bounded", () => {
     // This ordering was ascending before the bound was added. Adding `take` to
     // an ascending order would have silently returned the OLDEST 50 comments —
     // a bug that looks like a fix.
-    expect(relationBlock(src, "comments")).toMatch(/orderBy: \{ createdAt: "desc" \}/);
+    expect(relationBlock(src, "comments")).toMatch(/createdAt: "desc"/);
+  });
+
+  it.each(["comments", "timeEntries", "activityLogs"])(
+    "%s ordering includes a UNIQUE tiebreaker",
+    (relation) => {
+      // Without one, offset paging over the matching history endpoint is
+      // unstable: 204 of one test issue's 374 comments shared a `createdAt`,
+      // rows moved between pages, and exactly one became unreachable — 373 of
+      // 374. The id makes the order total.
+      expect(relationBlock(src, relation)).toMatch(/\{ id: "desc" \}/);
+    }
+  );
+
+  it("the history endpoints that make the bound honest exist and are authorized", () => {
+    // Bounding the payload is only acceptable because the rest is reachable.
+    // These routes ARE that guarantee: without them the bound is data loss.
+    const base = join(__dirname, "..", "..", "app", "api", "issues", "[id]");
+    for (const route of ["comments", "time-entries", "activity"]) {
+      const source = readFileSync(join(base, route, "route.ts"), "utf8");
+      expect(source).toMatch(/export async function GET/);
+      expect(source).toMatch(/assertIssueHistoryAccess/);
+      expect(source).toMatch(/parsePaging/);
+    }
   });
 
   it("attachments return metadata only, never the stored bytes", () => {

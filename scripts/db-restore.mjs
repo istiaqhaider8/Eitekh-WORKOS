@@ -17,10 +17,13 @@
  *
  * Environment:
  *   PG_RESTORE   path to pg_restore, if not on PATH
+ *   BACKUP_ENCRYPTION_KEY  required when the file ends in .enc
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, createReadStream, createWriteStream, rmSync } from "node:fs";
+import { pipeline } from "node:stream/promises";
+import crypto from "node:crypto";
 import { createRequire } from "node:module";
 
 const require_ = createRequire(import.meta.url);
@@ -87,7 +90,38 @@ if (existingRows > 0 && !force) {
   );
 }
 
-const sizeMb = (statSync(file).size / 1024 / 1024).toFixed(2);
+// Decrypt first when the dump is encrypted. pg_restore cannot read an
+// encrypted file, and the failure it gives is unhelpful — so this is handled
+// here rather than left to the operator to notice.
+let dumpPath = file;
+let tempPlaintext = null;
+if (file.endsWith(".enc")) {
+  const keyHex = process.env.BACKUP_ENCRYPTION_KEY;
+  if (!keyHex || !/^[0-9a-f]{64}$/i.test(keyHex)) {
+    die("This dump is encrypted. Set BACKUP_ENCRYPTION_KEY (64 hex characters) to restore it.", 2);
+  }
+  const header = Buffer.alloc(28);
+  const { open } = await import("node:fs/promises");
+  const h = await open(file, "r");
+  await h.read(header, 0, 28, 0);
+  await h.close();
+
+  const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(keyHex, "hex"), header.subarray(0, 12));
+  decipher.setAuthTag(header.subarray(12, 28));
+  tempPlaintext = file.replace(/\.enc$/, ".decrypted");
+  try {
+    await pipeline(createReadStream(file, { start: 28 }), decipher, createWriteStream(tempPlaintext));
+  } catch {
+    // GCM authentication failed: wrong key, or the file was altered in
+    // transit. Either way it must not be fed to pg_restore.
+    try { if (existsSync(tempPlaintext)) rmSync(tempPlaintext); } catch {}
+    die("Decryption FAILED — wrong key, or the dump was corrupted or tampered with.", 1);
+  }
+  dumpPath = tempPlaintext;
+  console.log("[restore] decrypted and authenticated");
+}
+
+const sizeMb = (statSync(dumpPath).size / 1024 / 1024).toFixed(2);
 console.log(`[restore] ${probe.stdout.trim()}`);
 console.log(`[restore] ${file} (${sizeMb} MB) -> ${dbName}`);
 
@@ -102,7 +136,7 @@ const result = spawnSync(
     // by the verifier rather than by the exit code alone.
     "--exit-on-error=0",
     "--jobs", "4",
-    file,
+    dumpPath,
   ],
   { stdio: ["ignore", "inherit", "inherit"] }
 );
@@ -112,6 +146,15 @@ console.log(`\n[restore] pg_restore exited ${result.status} after ${seconds}s`);
 
 // This is the number the runbook asks for: how long a restore actually takes.
 console.log(`[restore] RECORD THIS: restore of ${sizeMb} MB took ${seconds}s`);
+
+const cleanupPlaintext = () => {
+  // Never leave a decrypted dump lying around; that is the whole point of
+  // encrypting it.
+  if (tempPlaintext && existsSync(tempPlaintext)) {
+    try { rmSync(tempPlaintext); console.log("[restore] removed the decrypted copy"); } catch {}
+  }
+};
+process.on("exit", cleanupPlaintext);
 
 if (!verifyAgainst) {
   console.log(

@@ -4,6 +4,39 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { timeEntryCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { assertIssueHistoryAccess, parsePaging, paginate } from "@/lib/issue-history";
+
+/**
+ * Paginated time entries, newest first (A4 follow-up).
+ *
+ * The issue payload carries only the newest 50; this is how the rest is read.
+ */
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: issueId } = await params;
+    await assertIssueHistoryAccess(issueId);
+
+    const { page, limit } = parsePaging(new URL(req.url).searchParams);
+    const result = await paginate(
+      () => prisma.timeEntry.count({ where: { issueId } }),
+      (skip, take) =>
+        prisma.timeEntry.findMany({
+          where: { issueId },
+          // Unique tiebreaker; see the note in the comments route.
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          skip,
+          take,
+          include: { user: { select: { id: true, firstName: true, lastName: true } } },
+        }),
+      page,
+      limit
+    );
+
+    return NextResponse.json({ timeEntries: result.items, total: result.total, page: result.page, limit: result.limit, hasMore: result.hasMore });
+  } catch (error) {
+    return handleApiError(error, "issues/[id]/time-entries");
+  }
+}
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

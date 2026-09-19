@@ -51,7 +51,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         // combined with a limit would have returned the OLDEST comments —
         // the opposite of what a reader wants.
         comments: {
-          orderBy: { createdAt: "desc" },
+          // Same total ordering as /issues/[id]/comments, so page 1 there
+          // agrees with what this returned.
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: HISTORY_PAGE_SIZE,
           include: {
             user: {
@@ -60,14 +62,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           },
         },
         timeEntries: {
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: HISTORY_PAGE_SIZE,
           include: {
             user: { select: { id: true, firstName: true, lastName: true } },
           },
         },
         activityLogs: {
-          orderBy: { timestamp: "desc" },
+          orderBy: [{ timestamp: "desc" }, { id: "desc" }],
           take: HISTORY_PAGE_SIZE,
           include: {
             actor: { select: { id: true, firstName: true, lastName: true } },

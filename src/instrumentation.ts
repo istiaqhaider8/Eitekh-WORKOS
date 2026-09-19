@@ -73,10 +73,45 @@ function validateProductionConfig(): string[] {
   }
 
   const baseUrl = process.env.BASE_URL || process.env.NEXTAUTH_URL;
+
+  /**
+   * Running a PRODUCTION build locally is a legitimate thing to do — to
+   * reproduce a bug, to load-test, to check a boot guard. But the two checks
+   * below reject localhost (email links unusable) and reserved placeholder
+   * domains (cannot resolve), which between them leave no honest value for a
+   * local run.
+   *
+   * Rather than weaken the checks, this is an explicit opt-out. It has to be
+   * set deliberately, it says what it costs, and it can be grepped for in a
+   * deployment that should never have it.
+   */
+  const allowLocalBaseUrl = process.env.ALLOW_LOCAL_BASE_URL === "1";
+  if (allowLocalBaseUrl) {
+    warnings.push(
+      "ALLOW_LOCAL_BASE_URL=1: BASE_URL is not being validated. Every link in outgoing " +
+        "email will be unreachable for its recipient. This must never be set in a real deployment."
+    );
+  }
+
   if (!baseUrl) {
     errors.push("BASE_URL is not set; links in outgoing email would point at localhost.");
+  } else if (allowLocalBaseUrl) {
+    // Explicitly opted out above.
   } else if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
     errors.push(`BASE_URL points at a local address (${baseUrl}); email links would be unusable.`);
+  } else if (/\.(invalid|test|example|localdomain)(\/|$)/i.test(baseUrl)) {
+    // A reserved-TLD placeholder. The guard above only catches localhost, so a
+    // value like https://something.invalid passes as "production-looking" and
+    // every link in outgoing mail then points at a domain that cannot resolve.
+    //
+    // This is not hypothetical: exactly such a placeholder was added to run the
+    // production build locally, because the localhost check rejects the honest
+    // answer. It is an error rather than a warning because the failure is
+    // invisible until a locked-out user cannot use their reset link.
+    errors.push(
+      `BASE_URL (${baseUrl}) uses a reserved placeholder domain that cannot resolve. ` +
+        "Password-reset, invitation and OTP links would all be dead. Set your real public URL."
+    );
   }
 
   const publicUrl = process.env.NEXT_PUBLIC_APP_URL;

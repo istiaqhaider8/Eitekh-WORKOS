@@ -17,9 +17,30 @@
  * shuts the server down when its parent exits.
  */
 
-import EmbeddedPostgresModule from "embedded-postgres";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
-const EmbeddedPostgres = EmbeddedPostgresModule.default ?? EmbeddedPostgresModule;
+/**
+ * embedded-postgres is installed with --no-save, so ANY later `npm install`
+ * prunes it and kills the running server. That happened twice while building
+ * Phase A, each time as a confusing "Can't reach database server" in the
+ * middle of unrelated work.
+ *
+ * It is deliberately not a devDependency: it downloads a full PostgreSQL
+ * distribution, and imposing that on everyone who runs `npm ci` is a poor
+ * trade for a local convenience. Reinstalling on demand is the cheaper fix.
+ */
+if (!existsSync("node_modules/embedded-postgres/package.json")) {
+  console.log("[dev-postgres] embedded-postgres is missing (a prior npm install pruned it) — reinstalling");
+  const r = spawnSync("npm", ["install", "--no-save", "embedded-postgres"], { stdio: "inherit", shell: true });
+  if (r.status !== 0) {
+    console.error("[dev-postgres] reinstall failed. Run: npm install --no-save embedded-postgres");
+    process.exit(1);
+  }
+}
+
+const EmbeddedPostgresModule = await import("embedded-postgres");
+const EmbeddedPostgres = EmbeddedPostgresModule.default?.default ?? EmbeddedPostgresModule.default ?? EmbeddedPostgresModule;
 
 const DATA_DIR = process.env.DEV_PGDATA || "C:/Users/ASUS/AppData/Local/Temp/pgdata";
 const PORT = Number(process.env.DEV_PGPORT || 54329);

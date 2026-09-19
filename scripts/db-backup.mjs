@@ -33,11 +33,26 @@
  *   BACKUP_DIR          destination, default ./backups
  *   BACKUP_RETAIN       how many to keep locally, default 7
  *   PG_DUMP             path to pg_dump, if not on PATH
+ *   BACKUP_ENCRYPTION_KEY  64 hex chars. When set, the dump is encrypted with
+ *                          AES-256-GCM and the plaintext file is removed.
+ *
+ * ENCRYPTION
+ *
+ * A dump contains every tenant's data in the clear. Managed object storage
+ * usually encrypts at rest, but the file also exists on whatever host took it
+ * and travels over whatever copies it off — so encrypting at the point of
+ * creation is the only place it is unconditionally true.
+ *
+ * Streamed, so a multi-gigabyte dump does not have to fit in memory. The key
+ * is NOT the field-encryption key: a backup you can read is a backup an
+ * attacker who took the application key can also read.
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, rmSync, createReadStream, createWriteStream } from "node:fs";
 import { join, resolve } from "node:path";
+import { pipeline } from "node:stream/promises";
+import crypto from "node:crypto";
 
 const argv = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -106,7 +121,7 @@ if (dump.status !== 0) {
   die(`pg_dump exited ${dump.status}. No backup was produced.`, dump.status || 1);
 }
 
-const size = statSync(file).size;
+let size = statSync(file).size;
 const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
 // A zero-byte or implausibly small dump is a failure that exited 0.
@@ -117,10 +132,51 @@ if (size < 1024) {
 
 console.log(`[backup] wrote ${(size / 1024 / 1024).toFixed(2)} MB in ${seconds}s`);
 
+// -- encryption ------------------------------------------------------------
+let finalFile = file;
+const encKeyHex = process.env.BACKUP_ENCRYPTION_KEY;
+if (encKeyHex) {
+  if (!/^[0-9a-f]{64}$/i.test(encKeyHex)) {
+    // Refuse rather than fall back to plaintext: an operator who set this
+    // expects an encrypted backup, and silently producing a readable one is
+    // the kind of surprise that is only discovered by someone else.
+    rmSync(file);
+    die("BACKUP_ENCRYPTION_KEY must be 64 hex characters. The dump was deleted rather than left unencrypted.");
+  }
+
+  const key = Buffer.from(encKeyHex, "hex");
+  const iv = crypto.randomBytes(12);
+  const encPath = `${file}.enc`;
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+
+  // Envelope: [12-byte iv][16-byte tag][ciphertext]. The tag is only known
+  // once the stream ends, so it is written in a second pass over the header.
+  const out = createWriteStream(encPath);
+  out.write(Buffer.alloc(28)); // reserve iv + tag
+  await pipeline(createReadStream(file), cipher, out);
+
+  const tag = cipher.getAuthTag();
+  const { open } = await import("node:fs/promises");
+  const handle = await open(encPath, "r+");
+  await handle.write(Buffer.concat([iv, tag]), 0, 28, 0);
+  await handle.close();
+
+  rmSync(file);
+  finalFile = encPath;
+  size = statSync(encPath).size;
+  console.log(`[backup] encrypted with AES-256-GCM -> ${encPath}`);
+  console.log("[backup] KEEP THE KEY SOMEWHERE THE DUMP IS NOT. Without it this file is scrap.");
+} else {
+  console.log(
+    "[backup] NOT ENCRYPTED. Set BACKUP_ENCRYPTION_KEY, or be certain the destination " +
+      "encrypts at rest — this file contains every tenant's data in the clear."
+  );
+}
+
 // Prune, oldest first. Local retention only — this is not off-host storage,
 // and a backup on the same disk as the database is not a backup.
 const mine = readdirSync(outDir)
-  .filter((f) => f.startsWith(`${dbName}_`) && f.endsWith(".dump"))
+  .filter((f) => f.startsWith(`${dbName}_`) && (f.endsWith(".dump") || f.endsWith(".dump.enc")))
   .map((f) => ({ f, t: statSync(join(outDir, f)).mtimeMs }))
   .sort((a, b) => b.t - a.t);
 
@@ -136,4 +192,4 @@ console.log(
     "[backup] Then rehearse a restore — see scripts/db-restore.mjs.\n"
 );
 
-console.log(JSON.stringify({ file, bytes: size, seconds: Number(seconds), serverVersion }));
+console.log(JSON.stringify({ file: finalFile, bytes: size, encrypted: Boolean(encKeyHex), seconds: Number(seconds), serverVersion }));

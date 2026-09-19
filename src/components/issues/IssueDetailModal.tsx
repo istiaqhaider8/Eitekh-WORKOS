@@ -128,6 +128,15 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
   // Attachments state
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+
+  /**
+   * Comments beyond the newest 50 the issue payload carries (A4 follow-up).
+   *
+   * Held separately rather than merged into `issue` so that a refetch of the
+   * issue does not silently drop pages the user has already loaded.
+   */
+  const [olderComments, setOlderComments] = useState<any[]>([]);
+  const [loadingEarlierComments, setLoadingEarlierComments] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1269,6 +1278,39 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     } catch (err: any) {
       showError("Failed to read file");
       setIsUploadingAttachment(false);
+    }
+  };
+
+  /**
+   * Fetch the next page of older comments (A4 follow-up).
+   *
+   * The API pages newest-first, so page 1 is what the issue payload already
+   * contains; the next page begins where that left off.
+   */
+  const loadEarlierComments = async () => {
+    if (!issue?.id || loadingEarlierComments) return;
+    setLoadingEarlierComments(true);
+    try {
+      const loaded = (issue.comments?.length ?? 0) + olderComments.length;
+      const page = Math.floor(loaded / 50) + 1;
+      const res = await fetch(`/api/issues/${issue.id}/comments?page=${page}&limit=50`);
+      if (!res.ok) {
+        showError("Could not load earlier comments");
+        return;
+      }
+      const data = await res.json();
+      const fetched: any[] = data.comments ?? [];
+      // Guard against duplicates: a comment added since the issue loaded
+      // shifts the pages by one.
+      const seen = new Set([
+        ...(issue.comments ?? []).map((c: any) => c.id),
+        ...olderComments.map((c) => c.id),
+      ]);
+      setOlderComments((prev) => [...prev, ...fetched.filter((c) => !seen.has(c.id))]);
+    } catch {
+      showError("Could not load earlier comments");
+    } finally {
+      setLoadingEarlierComments(false);
     }
   };
 
@@ -2806,7 +2848,29 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 </form>
 
                 <div className="space-y-3 pt-2">
-                  {issue?.comments?.map((c: any) => (
+                  {/*
+                    A4 bounded the payload to the newest 50 comments, and this
+                    list is the reason that needed a follow-up: without the
+                    control below, everything older was unreachable.
+
+                    The API returns newest-first so that page 1 is the recent
+                    end; reading order here is oldest-first, as it was before
+                    the bound, so `olderComments` are prepended and the
+                    combined list is reversed for display.
+                  */}
+                  {(issue?._count?.comments ?? 0) > (issue?.comments?.length ?? 0) + olderComments.length && (
+                    <button
+                      type="button"
+                      onClick={loadEarlierComments}
+                      disabled={loadingEarlierComments}
+                      className="w-full py-2 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-50"
+                    >
+                      {loadingEarlierComments
+                        ? "Loading…"
+                        : `Load earlier comments (${(issue?._count?.comments ?? 0) - (issue?.comments?.length ?? 0) - olderComments.length} older)`}
+                    </button>
+                  )}
+                  {[...olderComments, ...(issue?.comments ?? [])].slice().reverse().map((c: any) => (
                     <div key={c.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs space-y-1 border border-slate-300 dark:border-slate-800">
                       <div className="flex items-center justify-between text-slate-400 text-[10px]">
                         <span className="font-semibold text-slate-700 dark:text-slate-300">

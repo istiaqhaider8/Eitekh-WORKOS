@@ -7,6 +7,46 @@ import { getBaseUrl } from "@/lib/config";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { commentSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { assertIssueHistoryAccess, parsePaging, paginate } from "@/lib/issue-history";
+
+/**
+ * Paginated comments, newest first (A4 follow-up).
+ *
+ * The issue payload carries only the newest 50. Without this endpoint the
+ * remaining history was unreachable — a regression introduced by bounding the
+ * payload. See src/lib/issue-history.ts.
+ */
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: issueId } = await params;
+    await assertIssueHistoryAccess(issueId);
+
+    const { page, limit } = parsePaging(new URL(req.url).searchParams);
+    const result = await paginate(
+      () => prisma.comment.count({ where: { issueId } }),
+      (skip, take) =>
+        prisma.comment.findMany({
+          where: { issueId },
+          // A UNIQUE tiebreaker. Offset paging over a non-unique sort key is
+          // unstable: 204 of this issue's 374 comments share a createdAt, so
+          // rows moved between pages and one was skipped entirely — 373 of 374
+          // reachable. The id makes the order total.
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          skip,
+          take,
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+          },
+        }),
+      page,
+      limit
+    );
+
+    return NextResponse.json({ comments: result.items, ...result, items: undefined });
+  } catch (error) {
+    return handleApiError(error, "issues/[id]/comments");
+  }
+}
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
