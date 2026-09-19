@@ -68,7 +68,39 @@ export const ALERT_RULES: AlertRule[] = [
     id: "auth-failure-spike",
     severity: "critical",
     title: "Authentication failure spike",
-    keys: ["action.LOGIN_FAILED", "action.RATE_LIMIT_EXCEEDED", "action.AUTH_FAILED"],
+    /**
+     * These names must match what the application ACTUALLY logs.
+     *
+     * They did not. This rule watched `LOGIN_FAILED`, `AUTH_FAILED` and
+     * `RATE_LIMIT_EXCEEDED`; the login route emits `AUTH_LOGIN_FAILED` and
+     * nothing emitted the other two at all. So the one rule guarding against
+     * credential stuffing was structurally incapable of firing — it read as
+     * configured, it evaluated on every cycle, and its value was always zero.
+     *
+     * There were TWO reasons it could not fire, and the first hid the second:
+     *
+     *   1. the key names matched nothing in the codebase
+     *   2. the closest real event, AUTH_LOGIN_FAILED, was written by
+     *      logAuditEvent — which persists a row to Postgres and does NOT
+     *      touch the process counters these rules read. Audit and telemetry
+     *      are different systems; the login route used only the first.
+     *
+     * The login route now emits both.
+     *
+     * A THIRD limitation, which is why rate-limit refusals are NOT listed
+     * here: counters incremented in MIDDLEWARE never reach this evaluation.
+     * Next bundles middleware separately from route handlers, so the counters
+     * singleton is duplicated — verified by logging AUTH_RATE_LIMITED four
+     * times from middleware and watching /api/health report it ABSENT.
+     * `shared-store-unavailable` is affected by the same thing and is
+     * recorded in DEPLOYMENT.md rather than quietly left looking armed.
+     *
+     * Found by inducing 30 failed logins and watching nothing happen.
+     * `alerts.test.ts` now asserts every key here is emitted somewhere in
+     * `src/`, so a renamed action breaks a test instead of silently disarming
+     * an alert.
+     */
+    keys: ["action.AUTH_LOGIN_FAILED"],
     threshold: 25,
     detail: (v, t) =>
       `${v} authentication failures or rate-limit refusals in the last window (threshold ${t}). ` +

@@ -172,3 +172,69 @@ describe("dispatch", () => {
     expect(called).toBe(false);
   });
 });
+
+/**
+ * The failure the tests above could not see.
+ *
+ * Every test here passes a counter key in by hand, so they prove the
+ * evaluation ARITHMETIC. What none of them can prove is that the key a rule
+ * watches is one the application ever increments.
+ *
+ * It was not. `auth-failure-spike` watched `action.LOGIN_FAILED`,
+ * `action.AUTH_FAILED` and `action.RATE_LIMIT_EXCEEDED`; the login route emits
+ * `AUTH_LOGIN_FAILED`, and nothing emitted the other two at all. So the one
+ * rule guarding against credential stuffing could never fire — it read as
+ * configured, it evaluated on every cycle, and its value was always zero.
+ *
+ * Found by inducing 30 failed logins against a running server and watching
+ * nothing happen. This reads the source tree so a unit run finds it next time:
+ * a renamed action now breaks a test instead of silently disarming an alert.
+ */
+describe("every rule watches a counter something actually emits", () => {
+  const { readdirSync, readFileSync, statSync } = require("node:fs");
+  const { join } = require("node:path");
+
+  function sourceFiles(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) {
+        if (entry === "node_modules" || entry === "__tests__") continue;
+        sourceFiles(p, out);
+      } else if ((entry.endsWith(".ts") || entry.endsWith(".tsx")) && entry !== "alerts.ts") {
+        out.push(p);
+      }
+    }
+    return out;
+  }
+
+  // Counter names are built as `action.${event.action}` and
+  // `events.${severity}` in telemetry.ts.
+  const EMITTED_SEVERITIES = new Set(["info", "warning", "error", "security", "audit"]);
+  const corpus = sourceFiles(join(process.cwd(), "src"))
+    .map((f) => readFileSync(f, "utf8"))
+    .join("\n");
+
+  it.each(ALERT_RULES.map((r) => [r.id, r] as const))("%s", (_id, rule) => {
+    for (const key of rule.keys) {
+      const [namespace, ...rest] = key.split(".");
+      const name = rest.join(".");
+
+      if (namespace === "events") {
+        expect(EMITTED_SEVERITIES.has(name)).toBe(true);
+      } else if (namespace === "action") {
+        const emitted = corpus.includes(`"${name}"`) || corpus.includes(`'${name}'`);
+        if (!emitted) {
+          throw new Error(
+            `Rule "${rule.id}" watches "${key}", but nothing in src/ emits the action ` +
+              `"${name}". The rule would evaluate to zero forever — present, evaluated, ` +
+              `and structurally incapable of firing.`
+          );
+        }
+      } else if (namespace === "health") {
+        expect(corpus.includes(key)).toBe(true);
+      } else {
+        throw new Error(`Rule "${rule.id}" uses an unknown counter namespace "${namespace}".`);
+      }
+    }
+  });
+});

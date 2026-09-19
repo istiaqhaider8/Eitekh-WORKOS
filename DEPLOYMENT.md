@@ -503,6 +503,59 @@ Open an issue at [github.com/istiaqhaider8/Eitekh-WORKOS/issues](https://github.
 
 ## Monitoring and alerting (PROD-7)
 
+### Proving an alert reaches a human
+
+```bash
+node scripts/alert-drill.mjs --app http://127.0.0.1:3000 --secret "$ALERT_CHECK_SECRET"
+```
+
+The app must be running with `ALERT_CHECK_SECRET` and `ALERT_WEBHOOK_URL`
+pointing at the drill's receiver. It induces 30 failed logins from distinct
+source addresses, calls the evaluation endpoint the way cron does, and waits
+for the webhook. **11/11** here, with a real payload delivered.
+
+> **These alerts had never fired, and could not have.** Three separate faults,
+> each hiding the next:
+>
+> 1. `auth-failure-spike` watched `LOGIN_FAILED`, `AUTH_FAILED` and
+>    `RATE_LIMIT_EXCEEDED` — **names nothing in the codebase emits**.
+> 2. The closest real event, `AUTH_LOGIN_FAILED`, was written by
+>    `logAuditEvent`, which persists a row to Postgres and does **not** touch
+>    the process counters the rules read. Audit and telemetry are different
+>    systems; the login route used only the first.
+> 3. Counters incremented in **middleware never reach the evaluation at all**.
+>    Next bundles middleware separately from route handlers, so the counters
+>    singleton is duplicated — verified by logging `AUTH_RATE_LIMITED` four
+>    times from middleware and watching `/api/health` report it **absent**.
+
+**Known limitation, not yet fixed.** Because of (3), `shared-store-unavailable`
+watches `RATE_LIMIT_UNAVAILABLE`, which is only ever emitted from middleware —
+so that rule still cannot fire in-process. Its events *are* visible in the
+server log and would reach a `TELEMETRY_ENDPOINT`, so the condition is not
+invisible; it just does not page. Fixing it properly means either persisting
+middleware counters to the shared store or evaluating that rule in the
+telemetry backend.
+
+### Scheduled endpoints and CSRF
+
+```
+curl -X POST https://host/api/internal/alerts/check -H "x-alert-secret: …"
+-> 403 Forbidden: missing Origin header      (before this release)
+```
+
+Every mutating request required an `Origin` header and cron sends none —
+so **none of the three scheduled jobs in §7a could run at all**, as documented.
+Supplying one did not help either, because the allow-list is the app's public
+URL and a scheduler on the same host calls `127.0.0.1`.
+
+Secret-authenticated endpoints are now exempt from the Origin check. That is
+safe because CSRF exists to stop a browser attaching a victim's **cookies**
+automatically; these routes ignore cookies entirely and authenticate on a
+header a cross-origin page cannot set without a preflight. Session-authenticated
+endpoints — including `/api/super-admin/backup` — still require `Origin`, so a
+crontab calling those must send `-H "Origin: https://your-domain"`.
+
+
 Before this section existed, `logger.ts` wrote to `console.*` and nowhere else: no sink, no
 aggregation, no alerting. You would have learned about production incidents from customers.
 

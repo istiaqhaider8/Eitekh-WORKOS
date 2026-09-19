@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession, COOKIE_NAME, SESSION_COOKIE_MAX_AGE } from "@/lib/auth";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { logger } from "@/lib/logger";
 import { loginSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 
@@ -70,6 +71,19 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
+      /**
+       * Two records, deliberately, because they answer different questions.
+       *
+       * logAuditEvent writes a durable row to Postgres: who tried what, for
+       * a human reading history later. logger.security increments the process
+       * counter that PROD-7's alert rules evaluate.
+       *
+       * Only the audit call existed, so `auth-failure-spike` — the rule
+       * guarding against credential stuffing — had no counter to read and
+       * could never fire. Found by inducing 30 failed logins against a
+       * running server and watching nothing happen.
+       */
+      logger.security("AUTH_LOGIN_FAILED", `Failed login for ${email}: no such user`);
       await logAuditEvent({
         action: 'AUTH_LOGIN_FAILED',
         category: 'AUTH',
@@ -105,6 +119,8 @@ export async function POST(req: Request) {
 
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
+      // See above: the audit row is for history, the counter is for alerting.
+      logger.security("AUTH_LOGIN_FAILED", `Failed login for ${email}: password mismatch`);
       await logAuditEvent({
         actor: { id: user.id, name: `${user.firstName} ${user.lastName}`, email: user.email },
         action: 'AUTH_LOGIN_FAILED',
