@@ -62,17 +62,62 @@ if (!/test/i.test(dbName)) {
   );
 }
 
-// The server needs a configuration that satisfies the production boot guard.
-// These are test values and exist only for the life of this process.
+/**
+ * A configuration that satisfies the production boot guard ON ITS OWN.
+ *
+ * It did not, and the failure was invisible on a developer's machine for the
+ * worst possible reason: the guard passed locally because the developer's
+ * `.env` happened to supply what the runner did not. In CI, where the ambient
+ * values are deliberate placeholders, `src/instrumentation.ts` refused to
+ * start and the server never came up:
+ *
+ *     Refusing to start: 3 invalid production configuration setting(s)
+ *       - JWT_SECRET still contains a development/CI placeholder value
+ *       - FIELD_ENCRYPTION_KEY is the all-zeros CI placeholder
+ *       - BASE_URL uses a reserved placeholder domain that cannot resolve
+ *
+ * The guard is right about all three. The bug was that this runner inherited
+ * them and hoped.
+ *
+ * The `||` fallbacks were the specific mistake: they only fire when a variable
+ * is UNSET, and CI sets all of these — to exactly the values the guard
+ * rejects. A test harness that is correct only when the surrounding
+ * environment is already correct is not a harness.
+ */
+const isPlaceholderJwt = (v) =>
+  !v || v.length < 32 || v.includes("dev-only") || v.includes("change-in-production") || v.includes("ci-test");
+const isPlaceholderKey = (v) => !v || !/^[0-9a-f]{64}$/i.test(v) || /^0+$/.test(v);
+
+/**
+ * Generated per run when what we were handed will not do.
+ *
+ * Random rather than a fixed literal so that nothing here can be mistaken for
+ * a credential, or copied into somewhere it would matter. The server and jest
+ * both receive this same object, so the fixture signs tokens with the same
+ * secret the server verifies them with.
+ */
+const { randomBytes } = await import("node:crypto");
+const jwtSecret = isPlaceholderJwt(process.env.JWT_SECRET)
+  ? `integration-${randomBytes(24).toString("hex")}`
+  : process.env.JWT_SECRET;
+const fieldKey = isPlaceholderKey(process.env.FIELD_ENCRYPTION_KEY)
+  ? randomBytes(32).toString("hex")
+  : process.env.FIELD_ENCRYPTION_KEY;
+
 const env = {
   ...process.env,
   NODE_ENV: "production",
   DATABASE_URL: dbUrl,
   INTEGRATION_BASE_URL: BASE_URL,
-  JWT_SECRET: process.env.JWT_SECRET,
-  FIELD_ENCRYPTION_KEY:
-    process.env.FIELD_ENCRYPTION_KEY ||
-    "1".repeat(64), // not the all-zeros CI placeholder, which the guard rejects
+  JWT_SECRET: jwtSecret,
+  FIELD_ENCRYPTION_KEY: fieldKey,
+  /**
+   * This server exists for two minutes on a loopback port and sends no email,
+   * so it has no public URL to give — which is precisely the case the flag
+   * exists for. Set here rather than left to the developer's `.env`, which is
+   * how the CI failure stayed hidden.
+   */
+  ALLOW_LOCAL_BASE_URL: "1",
   BASE_URL: process.env.INTEGRATION_PUBLIC_URL || "https://integration.eitekh.test",
   SMTP_HOST: process.env.SMTP_HOST || "smtp.integration.test",
   SMTP_PASS: process.env.SMTP_PASS || "integration",
@@ -83,8 +128,16 @@ const env = {
   RECURRING_TASKS_SECRET: "integration-recurring-secret",
 };
 
-if (!env.JWT_SECRET) {
-  fail("JWT_SECRET must be set: the fixture signs session tokens with it.");
+// Now guaranteed by construction above; kept as a tripwire in case the
+// derivation is ever changed back into something that can yield nothing.
+if (!env.JWT_SECRET || !env.FIELD_ENCRYPTION_KEY) {
+  fail("JWT_SECRET and FIELD_ENCRYPTION_KEY must both be set: the fixture signs tokens with one and the server boots with the other.");
+}
+if (jwtSecret !== process.env.JWT_SECRET) {
+  console.log("[integration] JWT_SECRET was a placeholder the production guard rejects; using a generated one for this run");
+}
+if (fieldKey !== process.env.FIELD_ENCRYPTION_KEY) {
+  console.log("[integration] FIELD_ENCRYPTION_KEY was a placeholder the production guard rejects; using a generated one for this run");
 }
 
 console.log(`[integration] database: ${dbName}`);
