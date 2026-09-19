@@ -159,7 +159,7 @@ export default function ForgotPasswordPage() {
         {steps.map((s, i) => (
           <div key={s.key} className="flex items-center gap-1">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              i <= currentIdx ? "bg-blue-600 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-500"
+              i <= currentIdx ? "bg-blue-600 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
             }`}>
               {i < currentIdx ? <Check className="w-3 h-3" /> : i + 1}
             </div>
@@ -204,7 +204,7 @@ export default function ForgotPasswordPage() {
               <div>
                 <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Work Email Address</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com"
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" />
                 </div>
@@ -249,10 +249,10 @@ export default function ForgotPasswordPage() {
               <div>
                 <label htmlFor="newPassword" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">New Password</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input id="newPassword" type={showPassword ? "text" : "password"} required placeholder="At least 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full text-xs pl-9 pr-10 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -266,12 +266,12 @@ export default function ForgotPasswordPage() {
                         { ok: hasLower, label: "Lowercase letter" },
                         { ok: hasNumber, label: "At least 1 number" },
                       ].map(({ ok, label }) => (
-                        <div key={label} className={`flex items-center gap-1.5 ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+                        <div key={label} className={`flex items-center gap-1.5 ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                           {ok ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                           <span>{label}</span>
                         </div>
                       ))}
-                      <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+                      <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                         {hasSpecial ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                         <span>Special character (!@#$%^&*)</span>
                       </div>
@@ -282,7 +282,7 @@ export default function ForgotPasswordPage() {
               <div>
                 <label htmlFor="confirmPassword" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Confirm New Password</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input id="confirmPassword" type={showPassword ? "text" : "password"} required placeholder="Repeat password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" />
                 </div>

@@ -956,7 +956,7 @@ export function AnalyticsChartsView({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border hover:bg-muted rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-xs"
             title="Print dashboard or save as PDF"
           >
-            <Printer className="w-3.5 h-3.5 text-slate-500" />
+            <Printer className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>Print</span>
           </button>
         </div>
@@ -1267,7 +1267,7 @@ export function AnalyticsChartsView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className="group-hover:text-foreground transition-colors">Open / To Do</span>
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
           </div>
           <p className="text-2xl font-black text-foreground mt-1">{kpis.openIssues}</p>
           <span className="text-[10px] text-muted-foreground">Pending pickup</span>
@@ -1337,7 +1337,7 @@ export function AnalyticsChartsView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={(kpis.blockedIssues || 0) > 0 ? 'text-amber-600 dark:text-amber-400 font-bold' : ''}>Blocked</span>
-            <AlertCircle className={`w-3.5 h-3.5 ${(kpis.blockedIssues || 0) > 0 ? 'text-amber-600 dark:text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+            <AlertCircle className={`w-3.5 h-3.5 ${(kpis.blockedIssues || 0) > 0 ? 'text-amber-600 dark:text-amber-400 animate-pulse' : 'text-slate-500 dark:text-slate-400'}`} />
           </div>
           <p className={`text-2xl font-black mt-1 ${(kpis.blockedIssues || 0) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
             {kpis.blockedIssues || 0}
@@ -1365,7 +1365,7 @@ export function AnalyticsChartsView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={kpis.overdueIssues > 0 ? 'text-rose-600 font-bold' : ''}>Overdue</span>
-            <AlertTriangle className={`w-3.5 h-3.5 ${kpis.overdueIssues > 0 ? 'text-rose-600 animate-pulse' : 'text-slate-400'}`} />
+            <AlertTriangle className={`w-3.5 h-3.5 ${kpis.overdueIssues > 0 ? 'text-rose-600 animate-pulse' : 'text-slate-500 dark:text-slate-400'}`} />
           </div>
           <p className={`text-2xl font-black mt-1 ${kpis.overdueIssues > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {kpis.overdueIssues}
@@ -1566,7 +1566,7 @@ export function AnalyticsChartsView({
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                   <span className="text-purple-600 font-semibold">{kpis.completedPoints} pts completed</span>
-                  <span className="text-slate-500">{Math.max(0, kpis.totalPoints - kpis.completedPoints)} pts remaining</span>
+                  <span className="text-slate-500 dark:text-slate-400">{Math.max(0, kpis.totalPoints - kpis.completedPoints)} pts remaining</span>
                 </div>
               </div>
             </div>

@@ -430,7 +430,7 @@ export default function ProfileSettingsPage() {
     <div className="max-w-3xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Profile, Leave & Task Delegation</h1>
-        <p className="text-sm text-slate-500">Manage your personal details, leave schedule, and temporary task delegations across Eitekh WorkOS.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Manage your personal details, leave schedule, and temporary task delegations across Eitekh WorkOS.</p>
       </div>
 
       {message.text && (
@@ -446,7 +446,7 @@ export default function ProfileSettingsPage() {
         </div>
         <div>
           <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Profile Picture</h3>
-          <p className="text-sm text-slate-500 mb-3">Avatar uploads are coming soon. Using initials for now.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Avatar uploads are coming soon. Using initials for now.</p>
         </div>
       </div>
 
@@ -555,7 +555,7 @@ export default function ProfileSettingsPage() {
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">My Leave & Availability</h2>
-            <p className="text-xs text-slate-500 mt-0.5">When you schedule leave, team members will see non-blocking availability warnings and optional task delegations.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">When you schedule leave, team members will see non-blocking availability warnings and optional task delegations.</p>
           </div>
           <button
             onClick={() => {
@@ -579,9 +579,9 @@ export default function ProfileSettingsPage() {
         <div>
           <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Upcoming & Current Leave</h3>
           {leavesLoading ? (
-            <div className="text-sm text-slate-500 py-4">Loading leave records...</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 py-4">Loading leave records...</div>
           ) : upcomingLeaves.length === 0 ? (
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm text-slate-500 text-center border border-dashed border-slate-200 dark:border-slate-700">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-sm text-slate-500 dark:text-slate-400 text-center border border-dashed border-slate-200 dark:border-slate-700">
               No upcoming leave scheduled. You are currently Available.
             </div>
           ) : (
@@ -616,7 +616,7 @@ export default function ProfileSettingsPage() {
         <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
           <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Leave History ({historyLeaves.length})</h3>
           {historyLeaves.length === 0 ? (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg text-xs text-slate-400 text-center border border-slate-200 dark:border-slate-800">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg text-xs text-slate-500 dark:text-slate-400 text-center border border-slate-200 dark:border-slate-800">
               No past or cancelled leave records.
             </div>
           ) : (
@@ -636,12 +636,12 @@ export default function ProfileSettingsPage() {
                           CANCELLED
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase font-bold">
+                        <span className="px-2 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase font-bold">
                           COMPLETED
                         </span>
                       )}
                     </div>
-                    {l.note && <p className="text-[11px] text-slate-500">{l.note}</p>}
+                    {l.note && <p className="text-[11px] text-slate-500 dark:text-slate-400">{l.note}</p>}
                   </div>
                 </div>
               ))}
@@ -660,7 +660,7 @@ export default function ProfileSettingsPage() {
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Delegated By Me ({delegationsByMe.length})</span>
               </div>
               {delegationsByMe.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-2">No active or past task delegations created.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic py-2">No active or past task delegations created.</p>
               ) : (
                 <div className="space-y-2">
                   {delegationsByMe.map((d) => (
@@ -669,11 +669,11 @@ export default function ProfileSettingsPage() {
                         <div className="font-semibold text-slate-900 dark:text-white truncate">
                           {d.issue?.issueKey}: {d.issue?.title}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
                           Delegated to: <strong>{d.delegateUser?.firstName} {d.delegateUser?.lastName}</strong>
                         </div>
                         <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
-                          {formatLeaveRange(d.startDate, d.endDate)} · <span className={`uppercase font-bold ${d.status === 'ACTIVE' ? 'text-green-600' : 'text-slate-400'}`}>{d.status}</span>
+                          {formatLeaveRange(d.startDate, d.endDate)} · <span className={`uppercase font-bold ${d.status === 'ACTIVE' ? 'text-green-600' : 'text-slate-500 dark:text-slate-400'}`}>{d.status}</span>
                         </div>
                       </div>
                       {d.status === 'ACTIVE' && (
@@ -696,7 +696,7 @@ export default function ProfileSettingsPage() {
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Delegated To Me ({delegationsToMe.length})</span>
               </div>
               {delegationsToMe.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-2">No tasks currently delegated to you.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic py-2">No tasks currently delegated to you.</p>
               ) : (
                 <div className="space-y-2">
                   {delegationsToMe.map((d) => (
@@ -705,11 +705,11 @@ export default function ProfileSettingsPage() {
                         <div className="font-semibold text-slate-900 dark:text-white truncate">
                           {d.issue?.issueKey}: {d.issue?.title}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
                           Original Assignee: <strong>{d.originalAssignee?.firstName} {d.originalAssignee?.lastName}</strong>
                         </div>
                         <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
-                          Period: {formatLeaveRange(d.startDate, d.endDate)} · <span className={`uppercase font-bold ${d.status === 'ACTIVE' ? 'text-green-600' : 'text-slate-400'}`}>{d.status}</span>
+                          Period: {formatLeaveRange(d.startDate, d.endDate)} · <span className={`uppercase font-bold ${d.status === 'ACTIVE' ? 'text-green-600' : 'text-slate-500 dark:text-slate-400'}`}>{d.status}</span>
                         </div>
                       </div>
                     </div>
@@ -741,7 +741,7 @@ export default function ProfileSettingsPage() {
           </div>
         ) : (
           <div className="space-y-1">
-            <div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-2 items-center text-[11px] font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-2 items-center text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100 dark:border-slate-800">
               <span>Notification</span>
               <span className="text-center w-12">In-App</span>
               <span className="text-center w-12">Email</span>
@@ -757,6 +757,20 @@ export default function ProfileSettingsPage() {
                       <button
                         role="switch"
                         aria-checked={pref[channel]}
+                        /**
+                         * D3 — axe reported twelve `button-name` violations
+                         * here, at CRITICAL: a switch with aria-checked and no
+                         * name is announced as "switch, on" with no indication
+                         * of what it controls. In a grid of twelve identical
+                         * toggles that is unusable — the visible column header
+                         * ("In-App" / "Email") and the row label are the only
+                         * things distinguishing them, and neither is
+                         * programmatically attached.
+                         *
+                         * The name says both, in the order a screen reader
+                         * needs: what it controls, then which channel.
+                         */
+                        aria-label={`${label} — ${channel === "inApp" ? "in-app" : "email"} notifications`}
                         onClick={() => handleNotifToggle(t, channel, !pref[channel])}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                           pref[channel] ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
@@ -785,7 +799,7 @@ export default function ProfileSettingsPage() {
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Apply for Leave & Delegate Work</h3>
               <button
                 onClick={() => setShowLeaveModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-semibold"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-semibold"
               >
                 ×
               </button>

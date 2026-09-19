@@ -108,33 +108,33 @@ export function PlatformHealthView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Host Platform</span>
           <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{hostStats.platform} ({hostStats.arch})</div>
-          <p className="text-[10px] text-slate-500">Node.js Next.js Runtime</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Node.js Next.js Runtime</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Host Memory</span>
           <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
             {hostStats.freeMemoryMb} MB free / {hostStats.totalMemoryMb} MB
           </div>
-          <p className="text-[10px] text-slate-500">Physical Host Memory</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Physical Host Memory</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Host CPU Cores</span>
           <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{hostStats.cpuCount} Cores</div>
-          <p className="text-[10px] text-slate-500">Hardware threading</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Hardware threading</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">System Uptime</span>
           <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
             {Math.floor((hostStats.uptimeSeconds || 0) / 3600)}h {Math.floor(((hostStats.uptimeSeconds || 0) % 3600) / 60)}m
           </div>
-          <p className="text-[10px] text-slate-500">Continuous operation</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Continuous operation</p>
         </div>
       </div>
 
       {/* Filter & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80">
         <div className="flex items-center gap-2 w-full sm:w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300">
-          <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+          <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="Search subsystems..."
@@ -207,19 +207,19 @@ export function PlatformHealthView() {
 
               <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 grid grid-cols-2 gap-2 text-[10px]">
                 <div>
-                  <span className="text-slate-500 block">Response Time</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Response Time</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{sub.responseTimeMs} ms</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Availability</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Availability</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{sub.availabilityPct}%</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Throughput</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Throughput</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{sub.requestsPerMin} req/min</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Error Rate</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Error Rate</span>
                   <span className={`font-semibold ${sub.errorRatePct > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'}`}>
                     {sub.errorRatePct.toFixed(1)}%
                   </span>

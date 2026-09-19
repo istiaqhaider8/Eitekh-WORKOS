@@ -534,7 +534,7 @@ export function RolesTab({
       {/* Filter & Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             value={search}
@@ -546,7 +546,7 @@ export function RolesTab({
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Scope:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Scope:</span>
             <select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value)}
@@ -560,7 +560,7 @@ export function RolesTab({
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Status:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -579,7 +579,7 @@ export function RolesTab({
         <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800/80 space-y-3">
           <KeyRound className="w-8 h-8 text-slate-600 mx-auto" />
           <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">No Permission Roles Found</h4>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
             No roles matched your search or filters. Create a new Permission Role to get started.
           </p>
           <button
@@ -741,7 +741,7 @@ export function RolesTab({
             {/* Filter Bar in Modal */}
             <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                 <input
                   type="text"
                   value={userSearch}
@@ -777,7 +777,7 @@ export function RolesTab({
             {/* Users List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {loadingUsers ? (
-                <div className="text-center py-8 text-xs text-slate-500">Loading directory users...</div>
+                <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">Loading directory users...</div>
               ) : (
                 existingUsers
                   .filter((u) => {
@@ -821,7 +821,7 @@ export function RolesTab({
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-800 dark:text-slate-200">{u.name}</span>
-                              <span className="text-slate-500 text-[11px]">({u.email})</span>
+                              <span className="text-slate-500 dark:text-slate-400 text-[11px]">({u.email})</span>
                               {u.status === 'SUSPENDED' && (
                                 <span className="px-1.5 py-0.2 bg-rose-50 text-rose-700 text-[9px] rounded font-bold dark:bg-rose-950/40 dark:text-rose-400">
                                   SUSPENDED
@@ -829,7 +829,7 @@ export function RolesTab({
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400">
-                              <span>ID: <span className="font-mono text-slate-500">{u.id.slice(0, 8)}...</span></span>
+                              <span>ID: <span className="font-mono text-slate-500 dark:text-slate-400">{u.id.slice(0, 8)}...</span></span>
                               <span>•</span>
                               <span>Role: {u.jobTitle || 'Member'}</span>
                               <span>•</span>
@@ -915,9 +915,9 @@ export function RolesTab({
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {loadingRoleUsers ? (
-                <div className="text-center py-8 text-xs text-slate-500">Loading role users...</div>
+                <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">Loading role users...</div>
               ) : roleAssignedUsers.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-500">No users currently assigned to this role.</div>
+                <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">No users currently assigned to this role.</div>
               ) : (
                 roleAssignedUsers.map((u) => (
                   <div
@@ -1093,7 +1093,7 @@ export function RolesTab({
             {/* Comparison Matrix Table */}
             <div className="flex-1 overflow-y-auto p-4">
               {compareRoles.length === 0 ? (
-                <div className="text-center py-12 text-xs text-slate-500">Select at least one role to compare.</div>
+                <div className="text-center py-12 text-xs text-slate-500 dark:text-slate-400">Select at least one role to compare.</div>
               ) : (
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
@@ -1121,7 +1121,7 @@ export function RolesTab({
                           <tr key={p.key} className="hover:bg-slate-50 dark:hover:bg-slate-900/60">
                             <td className="p-2 pl-6 text-slate-700 dark:text-slate-300">
                               <div className="font-medium">{p.label}</div>
-                              <div className="text-[10px] text-slate-500 font-mono">{p.key}</div>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{p.key}</div>
                             </td>
                             {compareRoles.map((r) => {
                               const has = (r.permissions || []).includes(p.key);
@@ -1332,7 +1332,7 @@ export function RolesTab({
 
                   {/* Search in permissions */}
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                     <input
                       type="text"
                       value={editorSearch}
@@ -1371,7 +1371,7 @@ export function RolesTab({
                           <div className="p-3 bg-white dark:bg-slate-900/60 flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80">
                             <div>
                               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{cat.name}</span>
-                              <span className="ml-2 text-[10px] text-slate-500">
+                              <span className="ml-2 text-[10px] text-slate-500 dark:text-slate-400">
                                 ({selectedCount}/{cat.permissions.length} active)
                               </span>
                             </div>
@@ -1414,7 +1414,7 @@ export function RolesTab({
                                         </span>
                                       )}
                                     </div>
-                                    <p className="text-[10px] text-slate-500 leading-tight">
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                                       {p.description}
                                     </p>
                                   </div>

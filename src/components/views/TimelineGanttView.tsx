@@ -711,7 +711,7 @@ export function TimelineGanttView({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Quick Search */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
             <input
               type="text"
               placeholder="Search schedule..."
@@ -769,7 +769,7 @@ export function TimelineGanttView({
               <option value="month">Month Wise</option>
               <option value="year">Year Wise</option>
             </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* Today Button */}
@@ -800,7 +800,7 @@ export function TimelineGanttView({
             <div className="flex border-b border-slate-300 dark:border-white/[0.08] bg-slate-100/90 dark:bg-slate-800/80 sticky top-0 z-40 backdrop-blur-md">
               <div className="w-[300px] p-2.5 border-r border-slate-300 dark:border-white/[0.08] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0 sticky left-0 bg-slate-100 dark:bg-slate-800 z-50 flex items-center justify-between">
                 <span>Issue / Milestone</span>
-                <span className="text-[10px] font-normal text-slate-400">Duration</span>
+                <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Duration</span>
               </div>
               <div className="flex-1 flex">
                 {gridInfo.topGroups.map((g, idx) => (
@@ -820,7 +820,7 @@ export function TimelineGanttView({
             <div className="flex border-b border-slate-300 dark:border-white/[0.08] bg-slate-50/95 dark:bg-slate-900/95 sticky top-[37px] z-30 backdrop-blur-md">
               <div className="w-[300px] border-r border-slate-300 dark:border-white/[0.08] shrink-0 sticky left-0 bg-slate-50 dark:bg-slate-900 z-40" />
               <div
-                className="flex-1 grid text-center text-[10px] font-semibold text-slate-500 divide-x divide-slate-200/60 dark:divide-white/[0.04]"
+                className="flex-1 grid text-center text-[10px] font-semibold text-slate-500 dark:text-slate-400 divide-x divide-slate-200/60 dark:divide-white/[0.04]"
                 style={{ gridTemplateColumns: `repeat(${gridInfo.columns.length}, ${colWidth}px)` }}
               >
                 {gridInfo.columns.map((d, idx) => (
@@ -832,7 +832,7 @@ export function TimelineGanttView({
                         : d.isCurrent
                         ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold"
                         : d.isWeekend
-                        ? "bg-slate-100/60 dark:bg-slate-800/30 text-slate-400"
+                        ? "bg-slate-100/60 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400"
                         : "text-slate-600 dark:text-slate-400"
                     }`}
                   >
@@ -876,7 +876,7 @@ export function TimelineGanttView({
 
             {/* Timeline Rows */}
             {resolvedIssues.length === 0 ? (
-              <div className="py-20 text-center text-slate-400 dark:text-slate-500 space-y-2">
+              <div className="py-20 text-center text-slate-500 dark:text-slate-500 space-y-2">
                 <Calendar className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
                 <p className="text-xs font-semibold">No issues match the selected timeline filters.</p>
               </div>
@@ -972,7 +972,7 @@ export function TimelineGanttView({
                               <span>{issue.status?.name || 'Status'}</span>
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-400 font-mono">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                               {effectiveDurationDays}d
                             </span>
                           )}
@@ -1163,7 +1163,7 @@ export function TimelineGanttView({
         </div>
 
         {/* Footer Summary / Legend */}
-        <div className="px-5 py-2.5 border-t border-slate-300 dark:border-white/[0.08] bg-slate-50/90 dark:bg-slate-900/80 flex items-center justify-between text-xs text-slate-500 shrink-0">
+        <div className="px-5 py-2.5 border-t border-slate-300 dark:border-white/[0.08] bg-slate-50/90 dark:bg-slate-900/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 shrink-0">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Critical / Blocker
@@ -1179,7 +1179,7 @@ export function TimelineGanttView({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
               <MoveHorizontal className="w-3.5 h-3.5 text-blue-500" />
               Drag bars to reschedule

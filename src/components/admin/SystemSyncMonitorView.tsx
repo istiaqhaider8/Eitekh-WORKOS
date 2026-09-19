@@ -317,7 +317,7 @@ export function SystemSyncMonitorView() {
           {/* Filters Bar */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
               <input
                 type="text"
                 placeholder="Search event logs..."
@@ -421,7 +421,7 @@ export function SystemSyncMonitorView() {
 
               {eventLogs.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-500 text-xs">
+                  <td colSpan={8} className="py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
                     No sync events match the filter criteria.
                   </td>
                 </tr>

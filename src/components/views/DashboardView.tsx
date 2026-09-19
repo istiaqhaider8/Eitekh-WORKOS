@@ -469,7 +469,7 @@ export function DashboardView({
           <div className="flex items-center gap-2.5 flex-wrap print:hidden">
             {/* Auto-Sync Cadence Selector */}
             <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shadow-2xs text-xs font-semibold">
-              <Radio className={`w-3.5 h-3.5 ${autoSyncInterval === 'live' ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
+              <Radio className={`w-3.5 h-3.5 ${autoSyncInterval === 'live' ? 'text-emerald-500 animate-pulse' : 'text-slate-500 dark:text-slate-400'}`} />
               <select
                 value={autoSyncInterval}
                 onChange={(e) => setAutoSyncInterval(e.target.value as any)}
@@ -497,7 +497,7 @@ export function DashboardView({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
 
@@ -751,7 +751,7 @@ export function DashboardView({
             <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl p-6 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-300 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Project Health Scorecard</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Project Health Scorecard</span>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-1">
                     {projectName} Executive Overview
                   </h2>
@@ -759,7 +759,7 @@ export function DashboardView({
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <div className="text-2xl font-black text-slate-900 dark:text-white">{completionRate}%</div>
-                    <div className="text-xs text-slate-500">Overall Completed</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Overall Completed</div>
                   </div>
                   <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 flex items-center justify-center font-bold text-sm text-emerald-600 dark:text-emerald-400">
                     {completionRate}%
@@ -818,9 +818,9 @@ export function DashboardView({
                     onClick={kpi.onClick}
                     className={`p-4 rounded-xl border ${kpi.color} bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition`}
                   >
-                    <div className="text-xs font-medium text-slate-500">{kpi.label}</div>
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{kpi.label}</div>
                     <div className="text-xl font-bold mt-1 text-slate-900 dark:text-white">{kpi.value}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{kpi.sub}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{kpi.sub}</div>
                   </div>
                 ))}
               </div>
@@ -831,13 +831,13 @@ export function DashboardView({
               <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delivery Progress</h3>
-                  <span className="text-xs font-medium text-slate-500">{completedIssues.length} of {totalIssues} items</span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{completedIssues.length} of {totalIssues} items</span>
                 </div>
                 <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
                   <div style={{ width: `${completionRate}%` }} className="bg-emerald-500 transition-all" />
                   <div style={{ width: `${totalIssues > 0 ? Math.round((inProgressIssues.length / totalIssues) * 100) : 0}%` }} className="bg-amber-500 transition-all" />
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Done ({completionRate}%)</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> In Progress ({totalIssues > 0 ? Math.round((inProgressIssues.length / totalIssues) * 100) : 0}%)</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" /> To Do ({totalIssues > 0 ? Math.round((openIssues.length / totalIssues) * 100) : 0}%)</span>
@@ -845,7 +845,7 @@ export function DashboardView({
 
                 <div className="mt-6 pt-5 border-t border-slate-300 dark:border-slate-800 space-y-3">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">Story Points Burned</span>
+                    <span className="text-slate-500 dark:text-slate-400">Story Points Burned</span>
                     <span className="font-semibold text-slate-900 dark:text-white">{completedPoints} / {totalPoints} pts ({burnedPointsPct}%)</span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -863,7 +863,7 @@ export function DashboardView({
                       {activeSprint.name}
                     </span>
                   ) : (
-                    <span className="text-xs text-slate-400">No active sprint</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">No active sprint</span>
                   )}
                 </div>
 
@@ -871,25 +871,25 @@ export function DashboardView({
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                        <span className="text-slate-400">Sprint Issues</span>
+                        <span className="text-slate-500 dark:text-slate-400">Sprint Issues</span>
                         <div className="text-lg font-bold text-slate-900 dark:text-white mt-1">
                           {activeIssues.filter((i: any) => i.sprintId === activeSprint.id).length} items
                         </div>
                       </div>
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                        <span className="text-slate-400">Sprint Points</span>
+                        <span className="text-slate-500 dark:text-slate-400">Sprint Points</span>
                         <div className="text-lg font-bold text-slate-900 dark:text-white mt-1">
                           {activeIssues.filter((i: any) => i.sprintId === activeSprint.id).reduce((s: number, i: any) => s + (i.estimatePoints || 0), 0)} pts
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
                       {activeSprint.startDate ? `Started ${new Date(activeSprint.startDate).toLocaleDateString()}` : ""}
                       {activeSprint.endDate ? ` • Target End ${new Date(activeSprint.endDate).toLocaleDateString()}` : ""}
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-slate-400 text-xs">
+                  <div className="text-center py-6 text-slate-500 dark:text-slate-400 text-xs">
                     Start a sprint in the Scrum & Backlog view to see live burndown and sprint velocity metrics.
                   </div>
                 )}
@@ -907,7 +907,7 @@ export function DashboardView({
               <h2 className="text-base font-bold text-slate-900 dark:text-white mb-2">
                 Milestones &amp; Epics Progress
               </h2>
-              <p className="text-xs text-slate-500 mb-6">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
                 Status of all tracked project epics and release milestones based on real database deliverables.
               </p>
 
@@ -938,14 +938,14 @@ export function DashboardView({
                           className="h-full rounded-full transition-all"
                         />
                       </div>
-                      <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
                         <span>{epic.points} Total Points</span>
                         <span>{epic.completed} Completed Tasks</span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-10 text-slate-400 text-xs">
+                  <div className="text-center py-10 text-slate-500 dark:text-slate-400 text-xs">
                     No epics found for this project. Create epics to track larger project initiatives.
                   </div>
                 )}
@@ -1262,7 +1262,7 @@ export function DashboardView({
                         </button>
                       </div>
 
-                      <div className="text-[11px] text-slate-500 font-mono hidden sm:block">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden sm:block">
                         Active Iteration Scope: {activeSp.totalPoints} pts · {activeSp.totalIssues} tasks
                       </div>
                     </div>
@@ -1270,7 +1270,7 @@ export function DashboardView({
                     {/* Chart Mode 1: Burndown */}
                     {sprintChartMode === "burndown" && (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between text-xs text-slate-500">
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                           <span>Story Points Remaining vs Ideal Burndown Curve</span>
                           <div className="flex items-center gap-4 text-[11px]">
                             <span className="flex items-center gap-1.5">
@@ -1308,13 +1308,13 @@ export function DashboardView({
                                       title={`Actual: ${pt.actual} pts`}
                                     />
                                   </div>
-                                  <span className="text-[10px] font-mono text-slate-400 mt-2">{pt.label}</span>
+                                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-2">{pt.label}</span>
                                 </div>
                               );
                             })}
                           </div>
                         ) : (
-                          <div className="h-40 flex items-center justify-center text-xs text-slate-400">
+                          <div className="h-40 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
                             Burndown trajectory data is calculating...
                           </div>
                         )}
@@ -1324,10 +1324,10 @@ export function DashboardView({
                     {/* Chart Mode 2: Burnup */}
                     {sprintChartMode === "burnup" && (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between text-xs text-slate-500">
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                           <span>Accumulated Delivered Points vs Total Planned Scope</span>
                           <div className="flex items-center gap-4 text-[11px]">
-                            <span className="flex items-center gap-1.5 text-slate-500">
+                            <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
                               <span className="w-3 h-0.5 bg-slate-400" />
                               Total Scope ({activeSp.totalPoints} pts)
                             </span>
@@ -1362,13 +1362,13 @@ export function DashboardView({
                                       title={`Completed: ${pt.completed} pts`}
                                     />
                                   </div>
-                                  <span className="text-[10px] font-mono text-slate-400 mt-2">{pt.label}</span>
+                                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-2">{pt.label}</span>
                                 </div>
                               );
                             })}
                           </div>
                         ) : (
-                          <div className="h-40 flex items-center justify-center text-xs text-slate-400">
+                          <div className="h-40 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
                             Burnup scope data is calculating...
                           </div>
                         )}
@@ -1405,7 +1405,7 @@ export function DashboardView({
                         <div className="p-4 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex flex-col justify-between">
                           <div>
                             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Iteration Efficiency</h4>
-                            <p className="text-[11px] text-slate-500 mb-4">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-4">
                               {activeSp.completedIssues > 0
                                 ? `Delivering at ${activeSp.completedPoints} story points across ${activeSp.completedIssues} completed tickets.`
                                 : "No completed issues yet in this active iteration cycle."}
@@ -1512,7 +1512,7 @@ export function DashboardView({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-slate-400 text-xs">
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-xs">
                     No sprint iterations found. Sprints created in the planning workspace will appear here.
                   </div>
                 )}
@@ -1529,7 +1529,7 @@ export function DashboardView({
                       Detailed ledger of all project iterations, commitment completion, and story point throughput.
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-slate-500">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {allSpList.length} Total Sprints
                   </span>
                 </div>
@@ -1552,7 +1552,7 @@ export function DashboardView({
                         <tr key={sp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                           <td className="p-3 font-bold text-slate-900 dark:text-white">
                             <div>{sp.name}</div>
-                            {sp.goal && <div className="text-[10px] text-slate-400 font-normal italic truncate max-w-xs">{sp.goal}</div>}
+                            {sp.goal && <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal italic truncate max-w-xs">{sp.goal}</div>}
                           </td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase border ${
@@ -1565,17 +1565,17 @@ export function DashboardView({
                               {sp.status}
                             </span>
                           </td>
-                          <td className="p-3 text-slate-500 font-mono text-[11px]">
+                          <td className="p-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                             {sp.startDate && sp.endDate
                               ? `${new Date(sp.startDate).toLocaleDateString()} - ${new Date(sp.endDate).toLocaleDateString()}`
                               : "No dates set"}
                           </td>
                           <td className="p-3 text-slate-700 dark:text-slate-300">
                             <span className="font-semibold text-emerald-600 dark:text-emerald-400">{sp.completedIssues}</span>
-                            <span className="text-slate-400"> / {sp.totalIssues} tasks</span>
+                            <span className="text-slate-500 dark:text-slate-400"> / {sp.totalIssues} tasks</span>
                           </td>
                           <td className="p-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                            {sp.deliveredPts} <span className="text-slate-400 font-normal">/ {sp.plannedPts} pts</span>
+                            {sp.deliveredPts} <span className="text-slate-500 dark:text-slate-400 font-normal">/ {sp.plannedPts} pts</span>
                           </td>
                           <td className="p-3">
                             <div className="flex items-center gap-2">
@@ -1687,7 +1687,7 @@ export function DashboardView({
               <h2 className="text-base font-bold text-slate-900 dark:text-white mb-2">
                 Team Member Capacity &amp; Allocation
               </h2>
-              <p className="text-xs text-slate-500 mb-6">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
                 Active task allocation, completed output, and capacity utilization across contributors.
               </p>
 
@@ -1740,7 +1740,7 @@ export function DashboardView({
                                 }`}
                               />
                             </div>
-                            <span className="text-slate-500 font-mono text-xs">{m.utilization}%</span>
+                            <span className="text-slate-500 dark:text-slate-400 font-mono text-xs">{m.utilization}%</span>
                           </div>
                         </td>
                       </tr>
@@ -1778,7 +1778,7 @@ export function DashboardView({
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <span className="font-bold text-slate-900 dark:text-white">{s.count} items</span>
-                      <span className="text-slate-400">({s.percentage}%)</span>
+                      <span className="text-slate-500 dark:text-slate-400">({s.percentage}%)</span>
                     </div>
                   </div>
                 ))}
@@ -1806,7 +1806,7 @@ export function DashboardView({
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <span className="font-bold text-slate-900 dark:text-white">{p.count} items</span>
-                      <span className="text-slate-400">({p.percentage}%)</span>
+                      <span className="text-slate-500 dark:text-slate-400">({p.percentage}%)</span>
                     </div>
                   </div>
                 ))}
@@ -1830,14 +1830,14 @@ export function DashboardView({
                     <h2 className="text-base font-bold text-slate-900 dark:text-white">
                       Overdue &amp; Risk Assessment
                     </h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Identifies unfinished tasks past their due date, unassigned items, and critical defects.
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-black text-rose-600 dark:text-rose-400">{overdueIssues.length}</div>
-                  <div className="text-xs text-slate-400">Overdue Tasks</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Overdue Tasks</div>
                 </div>
               </div>
 
@@ -1858,7 +1858,7 @@ export function DashboardView({
                             {issue.title}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-400 mt-1">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           Assignee: {issue.assignee ? `${issue.assignee.firstName} ${issue.assignee.lastName}` : "Unassigned"} • Due Date: {new Date(issue.dueDate).toLocaleDateString()}
                         </div>
                       </div>

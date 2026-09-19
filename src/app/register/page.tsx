@@ -149,7 +149,7 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
             {step === "form" ? "Create your account" : "Verify your email"}
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {step === "form"
               ? "Provision a new organization and workspace in seconds"
               : `Enter the 6-digit code sent to ${email}`}
@@ -180,7 +180,7 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="company" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Company / Organization Name</label>
                 <div className="relative">
-                  <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Building className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input id="company" type="text" required placeholder="Acme Corp" value={company} onChange={(e) => setCompany(e.target.value)}
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                 </div>
@@ -188,7 +188,7 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Work Email</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input id="email" type="email" required placeholder="jane@company.com" value={email} onChange={(e) => setEmail(e.target.value)}
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                 </div>
@@ -196,10 +196,10 @@ export default function RegisterPage() {
               <div>
                 <label htmlFor="password" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
                   <input id="password" type={showPassword ? "text" : "password"} required minLength={8} placeholder="At least 8 characters" value={password} onChange={(e) => setPassword(e.target.value)}
                     className="w-full text-xs pl-9 pr-10 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={showPassword ? "Hide password" : "Show password"}>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label={showPassword ? "Hide password" : "Show password"}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -213,12 +213,12 @@ export default function RegisterPage() {
                         { ok: hasLower, label: "Lowercase letter" },
                         { ok: hasNumber, label: "At least 1 number" },
                       ].map(({ ok, label }) => (
-                        <div key={label} className={`flex items-center gap-1.5 ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+                        <div key={label} className={`flex items-center gap-1.5 ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                           {ok ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                           <span>{label}</span>
                         </div>
                       ))}
-                      <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+                      <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                         {hasSpecial ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                         <span>Special character (!@#$%^&*)</span>
                       </div>
@@ -272,9 +272,9 @@ export default function RegisterPage() {
             </form>
           )}
 
-          <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-300 dark:border-slate-800">
+          <div className="text-center text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-300 dark:border-slate-800">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 font-semibold hover:underline">Sign in</Link>
+            <Link href="/login" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Sign in</Link>
           </div>
         </div>
       </div>

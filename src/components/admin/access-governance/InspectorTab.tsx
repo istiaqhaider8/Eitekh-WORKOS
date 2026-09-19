@@ -156,11 +156,11 @@ export function InspectorTab({
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-500 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800">
           Evaluating user access provenance...
         </div>
       ) : !inspectData ? (
-        <div className="p-12 text-center text-xs text-slate-500 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800">
           Select a user to inspect effective access.
         </div>
       ) : (
@@ -175,7 +175,7 @@ export function InspectorTab({
                 {inspectData.user?.name || `${inspectData.user?.firstName || ''} ${inspectData.user?.lastName || ''}`.trim() || 'User'}
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">{inspectData.user?.email}</div>
-              <div className="text-[10px] text-slate-500 font-mono">ID: {inspectData.user?.id}</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">ID: {inspectData.user?.id}</div>
             </div>
 
             <div className="space-y-1">
@@ -202,7 +202,7 @@ export function InspectorTab({
                 <CheckCircle2 className="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
                 {inspectData.totalEffectivePermissions ?? inspectData.effectivePermissionsCount ?? 0}
               </div>
-              <p className="text-[10px] text-slate-500">Deduplicated from active roles</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Deduplicated from active roles</p>
             </div>
 
             <div className="space-y-1">
@@ -212,7 +212,7 @@ export function InspectorTab({
               <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 {inspectData.accessibleProjects?.length || 0} Projects • {inspectData.accessibleWorkspaces?.length || 0} Workspaces
               </div>
-              <p className="text-[10px] text-slate-500">Where capabilities are active</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Where capabilities are active</p>
             </div>
           </div>
 
@@ -224,7 +224,7 @@ export function InspectorTab({
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                   Granted Capabilities by Module (18 Categories)
                 </h4>
-                <span className="text-[11px] text-slate-500">Click capability to inspect trace</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Click capability to inspect trace</span>
               </div>
 
               <div className="space-y-3">
@@ -267,7 +267,7 @@ export function InspectorTab({
                                 <span className="font-semibold text-slate-800 dark:text-slate-200">{p.label}</span>
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300 shrink-0" />
                               </div>
-                              <div className="text-[10px] text-slate-500 font-mono">{p.key}</div>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{p.key}</div>
                               <div className="text-[9px] text-indigo-600 dark:text-indigo-400 pt-0.5">
                                 Origin: {p.sources?.map((s: any) => s.roleName).join(' + ') || 'Role'}
                               </div>
@@ -342,7 +342,7 @@ export function InspectorTab({
                   </div>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500">
+                <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500 dark:text-slate-400">
                   Select any permission on the left to view its detailed authorization chain.
                 </div>
               )}

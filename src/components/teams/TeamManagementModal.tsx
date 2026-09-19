@@ -313,7 +313,7 @@ export function TeamManagementModal({
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Team Management</h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Create squads, assign members, and enable team-wide task notifications
               </p>
             </div>
@@ -321,7 +321,7 @@ export function TeamManagementModal({
 
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-600"
           >
             <X className="w-4 h-4" />
           </button>
@@ -430,11 +430,11 @@ export function TeamManagementModal({
 
             {/* Teams List */}
             {loading ? (
-              <div className="py-8 text-center text-xs text-slate-400">Loading teams...</div>
+              <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">Loading teams...</div>
             ) : teams.length === 0 ? (
               <div className="py-8 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-center p-4">
                 <Users className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
-                <p className="text-xs text-slate-400">No teams created yet.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">No teams created yet.</p>
                 <button
                   onClick={() => setShowCreateTeam(true)}
                   className="mt-2 text-xs text-blue-600 font-semibold hover:underline"
@@ -463,7 +463,7 @@ export function TeamManagementModal({
                           </span>
                         </div>
                         {t.description && (
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5">{t.description}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{t.description}</p>
                         )}
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0">
@@ -494,7 +494,7 @@ export function TeamManagementModal({
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         {currentExpandedTeam.description || "No description provided."}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
@@ -512,7 +512,7 @@ export function TeamManagementModal({
                         className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer"
                         title="Edit team name, description, or lead"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                        <Edit3 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                         <span>Edit Details</span>
                       </button>
 
@@ -573,7 +573,7 @@ export function TeamManagementModal({
                         <button
                           type="button"
                           onClick={handleCancelEditTeam}
-                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -702,7 +702,7 @@ export function TeamManagementModal({
                   </span>
 
                   {(!currentExpandedTeam.members || currentExpandedTeam.members.length === 0) ? (
-                    <p className="text-xs text-slate-400 italic py-4 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 italic py-4 text-center">
                       No members assigned to this team yet.
                     </p>
                   ) : (
@@ -732,7 +732,7 @@ export function TeamManagementModal({
                                 <span className="font-semibold text-slate-900 dark:text-white block truncate">
                                   {name}
                                 </span>
-                                <span className="text-[11px] text-slate-400 truncate block">
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block">
                                   {userObj.email}
                                 </span>
                               </div>
@@ -753,7 +753,7 @@ export function TeamManagementModal({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveMember(currentExpandedTeam.id, m.userId)}
-                                className="p-1 text-slate-400 hover:text-red-600 rounded"
+                                className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-600 rounded"
                                 title="Remove from team"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -767,7 +767,7 @@ export function TeamManagementModal({
                 </div>
               </>
             ) : (
-              <div className="py-16 text-center text-xs text-slate-400">
+              <div className="py-16 text-center text-xs text-slate-500 dark:text-slate-400">
                 Select a team from the left to view its roster and manage members.
               </div>
             )}
@@ -775,7 +775,7 @@ export function TeamManagementModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-300 dark:border-white/[0.08] bg-slate-50/80 dark:bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
+        <div className="px-6 py-3.5 border-t border-slate-300 dark:border-white/[0.08] bg-slate-50/80 dark:bg-slate-900/50 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-blue-500" />
             When a task is assigned to any team, all team members receive automatic notifications.

@@ -82,7 +82,7 @@ export default function SettingsLayout({
             <span>Back to Dashboard</span>
           </button>
 
-          <h2 className="hidden md:block text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 px-3">
+          <h2 className="hidden md:block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 px-3">
             Settings
           </h2>
 

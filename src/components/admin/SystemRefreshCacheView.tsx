@@ -503,7 +503,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                 </div>
 
                 <div className="pt-5 mt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
-                  <div className="text-[10px] text-slate-500">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
                     Scope: <span className="text-slate-700 dark:text-slate-300">{card.scope}</span>
                   </div>
 
@@ -522,7 +522,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                       <span>{isExecuting ? 'Refreshing...' : 'Execute'}</span>
                     </button>
                   ) : (
-                    <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <Lock className="w-3 h-3" /> Requires {card.roleRequired}
                     </span>
                   )}
@@ -542,13 +542,13 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
               System Cache Audit Log & History
             </h4>
           </div>
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">
             Last 15 administrative cache events
           </span>
         </div>
 
         {auditLogs.length === 0 ? (
-          <div className="text-center py-8 text-xs text-slate-500">
+          <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">
             No administrative cache operations recorded yet.
           </div>
         ) : (
@@ -576,7 +576,7 @@ export function SystemRefreshCacheView({ orgId, projectId }: SystemRefreshCacheV
                     </td>
                     <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
                       <div>{log.actorName}</div>
-                      <div className="text-[10px] text-slate-500">{log.actorEmail}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{log.actorEmail}</div>
                     </td>
                     <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
                       {log.targetResource}

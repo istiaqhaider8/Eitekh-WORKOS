@@ -935,7 +935,7 @@ export function WorkloadView({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border hover:bg-muted rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-2xs"
             title="Refresh from database"
           >
-            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>Refresh</span>
           </button>
         </div>
@@ -1057,7 +1057,7 @@ export function WorkloadView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={`truncate ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600 font-bold' : ''}`}>Overloaded</span>
-            <AlertTriangle className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
+            <AlertTriangle className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-slate-500 dark:text-slate-400'}`} />
           </div>
           <p className={`text-xl sm:text-2xl font-black mt-1 ${summaryKPIs.overloadedCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {summaryKPIs.overloadedCount}
@@ -1105,7 +1105,7 @@ export function WorkloadView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={`truncate ${summaryKPIs.overdueCount > 0 ? 'text-rose-600 font-bold' : ''}`}>Overdue</span>
-            <Clock className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
+            <Clock className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-slate-500 dark:text-slate-400'}`} />
           </div>
           <p className={`text-xl sm:text-2xl font-black mt-1 ${summaryKPIs.overdueCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {summaryKPIs.overdueCount}
@@ -1133,7 +1133,7 @@ export function WorkloadView({
         >
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span className={`truncate ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600 font-bold' : ''}`}>Critical Unassigned</span>
-            <ShieldAlert className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
+            <ShieldAlert className={`w-4 h-4 shrink-0 ml-1 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-slate-500 dark:text-slate-400'}`} />
           </div>
           <p className={`text-xl sm:text-2xl font-black mt-1 ${summaryKPIs.criticalUnassignedCount > 0 ? 'text-rose-600' : 'text-foreground'}`}>
             {summaryKPIs.criticalUnassignedCount}
@@ -1677,7 +1677,7 @@ export function WorkloadView({
                     <div className="flex items-center gap-3 font-mono">
                       <span className="text-emerald-600 dark:text-emerald-400">Done: {member.doneVal}</span>
                       <span className="text-blue-600 dark:text-blue-400">In Prog: {member.inProgressVal}</span>
-                      <span className="text-slate-500">To Do: {member.toDoVal}</span>
+                      <span className="text-slate-500 dark:text-slate-400">To Do: {member.toDoVal}</span>
                       {member.overdueVal > 0 && (
                         <span className="text-rose-600 font-bold">Overdue: {member.overdueVal}</span>
                       )}

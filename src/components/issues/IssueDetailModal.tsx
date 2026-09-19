@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   X,
   Clock,
@@ -1433,21 +1434,26 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleCancelAndClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  /**
+   * D3 — trap focus in the dialog, and hand it back on close.
+   *
+   * This replaces a bare window keydown listener that handled Escape and
+   * nothing else. The markup has always said `aria-modal="true"`, which tells
+   * assistive technology that the page behind is inert — but Tab walked
+   * straight out of the dialog into the board underneath, which is invisible
+   * under the overlay and still focusable. See src/hooks/useFocusTrap.ts.
+   *
+   * The listener also had an empty dependency array while calling
+   * handleCancelAndClose, so it closed over the first render’s copy forever.
+   */
+  const dialogRef = useFocusTrap<HTMLDivElement>(Boolean(issueId), handleCancelAndClose);
 
   if (!issueId) return null;
 
   if (!issue) {
     return (
-      <div 
+      <div
+      ref={dialogRef} 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-100"
         role="dialog"
         aria-modal="true"
@@ -1457,7 +1463,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
       >
         <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col items-center justify-center p-6 border-l border-slate-300 dark:border-white/[0.08]">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-xs font-semibold text-slate-500">Preparing task form...</p>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Preparing task form...</p>
         </div>
       </div>
     );
@@ -1482,7 +1488,8 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
   if (!currentIssue) {
     return (
-      <div 
+      <div
+      ref={dialogRef} 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-100"
         role="dialog"
         aria-modal="true"
@@ -1492,14 +1499,15 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
       >
         <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col items-center justify-center p-6 border-l border-slate-300 dark:border-white/[0.08]">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-xs font-semibold text-slate-500">Loading task details...</p>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading task details...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div 
+    <div
+      ref={dialogRef} 
       className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-100"
       role="dialog"
       aria-modal="true"
@@ -1632,7 +1640,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 )}
               </button>
             )}
-            <button onClick={handleCancelAndClose} aria-label="Close modal" className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer shrink-0 ml-0.5">
+            <button onClick={handleCancelAndClose} aria-label="Close modal" className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer shrink-0 ml-0.5">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1646,12 +1654,12 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         )}
 
         {loading || (!issue && !isCreateMode) ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-slate-400">Loading issue details...</div>
+          <div className="flex-1 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading issue details...</div>
         ) : (
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
             {/* Title & Status */}
             <div>
-              <label htmlFor="issue-modal-title" className="block text-[11px] font-semibold text-slate-400 mb-1">
+              <label htmlFor="issue-modal-title" className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
                 Issue Title
               </label>
               <input
@@ -2103,7 +2111,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               ↗ Active
                             </span>
                           ) : (
-                            <span className="text-[10px] text-slate-400 italic shrink-0 ml-2">None</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 italic shrink-0 ml-2">None</span>
                           )}
                         </div>
                       </div>
@@ -2291,7 +2299,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("details")}
                 className={`pb-2 transition-colors cursor-pointer shrink-0 ${
-                  activeTab === "details" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "details" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 Description
@@ -2299,7 +2307,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("subtasks")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "subtasks" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "subtasks" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Subtasks</span>
@@ -2310,7 +2318,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("attachments")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "attachments" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "attachments" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Attachments</span>
@@ -2321,7 +2329,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("deps")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "deps" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "deps" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Dependencies</span>
@@ -2332,7 +2340,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("custom")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "custom" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "custom" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Custom Fields</span>
@@ -2345,7 +2353,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("comments")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "comments" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "comments" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Comments</span>
@@ -2356,7 +2364,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("time")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "time" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "time" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Time Tracking ({issue?.timeSpentHours || 0}h)</span>
@@ -2364,7 +2372,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("activity")}
                 className={`pb-2 transition-colors cursor-pointer shrink-0 ${
-                  activeTab === "activity" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "activity" ? "border-b-2 border-blue-600 text-blue-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 History
@@ -2372,7 +2380,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 onClick={() => setActiveTab("delegation")}
                 className={`pb-2 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
-                  activeTab === "delegation" ? "border-b-2 border-indigo-600 text-indigo-600 font-bold" : "text-slate-400 hover:text-slate-700"
+                  activeTab === "delegation" ? "border-b-2 border-indigo-600 text-indigo-600 font-bold" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                 }`}
               >
                 <span>Delegation</span>
@@ -2421,7 +2429,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 />
 
                 {/* Description helper text */}
-                <div className="pt-1 text-[11px] text-slate-400">
+                <div className="pt-1 text-[11px] text-slate-500 dark:text-slate-400">
                   Supports Markdown formatting, checklists, and code
                 </div>
 
@@ -2431,7 +2439,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                     <GitBranch className="w-4 h-4 text-purple-500" />
                     <span>Git Integration</span>
                   </div>
-                  <p className="text-slate-500 text-[11px]">
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px]">
                     Reference <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-600">{issue?.issueKey || "NEW TASK"}</code> in your commits, branches, or PRs to auto-link development activity.
                   </p>
                 </div>
@@ -2449,7 +2457,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                         <CheckSquare className="w-3.5 h-3.5 text-blue-500" />
                         <span>Subtask Completion</span>
                       </span>
-                      <span className="text-[11px] font-mono text-slate-500">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
                         {issue?.subtasks?.filter((s: any) => s.isCompleted).length} of {issue.subtasks.length} done (
                         {Math.round((issue.subtasks.filter((s: any) => s.isCompleted).length / issue.subtasks.length) * 100)}%)
                       </span>
@@ -2497,7 +2505,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   {showSubtaskFormDetails && (
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-300 dark:border-slate-700">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Assignee</label>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Assignee</label>
                         <select
                           value={subtaskAssigneeId}
                           onChange={(e) => setSubtaskAssigneeId(e.target.value)}
@@ -2517,7 +2525,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Priority</label>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Priority</label>
                         <select
                           value={subtaskPriority}
                           onChange={(e) => setSubtaskPriority(e.target.value)}
@@ -2531,7 +2539,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Estimate (Hours)</label>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Estimate (Hours)</label>
                         <input
                           type="number"
                           step="0.5"
@@ -2544,7 +2552,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Due Date</label>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Due Date</label>
                         <input
                           type="date"
                           value={subtaskDueDate}
@@ -2559,7 +2567,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 {/* Subtask Items List */}
                 <div className="space-y-2">
                   {(!issue?.subtasks || issue.subtasks.length === 0) ? (
-                    <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+                    <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                       No subtasks added yet. Break this task into smaller actionable units above.
                     </div>
                   ) : (
@@ -2577,7 +2585,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <div>
-                                <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Assignee</label>
+                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5">Assignee</label>
                                 <select
                                   value={editSubtaskAssigneeId}
                                   onChange={(e) => setEditSubtaskAssigneeId(e.target.value)}
@@ -2594,7 +2602,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 </select>
                               </div>
                               <div>
-                                <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Priority</label>
+                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5">Priority</label>
                                 <select
                                   value={editSubtaskPriority}
                                   onChange={(e) => setEditSubtaskPriority(e.target.value)}
@@ -2607,7 +2615,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 </select>
                               </div>
                               <div>
-                                <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Hours</label>
+                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5">Hours</label>
                                 <input
                                   type="number"
                                   step="0.5"
@@ -2617,7 +2625,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 />
                               </div>
                               <div>
-                                <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Status</label>
+                                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5">Status</label>
                                 <select
                                   value={editSubtaskStatus}
                                   onChange={(e) => setEditSubtaskStatus(e.target.value)}
@@ -2633,7 +2641,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               <button
                                 type="button"
                                 onClick={() => setEditingSubtaskId(null)}
-                                className="px-2.5 py-1 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                                className="px-2.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 cursor-pointer"
                               >
                                 Cancel
                               </button>
@@ -2666,7 +2674,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               className="rounded text-blue-600 cursor-pointer w-4 h-4"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className={`text-xs font-semibold truncate ${sub.isCompleted ? "line-through text-slate-400" : "text-slate-800 dark:text-slate-100"}`}>
+                              <p className={`text-xs font-semibold truncate ${sub.isCompleted ? "line-through text-slate-500 dark:text-slate-400" : "text-slate-800 dark:text-slate-100"}`}>
                                 {sub.title}
                               </p>
                               <div className="flex items-center gap-2 flex-wrap mt-0.5">
@@ -2688,14 +2696,14 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                   </span>
                                 )}
                                 {sub.estimateHours && (
-                                  <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
-                                    <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
+                                    <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
                                     <span>{sub.estimateHours}h</span>
                                   </span>
                                 )}
                                 {sub.dueDate && (
                                   <span className={`text-[10px] flex items-center gap-0.5 ${
-                                    !sub.isCompleted && new Date(sub.dueDate) < new Date() ? "text-rose-600 font-bold" : "text-slate-400"
+                                    !sub.isCompleted && new Date(sub.dueDate) < new Date() ? "text-rose-600 font-bold" : "text-slate-500 dark:text-slate-400"
                                   }`}>
                                     <Calendar className="w-2.5 h-2.5" />
                                     <span>{new Date(sub.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
@@ -2718,7 +2726,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             <button
                               type="button"
                               onClick={() => handleStartEditSubtask(sub)}
-                              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-600 cursor-pointer"
+                              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 cursor-pointer"
                               title="Edit subtask details"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -2726,7 +2734,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             <button
                               type="button"
                               onClick={() => handleDeleteSubtask(sub.id)}
-                              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-rose-600 cursor-pointer"
+                              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 cursor-pointer"
                               title="Delete subtask"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2764,7 +2772,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     {isUploadingAttachment ? "Uploading Attachment..." : "Click to upload or drag & drop files"}
                   </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Images (PNG, JPG, SVG, WebP), PDFs, Documents, Archives up to 15MB
                   </p>
                 </div>
@@ -2772,7 +2780,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 {/* Attachments List / Grid */}
                 <div className="space-y-2">
                   {(!issue?.attachments || issue.attachments.length === 0) ? (
-                    <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+                    <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                       No files attached to this task yet.
                     </div>
                   ) : (
@@ -2821,7 +2829,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate" title={att.fileName}>
                                   {att.fileName}
                                 </p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                                   {formatFileSize(att.fileSize)} • {new Date(att.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                                 </p>
                                 {att.uploader && (
@@ -2860,7 +2868,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 <a
                                   href={contentUrl}
                                   download={att.fileName}
-                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-600 cursor-pointer"
+                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 cursor-pointer"
                                   title="Download file"
                                 >
                                   <Download className="w-3.5 h-3.5" />
@@ -2868,7 +2876,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteAttachment(att.id)}
-                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-rose-600 cursor-pointer"
+                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 cursor-pointer"
                                   title="Delete attachment"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2926,7 +2934,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   )}
                   {[...olderComments, ...(issue?.comments ?? [])].slice().reverse().map((c: any) => (
                     <div key={c.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs space-y-1 border border-slate-300 dark:border-slate-800">
-                      <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                      <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[10px]">
                         <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {c.user?.firstName} {c.user?.lastName}
                         </span>
@@ -2979,7 +2987,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Outgoing Links ({issue.outgoingDeps?.length || 0})</span>
                   {(!issue?.outgoingDeps || issue.outgoingDeps.length === 0) ? (
-                    <p className="text-xs text-slate-400 italic">No outgoing dependencies</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 italic">No outgoing dependencies</p>
                   ) : (
                     <div className="space-y-1.5">
                       {issue?.outgoingDeps?.map((dep: any) => (
@@ -2993,7 +3001,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           </div>
                           <button
                             onClick={() => handleRemoveDependency(dep.id)}
-                            className="p-1 text-slate-400 hover:text-red-500 rounded"
+                            className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 rounded"
                             title="Remove link"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -3008,7 +3016,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Incoming Links ({issue.incomingDeps?.length || 0})</span>
                   {(!issue?.incomingDeps || issue.incomingDeps.length === 0) ? (
-                    <p className="text-xs text-slate-400 italic">No incoming dependencies</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 italic">No incoming dependencies</p>
                   ) : (
                     <div className="space-y-1.5">
                       {issue?.incomingDeps?.map((dep: any) => (
@@ -3022,7 +3030,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           </div>
                           <button
                             onClick={() => handleRemoveDependency(dep.id)}
-                            className="p-1 text-slate-400 hover:text-red-500 rounded"
+                            className="p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 rounded"
                             title="Remove link"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -3044,7 +3052,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       Project Custom Fields
                     </span>
-                    <span className="text-[11px] text-slate-400 block">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
                       Define project-wide attributes like client names, build versions, or custom metadata
                     </span>
                   </div>
@@ -3066,7 +3074,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 dark:text-white">Create New Custom Field</span>
-                      <span className="text-[10px] text-slate-400">Available across all issues in this project</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">Available across all issues in this project</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3126,7 +3134,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 <button
                                   type="button"
                                   onClick={() => setNewFieldOptions(newFieldOptions.filter((_, i) => i !== idx))}
-                                  className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
+                                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors rounded"
                                   title="Remove option"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -3185,7 +3193,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">No custom fields defined yet</p>
-                      <p className="text-[11px] text-slate-400 max-w-sm mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mt-0.5">
                         Add custom fields to track extra metadata such as QA links, customer accounts, release tags, or budgets.
                       </p>
                     </div>
@@ -3214,12 +3222,12 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           <div className="flex items-center justify-between">
                             <label className="font-semibold text-slate-700 dark:text-slate-300 block">
                               {cf.name} {cf.isRequired && <span className="text-red-500">*</span>}
-                              <span className="ml-1.5 text-[10px] text-slate-400 font-normal">({cf.fieldType.toLowerCase()})</span>
+                              <span className="ml-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-normal">({cf.fieldType.toLowerCase()})</span>
                             </label>
                             <button
                               type="button"
                               onClick={() => handleDeleteCustomField(cf.id)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-opacity rounded"
+                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 dark:text-slate-400 hover:text-red-500 transition-opacity rounded"
                               title="Delete custom field"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -3389,7 +3397,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                         className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                           activityFilter === "ALL"
                             ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
-                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
                         All History ({issue?.activityLogs?.length || 0})
@@ -3399,7 +3407,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                         className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                           activityFilter === "CHANGES"
                             ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
-                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
                         Field Diffs
@@ -3409,21 +3417,21 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                         className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
                           activityFilter === "COMMENTS"
                             ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
-                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
                         Comments
                       </button>
                     </div>
 
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
                       Audit Trail
                     </span>
                   </div>
 
                   {/* Changelog Timeline */}
                   {logs.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-slate-400">
+                    <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
                       No activity recorded yet for this issue.
                     </div>
                   ) : (
@@ -3446,7 +3454,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 <span className="font-semibold text-slate-900 dark:text-white">
                                   {act.actor?.firstName} {act.actor?.lastName || ""}
                                 </span>
-                                <span className="text-slate-400">
+                                <span className="text-slate-500 dark:text-slate-400">
                                   {new Date(act.timestamp).toLocaleString(undefined, {
                                     month: "short",
                                     day: "numeric",
@@ -3464,10 +3472,10 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                   </span>
                                   {act.oldValue && (
                                     <>
-                                      <span className="line-through text-slate-400 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-1.5 py-0.2 rounded text-[11px]">
+                                      <span className="line-through text-slate-500 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-1.5 py-0.2 rounded text-[11px]">
                                         {act.oldValue}
                                       </span>
-                                      <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                                      <ArrowRight className="w-3 h-3 text-slate-500 dark:text-slate-400 shrink-0" />
                                     </>
                                   )}
                                   <span className="font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-300 px-1.5 py-0.2 rounded text-[11px]">
@@ -3503,18 +3511,18 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       Task Delegation Audit & History
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     Permanent Record (Original Assignee Intact)
                   </span>
                 </div>
 
                 {!issue?.delegations || issue.delegations.length === 0 ? (
-                  <div className="py-12 text-center text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-6 space-y-2">
+                  <div className="py-12 text-center text-slate-500 dark:text-slate-400 text-xs italic bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-6 space-y-2">
                     <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center mx-auto text-base">
                       ↗
                     </div>
                     <p className="font-semibold text-slate-700 dark:text-slate-300">No delegations recorded for this task</p>
-                    <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                       When an assignee goes on leave and chooses to delegate work, temporary delegation records and audit history will appear here.
                     </p>
                   </div>
@@ -3558,13 +3566,13 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                             <div>
-                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Original Assignee</span>
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">Original Assignee</span>
                               <span className="font-semibold text-slate-800 dark:text-slate-200">
                                 {del.originalAssignee?.firstName} {del.originalAssignee?.lastName || ""}
                               </span>
                             </div>
                             <div>
-                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Temporary Delegate</span>
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">Temporary Delegate</span>
                               <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                                 {del.delegateUser?.firstName} {del.delegateUser?.lastName || ""}
                               </span>
@@ -3590,7 +3598,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                       <span className="font-bold text-indigo-600 dark:text-indigo-400">{h.action}</span>
                                       <span>by {h.actor?.firstName || "System"}</span>
                                     </div>
-                                    <span className="text-[10px] font-mono text-slate-400">
+                                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                                       {new Date(h.timestamp).toLocaleString()}
                                     </span>
                                   </div>
@@ -3623,7 +3631,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   Unsaved changes
                 </span>
               ) : (
-                <span className="text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1.5">
+                <span className="text-slate-500 dark:text-slate-500 font-medium flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                   All fields up to date
                 </span>
@@ -3654,7 +3662,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   Cancel
                 </button>
                 {isViewer ? (
-                  <span className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-800">
+                  <span className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-800">
                     Read Only (Viewer)
                   </span>
                 ) : (
@@ -3697,7 +3705,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 <button
                   type="button"
                   onClick={() => setShowAddStatusModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3760,7 +3768,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                 {/* Live Preview */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-300 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 text-[11px]">Badge Preview:</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px]">Badge Preview:</span>
                   <span
                     className="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs"
                     style={{ backgroundColor: `${newStatusColor}20`, color: newStatusColor }}
@@ -3821,7 +3829,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                     setShowAddTypeModal(false);
                     setEditingType(null);
                   }}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -3838,7 +3846,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   className={`px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors cursor-pointer ${
                     typeModalTab === "ADD" && !editingType
                       ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                      : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   + Add New Type
@@ -3849,7 +3857,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   className={`px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors cursor-pointer ${
                     typeModalTab === "MANAGE" || editingType
                       ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                      : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   Manage & Edit Types ({projectTypes.length})
@@ -3910,7 +3918,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                   {/* Live Preview */}
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-300 dark:border-slate-800 flex items-center justify-between text-xs">
-                    <span className="text-slate-400 text-[11px]">Badge Preview:</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">Badge Preview:</span>
                     <span
                       className="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs uppercase tracking-wider"
                       style={{ backgroundColor: `${newTypeColor}20`, color: newTypeColor }}
@@ -3951,14 +3959,14 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                         <button
                           type="button"
                           onClick={() => setEditingType(null)}
-                          className="text-[11px] text-slate-400 hover:underline"
+                          className="text-[11px] text-slate-500 dark:text-slate-400 hover:underline"
                         >
                           Cancel Edit
                         </button>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Display Name</label>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Display Name</label>
                         <input
                           type="text"
                           required
@@ -3969,7 +3977,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Badge Color</label>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Badge Color</label>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {["#6366f1", "#0ea5e9", "#f43f5e", "#10b981", "#a855f7", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#64748b"].map(
                             (c) => (
@@ -3988,7 +3996,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Description</label>
+                        <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">Description</label>
                         <input
                           type="text"
                           value={editTypeDescription}
@@ -4033,10 +4041,10 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           <div className="min-w-0">
                             <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                               {t.name || t.value}{" "}
-                              <span className="font-mono text-[10px] text-slate-400">({t.value})</span>
+                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">({t.value})</span>
                             </p>
                             {t.description && (
-                              <p className="text-[11px] text-slate-400 truncate">{t.description}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{t.description}</p>
                             )}
                           </div>
                         </div>
@@ -4050,7 +4058,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                               setEditTypeColor(t.color || "#6366f1");
                               setEditTypeDescription(t.description || "");
                             }}
-                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                             title="Edit Type"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -4058,7 +4066,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                           <button
                             type="button"
                             onClick={() => handleDeleteProjectType(t.value)}
-                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
                             title="Delete Type (Migrates issues to TASK)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -4097,7 +4105,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 <button
                   type="button"
                   onClick={() => setShowAddPriorityModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -4140,7 +4148,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                 {/* Live Preview */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-300 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 text-[11px]">Badge Preview:</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px]">Badge Preview:</span>
                   <span
                     className="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs"
                     style={{ backgroundColor: `${newPriorityColor}20`, color: newPriorityColor }}
@@ -4198,7 +4206,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 <button
                   type="button"
                   onClick={() => setShowAddEpicModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -4212,7 +4220,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   className={`pb-2 font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
                     epicModalTab === "CREATE"
                       ? "border-purple-600 text-purple-600 dark:text-purple-400"
-                      : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -4224,7 +4232,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   className={`pb-2 font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
                     epicModalTab === "MANAGE"
                       ? "border-purple-600 text-purple-600 dark:text-purple-400"
-                      : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
                   <span>Manage Epics</span>
@@ -4314,7 +4322,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                   {/* Live Preview */}
                   <div className="p-3 bg-purple-50/50 dark:bg-purple-950/20 rounded-xl border border-purple-200/60 dark:border-purple-900/40 flex items-center justify-between text-xs">
-                    <span className="text-slate-400 text-[11px]">Badge Preview:</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">Badge Preview:</span>
                     <span
                       className="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-2xs"
                       style={{ backgroundColor: `${newEpicColor}20`, color: newEpicColor }}
@@ -4348,10 +4356,10 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               ) : (
                 <div className="space-y-2.5 overflow-y-auto max-h-[50vh] pr-1 flex-1">
                   {projectEpics.length === 0 ? (
-                    <div className="text-center py-8 px-4 text-slate-400">
+                    <div className="text-center py-8 px-4 text-slate-500 dark:text-slate-400">
                       <Zap className="w-8 h-8 text-purple-400/50 mx-auto mb-2" />
                       <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">No epics created yet</p>
-                      <p className="text-[11px] text-slate-400 mt-1">Switch to the Create tab to add your first project epic.</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Switch to the Create tab to add your first project epic.</p>
                     </div>
                   ) : (
                     projectEpics.map((ep) => (
@@ -4407,7 +4415,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                             type="button"
                             disabled={deletingEpicId === ep.id}
                             onClick={() => handleDeleteProjectEpic(ep.id, ep.name)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                             title="Delete Epic (Unlinks issues)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -4458,7 +4466,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   <button
                     type="button"
                     onClick={() => setPreviewAttachment(null)}
-                    className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                    className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -4478,7 +4486,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   <div className="text-center p-8">
                     <File className="w-16 h-16 text-blue-500 mx-auto mb-3 opacity-80" />
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{previewAttachment.fileName}</p>
-                    <p className="text-xs text-slate-400 mt-1 mb-4">Preview not directly supported for this file type.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">Preview not directly supported for this file type.</p>
                     <a
                       href={`/api/attachments/${previewAttachment.id}/content`}
                       download={previewAttachment.fileName}

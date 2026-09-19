@@ -371,7 +371,7 @@ export function UsersTab({
       {/* Filter & Pagination Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             value={search}
@@ -386,7 +386,7 @@ export function UsersTab({
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Role:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Role:</span>
             <select
               value={roleFilter}
               onChange={(e) => {
@@ -405,7 +405,7 @@ export function UsersTab({
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Status:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -421,7 +421,7 @@ export function UsersTab({
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Page Size:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Page Size:</span>
             <select
               value={limit}
               onChange={(e) => {
@@ -467,13 +467,13 @@ export function UsersTab({
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     Loading users...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     No users found matching your filters.
                   </td>
                 </tr>
@@ -504,7 +504,7 @@ export function UsersTab({
                       <td className="p-3">
                         <div className="font-bold text-slate-800 dark:text-slate-200">{u.name}</div>
                         <div className="text-[11px] text-slate-600 dark:text-slate-400">{u.email}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                           ID: {u.id.slice(0, 10)}... • {u.jobTitle}
                         </div>
                       </td>
@@ -528,7 +528,7 @@ export function UsersTab({
                               </span>
                             ))
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-500/10 text-slate-500 border border-slate-500/20 font-semibold rounded text-[10px]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20 font-semibold rounded text-[10px]">
                               VIEWER (Default)
                             </span>
                           )}
@@ -562,7 +562,7 @@ export function UsersTab({
                                       className="w-full text-left px-2 py-1.5 hover:bg-indigo-100 hover:text-indigo-800 text-slate-700 dark:text-slate-300 rounded text-xs flex items-center justify-between transition-colors dark:hover:bg-indigo-900/50"
                                     >
                                       <span className="font-semibold">{r.name}</span>
-                                      <span className="text-[10px] text-slate-500 font-mono">
+                                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                                         +{r.permissions?.length || r.permissionCount || 0}
                                       </span>
                                     </button>
@@ -586,12 +586,12 @@ export function UsersTab({
                         <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                           {u.effectivePermissionsCount || 0}
                         </span>
-                        <span className="text-[10px] text-slate-500 ml-1">capabilities</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">capabilities</span>
                       </td>
 
                       <td className="p-3">
                         <div className="text-slate-700 dark:text-slate-300 font-medium">{u.projects?.length || 0} Projects</div>
-                        <div className="text-[10px] text-slate-500">{u.workspaces?.length || 0} Workspaces</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">{u.workspaces?.length || 0} Workspaces</div>
                       </td>
 
                       <td className="p-3">
@@ -752,7 +752,7 @@ export function UsersTab({
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-3 text-xs text-slate-500">Calculating simulation impact...</div>
+                <div className="text-center py-3 text-xs text-slate-500 dark:text-slate-400">Calculating simulation impact...</div>
               )}
 
               {simulation?.conflicts?.length > 0 && (
@@ -826,7 +826,7 @@ export function UsersTab({
                   </span>
                 </div>
                 <div className="text-slate-600 dark:text-slate-400">{selectedUserProfile.email}</div>
-                <div className="text-slate-500 font-mono text-[10px]">ID: {selectedUserProfile.id}</div>
+                <div className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">ID: {selectedUserProfile.id}</div>
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-slate-600 dark:text-slate-400">
                   <span>Job Title: <strong className="text-slate-800 dark:text-slate-200">{selectedUserProfile.jobTitle}</strong></span>
                   <span>Company: <strong className="text-slate-800 dark:text-slate-200">{selectedUserProfile.company}</strong></span>
@@ -881,7 +881,7 @@ export function UsersTab({
                 {/* Assigned Roles List */}
                 <div className="space-y-2">
                   {(selectedUserProfile.assignedRoles || []).length === 0 ? (
-                    <div className="text-center py-6 text-xs text-slate-500 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="text-center py-6 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800">
                       No Permission Roles assigned to this user.
                     </div>
                   ) : (
@@ -897,12 +897,12 @@ export function UsersTab({
                               ({role.permissions?.length || role.permissionCount || 0} perms)
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-500">{role.description}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">{role.description}</p>
                         </div>
 
                         <button
                           onClick={() => handleRemoveRoleFromUserProfile(role.id, role.name)}
-                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded dark:hover:text-rose-300 dark:hover:bg-rose-900/50"
+                          className="p-1 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded dark:hover:text-rose-300 dark:hover:bg-rose-900/50"
                           title="Remove Role"
                         >
                           <X className="w-4 h-4" />

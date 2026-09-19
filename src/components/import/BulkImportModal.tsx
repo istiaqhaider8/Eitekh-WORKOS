@@ -170,7 +170,7 @@ export function BulkImportModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -187,7 +187,7 @@ export function BulkImportModal({
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                 kind === k
                   ? "bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300"
-                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
               {k === "tasks" ? "Tasks" : "Project Members"}
@@ -284,7 +284,7 @@ export function BulkImportModal({
                 <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 font-semibold">
                   {active.failed} failed
                 </span>
-                <span className="text-slate-400">of {active.total} rows</span>
+                <span className="text-slate-500 dark:text-slate-400">of {active.total} rows</span>
               </div>
 
               {active.mode === "validate" && (
@@ -297,7 +297,7 @@ export function BulkImportModal({
                 <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                   {active.results.map((r) => (
                     <div key={`${r.row}-${r.subject}`} className="flex items-start gap-2 px-3 py-2 text-xs">
-                      <span className="font-mono text-slate-400 shrink-0 w-10">#{r.row}</span>
+                      <span className="font-mono text-slate-500 dark:text-slate-400 shrink-0 w-10">#{r.row}</span>
                       <span
                         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold shrink-0 ${outcomeStyle(
                           r.outcome

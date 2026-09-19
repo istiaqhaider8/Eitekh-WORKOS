@@ -148,7 +148,7 @@ export function PlatformReportsHubView() {
             </div>
 
             <div className="text-right text-xs">
-              <span className="text-slate-500 block text-[10px]">Audited By</span>
+              <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Audited By</span>
               <span className="font-mono text-slate-700 dark:text-slate-300">{reportData.generatedBy}</span>
             </div>
           </div>
@@ -156,24 +156,24 @@ export function PlatformReportsHubView() {
           {/* Key Executive Summary Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 text-[10px] uppercase font-semibold">Security Score</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">Security Score</span>
               <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{reportData.scoreCard?.score || 100} / 100</div>
-              <p className="text-[10px] text-slate-500">{reportData.scoreCard?.status}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">{reportData.scoreCard?.status}</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 text-[10px] uppercase font-semibold">Total Organizations</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">Total Organizations</span>
               <div className="text-lg font-bold text-slate-800 dark:text-slate-200">{reportData.kpis?.totalOrgs}</div>
-              <p className="text-[10px] text-slate-500">{reportData.kpis?.activeOrgs} active</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">{reportData.kpis?.activeOrgs} active</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 text-[10px] uppercase font-semibold">Total Users</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">Total Users</span>
               <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{reportData.kpis?.totalUsers}</div>
-              <p className="text-[10px] text-slate-500">{reportData.kpis?.activeUsers} active</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">{reportData.kpis?.activeUsers} active</p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 text-[10px] uppercase font-semibold">Sync Success Rate</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">Sync Success Rate</span>
               <div className="text-lg font-bold text-teal-700 dark:text-teal-400">{reportData.syncMetrics?.successRate || 100}%</div>
-              <p className="text-[10px] text-slate-500">0 events dropped</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">0 events dropped</p>
             </div>
           </div>
 
@@ -186,7 +186,7 @@ export function PlatformReportsHubView() {
             {selectedReportId.includes('SECURITY') || selectedReportId.includes('THREAT') ? (
               <div className="space-y-2">
                 {reportData.activeThreats?.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-950 rounded-lg">
+                  <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 rounded-lg">
                     No active threat incidents logged for this period.
                   </div>
                 ) : (
@@ -196,7 +196,7 @@ export function PlatformReportsHubView() {
                         <div className="font-bold text-slate-800 dark:text-slate-200">{t.eventType} - {t.severity}</div>
                         <p className="text-slate-600 dark:text-slate-400 text-[11px]">{t.description}</p>
                       </div>
-                      <span className="text-[10px] text-slate-500 font-mono">{new Date(t.detectedAt).toLocaleTimeString()}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{new Date(t.detectedAt).toLocaleTimeString()}</span>
                     </div>
                   ))
                 )}

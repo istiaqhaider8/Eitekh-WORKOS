@@ -94,7 +94,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             value={search}
@@ -106,7 +106,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
 
         <div className="flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Action:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Action:</span>
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
@@ -145,13 +145,13 @@ export function AuditTab({ orgId }: AuditTabProps) {
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     Loading audit ledger...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     No audit records found matching your filters.
                   </td>
                 </tr>
@@ -164,7 +164,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
 
                     <td className="p-3">
                       <div className="font-bold text-slate-800 dark:text-slate-200">{log.actorName}</div>
-                      <div className="text-[10px] text-slate-500">{log.actorEmail}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{log.actorEmail}</div>
                     </td>
 
                     <td className="p-3">
@@ -175,7 +175,7 @@ export function AuditTab({ orgId }: AuditTabProps) {
 
                     <td className="p-3">
                       <div className="font-semibold text-slate-800 dark:text-slate-200">{log.entityName || log.entityId}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">Type: {log.entityType}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Type: {log.entityType}</div>
                     </td>
 
                     <td className="p-3">
@@ -220,19 +220,19 @@ export function AuditTab({ orgId }: AuditTabProps) {
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Action</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Action</span>
                   <strong className="text-indigo-700 font-mono dark:text-indigo-400">{selectedLog.action}</strong>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Timestamp</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Timestamp</span>
                   <span className="text-slate-700 dark:text-slate-300 font-mono">{new Date(selectedLog.createdAt).toISOString()}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Administrator</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Administrator</span>
                   <span className="text-slate-800 dark:text-slate-200">{selectedLog.actorName} ({selectedLog.actorEmail})</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block text-[10px]">Entity Target</span>
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Entity Target</span>
                   <span className="text-slate-800 dark:text-slate-200">{selectedLog.entityName}</span>
                 </div>
               </div>

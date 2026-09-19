@@ -1,0 +1,39 @@
+{
+  "$comment": "D3 — axe baseline: critical + serious violations per page and theme. May go DOWN freely; going up fails the build. Regenerate with: node scripts/check-axe.mjs --update",
+  "pages": {
+    "login [light]": 0,
+    "register [light]": 0,
+    "forgot-password [light]": 0,
+    "home [light]": 0,
+    "settings/profile [light]": 0,
+    "settings/organization [light]": 0,
+    "settings/security [light]": 0,
+    "project [light]": 0,
+    "login [dark]": 0,
+    "register [dark]": 0,
+    "forgot-password [dark]": 0,
+    "home [dark]": 0,
+    "settings/profile [dark]": 0,
+    "settings/organization [dark]": 0,
+    "settings/security [dark]": 0,
+    "project [dark]": 0
+  },
+  "detail": {
+    "login [light]": [],
+    "register [light]": [],
+    "forgot-password [light]": [],
+    "home [light]": [],
+    "settings/profile [light]": [],
+    "settings/organization [light]": [],
+    "settings/security [light]": [],
+    "project [light]": [],
+    "login [dark]": [],
+    "register [dark]": [],
+    "forgot-password [dark]": [],
+    "home [dark]": [],
+    "settings/profile [dark]": [],
+    "settings/organization [dark]": [],
+    "settings/security [dark]": [],
+    "project [dark]": []
+  }
+}

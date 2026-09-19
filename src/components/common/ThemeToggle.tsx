@@ -14,7 +14,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl p-1.5 flex items-center justify-center text-slate-400">
+      <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl p-1.5 flex items-center justify-center text-slate-500 dark:text-slate-400">
         <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
       </div>
     );

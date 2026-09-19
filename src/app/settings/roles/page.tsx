@@ -25,7 +25,7 @@ export default function RolesAndPermissionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12 text-slate-400">
+      <div className="flex items-center justify-center p-12 text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">Loading Access Governance & Permission Roles...</span>

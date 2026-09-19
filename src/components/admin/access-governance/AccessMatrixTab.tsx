@@ -157,7 +157,7 @@ export function AccessMatrixTab({
       {/* Filter & Pagination Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             value={search}
@@ -172,7 +172,7 @@ export function AccessMatrixTab({
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Role:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Role:</span>
             <select
               value={roleFilter}
               onChange={(e) => {
@@ -191,7 +191,7 @@ export function AccessMatrixTab({
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Status:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -207,7 +207,7 @@ export function AccessMatrixTab({
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Rows:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Rows:</span>
             <select
               value={limit}
               onChange={(e) => {
@@ -245,13 +245,13 @@ export function AccessMatrixTab({
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     Loading access matrix...
                   </td>
                 </tr>
               ) : matrixUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     No users found matching your filters.
                   </td>
                 </tr>
@@ -261,7 +261,7 @@ export function AccessMatrixTab({
                     <td className="p-3">
                       <div className="font-bold text-slate-800 dark:text-slate-200">{u.name}</div>
                       <div className="text-[11px] text-slate-600 dark:text-slate-400">{u.email}</div>
-                      <div className="text-[10px] text-slate-500">{u.jobTitle} • {u.company}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{u.jobTitle} • {u.company}</div>
                     </td>
 
                     <td className="p-3">
@@ -288,7 +288,7 @@ export function AccessMatrixTab({
                             </span>
                           ))
                         ) : (
-                          <span className="text-slate-500 italic text-[11px]">None</span>
+                          <span className="text-slate-500 dark:text-slate-400 italic text-[11px]">None</span>
                         )}
                       </div>
                     </td>
@@ -297,14 +297,14 @@ export function AccessMatrixTab({
                       <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                         {u.effectivePermissionsCount || u.totalGranted || 0}
                       </span>
-                      <span className="text-[10px] text-slate-500 ml-1">unique capabilities</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">unique capabilities</span>
                     </td>
 
                     <td className="p-3">
                       <div className="text-slate-700 dark:text-slate-300 text-xs font-medium">
                         {u.projects?.length || 0} Projects Active
                       </div>
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
                         {u.workspaces?.length || 0} Workspaces
                       </div>
                     </td>
@@ -403,7 +403,7 @@ export function AccessMatrixTab({
                   <FileSpreadsheet className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                   <span>CSV Spreadsheet Format (.csv)</span>
                 </div>
-                <span className="text-[10px] text-slate-500">Universal RFC-4180</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Universal RFC-4180</span>
               </button>
 
               <button
@@ -415,7 +415,7 @@ export function AccessMatrixTab({
                   <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <span>Excel-Compatible Export (.csv)</span>
                 </div>
-                <span className="text-[10px] text-slate-500">Microsoft Excel / Numbers</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Microsoft Excel / Numbers</span>
               </button>
 
               <button
@@ -427,7 +427,7 @@ export function AccessMatrixTab({
                   <Printer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                   <span>Printable HTML / PDF Summary</span>
                 </div>
-                <span className="text-[10px] text-slate-500">Print to PDF</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Print to PDF</span>
               </button>
             </div>
 

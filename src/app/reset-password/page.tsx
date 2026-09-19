@@ -129,7 +129,7 @@ function ResetPasswordForm() {
           New Password
         </label>
         <div className="relative">
-          <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
           <input
             id="newPassword"
             type={showPassword ? "text" : "password"}
@@ -143,7 +143,7 @@ function ResetPasswordForm() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="absolute right-3 top-3 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -155,23 +155,23 @@ function ResetPasswordForm() {
           <div className="mt-2.5 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-300 dark:border-slate-700/60 space-y-1.5 text-[11px]">
             <p className="font-semibold text-slate-600 dark:text-slate-400">Password requirements:</p>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-              <div className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+              <div className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                 {hasMinLength ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>8+ characters</span>
               </div>
-              <div className={`flex items-center gap-1.5 ${hasUpper ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+              <div className={`flex items-center gap-1.5 ${hasUpper ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                 {hasUpper ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>Uppercase letter</span>
               </div>
-              <div className={`flex items-center gap-1.5 ${hasLower ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+              <div className={`flex items-center gap-1.5 ${hasLower ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                 {hasLower ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>Lowercase letter</span>
               </div>
-              <div className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+              <div className={`flex items-center gap-1.5 ${hasNumber ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                 {hasNumber ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>At least 1 number</span>
               </div>
-              <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+              <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                 {hasSpecial ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>Special character (!@#$%^&*)</span>
               </div>
@@ -188,7 +188,7 @@ function ResetPasswordForm() {
           Confirm New Password
         </label>
         <div className="relative">
-          <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
           <input
             id="confirmPassword"
             type={showPassword ? "text" : "password"}
@@ -266,7 +266,7 @@ export default function ResetPasswordPage() {
 
         {/* Card */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-xl space-y-6">
-          <Suspense fallback={<div className="text-center text-slate-400 text-xs py-8">Loading reset form...</div>}>
+          <Suspense fallback={<div className="text-center text-slate-500 dark:text-slate-400 text-xs py-8">Loading reset form...</div>}>
             <ResetPasswordForm />
           </Suspense>
         </div>

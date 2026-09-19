@@ -13,14 +13,14 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav className="flex items-center text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
+    <nav className="flex items-center text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-x-auto no-scrollbar">
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         
         return (
           <React.Fragment key={index}>
             {index > 0 && (
-              <ChevronRight className="w-3 h-3 mx-1.5 text-slate-400 shrink-0" />
+              <ChevronRight className="w-3 h-3 mx-1.5 text-slate-500 dark:text-slate-400 shrink-0" />
             )}
             {item.href && !isLast ? (
               <Link 

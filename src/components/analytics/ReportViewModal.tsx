@@ -212,7 +212,7 @@ export function ReportViewModal({
       case 'RISK': return 'bg-red-500/10 text-red-500 border-red-500/20';
       case 'PLANNING': return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
       case 'ROADMAP': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
-      case 'AUDIT': return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+      case 'AUDIT': return 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20';
       default: return 'bg-primary/10 text-primary border-primary/20';
     }
   }, [canonicalDef.category]);

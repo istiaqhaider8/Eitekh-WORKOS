@@ -891,7 +891,7 @@ export function ScrumBacklogView({
           e.stopPropagation();
           toggleSelectSection(sectionIssues);
         }}
-        className="p-1 rounded-md text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        className="p-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         title={isAll ? "Deselect all in section" : "Select all in section"}
         aria-label="Select all issues in section"
       >
@@ -1024,7 +1024,7 @@ export function ScrumBacklogView({
             </div>
           ) : (
             <div
-              className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400"
+              className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400"
               title="Unassigned"
             >
               <User className="w-3 h-3" />
@@ -1065,7 +1065,7 @@ export function ScrumBacklogView({
 
             {activeStatusMenu === issue.id && (
               <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800">
+                <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800">
                   Change Status
                 </div>
                 {statuses.map((st) => {
@@ -1124,7 +1124,7 @@ export function ScrumBacklogView({
                 setActiveActionMenu(activeActionMenu === issue.id ? null : issue.id);
                 setActiveStatusMenu(null);
               }}
-              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="More task actions"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -1132,7 +1132,7 @@ export function ScrumBacklogView({
 
             {activeActionMenu === issue.id && (
               <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800">
+                <div className="px-3 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800">
                   Priority
                 </div>
                 {priorityList.map((prio) => (
@@ -1185,7 +1185,7 @@ export function ScrumBacklogView({
     const { startDate, endDate } = sprint || {};
     if (!startDate && !endDate) {
       return (
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0" title="No timebox set for this sprint">
+        <span className="text-[10px] text-slate-500 dark:text-slate-500 shrink-0" title="No timebox set for this sprint">
           No dates set
         </span>
       );
@@ -1210,7 +1210,7 @@ export function ScrumBacklogView({
         className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0"
         title={`Sprint timebox${startDate ? ` • starts ${fmt(startDate)}` : ""}${endDate ? ` • ends ${fmt(endDate)}` : ""}`}
       >
-        <Calendar className="w-3 h-3 text-slate-400" />
+        <Calendar className="w-3 h-3 text-slate-500 dark:text-slate-400" />
         <span>
           {startDate ? fmt(startDate) : "—"} → {endDate ? fmt(endDate) : "—"}
         </span>
@@ -1314,7 +1314,7 @@ export function ScrumBacklogView({
             style={{ width: `${Math.round((inProgressCount / sprintIssues.length) * 100)}%` }}
           />
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 shrink-0">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
           <span className="text-slate-600 dark:text-slate-300">{todoCount} To Do</span>
           <span>·</span>
           <span className="text-blue-600 dark:text-blue-400">{inProgressCount} In Prog</span>
@@ -1360,7 +1360,7 @@ export function ScrumBacklogView({
           onClick={() => {
             if (onSelectIssue) onSelectIssue("new");
           }}
-          className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
+          className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add Task to Sprint</span>
@@ -1381,7 +1381,7 @@ export function ScrumBacklogView({
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 inlineMode === "existing"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
               <Layers className="w-3 h-3" />
@@ -1396,7 +1396,7 @@ export function ScrumBacklogView({
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 inlineMode === "new"
                   ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
               <Plus className="w-3 h-3" />
@@ -1412,7 +1412,7 @@ export function ScrumBacklogView({
               setIsExistingDropdownOpen(false);
               setExistingSearchQuery("");
             }}
-            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer font-medium"
+            className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer font-medium"
           >
             Cancel
           </button>
@@ -1441,7 +1441,7 @@ export function ScrumBacklogView({
                   </span>
                 )}
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+              <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
             </button>
 
             {isExistingDropdownOpen && (
@@ -1453,7 +1453,7 @@ export function ScrumBacklogView({
                 <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 z-40 animate-in fade-in zoom-in-95 duration-150 space-y-3">
                   {/* Search bar */}
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                     <input
                       ref={searchInputRef}
                       type="text"
@@ -1466,7 +1466,7 @@ export function ScrumBacklogView({
                       <button
                         type="button"
                         onClick={() => setExistingSearchQuery("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-600"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -1487,7 +1487,7 @@ export function ScrumBacklogView({
                         ) : filteredIssues.some((i) => selectedExistingIds.has(i.id)) ? (
                           <MinusSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-400" />
+                          <Square className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                         )}
                         <span>Select All ({filteredIssues.length})</span>
                       </button>
@@ -1496,7 +1496,7 @@ export function ScrumBacklogView({
                         <button
                           type="button"
                           onClick={() => setSelectedExistingIds(new Set())}
-                          className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline cursor-pointer"
+                          className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline cursor-pointer"
                         >
                           Clear ({selectedExistingIds.size})
                         </button>
@@ -1529,7 +1529,7 @@ export function ScrumBacklogView({
                     className="max-h-60 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar"
                   >
                     {filteredIssues.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-400">
+                      <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                         No matching tasks found
                       </div>
                     ) : (
@@ -1587,7 +1587,7 @@ export function ScrumBacklogView({
 
                             <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                               {/* Story Points */}
-                              <span className="text-[10px] text-slate-400 font-mono">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                                 {issue.estimatePoints ? `${issue.estimatePoints} pts` : ""}
                               </span>
 
@@ -1617,7 +1617,7 @@ export function ScrumBacklogView({
                         <button
                           type="button"
                           onClick={() => setSelectedExistingIds(new Set())}
-                          className="px-2.5 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                          className="px-2.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                         >
                           Clear
                         </button>
@@ -1745,11 +1745,11 @@ export function ScrumBacklogView({
 
         <div className="flex items-center gap-2 shrink-0 text-xs">
           <div className="px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-center">
-            <span className="text-[10px] text-slate-400 block font-medium">Completed Sprints</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Completed Sprints</span>
             <span className="font-bold text-slate-100 font-mono">{completedSprints.length}</span>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-center">
-            <span className="text-[10px] text-slate-400 block font-medium">Active Commitment</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Active Commitment</span>
             <span className="font-bold text-emerald-400 font-mono">
               {activeSprint
                 ? `${issues.filter((i) => i.sprintId === activeSprint.id).reduce((s, i) => s + (i.estimatePoints || 0), 0)} pts`
@@ -1785,7 +1785,7 @@ export function ScrumBacklogView({
                 <button
                   type="button"
                   onClick={() => toggleCollapse(activeSprint.id)}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors cursor-pointer"
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
                 >
                   {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
@@ -1794,7 +1794,7 @@ export function ScrumBacklogView({
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 shrink-0">
                   ACTIVE
                 </span>
-                <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono shrink-0">
                   ({sprintIssues.length} {sprintIssues.length === 1 ? "issue" : "issues"})
                 </span>
                 {renderSprintCapacityBadge(sprintIssues)}
@@ -1820,7 +1820,7 @@ export function ScrumBacklogView({
                     setEditSprintStartDate(toDateInputValue(activeSprint.startDate));
                     setEditSprintEndDate(toDateInputValue(activeSprint.endDate));
                   }}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   title="Edit Sprint details"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -1828,7 +1828,7 @@ export function ScrumBacklogView({
                 <button
                   type="button"
                   onClick={() => handleDeleteSprint(activeSprint)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
                   title="Delete Sprint"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1852,7 +1852,7 @@ export function ScrumBacklogView({
             {!isCollapsed && (
               <div className="mt-3 space-y-1.5">
                 {sprintIssues.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+                  <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                     No tasks in this sprint yet. Drag issues here or use the button below.
                   </div>
                 ) : (
@@ -1927,7 +1927,7 @@ export function ScrumBacklogView({
                       setDraggedSprintId(null);
                       setDragOverSprintId(null);
                     }}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 cursor-grab active:cursor-grabbing transition-colors shrink-0"
                     title="Drag handle to reorder sprint serial sequence"
                   >
                     <GripVertical className="w-4 h-4" />
@@ -1940,12 +1940,12 @@ export function ScrumBacklogView({
                 <button
                   type="button"
                   onClick={() => toggleCollapse(sprint.id)}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors cursor-pointer"
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
                 >
                   {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
                 <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{sprint.name}</h3>
-                <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono shrink-0">
                   ({sprintIssues.length} {sprintIssues.length === 1 ? "issue" : "issues"})
                 </span>
                 {renderSprintCapacityBadge(sprintIssues)}
@@ -1960,7 +1960,7 @@ export function ScrumBacklogView({
                       type="button"
                       disabled={index === 0}
                       onClick={() => handleMoveSprint(sprint.id, "up")}
-                      className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                      className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
                       title="Move Sprint Up in serial sequence"
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
@@ -1969,7 +1969,7 @@ export function ScrumBacklogView({
                       type="button"
                       disabled={index === futureSprints.length - 1}
                       onClick={() => handleMoveSprint(sprint.id, "down")}
-                      className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors border-l border-slate-200 dark:border-slate-700/80"
+                      className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors border-l border-slate-200 dark:border-slate-700/80"
                       title="Move Sprint Down in serial sequence"
                     >
                       <ChevronDown className="w-3.5 h-3.5" />
@@ -1996,7 +1996,7 @@ export function ScrumBacklogView({
                     setEditSprintStartDate(toDateInputValue(sprint.startDate));
                     setEditSprintEndDate(toDateInputValue(sprint.endDate));
                   }}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   title="Edit Sprint details"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -2004,7 +2004,7 @@ export function ScrumBacklogView({
                 <button
                   type="button"
                   onClick={() => handleDeleteSprint(sprint)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
                   title="Delete Sprint"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -2029,7 +2029,7 @@ export function ScrumBacklogView({
             {!isCollapsed && (
               <div className="mt-3 space-y-1.5">
                 {sprintIssues.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+                  <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                     Plan this sprint by dragging backlog issues here, or click Add Task below.
                   </div>
                 ) : (
@@ -2078,7 +2078,7 @@ export function ScrumBacklogView({
                         <button
                           type="button"
                           onClick={() => toggleCollapse(sprint.id)}
-                          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 cursor-pointer"
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 cursor-pointer"
                         >
                           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
@@ -2087,7 +2087,7 @@ export function ScrumBacklogView({
                         <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           COMPLETED
                         </span>
-                        <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono shrink-0">
                           ({deliveredPoints} pts delivered · {completedIssues.length} completed)
                         </span>
                       </div>
@@ -2124,7 +2124,7 @@ export function ScrumBacklogView({
                     {!isCollapsed && (
                       <div className="mt-2 space-y-1.5">
                         {sprintIssues.length === 0 ? (
-                          <div className="py-3 text-center text-xs text-slate-400">No issues linked to this completed sprint.</div>
+                          <div className="py-3 text-center text-xs text-slate-500 dark:text-slate-400">No issues linked to this completed sprint.</div>
                         ) : (
                           sprintIssues.map((issue) => renderIssueRow(issue))
                         )}
@@ -2163,12 +2163,12 @@ export function ScrumBacklogView({
                 <button
                   type="button"
                   onClick={() => toggleCollapse("BACKLOG")}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors cursor-pointer"
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
                 >
                   {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
                 <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Product Backlog</h3>
-                <span className="text-[11px] text-slate-400 font-mono">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   ({backlogIssues.length} issues · {totalPoints} pts)
                 </span>
               </div>
@@ -2177,7 +2177,7 @@ export function ScrumBacklogView({
             {!isCollapsed && (
               <div className="mt-3 space-y-1.5">
                 {backlogIssues.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-slate-400">
+                  <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                     Product Backlog is empty. Drag tasks here to return them from sprints.
                   </div>
                 ) : (
@@ -2212,7 +2212,7 @@ export function ScrumBacklogView({
                           setInlineSprintId(null);
                           setInlineTitle("");
                         }}
-                        className="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-medium"
+                        className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer font-medium"
                       >
                         Cancel
                       </button>
@@ -2224,7 +2224,7 @@ export function ScrumBacklogView({
                         setInlineSprintId("BACKLOG");
                         setInlineTitle("");
                       }}
-                      className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
+                      className="w-full mt-2 py-2 border border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-400 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-900/40"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add Task to Backlog</span>
@@ -2252,7 +2252,7 @@ export function ScrumBacklogView({
             <button
               type="button"
               onClick={clearSelection}
-              className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
+              className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-white underline cursor-pointer"
             >
               Clear
             </button>
@@ -2270,12 +2270,12 @@ export function ScrumBacklogView({
               >
                 <Layers className="w-3.5 h-3.5 text-blue-400" />
                 <span>Move to Sprint</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               </button>
 
               {activeBulkDropdown === "sprint" && (
                 <div className="absolute bottom-full mb-2 left-0 w-52 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-300 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
                     Select Target Destination
                   </div>
                   {activeSprint && (
@@ -2298,7 +2298,7 @@ export function ScrumBacklogView({
                       className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between cursor-pointer font-medium"
                     >
                       <span className="truncate">{fs.name}</span>
-                      <span className="text-[10px] text-slate-400 font-mono shrink-0">Future</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono shrink-0">Future</span>
                     </button>
                   ))}
                   <div className="my-1 border-t border-slate-300 dark:border-slate-800" />
@@ -2323,12 +2323,12 @@ export function ScrumBacklogView({
               >
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Status</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               </button>
 
               {activeBulkDropdown === "status" && (
                 <div className="absolute bottom-full mb-2 left-0 w-44 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-300 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
                     Set Status
                   </div>
                   {statuses.map((st) => (
@@ -2356,12 +2356,12 @@ export function ScrumBacklogView({
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>Priority</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               </button>
 
               {activeBulkDropdown === "priority" && (
                 <div className="absolute bottom-full mb-2 left-0 w-44 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-300 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
                     Set Priority
                   </div>
                   {priorityList.map((prio) => (
@@ -2389,12 +2389,12 @@ export function ScrumBacklogView({
               >
                 <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Assignee</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               </button>
 
               {activeBulkDropdown === "assignee" && (
                 <div className="absolute bottom-full mb-2 right-0 w-48 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-300 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
                     Assign To
                   </div>
                   <button
@@ -2436,12 +2436,12 @@ export function ScrumBacklogView({
               >
                 <Users className="w-3.5 h-3.5 text-teal-400" />
                 <span>Team</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               </button>
 
               {activeBulkDropdown === "team" && (
                 <div className="absolute bottom-full mb-2 right-0 w-48 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl border border-slate-300 dark:border-slate-800 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800 mb-1">
                     Assign Team
                   </div>
                   <button
@@ -2570,7 +2570,7 @@ export function ScrumBacklogView({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Complete {completingSprint.name}</h3>
-                  <p className="text-xs text-slate-500">Sprint Retrospective & Velocity Summary</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Sprint Retrospective & Velocity Summary</p>
                 </div>
               </div>
 
@@ -2594,7 +2594,7 @@ export function ScrumBacklogView({
                     </div>
                     <div className="mt-1 flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-900 dark:text-white font-mono">{completedIssues.length}</span>
-                      <span className="text-[11px] text-slate-500">issues ({completedPoints} pts)</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">issues ({completedPoints} pts)</span>
                     </div>
                   </div>
 
@@ -2605,7 +2605,7 @@ export function ScrumBacklogView({
                     </div>
                     <div className="mt-1 flex items-baseline gap-1.5">
                       <span className="text-base font-bold text-slate-900 dark:text-white font-mono">{incompleteIssues.length}</span>
-                      <span className="text-[11px] text-slate-500">issues ({incompletePoints} pts)</span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">issues ({incompletePoints} pts)</span>
                     </div>
                   </div>
                 </div>
@@ -2632,7 +2632,7 @@ export function ScrumBacklogView({
               {/* Sprint Retrospective Notes */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                  Sprint Retrospective Notes <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                  Sprint Retrospective Notes <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -2767,7 +2767,7 @@ export function ScrumBacklogView({
               <button
                 type="button"
                 onClick={() => setEditingSprint(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2912,13 +2912,13 @@ export function ScrumBacklogView({
                         {viewingSprintDetails.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">Full Telemetry, Dates &amp; Delivery Progress</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Full Telemetry, Dates &amp; Delivery Progress</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setViewingSprintDetails(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2933,9 +2933,9 @@ export function ScrumBacklogView({
 
               <div className="grid grid-cols-3 gap-3 text-center text-xs">
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] text-slate-400 block font-medium">Total Scope</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">Total Scope</span>
                   <span className="text-base font-black text-slate-900 dark:text-white font-mono">{totalPoints} pts</span>
-                  <span className="text-[10px] text-slate-400 block">{sprintIssues.length} tasks</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{sprintIssues.length} tasks</span>
                 </div>
                 <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60">
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-medium">Completed</span>
@@ -2960,7 +2960,7 @@ export function ScrumBacklogView({
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Linked Sprint Tasks ({sprintIssues.length})</span>
                 <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
                   {sprintIssues.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-3 text-center">No tasks linked to this sprint.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 py-3 text-center">No tasks linked to this sprint.</p>
                   ) : (
                     sprintIssues.map((issue) => (
                       <div key={issue.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs border border-slate-200 dark:border-slate-700/80">

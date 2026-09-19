@@ -618,9 +618,9 @@ export function AppHeader({
             <Breadcrumb items={breadcrumbs} />
           </div>
         ) : currentOrg && (
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 border-l border-slate-300 dark:border-slate-800 pl-2.5 md:pl-4">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 border-l border-slate-300 dark:border-slate-800 pl-2.5 md:pl-4">
             <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[100px] md:max-w-[160px]">{currentOrg.name}</span>
-            <span className="text-slate-400 dark:text-slate-600">/</span>
+            <span className="text-slate-500 dark:text-slate-600">/</span>
             <span className="text-slate-700 dark:text-slate-400 truncate max-w-[80px] md:max-w-[120px]">{workspaces?.[0]?.name || "Main"}</span>
           </div>
         )}
@@ -631,12 +631,21 @@ export function AppHeader({
         <button
           onClick={onOpenCommandPalette}
           aria-label="Search"
-          className="w-full flex items-center justify-between px-2.5 sm:px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-indigo-400 rounded-xl transition-all duration-150 cursor-pointer shadow-2xs group"
+          /**
+           * slate-600, not slate-500, because this sits on bg-slate-100.
+           *
+           * slate-500 on slate-100 is 4.34:1 — under the 4.5 AA threshold for
+           * 12px text, and the last light-theme contrast violation axe
+           * reported. The same colour is fine on white (4.76) and on slate-50
+           * (4.55), which is why it survived everywhere else. slate-600 gives
+           * 6.92 here.
+           */
+          className="w-full flex items-center justify-between px-2.5 sm:px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-indigo-400 rounded-xl transition-all duration-150 cursor-pointer shadow-2xs group"
         >
           <div className="flex items-center gap-1.5 sm:gap-2 truncate">
-            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
             <span className="hidden md:inline group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors font-medium truncate">Search issues, projects, or commands...</span>
-            <span className="md:hidden text-[11px] text-slate-400 truncate">Search...</span>
+            <span className="md:hidden text-[11px] text-slate-500 dark:text-slate-400 truncate">Search...</span>
           </div>
           <kbd className="hidden lg:inline px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md shadow-2xs shrink-0">
             Ctrl + K
@@ -697,7 +706,7 @@ export function AppHeader({
                       </button>
                       <button
                         onClick={deleteSelected}
-                        className="text-[11px] text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                        className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
                       >
                         Delete ({selectedIds.size})
                       </button>
@@ -716,7 +725,7 @@ export function AppHeader({
                       {notifications.length > 0 && (
                         <button
                           onClick={clearAllNotifications}
-                          className="text-[11px] text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                          className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
                         >
                           Clear all
                         </button>
@@ -770,7 +779,7 @@ export function AppHeader({
                     className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-blue-600 cursor-pointer accent-blue-600"
                     aria-label="Select all notifications"
                   />
-                  <span className="text-[11px] text-slate-400 select-none">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 select-none">
                     {selectedIds.size > 0 ? `${selectedIds.size} of ${notifications.length} selected` : "Select all"}
                   </span>
                 </div>
@@ -779,7 +788,7 @@ export function AppHeader({
               {/* Announcement cards in System tab */}
               {notificationTab === "system" && visibleAnnouncements.length > 0 && (
                 <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Platform Announcements</span>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">Platform Announcements</span>
                   {visibleAnnouncements.map((a) => (
                     <div
                       key={a.id}
@@ -800,7 +809,7 @@ export function AppHeader({
                       </div>
                       <button
                         onClick={() => dismissAnnouncement(a.id)}
-                        className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded cursor-pointer shrink-0"
+                        className="p-0.5 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded cursor-pointer shrink-0"
                         aria-label="Dismiss"
                       >
                         <X className="w-3 h-3" />
@@ -824,12 +833,12 @@ export function AppHeader({
                     </button>
                   </div>
                 ) : notifLoading && notifications.length === 0 ? (
-                  <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate-400">
+                  <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Loading notifications…</span>
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-slate-400">
+                  <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
                     {notificationSearch
                       ? "No matching notifications found"
                       : notificationTab === "system" && visibleAnnouncements.length > 0
@@ -876,7 +885,7 @@ export function AppHeader({
                             <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
                               {n.title}
                             </p>
-                            <span className="text-[10px] text-slate-400 shrink-0">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0">
                               {formatTimeAgo(n.createdAt)}
                             </span>
                           </div>
@@ -892,7 +901,7 @@ export function AppHeader({
                         <button
                           onClick={(e) => deleteNotification(n.id, e)}
                           aria-label="Delete notification"
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-500 transition-opacity cursor-pointer"
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-500 transition-opacity cursor-pointer"
                           title="Dismiss"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -937,14 +946,14 @@ export function AppHeader({
             <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
               {currentUser?.firstName?.[0] || "U"}
             </div>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
+            <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
           </button>
 
           {showUserMenu && (
             <div className="absolute right-0 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-2.5 border-b border-slate-300 dark:border-slate-800">
                 <p className="text-xs font-bold text-slate-900 dark:text-white">{currentUser?.fullName || currentUser?.firstName}</p>
-                <p className="text-[11px] text-slate-400 truncate mt-0.5">{currentUser?.email}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{currentUser?.email}</p>
                 <span className="inline-block mt-1.5 px-2 py-0.5 text-[9px] font-bold rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 uppercase border border-blue-200/60 dark:border-blue-800/60">
                   {currentUser?.jobTitle || "Member"}
                 </span>
@@ -955,7 +964,7 @@ export function AppHeader({
                   onClick={() => setShowUserMenu(false)}
                   className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
                 >
-                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Profile, Leaves & Delegation</span>
                 </Link>
                 <Link
@@ -963,7 +972,7 @@ export function AppHeader({
                   onClick={() => setShowUserMenu(false)}
                   className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
                 >
-                  <Settings className="w-3.5 h-3.5 text-slate-400" />
+                  <Settings className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Security & Sessions</span>
                 </Link>
                 {currentUser?.isSuperAdmin && (

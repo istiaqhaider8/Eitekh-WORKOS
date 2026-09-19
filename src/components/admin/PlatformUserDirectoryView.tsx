@@ -454,7 +454,7 @@ export function PlatformUserDirectoryView({
       {/* Filter & Search Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
           <input
             type="text"
             value={search}
@@ -470,7 +470,7 @@ export function PlatformUserDirectoryView({
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Role Filter */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Authority:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Authority:</span>
             <select
               value={roleFilter}
               onChange={(e) => {
@@ -487,7 +487,7 @@ export function PlatformUserDirectoryView({
 
           {/* Status Filter */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 font-medium">Status:</span>
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Status:</span>
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -504,7 +504,7 @@ export function PlatformUserDirectoryView({
 
           {/* Org Filter */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <Building2 className="w-3.5 h-3.5 text-slate-500" />
+            <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <select
               value={orgFilter}
               onChange={(e) => {
@@ -524,7 +524,7 @@ export function PlatformUserDirectoryView({
 
           {/* Page Size */}
           <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500">Rows:</span>
+            <span className="text-slate-500 dark:text-slate-400">Rows:</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -561,7 +561,7 @@ export function PlatformUserDirectoryView({
             <tbody className="divide-y divide-slate-200">
               {paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     <Users className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                     <p className="text-xs">No users matching search filters</p>
                   </td>
@@ -588,7 +588,7 @@ export function PlatformUserDirectoryView({
                                 </span>
                               )}
                             </div>
-                            <div className="text-[10px] text-slate-500">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
                               {u.jobTitle || 'Team Member'} {u.company ? `• ${u.company}` : ''}
                             </div>
                           </div>
@@ -601,7 +601,7 @@ export function PlatformUserDirectoryView({
                           <span className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">{u.email}</span>
                           <button
                             onClick={() => copyEmail(u.email, u.id)}
-                            className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                            className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                             title="Copy email"
                           >
                             {copiedEmailId === u.id ? (
@@ -631,7 +631,7 @@ export function PlatformUserDirectoryView({
                       <td className="p-3.5">
                         <div className="flex flex-wrap gap-1 max-w-[200px]">
                           {(u.orgMemberships || []).length === 0 ? (
-                            <span className="text-slate-500 text-[10px] italic">None</span>
+                            <span className="text-slate-500 dark:text-slate-400 text-[10px] italic">None</span>
                           ) : (
                             (u.orgMemberships || []).map((m: any) => (
                               <span
@@ -654,7 +654,7 @@ export function PlatformUserDirectoryView({
                             Active
                           </span>
                         ) : (
-                          <span className="text-slate-500 text-[11px]">Disabled</span>
+                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">Disabled</span>
                         )}
                       </td>
 
@@ -918,7 +918,7 @@ export function PlatformUserDirectoryView({
                     Grant Platform Super Admin Authority
                   </label>
                 </div>
-                <p className="text-[10px] text-slate-500 pl-5">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 pl-5">
                   Super Admins have unrestricted administrative access across all tenant organizations and settings.
                 </p>
               </div>
@@ -1166,7 +1166,7 @@ export function PlatformUserDirectoryView({
                 {newPassword && (
                   <div className="space-y-1 pt-1">
                     <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">Password Strength:</span>
+                      <span className="text-slate-500 dark:text-slate-400">Password Strength:</span>
                       <span className="font-semibold text-slate-700 dark:text-slate-300">{strength.label}</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex gap-1">

@@ -29,7 +29,7 @@ import { KanbanBoardView } from "@/components/views/KanbanBoardView";
  * replaced.
  */
 const viewLoading = () => (
-  <div className="flex items-center justify-center py-24 text-sm text-slate-400 dark:text-slate-500">
+  <div className="flex items-center justify-center py-24 text-sm text-slate-500 dark:text-slate-500">
     Loading view…
   </div>
 );
@@ -1312,7 +1312,7 @@ export function ProjectClient({
                     className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
                     title="Edit project details and settings"
                   >
-                    <Settings className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-transform group-hover:rotate-45" />
+                    <Settings className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-transform group-hover:rotate-45" />
                     <span className="hidden sm:inline">Settings</span>
                   </button>
                 )}
@@ -1325,7 +1325,7 @@ export function ProjectClient({
                     className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all font-semibold shadow-2xs hover:shadow-xs active:translate-y-px cursor-pointer group"
                     title="Bulk upload tasks or project members from a CSV template"
                   >
-                    <Upload className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200" />
+                    <Upload className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200" />
                     <span className="hidden sm:inline">Bulk Upload</span>
                   </button>
                 )}
@@ -1356,7 +1356,7 @@ export function ProjectClient({
                 {/* Mobile Filter Header Toggle */}
                 <div className="md:hidden flex items-center justify-between gap-2">
                   <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Filter issues..."
@@ -1374,7 +1374,7 @@ export function ProjectClient({
                         : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
                     }`}
                   >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span>Filters</span>
                     {hasActiveFilters && (
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
@@ -1386,7 +1386,7 @@ export function ProjectClient({
                 {/* Filter Controls (Collapsible on Mobile, Inline on Desktop) */}
                 <div className={`${showMobileFilters ? "flex" : "hidden"} md:flex flex-wrap items-center gap-2 pt-1 md:pt-0`}>
                   <div className="hidden md:flex relative items-center">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3" />
+                    <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-3" />
                     <input
                       type="text"
                       placeholder="Filter issues..."
@@ -1404,7 +1404,7 @@ export function ProjectClient({
                         : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-600"
                     }`}
                   >
-                    <User className="w-3.5 h-3.5 text-slate-500" />
+                    <User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     <span>My Issues</span>
                   </button>
 
@@ -1534,11 +1534,11 @@ export function ProjectClient({
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent hover:bg-white/60 dark:hover:bg-slate-800/60"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"}`} />
                   <span>{v.label}</span>
                   {v.count !== undefined && (
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isSelected ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "bg-slate-200/60 dark:bg-slate-800 text-slate-500"
+                      isSelected ? "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                     }`}>
                       {v.count}
                     </span>
@@ -1771,7 +1771,7 @@ export function ProjectClient({
               <button
                 type="button"
                 onClick={() => setShowCreateProjectModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1898,7 +1898,7 @@ export function ProjectClient({
               <button
                 type="button"
                 onClick={() => setShowEditProjectModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2001,7 +2001,7 @@ export function ProjectClient({
             </div>
 
             <div className="flex justify-between items-center pt-3 border-t border-slate-300 dark:border-slate-800/80">
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 Key: <code className="font-mono text-blue-600 dark:text-blue-400 font-semibold">{currentProject.key}</code> · Template: {currentProject.template}
               </span>
               <div className="flex items-center gap-2.5">
@@ -2046,7 +2046,7 @@ export function ProjectClient({
               <button
                 type="button"
                 onClick={() => setShowProjectMembersModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2066,7 +2066,7 @@ export function ProjectClient({
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       memberTab === "EXISTING"
                         ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 shadow-2xs"
-                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
@@ -2082,7 +2082,7 @@ export function ProjectClient({
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       memberTab === "INVITE"
                         ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 shadow-2xs"
-                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
                     <Mail className="w-3.5 h-3.5" />
@@ -2138,14 +2138,14 @@ export function ProjectClient({
                         with only a placeholder reads as a broken control. */}
                     {orgMembers.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-3 text-center">
-                        <p className="text-xs text-slate-500">Loading people from {currentOrg?.name || "the organization"}…</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Loading people from {currentOrg?.name || "the organization"}…</p>
                       </div>
                     ) : unassignedOrgMembers.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-3 text-center space-y-1">
                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                           Everyone in {currentOrg?.name || "this organization"} is already on this project
                         </p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
                           All {orgMembers.length} member{orgMembers.length === 1 ? "" : "s"} assigned.
                           To bring in someone new, invite them by email.
                         </p>
@@ -2161,7 +2161,7 @@ export function ProjectClient({
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
                       <div className="sm:col-span-7">
                         <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Person <span className="text-slate-500">({unassignedOrgMembers.length} available)</span>
+                          Person <span className="text-slate-500 dark:text-slate-400">({unassignedOrgMembers.length} available)</span>
                         </label>
                         <select
                           value={selectedUserId}
@@ -2224,7 +2224,7 @@ export function ProjectClient({
                         <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                         <span>Invite New Person to Organization & Project</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-normal">Sends credentials via email</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Sends credentials via email</span>
                     </h4>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -2326,7 +2326,7 @@ export function ProjectClient({
               </div>
 
               {members.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-xs border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-xs border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                   No members assigned yet. Use the form above to assign team members.
                 </div>
               ) : (
@@ -2394,7 +2394,7 @@ export function ProjectClient({
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 truncate">{userObj.email}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{userObj.email}</p>
                           </div>
                         </div>
 
@@ -2422,7 +2422,7 @@ export function ProjectClient({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveMember(member.userId || member.user?.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+                                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
                                 title="Remove member from project"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

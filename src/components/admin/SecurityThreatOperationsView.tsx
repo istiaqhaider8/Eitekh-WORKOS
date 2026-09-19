@@ -184,19 +184,19 @@ export function SecurityThreatOperationsView() {
 
           <div className="flex items-center gap-6 text-xs">
             <div>
-              <span className="text-slate-500 block text-[11px]">Open Threats</span>
+              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Open Threats</span>
               <span className="text-base font-bold text-slate-900 dark:text-slate-100">{scoreCard.openThreats}</span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Critical Issues</span>
+              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Critical Issues</span>
               <span className="text-base font-bold text-rose-600 dark:text-rose-400">{scoreCard.criticalIssues}</span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">High Issues</span>
+              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">High Issues</span>
               <span className="text-base font-bold text-amber-700 dark:text-amber-400">{scoreCard.highIssues}</span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Resolved Today</span>
+              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Resolved Today</span>
               <span className="text-base font-bold text-emerald-700 dark:text-emerald-400">{scoreCard.resolvedToday}</span>
             </div>
           </div>
@@ -205,19 +205,19 @@ export function SecurityThreatOperationsView() {
         {/* Secondary Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 text-[10px] uppercase font-semibold">MFA Adoption</span>
+            <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">MFA Adoption</span>
             <div className="font-bold text-slate-800 dark:text-slate-200">{scoreCard.mfaAdoptionPct}%</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 text-[10px] uppercase font-semibold">Active Sessions</span>
+            <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">Active Sessions</span>
             <div className="font-bold text-indigo-600 dark:text-indigo-400">{scoreCard.activeSessions}</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 text-[10px] uppercase font-semibold">Suspended Users</span>
+            <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">Suspended Users</span>
             <div className="font-bold text-rose-600 dark:text-rose-400">{scoreCard.suspendedUsers}</div>
           </div>
           <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-            <span className="text-slate-500 text-[10px] uppercase font-semibold">PBAC Violations (24h)</span>
+            <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-semibold">PBAC Violations (24h)</span>
             <div className="font-bold text-emerald-700 dark:text-emerald-400">{scoreCard.pbacViolations24h}</div>
           </div>
         </div>
@@ -243,11 +243,11 @@ export function SecurityThreatOperationsView() {
                     <span className="text-slate-800 dark:text-slate-200 font-semibold">{v.userEmail}</span>
                     <span className="text-slate-600 dark:text-slate-400">attempted unauthorized {v.actionType}</span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-mono">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     Attempted Project: <span className="text-indigo-700 dark:text-indigo-400">{v.attemptedProjectId}</span> | IP: {v.ipAddress || '127.0.0.1'}
                   </p>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono">{new Date(v.timestamp).toLocaleTimeString()}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{new Date(v.timestamp).toLocaleTimeString()}</span>
               </div>
             ))}
           </div>
@@ -264,7 +264,7 @@ export function SecurityThreatOperationsView() {
 
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs">
-              <Search className="w-3.5 h-3.5 text-slate-500" />
+              <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <input
                 type="text"
                 placeholder="Filter threats..."
@@ -290,7 +290,7 @@ export function SecurityThreatOperationsView() {
         </div>
 
         {filteredThreats.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-950 rounded-xl">
+          <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 rounded-xl">
             No active security threats in queue matching criteria.
           </div>
         ) : (
@@ -339,7 +339,7 @@ export function SecurityThreatOperationsView() {
                     </div>
 
                     <div className="text-right space-y-2 shrink-0">
-                      <span className="text-[10px] text-slate-500 font-mono block">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">
                         {new Date(t.detectedAt).toLocaleString()}
                       </span>
                       <button
@@ -376,19 +376,19 @@ export function SecurityThreatOperationsView() {
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                 <div>
-                  <span className="text-slate-500 block">Severity</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Severity</span>
                   <span className="font-bold text-rose-600 dark:text-rose-400">{selectedThreat.severity}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Status</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Status</span>
                   <span className="font-bold text-indigo-600 dark:text-indigo-400">{selectedThreat.status}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Target Resource</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Target Resource</span>
                   <span className="text-slate-800 dark:text-slate-200 font-mono">{selectedThreat.resource}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Detection Time</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">Detection Time</span>
                   <span className="text-slate-700 dark:text-slate-300">{new Date(selectedThreat.detectedAt).toLocaleString()}</span>
                 </div>
               </div>

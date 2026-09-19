@@ -120,7 +120,7 @@ export default function VerifyEmailPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
-          <Suspense fallback={<div className="text-center text-slate-400 text-sm py-8">Loading verification...</div>}>
+          <Suspense fallback={<div className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">Loading verification...</div>}>
             <VerifyEmailContent />
           </Suspense>
         </div>

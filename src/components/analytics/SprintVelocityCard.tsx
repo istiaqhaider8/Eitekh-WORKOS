@@ -177,7 +177,7 @@ export function SprintVelocityCard({
       </div>
 
       {loading && !data ? (
-        <div className="py-12 flex flex-col items-center justify-center text-slate-400 space-y-2">
+        <div className="py-12 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 space-y-2">
           <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-xs">Calculating sprint velocity metrics...</p>
         </div>
@@ -245,7 +245,7 @@ export function SprintVelocityCard({
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">sprints</span>
                   </>
                 ) : (
-                  <span className="text-sm font-semibold text-slate-400">Needs Velocity</span>
+                  <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Needs Velocity</span>
                 )}
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate" title={`${forecast?.totalBacklogPoints || 0} remaining backlog pts`}>
@@ -294,19 +294,19 @@ export function SprintVelocityCard({
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Planned Scope</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block">Planned Scope</span>
                   <strong className="font-bold text-slate-800 dark:text-slate-200">{currentSprint.plannedPoints} pts</strong>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Delivered So Far</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block">Delivered So Far</span>
                   <strong className="font-bold text-emerald-600 dark:text-emerald-400">{currentSprint.completedPoints} pts</strong>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Remaining In Flight</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block">Remaining In Flight</span>
                   <strong className="font-bold text-amber-600 dark:text-amber-400">{currentSprint.remainingPoints} pts</strong>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px] block">Tasks Completed</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block">Tasks Completed</span>
                   <strong className="font-bold text-slate-800 dark:text-slate-200">
                     {currentSprint.completedIssues} / {currentSprint.totalIssues}
                     {currentSprint.unestimatedCompletedIssues > 0 && (
@@ -326,11 +326,11 @@ export function SprintVelocityCard({
               <div>
                 <h3 className="text-sm font-bold flex items-center gap-2">
                   <span>Historical Sprint Velocity</span>
-                  <span className="text-xs font-normal text-slate-500">
+                  <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
                     (Planned vs. Delivered Story Points)
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                   Bars indicate planned capacity vs actual delivered points. Red line indicates average team velocity.
                 </p>
               </div>
@@ -354,7 +354,7 @@ export function SprintVelocityCard({
 
             {/* Visual Bar Chart */}
             {historicalSprints.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+              <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                 No completed sprints recorded yet. Sprints will appear here once marked as completed.
               </div>
             ) : (
@@ -398,7 +398,7 @@ export function SprintVelocityCard({
                       >
                         {/* Values above bars */}
                         <div className="flex items-center gap-1 text-[10px] font-bold">
-                          <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                          <span className="text-slate-500 dark:text-slate-400 group-hover:text-slate-600 transition-colors">
                             {s.plannedPoints}
                           </span>
                           <span className="text-indigo-600 dark:text-indigo-400">
@@ -436,7 +436,7 @@ export function SprintVelocityCard({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Sprint Performance & Completion Breakdown</h3>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 {historicalSprints.length} {historicalSprints.length === 1 ? 'Sprint' : 'Sprints'} tracked
               </span>
             </div>
@@ -458,7 +458,7 @@ export function SprintVelocityCard({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {historicalSprints.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-400 italic">
+                      <td colSpan={8} className="py-8 text-center text-slate-500 dark:text-slate-400 italic">
                         No completed sprint velocity data yet. Complete a sprint to track historical throughput.
                       </td>
                     </tr>
@@ -482,7 +482,7 @@ export function SprintVelocityCard({
                               {new Date(s.startDate).toLocaleDateString()} – {new Date(s.endDate).toLocaleDateString()}
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic">Dates not set</span>
+                            <span className="text-slate-500 dark:text-slate-400 italic">Dates not set</span>
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
@@ -513,7 +513,7 @@ export function SprintVelocityCard({
                               {s.unestimatedCompletedIssues} task{s.unestimatedCompletedIssues === 1 ? '' : 's'}
                             </span>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-slate-500 dark:text-slate-400">—</span>
                           )}
                         </td>
                       </tr>

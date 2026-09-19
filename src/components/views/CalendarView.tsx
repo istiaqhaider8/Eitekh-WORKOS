@@ -1127,7 +1127,7 @@ export function CalendarView({
         }}
         className={`flex flex-col min-w-0 transition-colors relative group/cell border-r border-slate-300 dark:border-slate-800/80 ${
           cell.isCurrentMonth === false
-            ? 'bg-slate-100/70 dark:bg-slate-950/90 text-slate-400 dark:text-slate-600'
+            ? 'bg-slate-100/70 dark:bg-slate-950/90 text-slate-500 dark:text-slate-600'
             : cell.isWeekend
             ? 'bg-slate-50 dark:bg-slate-950/60'
             : 'bg-white dark:bg-slate-900/30 hover:bg-slate-50/80 dark:hover:bg-slate-900/50'
@@ -1156,14 +1156,14 @@ export function CalendarView({
                   ? 'px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/40 font-extrabold scale-105'
                   : cell.isCurrentMonth
                   ? 'w-6 h-6 flex items-center justify-center rounded-full text-slate-700 dark:text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
-                  : 'w-6 h-6 flex items-center justify-center rounded-full text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'
+                  : 'w-6 h-6 flex items-center justify-center rounded-full text-slate-500 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400'
               }`}
               title="Click to view full day timeline"
             >
               {cell.dayNumber}
             </span>
             {isWeekView && (
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 {WEEKDAY_NAMES_FULL[(cell.date.getDay() + 6) % 7]}
               </span>
             )}
@@ -1183,7 +1183,7 @@ export function CalendarView({
             <button
               type="button"
               onClick={() => setInlineAddDateStr(cell.dateStr)}
-              className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded opacity-0 group-hover/cell:opacity-100 transition-opacity cursor-pointer"
+              className="w-5 h-5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded opacity-0 group-hover/cell:opacity-100 transition-opacity cursor-pointer"
               title="Quick add task for this date"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -1305,7 +1305,7 @@ export function CalendarView({
                 {/* Title */}
                 <div
                   className={`text-xs font-semibold leading-snug truncate ${
-                    isDone ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-900 dark:text-slate-100 group-hover/card:text-blue-600 dark:group-hover/card:text-white'
+                    isDone ? 'line-through text-slate-500 dark:text-slate-500' : 'text-slate-800 dark:text-slate-900 dark:text-slate-100 group-hover/card:text-blue-600 dark:group-hover/card:text-white'
                   }`}
                   title={issue.title}
                 >
@@ -1314,8 +1314,8 @@ export function CalendarView({
 
                 {/* Bottom Row (Comfortable density or Overdue): Status & Countdown */}
                 {density === 'comfortable' && (
-                  <div className="flex items-center justify-between gap-1 mt-1 text-[9px] text-slate-400">
-                    <span className="truncate text-slate-400">{issue.status?.name || 'Open'}</span>
+                  <div className="flex items-center justify-between gap-1 mt-1 text-[9px] text-slate-500 dark:text-slate-400">
+                    <span className="truncate text-slate-500 dark:text-slate-400">{issue.status?.name || 'Open'}</span>
                     {countdown.tone === 'overdue' && !isDone && (
                       <span className="text-rose-400 font-bold shrink-0 flex items-center gap-0.5">
                         <Flame className="w-2.5 h-2.5" />
@@ -1392,7 +1392,7 @@ export function CalendarView({
                 <span>
                   {MONTH_NAMES[currentMonth]} {currentYear}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ml-0.5" />
               </button>
 
               {/* Fast Month Picker Popover */}
@@ -1450,12 +1450,12 @@ export function CalendarView({
               >
                 <FolderGit2 className="w-3.5 h-3.5 text-blue-400" />
                 <span className="truncate max-w-[140px]">{projectName}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400" />
               </button>
 
               {showProjectDropdown && projects.length > 0 && (
                 <div className="absolute left-0 top-full mt-1 w-64 p-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xl z-50">
-                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <div className="px-2 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Select Project
                   </div>
                   <div className="space-y-0.5 mt-1 max-h-48 overflow-y-auto">
@@ -1525,7 +1525,7 @@ export function CalendarView({
               }`}
               title="Toggle flexible view: show all tasks vs capped +N more"
             >
-              {viewAllTasks ? <Eye className="w-3.5 h-3.5 text-blue-400" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+              {viewAllTasks ? <Eye className="w-3.5 h-3.5 text-blue-400" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
               <span className="hidden sm:inline">{viewAllTasks ? 'Flexible' : 'Capped'}</span>
             </button>
 
@@ -1604,7 +1604,7 @@ export function CalendarView({
           <div className="flex flex-wrap items-center gap-1.5">
             {/* Search Input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
               <input
                 type="text"
                 placeholder="Search schedule..."
@@ -1616,7 +1616,7 @@ export function CalendarView({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-white cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -1712,7 +1712,7 @@ export function CalendarView({
           </div>
 
           {/* Quick Schedule Stat Counters */}
-          <div className="hidden md:flex items-center gap-3 text-xs text-slate-400 font-medium">
+          <div className="hidden md:flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
               <strong className="text-slate-800 dark:text-slate-200">{scheduledIssues.length}</strong> scheduled
@@ -1766,9 +1766,9 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-blue-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Scheduled</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Scheduled</div>
               <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{analyticsKPIs.totalScheduled}</div>
-              <div className="text-[9px] text-slate-400 flex items-center gap-1 truncate">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
                 <CalendarRange className="w-2.5 h-2.5 text-blue-400" />
                 <span>Active Horizon</span>
               </div>
@@ -1788,7 +1788,7 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-emerald-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Completed</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Completed</div>
               <div className="text-lg font-bold text-emerald-400">
                 {analyticsKPIs.completedCount}
               </div>
@@ -1812,7 +1812,7 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-rose-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Overdue</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Overdue</div>
               <div className="text-lg font-bold text-rose-400">
                 {analyticsKPIs.overdueCount}
               </div>
@@ -1836,7 +1836,7 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-amber-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Due This Week</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Due This Week</div>
               <div className="text-lg font-bold text-amber-400">
                 {analyticsKPIs.dueThisWeekCount}
               </div>
@@ -1860,7 +1860,7 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-indigo-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Unassigned</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Unassigned</div>
               <div className="text-lg font-bold text-indigo-400">
                 {analyticsKPIs.unassignedCount}
               </div>
@@ -1885,9 +1885,9 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-teal-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Completion %</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Completion %</div>
               <div className="text-lg font-bold text-teal-400">{analyticsKPIs.completionRate}%</div>
-              <div className="text-[9px] text-slate-400 flex items-center gap-1 truncate">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
                 <TrendingUp className="w-2.5 h-2.5 text-teal-400" />
                 <span>On-Time Rate</span>
               </div>
@@ -1907,9 +1907,9 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-purple-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Story Points</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Story Points</div>
               <div className="text-lg font-bold text-purple-400">{analyticsKPIs.totalPoints} pts</div>
-              <div className="text-[9px] text-slate-400 flex items-center gap-1 truncate">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
                 <Zap className="w-2.5 h-2.5 text-purple-400" />
                 <span>Committed</span>
               </div>
@@ -1929,9 +1929,9 @@ export function CalendarView({
               }
               className="bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-300 dark:border-slate-800 rounded-lg p-2 cursor-pointer transition-all hover:border-sky-500/50 shadow-2xs"
             >
-              <div className="text-[10px] font-bold text-slate-400 uppercase truncate">Active Days</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">Active Days</div>
               <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{analyticsKPIs.activeDaysCount}</div>
-              <div className="text-[9px] text-slate-400 flex items-center gap-1 truncate">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
                 <CalendarDays className="w-2.5 h-2.5 text-sky-400" />
                 <span>Spread</span>
               </div>
@@ -1965,7 +1965,7 @@ export function CalendarView({
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {dayViewData.issues.length} {dayViewData.issues.length === 1 ? 'task' : 'tasks'} scheduled for this date.
                   </p>
                 </div>
@@ -2029,7 +2029,7 @@ export function CalendarView({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
+                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 shrink-0">
                         {issue.estimatePoints && (
                           <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                             {issue.estimatePoints} pts
@@ -2056,7 +2056,7 @@ export function CalendarView({
                   <div className="text-center py-16 bg-slate-50 dark:bg-slate-900/30 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                     <CalendarDays className="w-10 h-10 mx-auto text-slate-600 mb-2" />
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No scheduled tasks for this date.</p>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Drag a task from the unscheduled pool or click below to schedule.
                     </p>
                     <button
@@ -2146,7 +2146,7 @@ export function CalendarView({
                   <Layers className="w-4 h-4 text-amber-400" />
                   <span>Unscheduled Pool</span>
                 </h4>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   {unscheduledIssues.length} tasks without delivery deadlines
                 </p>
               </div>
@@ -2170,7 +2170,7 @@ export function CalendarView({
             {/* Search Tray Input */}
             <div className="p-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                 <input
                   type="text"
                   placeholder="Filter unscheduled tasks..."
@@ -2182,7 +2182,7 @@ export function CalendarView({
                   <button
                     type="button"
                     onClick={() => setUnscheduledSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-white cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -2211,7 +2211,7 @@ export function CalendarView({
                       className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${
                         issue.priority === 'CRITICAL'
                           ? 'bg-rose-500/20 text-rose-300'
-                          : 'bg-slate-900 text-slate-400'
+                          : 'bg-slate-900 text-slate-500 dark:text-slate-400'
                       }`}
                     >
                       {issue.priority}
@@ -2220,7 +2220,7 @@ export function CalendarView({
                   <div className="text-xs font-medium text-slate-800 dark:text-slate-200 line-clamp-2 leading-snug">
                     {issue.title}
                   </div>
-                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-700/50 text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-700/50 text-[10px] text-slate-500 dark:text-slate-400">
                     <span>{issue.status?.name || 'Backlog'}</span>
                     {issue.estimatePoints && (
                       <span className="font-mono font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-1.5 py-0.2 rounded">
@@ -2232,7 +2232,7 @@ export function CalendarView({
               ))}
 
               {displayedUnscheduled.length === 0 && (
-                <div className="text-center py-10 text-slate-500 text-xs">
+                <div className="text-center py-10 text-slate-500 dark:text-slate-400 text-xs">
                   {unscheduledIssues.length === 0
                     ? 'All project tasks are scheduled!'
                     : 'No matching unscheduled tasks.'}
@@ -2260,7 +2260,7 @@ export function CalendarView({
                     Schedule for {MONTH_NAMES[selectedDayDetails.getMonth()]}{' '}
                     {selectedDayDetails.getDate()}, {selectedDayDetails.getFullYear()}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {selectedDayIssues.length} total deliverables assigned to this date
                   </p>
                 </div>
@@ -2268,7 +2268,7 @@ export function CalendarView({
               <button
                 type="button"
                 onClick={() => setSelectedDayDetails(null)}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg cursor-pointer"
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2277,7 +2277,7 @@ export function CalendarView({
             {/* Filter Day Search */}
             <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between gap-2">
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                 <input
                   type="text"
                   placeholder="Filter tasks on this date..."
@@ -2337,7 +2337,7 @@ export function CalendarView({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
+                    <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 shrink-0">
                       {issue.estimatePoints && (
                         <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded-md shadow-2xs">
                           {issue.estimatePoints} pts
@@ -2356,7 +2356,7 @@ export function CalendarView({
               })}
 
               {filteredSelectedDayIssues.length === 0 && (
-                <div className="text-center py-8 text-slate-500 text-xs">
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-xs">
                   No tasks match the filter for this date.
                 </div>
               )}
@@ -2490,7 +2490,7 @@ export function CalendarView({
                 <button
                   type="button"
                   onClick={() => setQuickCreateDate(null)}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2518,7 +2518,7 @@ export function CalendarView({
                   <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Schedule Conflict Radar ({scheduleConflicts.length})
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Automated analysis of delivery bottlenecks, sprint overlaps, and risks
                   </p>
                 </div>
@@ -2550,7 +2550,7 @@ export function CalendarView({
                         ? 'text-rose-400'
                         : conf.severity === 'MEDIUM'
                         ? 'text-amber-400'
-                        : 'text-slate-400'
+                        : 'text-slate-500 dark:text-slate-400'
                     }`}
                   />
                   <div className="flex-1 min-w-0">
@@ -2566,7 +2566,7 @@ export function CalendarView({
                         {conf.type}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">{conf.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{conf.description}</p>
                     {conf.issue && (
                       <button
                         type="button"
@@ -2597,7 +2597,7 @@ export function CalendarView({
                 <FileText className="w-5 h-5 text-emerald-400" />
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Calendar & Schedule Reports Hub</h3>
-                  <p className="text-xs text-slate-400">Download formatted reports in CSV, Excel, or printable PDF format</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Download formatted reports in CSV, Excel, or printable PDF format</p>
                 </div>
               </div>
               <button
@@ -2617,7 +2617,7 @@ export function CalendarView({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-bold text-slate-900 dark:text-slate-100">{rep.name}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{rep.desc}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{rep.desc}</div>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">

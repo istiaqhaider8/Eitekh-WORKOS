@@ -389,7 +389,7 @@ export function AuditComplianceView() {
       <div className="bg-white dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3">
         {/* Search */}
         <div className="flex items-center gap-2 w-full md:w-96 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus-within:border-indigo-200 transition-colors">
-          <Search className="w-4 h-4 text-slate-500 shrink-0" />
+          <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="Search action, target resource, user, IP, or details..."
@@ -406,7 +406,7 @@ export function AuditComplianceView() {
                 setSearch('');
                 setPage(1);
               }}
-              className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs"
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-xs"
             >
               ✕
             </button>
@@ -495,17 +495,17 @@ export function AuditComplianceView() {
             <tbody className="divide-y divide-slate-200 font-sans">
               {loading && logs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-12 text-center text-slate-500">
+                  <td colSpan={9} className="p-12 text-center text-slate-500 dark:text-slate-400">
                     <RefreshCw className="w-7 h-7 animate-spin mx-auto text-indigo-600 mb-2 dark:text-indigo-400" />
                     <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Loading audit ledger entries...</p>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-12 text-center text-slate-500">
+                  <td colSpan={9} className="p-12 text-center text-slate-500 dark:text-slate-400">
                     <History className="w-8 h-8 mx-auto text-slate-600 mb-2" />
                     <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">No matching audit records found</p>
-                    <p className="text-xs text-slate-500 mt-1">Try adjusting your search query, category, or severity filter.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search query, category, or severity filter.</p>
                   </td>
                 </tr>
               ) : (
@@ -519,7 +519,7 @@ export function AuditComplianceView() {
                       <td className="p-3.5 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap font-mono">
                         <div className="flex flex-col">
                           <span className="text-slate-800 dark:text-slate-200 font-semibold">{date.toLocaleTimeString()}</span>
-                          <span className="text-[10px] text-slate-500">{date.toLocaleDateString()}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">{date.toLocaleDateString()}</span>
                         </div>
                       </td>
 
@@ -700,15 +700,15 @@ export function AuditComplianceView() {
               {/* Metadata Cards Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
-                  <span className="text-slate-500 block mb-1">Category</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Category</span>
                   {getCategoryBadge(selectedLog.category)}
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
-                  <span className="text-slate-500 block mb-1">Severity</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Severity</span>
                   {getSeverityBadge(selectedLog.severity)}
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
-                  <span className="text-slate-500 block mb-1">Execution Status</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Execution Status</span>
                   {selectedLog.status === 'SUCCESS' ? (
                     <span className="font-bold text-emerald-700 flex items-center gap-1 dark:text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" /> SUCCESS
@@ -720,7 +720,7 @@ export function AuditComplianceView() {
                   )}
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800/80">
-                  <span className="text-slate-500 block mb-1">Source IP</span>
+                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Source IP</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{selectedLog.ipAddress || '127.0.0.1'}</span>
                 </div>
               </div>
@@ -752,7 +752,7 @@ export function AuditComplianceView() {
                       {selectedLog.targetResource}
                     </span>
                     {selectedLog.orgId && (
-                      <span className="text-slate-500 text-[10px] font-mono mt-1 block">
+                      <span className="text-slate-500 dark:text-slate-400 text-[10px] font-mono mt-1 block">
                         Tenant Org: {selectedLog.orgId}
                       </span>
                     )}

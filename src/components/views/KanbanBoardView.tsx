@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { isDelegationActive } from "@/lib/delegation-dates";
-import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
+import { isIssueDone, getIssueKeyClass, customBadgeStyle } from "@/lib/designSystem";
 
 interface KanbanBoardViewProps {
   statuses: any[];
@@ -276,7 +276,33 @@ export function KanbanBoardView({
     return (
       <div
         key={issue.id}
+        /**
+         * D3 — the card is operable from the keyboard.
+         *
+         * It was a plain `<div onClick>`: no tabIndex, no role, no key
+         * handler. Opening an issue is the primary interaction of the product
+         * and it could not be done without a mouse at all — Tab skipped every
+         * card on the board.
+         *
+         * `role="button"` with tabIndex 0 rather than an actual <button>
+         * because the card is also `draggable`, and a draggable button has
+         * inconsistent behaviour across browsers. That trade obliges us to
+         * supply the keyboard semantics a button would have given for free,
+         * which is what onKeyDown does: Enter activates, and Space activates
+         * without scrolling the column.
+         */
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${issue.issueKey}: ${issue.title}`}
         onClick={() => onSelectIssue(issue)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            // Space scrolls the nearest scrollable ancestor by default, which
+            // on a Kanban column means the board jumps as the dialog opens.
+            e.preventDefault();
+            onSelectIssue(issue);
+          }
+        }}
         draggable
         onDragStart={(e) => {
           e.dataTransfer.setData("text/plain", issue.id);
@@ -295,15 +321,40 @@ export function KanbanBoardView({
             </span>
           </div>
           <div className="flex items-center gap-1">
+            {/*
+              D3 — a custom priority colour used as badge TEXT on an 8% tint of
+              itself is unreadable. axe measured 3.35:1 here with our own
+              default blue; a tenant who picks a pale colour gets worse, and no
+              care in our palette prevents it, because the colour is their data.
+
+              readableTextColor keeps their hue and moves its lightness until it
+              clears 4.5:1 against the flattened tint. Both themes are computed
+              and handed to CSS as custom properties, because an inline style
+              cannot carry a `dark:` variant and the tint over white is a very
+              different colour from the same tint over slate-900.
+            */}
             <span
-              className={"px-2 py-0.5 rounded-full border text-[10px] font-bold flex items-center gap-1.5 " + (prioInfo.custom ? "" : priorityColors[issue.priority] || "")}
+              className={
+                "px-2 py-0.5 rounded-full border text-[10px] font-bold flex items-center gap-1.5 " +
+                (prioInfo.custom
+                  ? "bg-[var(--badge-bg)] text-[var(--badge-fg)] dark:bg-[var(--badge-bg-dark)] dark:text-[var(--badge-fg-dark)]"
+                  : priorityColors[issue.priority] || "")
+              }
               style={
                 prioInfo.custom
-                  ? {
-                      backgroundColor: prioInfo.color + "15",
-                      borderColor: prioInfo.color + "40",
-                      color: prioInfo.color,
-                    }
+                  ? ({
+                      ...(() => {
+                        const light = customBadgeStyle(prioInfo.color, "light");
+                        const dark = customBadgeStyle(prioInfo.color, "dark");
+                        return {
+                          "--badge-bg": light.backgroundColor,
+                          "--badge-fg": light.color,
+                          "--badge-bg-dark": dark.backgroundColor,
+                          "--badge-fg-dark": dark.color,
+                          borderColor: light.borderColor,
+                        };
+                      })(),
+                    } as React.CSSProperties)
                   : undefined
               }
             >
@@ -412,7 +463,7 @@ export function KanbanBoardView({
             </div>
           ) : (
             <div
-              className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400"
+              className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-400"
               title="Unassigned"
             >
               <User className="w-2.5 h-2.5" />
@@ -516,7 +567,7 @@ export function KanbanBoardView({
             >
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color || "#3b82f6" }} />
               <span className="truncate max-w-[90px]">{s.name}</span>
-              <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-mono text-slate-500">
+              <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full font-mono text-slate-500 dark:text-slate-400">
                 {colCount}
               </span>
             </button>
@@ -585,7 +636,7 @@ export function KanbanBoardView({
                     {userCanCreate && (
                       <button
                         onClick={() => handleStartQuickAdd(status.id)}
-                        className="p-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-300"
+                        className="p-1 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer border border-transparent hover:border-slate-300"
                         title="Quick add task to this column"
                       >
                         <Plus className="w-4 h-4" />
@@ -604,7 +655,7 @@ export function KanbanBoardView({
                     )}
 
                     {columnIssues.length === 0 && !isDragOver && (
-                      <div className="h-24 border-2 border-dashed border-slate-300/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 italic">
+                      <div className="h-24 border-2 border-dashed border-slate-300/80 dark:border-slate-800 rounded-xl flex items-center justify-center text-xs text-slate-500 dark:text-slate-500 italic">
                         No issues
                       </div>
                     )}
@@ -642,9 +693,9 @@ export function KanbanBoardView({
                   >
                     <div className="flex items-center gap-3">
                       {isCollapsed ? (
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                        <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                        <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                       )}
 
                       {lane.avatar && (
@@ -662,7 +713,7 @@ export function KanbanBoardView({
                           {lane.title}
                         </span>
                         {lane.subtitle && (
-                          <span className="text-[11px] text-slate-400">{lane.subtitle}</span>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">{lane.subtitle}</span>
                         )}
                       </div>
 
@@ -677,7 +728,7 @@ export function KanbanBoardView({
                       )}
                     </div>
 
-                    <span className="text-[11px] text-slate-400 font-medium">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                       {isCollapsed ? "Click to expand" : "Click to collapse"}
                     </span>
                   </div>
@@ -721,7 +772,7 @@ export function KanbanBoardView({
                               <div className="space-y-2 flex-1">
                                 {columnIssues.map(renderIssueCard)}
                                 {columnIssues.length === 0 && (
-                                  <div className="h-20 border-2 border-dashed border-slate-300 dark:border-slate-800/60 rounded-lg flex items-center justify-center text-[11px] text-slate-400 italic">
+                                  <div className="h-20 border-2 border-dashed border-slate-300 dark:border-slate-800/60 rounded-lg flex items-center justify-center text-[11px] text-slate-500 dark:text-slate-400 italic">
                                     Drop here
                                   </div>
                                 )}

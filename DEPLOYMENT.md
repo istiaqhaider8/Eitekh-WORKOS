@@ -193,46 +193,68 @@ Set `FORCE_HTTPS=true` in `.env` after enabling TLS.
 
 ---
 
-## 6b. Accessibility (D3) — what is checked, and what is not
+## 6b. Accessibility (D3)
 
-`npm run check:a11y` runs in CI and **fails the build if any file gains an
-interactive control with no accessible name**. The current count is in
-`a11y-baseline.json`; it may go down freely and cannot go up.
+Three checks run in CI. Two are ratchets on existing debt; one is an absolute
+gate that is currently at zero.
 
-### What the ratchet catches
+| Command | What it does | Current |
+|---|---|---|
+| `npm run check:a11y` | static scan of JSX; fails if any file gets worse | 450 known, ratcheted |
+| `npm run test:a11y` | **axe in a real browser, both themes** | **0 critical, 0 serious** |
+| (same command) | focus-behaviour checks axe cannot perform | **8/8 passing** |
 
-- a `<button>` whose only content is an icon, with no `aria-label` or `title`
-- an `<input>`, `<select>` or `<textarea>` with no label, `aria-label` or
-  `aria-labelledby`
+### The axe audit
 
-A screen reader announces the first as "button" and the second as "edit text".
-On a page with 40 icon buttons that is not a degraded experience, it is an
-unusable one.
+`npm run test:a11y` boots a server against a scratch database, seeds a project
+if the database has none, signs a session, and drives Chrome through eight
+pages in **both light and dark**, running axe against `wcag2a`, `wcag2aa`,
+`wcag21a` and `wcag21aa`.
 
-### What it does NOT catch — and so what is NOT verified
+It uses the machine's own Chrome through `playwright-core` rather than a
+bundled browser. A check that costs a 150 MB download per CI run is a check
+that gets disabled.
 
-This is a static scan of JSX source, not an `axe` run. It cannot judge:
+Critical and serious violations fail against `axe-baseline.json`, which is
+currently **0 across all 16 page/theme combinations**. Moderate and minor are
+reported and do not fail — not because they do not matter, but because failing
+on all four levels at once means the baseline never gets smaller.
 
-| Not checked | Why it needs a browser |
-|---|---|
-| **Colour contrast** | needs computed styles, in both themes |
-| **Focus order** | needs a live tab sequence |
-| **Focus trapping in modals** | needs to observe where focus goes on open/close |
-| **Whether a label is *useful*** | `aria-label="button"` passes and helps nobody |
-| **Keyboard operability** | needs real key events |
+**Checking both themes is not optional.** Raising muted text from `slate-400`
+to `slate-500` fixed the light theme and broke the dark one wherever an element
+had no `dark:` override — `settings/profile [dark]` went from 5 violations to
+12. A light-only audit would have reported an unambiguous improvement.
 
-Those require `axe-core` in a headless browser. **That has not been set up, and
-D3 is not complete until it is.** Two measurements that say how far off it is:
-`tabIndex` appears **0 times** in the codebase and `onKeyDown` **4 times**, so
-focus management is essentially unimplemented.
+### The focus checks
 
-> **Status:** 336 controls without an accessible name, down from 360. The forms
-> on the settings pages are fixed (labels associated with `htmlFor`/`id`, which
-> also makes them click targets). The remaining count is mostly icon-only
-> buttons, each of which needs a human to say what it does — a mechanical
-> rewrite would produce labels that pass the check and tell a user nothing.
->
-> An enterprise buyer asking for a VPAT cannot be answered from this yet.
+axe inspects a static snapshot, and focus behaviour only exists while keys are
+being pressed. `scripts/check-focus.mjs` drives the real issue dialog and
+asserts: focus moves in on open, Tab and Shift+Tab wrap inside it, Escape
+closes, and focus returns to whatever opened it.
+
+`aria-modal="true"` is a promise the markup makes and only the behaviour keeps.
+Twelve components made it; nothing enforced it until `src/hooks/useFocusTrap.ts`.
+
+### What the static ratchet still covers
+
+`a11y-baseline.json` holds 450 known findings — unnamed icon buttons, and
+`onClick` handlers on non-focusable elements. It may go down freely and cannot
+go up. These are the ones that need a human to say what each control does; a
+mechanical rewrite would produce labels that pass the check and tell a user
+nothing.
+
+### What is still not verified
+
+- **Only eight pages are audited.** The super-admin surface, the other project
+  views (list, calendar, timeline, workload, analytics) and most modals are
+  not. Add them to `PAGES` in `scripts/check-axe.mjs`.
+- **Moderate and minor axe violations** are recorded but not enforced.
+- **Screen-reader testing with an actual screen reader.** Passing axe is not
+  the same as being usable with NVDA or VoiceOver, and no substitute for
+  trying it.
+
+> A VPAT could now be started for the audited surface. It could not be
+> completed, because most of the app has not been audited.
 
 ---
 

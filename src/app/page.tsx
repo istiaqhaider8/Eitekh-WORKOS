@@ -41,7 +41,7 @@ export default async function RootPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="text-center space-y-3">
         <h1 className="text-xl font-bold">Welcome to Eitekh WorkOS</h1>
-        <p className="text-sm text-slate-500">No projects found. Please create your first project.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">No projects found. Please create your first project.</p>
       </div>
     </div>
   );

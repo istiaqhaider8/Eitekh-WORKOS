@@ -124,22 +124,22 @@ export function JobAutomationMonitorView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Recurring Tasks</span>
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{summary.activeRecurringTasks} / {summary.totalRecurringTasks}</div>
-          <p className="text-[10px] text-slate-500">Active schedulers</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Active schedulers</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Automation Rules</span>
           <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{summary.activeAutomationRules} / {summary.totalAutomationRules}</div>
-          <p className="text-[10px] text-slate-500">Active trigger listeners</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Active trigger listeners</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Webhooks Configured</span>
           <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{summary.activeWebhooks} / {summary.totalWebhooks}</div>
-          <p className="text-[10px] text-slate-500">Outbound dispatchers</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Outbound dispatchers</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Email Deliveries</span>
           <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{summary.deliveredEmailDispatches}</div>
-          <p className="text-[10px] text-slate-500">{summary.failedEmailDispatches} failures logged</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">{summary.failedEmailDispatches} failures logged</p>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export function JobAutomationMonitorView() {
         </h3>
 
         {recurringTasks.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-950 rounded-xl">
+          <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 rounded-xl">
             No recurring tasks configured across projects.
           </div>
         ) : (
@@ -170,7 +170,7 @@ export function JobAutomationMonitorView() {
                 </div>
 
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500">
+                  <span className="text-slate-500 dark:text-slate-400">
                     Last Run: {t.lastRunAt ? new Date(t.lastRunAt).toLocaleDateString() : 'Never'}
                   </span>
                   <button

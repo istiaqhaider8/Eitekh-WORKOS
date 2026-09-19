@@ -401,7 +401,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
         <div className="flex flex-wrap items-center gap-2">
           {/* Org Filter */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs">
-            <Building2 className="w-3.5 h-3.5 text-slate-500" />
+            <Building2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <select
               value={selectedOrgId}
               onChange={(e) => setSelectedOrgId(e.target.value)}
@@ -418,7 +418,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
 
           {/* Search input */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 w-48 sm:w-64 focus-within:border-indigo-500 transition-colors">
-            <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
             <input
               type="text"
               placeholder={`Search ${subTab}...`}
@@ -459,7 +459,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               </div>
 
               <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   {ws._count?.projects || 0} projects · {ws._count?.members || 0} members
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -496,7 +496,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           ))}
 
           {filteredWorkspaces.length === 0 && !loading && (
-            <div className="col-span-full text-center py-12 text-slate-500 text-xs">
+            <div className="col-span-full text-center py-12 text-slate-500 dark:text-slate-400 text-xs">
               No workspaces found matching filter criteria.
             </div>
           )}
@@ -544,7 +544,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
               </div>
 
               <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   {p._count?.issues || 0} issues · {p._count?.members || 0} members
                 </span>
                 <div className="flex items-center gap-1.5">
@@ -594,7 +594,7 @@ export function PlatformWorkspacesProjectsView({ orgs, onRefreshParent }: Platfo
           ))}
 
           {filteredProjects.length === 0 && !loading && (
-            <div className="col-span-full text-center py-12 text-slate-500 text-xs">
+            <div className="col-span-full text-center py-12 text-slate-500 dark:text-slate-400 text-xs">
               No projects found matching filter criteria.
             </div>
           )}

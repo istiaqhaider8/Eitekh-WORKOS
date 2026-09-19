@@ -217,6 +217,29 @@ jobs:
           INTEGRATION_PORT: 3141
         run: npm run test:integration
 
+      # D3. axe against the real pages in a real browser, in BOTH themes, plus
+      # the focus-behaviour checks axe cannot perform.
+      #
+      # The static check earlier in this job catches unnamed controls from
+      # source. It is blind to everything that needs a rendered page: colour
+      # contrast, whether an aria-label is reachable, duplicate ids. And focus
+      # behaviour exists only while keys are being pressed, so no snapshot
+      # tool can see it — `aria-modal="true"` is a promise the markup makes
+      # and only the behaviour keeps.
+      #
+      # Uses the runner's own Chrome via playwright-core rather than a bundled
+      # browser: a check that costs a 150 MB download per run is a check that
+      # gets disabled.
+      - name: Accessibility audit — axe + focus (D3)
+        env:
+          AXE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eitekh_axe_test?schema=public
+          AXE_PORT: 3178
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          echo 'CREATE DATABASE eitekh_axe_test;' | npx prisma db execute \
+            --url "postgresql://postgres:postgres@localhost:5432/postgres" --stdin
+          npm run test:a11y
+
       # PROD-2. The general rate limit lives in middleware and is backed by a
       # Postgres store, which Prisma cannot reach from the edge runtime. The
       # middleware therefore must build as a NODE function.

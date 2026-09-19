@@ -89,7 +89,7 @@ export function CommandPalette({
       <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
         {/* Search input */}
         <div className="flex items-center px-4 border-b border-slate-300 dark:border-slate-800">
-          <Search className="w-5 h-5 text-slate-400 mr-3" />
+          <Search className="w-5 h-5 text-slate-500 dark:text-slate-400 mr-3" />
           <input
             type="text"
             value={query}
@@ -98,13 +98,13 @@ export function CommandPalette({
             autoFocus
             className="w-full py-3.5 bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 outline-none"
           />
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400">
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 dark:text-slate-400">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Quick Actions */}
-        <div className="p-2 border-b border-slate-300 dark:border-slate-800/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3">
+        <div className="p-2 border-b border-slate-300 dark:border-slate-800/80 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3">
           Quick Actions
         </div>
         <div className="p-1 space-y-0.5">
@@ -117,7 +117,7 @@ export function CommandPalette({
           >
             <Plus className="w-4 h-4 text-blue-500" />
             <span>Create new issue</span>
-            <kbd className="ml-auto font-mono text-[10px] text-slate-400">C</kbd>
+            <kbd className="ml-auto font-mono text-[10px] text-slate-500 dark:text-slate-400">C</kbd>
           </button>
           <button
             onClick={() => {
@@ -134,7 +134,7 @@ export function CommandPalette({
         {/* Search Results */}
         <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
           {searching && (
-            <div className="py-6 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
               <span>Searching across workspace...</span>
             </div>
@@ -143,7 +143,7 @@ export function CommandPalette({
           {/* Issues Section */}
           {!searching && displayIssues.length > 0 && (
             <div className="p-2">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2 py-1">
                 Issues ({displayIssues.length})
               </div>
               <div className="space-y-0.5">
@@ -160,7 +160,7 @@ export function CommandPalette({
                       <span className={getIssueKeyClass(isIssueDone(issue), "shrink-0")}>{issue.issueKey}</span>
                       <span className="truncate">{issue.title}</span>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 shrink-0">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
                       {issue.status?.name || "Open"}
                     </span>
                   </button>
@@ -172,7 +172,7 @@ export function CommandPalette({
           {/* Projects Section */}
           {!searching && displayProjects.length > 0 && (
             <div className="p-2">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2 py-1">
                 Projects ({displayProjects.length})
               </div>
               <div className="space-y-0.5">
@@ -188,7 +188,7 @@ export function CommandPalette({
                     <div className="flex items-center gap-2 truncate">
                       <FolderGit2 className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                       <span className="font-semibold text-slate-900 dark:text-white truncate">{p.name}</span>
-                      <span className="text-[10px] font-mono text-slate-400">({p.key})</span>
+                      <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">({p.key})</span>
                     </div>
                     <span className="text-[10px] text-blue-600 font-medium">Open Project →</span>
                   </button>
@@ -200,7 +200,7 @@ export function CommandPalette({
           {/* Comments Section */}
           {!searching && displayComments.length > 0 && (
             <div className="p-2">
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+              <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2 py-1">
                 Comments ({displayComments.length})
               </div>
               <div className="space-y-0.5">
@@ -228,7 +228,7 @@ export function CommandPalette({
 
           {/* Empty state */}
           {!searching && query.trim() && displayIssues.length === 0 && displayProjects.length === 0 && displayComments.length === 0 && (
-            <div className="py-8 text-center text-xs text-slate-400">
+            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
               No results found matching "{query}"
             </div>
           )}

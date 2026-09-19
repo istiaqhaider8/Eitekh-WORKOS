@@ -110,6 +110,32 @@ for (const file of ROOTS.flatMap(walk)) {
     findings.push({ file, line: el.line, kind: "button-no-name" });
   }
 
+  /**
+   * A div or span with onClick and no way to reach it from a keyboard.
+   *
+   * Found the hard way: every card on the Kanban board was a plain
+   * `<div onClick>`, so opening an issue — the primary interaction of the
+   * product — was impossible without a mouse. Tab skipped the entire board.
+   *
+   * axe does not report this. Its `interactive-element-affordance` style rules
+   * are not in the wcag2a/aa tag set, and a div with no role looks like
+   * ordinary layout to a static scan of the accessibility tree.
+   *
+   * A click handler needs BOTH: something that puts it in the tab order
+   * (tabIndex, or a native control) and something that responds to a key.
+   */
+  for (const tag of ["div", "span", "li", "tr", "td"]) {
+    for (const el of elementsOf(src, tag)) {
+      if (!/\bonClick\s*=/.test(el.openTag)) continue;
+      // A keyboard user can reach and operate it.
+      if (/\bonKeyDown\s*=|\bonKeyUp\s*=|\bonKeyPress\s*=/.test(el.openTag)) continue;
+      // Or it delegates: a wrapper whose only child is a real control is a
+      // common and harmless pattern.
+      if (/<(button|a|input|select|textarea)\b/.test(el.children.slice(0, 400))) continue;
+      findings.push({ file, line: el.line, kind: `${tag}-click-no-keyboard` });
+    }
+  }
+
   for (const tag of ["input", "select", "textarea"]) {
     for (const el of elementsOf(src, tag)) {
       if (NAMED.test(el.openTag)) continue;
@@ -169,7 +195,8 @@ for (const [file, was] of Object.entries(baseline.files ?? {})) {
 }
 
 console.log(
-  `a11y: ${total} control(s) with no accessible name (baseline ${baseline.total})`
+  `a11y: ${total} finding(s) — unnamed controls and click handlers with no keyboard path ` +
+    `(baseline ${baseline.total})`
 );
 
 if (better.length) {

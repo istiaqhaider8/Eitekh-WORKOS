@@ -71,7 +71,7 @@ import { GlobalAlertBanner } from "@/components/admin/GlobalAlertBanner";
  * and buy nothing.
  */
 const adminTabLoading = () => (
-  <div className="flex items-center justify-center py-24 text-sm text-slate-400 dark:text-slate-500">
+  <div className="flex items-center justify-center py-24 text-sm text-slate-500 dark:text-slate-500">
     Loading…
   </div>
 );
@@ -670,7 +670,7 @@ export default function SuperAdminCommandCenterPage() {
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-72">
               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus-within:border-indigo-500 transition-colors">
-                <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
                 <input
                   type="text"
                   placeholder="Global platform search..."
@@ -686,7 +686,7 @@ export default function SuperAdminCommandCenterPage() {
                 <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3 z-50 max-h-96 overflow-y-auto space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Search Results</span>
-                    <button onClick={() => setSearchResults(null)} className="text-slate-500 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">
+                    <button onClick={() => setSearchResults(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -704,7 +704,7 @@ export default function SuperAdminCommandCenterPage() {
                           className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors"
                         >
                           <span className="font-semibold">{o.name}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">/{o.slug}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">/{o.slug}</span>
                         </div>
                       ))}
                     </div>
@@ -723,7 +723,7 @@ export default function SuperAdminCommandCenterPage() {
                           className="cursor-pointer p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-xs text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors"
                         >
                           <span className="font-semibold">{u.firstName} {u.lastName}</span>
-                          <span className="text-[10px] text-slate-500 font-mono">{u.email}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{u.email}</span>
                         </div>
                       ))}
                     </div>
@@ -1091,7 +1091,7 @@ export default function SuperAdminCommandCenterPage() {
                       {/* Workspaces & Projects Hierarchy Breakdown */}
                       {o.workspaces && o.workspaces.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-1.5 text-[11px]">
-                          <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider block">Workspaces & Projects Hierarchy</span>
+                          <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider block">Workspaces & Projects Hierarchy</span>
                           {o.workspaces.map((w: any) => (
                             <div key={w.id} className="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200/80 dark:border-slate-800/80 space-y-1">
                               <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
@@ -1099,7 +1099,7 @@ export default function SuperAdminCommandCenterPage() {
                                   <Layers className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
                                   {w.name}
                                 </span>
-                                <span className="text-[10px] text-slate-500 font-mono">({w.projects?.length || w._count?.projects || 0} projects)</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">({w.projects?.length || w._count?.projects || 0} projects)</span>
                               </div>
                               {w.projects && w.projects.length > 0 && (
                                 <div className="pl-3 border-l-2 border-indigo-200 space-y-0.5 mt-1 dark:border-indigo-800">
@@ -1121,7 +1121,7 @@ export default function SuperAdminCommandCenterPage() {
                     </div>
 
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-500 font-medium">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         {o._count?.members ?? o.members?.length ?? 0} members | {o._count?.workspaces ?? o.workspaces?.length ?? 0} workspaces | {totalProjects} projects
                       </span>
                       <div className="flex items-center gap-1.5">

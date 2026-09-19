@@ -84,7 +84,7 @@ function AcceptInvitationContent() {
     return (
       <div className="text-center py-8 space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-        <p className="text-sm text-slate-500">Validating invitation...</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Validating invitation...</p>
       </div>
     );
   }
@@ -127,7 +127,7 @@ function AcceptInvitationContent() {
         You&apos;re joining <strong>{inviteData?.organizationName}</strong> as <strong>{inviteData?.role}</strong>
       </div>
 
-      <div className="text-xs text-slate-500 text-center">
+      <div className="text-xs text-slate-500 dark:text-slate-400 text-center">
         Email: <strong className="text-slate-700 dark:text-slate-300">{inviteData?.email}</strong>
       </div>
 
@@ -153,10 +153,10 @@ function AcceptInvitationContent() {
       <div>
         <label htmlFor="password" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Create Password</label>
         <div className="relative">
-          <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
           <input id="password" type={showPassword ? "text" : "password"} required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters"
             className="w-full text-xs pl-9 pr-10 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
@@ -169,12 +169,12 @@ function AcceptInvitationContent() {
                 { ok: hasLower, label: "Lowercase letter" },
                 { ok: hasNumber, label: "At least 1 number" },
               ].map(({ ok, label }) => (
-                <div key={label} className={`flex items-center gap-1.5 ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+                <div key={label} className={`flex items-center gap-1.5 ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                   {ok ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                   <span>{label}</span>
                 </div>
               ))}
-              <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
+              <div className={`flex items-center gap-1.5 col-span-2 ${hasSpecial ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 dark:text-slate-400"}`}>
                 {hasSpecial ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>Special character</span>
               </div>
@@ -186,7 +186,7 @@ function AcceptInvitationContent() {
       <div>
         <label htmlFor="confirmPassword" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
         <div className="relative">
-          <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Lock className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3 top-3" />
           <input id="confirmPassword" type={showPassword ? "text" : "password"} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password"
             className="w-full text-xs pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
         </div>
@@ -220,7 +220,7 @@ export default function AcceptInvitationPage() {
           </p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-xl">
-          <Suspense fallback={<div className="text-center text-slate-400 text-xs py-8">Loading...</div>}>
+          <Suspense fallback={<div className="text-center text-slate-500 dark:text-slate-400 text-xs py-8">Loading...</div>}>
             <AcceptInvitationContent />
           </Suspense>
         </div>

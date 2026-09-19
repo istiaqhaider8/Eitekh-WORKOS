@@ -109,22 +109,22 @@ export function SecurityCenterView() {
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">MFA Adoption Rate</span>
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{metrics.mfaAdoptionPct}%</div>
-          <p className="text-[10px] text-slate-500">{metrics.mfaUsersCount} of {metrics.totalUsers} users</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">{metrics.mfaUsersCount} of {metrics.totalUsers} users</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Active Sessions</span>
           <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{metrics.activeSessionsCount}</div>
-          <p className="text-[10px] text-slate-500">Live JWT authenticated tokens</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Live JWT authenticated tokens</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Suspended Accounts</span>
           <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{metrics.suspendedUsersCount}</div>
-          <p className="text-[10px] text-slate-500">Locked out accounts</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Locked out accounts</p>
         </div>
         <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl space-y-1">
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase">Cross-Project Leaks</span>
           <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">0</div>
-          <p className="text-[10px] text-slate-500">Zero data breach record</p>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400">Zero data breach record</p>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export function SecurityCenterView() {
         </h3>
 
         {alerts.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-950 rounded-xl">
+          <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 rounded-xl">
             No active security threats or anomalies detected.
           </div>
         ) : (
@@ -172,7 +172,7 @@ export function SecurityCenterView() {
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400">{al.description}</p>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono shrink-0">
                     {new Date(al.timestamp).toLocaleTimeString()}
                   </span>
                 </div>

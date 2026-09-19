@@ -179,15 +179,21 @@ export default function SecuritySettingsPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-8">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
+          {/*
+            D3 — axe reported `link-name` here. A link whose only content is an
+            icon is announced as "link" with no destination, which in a list of
+            links is indistinguishable from every other one.
+          */}
           <Link
             href="/"
-            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500"
+            aria-label="Back to dashboard"
+            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <h1 className="text-xl font-bold">Account Security & Sessions</h1>
-            <p className="text-xs text-slate-500">Manage your active devices, password, and two-factor authentication</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Manage your active devices, password, and two-factor authentication</p>
           </div>
         </div>
 
@@ -271,7 +277,7 @@ export default function SecuritySettingsPage() {
               <Smartphone className="w-4 h-4 text-emerald-600" />
               <div>
                 <h2 className="text-sm font-bold">Two-Factor Authentication (MFA)</h2>
-                <p className="text-xs text-slate-500">Secure your account using an authenticator app (TOTP)</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Secure your account using an authenticator app (TOTP)</p>
               </div>
             </div>
 
@@ -279,7 +285,7 @@ export default function SecuritySettingsPage() {
               onClick={handleToggleMFA}
               disabled={mfaLoading}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-50 ${
-                mfaEnabled ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" : "bg-emerald-600 text-white hover:bg-emerald-700"
+                mfaEnabled ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" : "bg-emerald-700 text-white hover:bg-emerald-800"
               }`}
             >
               {mfaLoading && <Loader2 className="w-3 h-3 animate-spin" />}
@@ -295,7 +301,7 @@ export default function SecuritySettingsPage() {
               </div>
               <div>
                 <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">Emergency Backup Codes:</p>
-                <p className="text-slate-500 text-[11px] mb-3">Save these codes in a secure place. They can be used to recover your account if you lose access to your authenticator app.</p>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] mb-3">Save these codes in a secure place. They can be used to recover your account if you lose access to your authenticator app.</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {recoveryCodes.map((code, idx) => (
                     <code key={idx} className="font-mono bg-white dark:bg-slate-900 px-2 py-1 border border-emerald-100 dark:border-emerald-900 rounded text-center">
@@ -315,7 +321,7 @@ export default function SecuritySettingsPage() {
               <Monitor className="w-4 h-4 text-blue-600" />
               <div>
                 <h2 className="text-sm font-bold">Active Sessions</h2>
-                <p className="text-xs text-slate-500">Devices currently logged into your account</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Devices currently logged into your account</p>
               </div>
             </div>
             {sessions.length > 1 && (
@@ -331,10 +337,10 @@ export default function SecuritySettingsPage() {
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {loadingSessions ? (
               <div className="py-8 flex justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <Loader2 className="w-5 h-5 animate-spin text-slate-500 dark:text-slate-400" />
               </div>
             ) : sessions.length === 0 ? (
-              <div className="py-4 text-center text-xs text-slate-500">No active sessions found.</div>
+              <div className="py-4 text-center text-xs text-slate-500 dark:text-slate-400">No active sessions found.</div>
             ) : (
               sessions.map((s) => (
                 <div key={s.id} className="py-3 flex items-center justify-between text-xs">
@@ -344,19 +350,19 @@ export default function SecuritySettingsPage() {
                         {s.browser || "Unknown Browser"} on {s.os || s.userAgent || "Unknown Device"}
                       </span>
                       {s.isCurrent && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 font-semibold">
                           Current Session
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-400 text-[11px] mt-0.5">
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
                       {s.ipAddress || "Unknown IP"} · {s.location || "Unknown Location"} · Active {formatDate(s.lastActiveAt)}
                     </p>
                   </div>
                   {!s.isCurrent && (
                     <button
                       onClick={() => handleRevokeSession(s.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors"
                       title="Revoke session"
                     >
                       <Trash2 className="w-4 h-4" />

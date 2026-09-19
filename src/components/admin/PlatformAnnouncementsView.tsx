@@ -152,7 +152,7 @@ function AudienceBuilder({
 
           <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
             {list.length === 0 ? (
-              <div className="p-3 text-center text-[11px] text-slate-500">
+              <div className="p-3 text-center text-[11px] text-slate-500 dark:text-slate-400">
                 {(options[openKind] || []).length === 0 ? "Nothing to target here yet." : "No match."}
               </div>
             ) : (
@@ -168,7 +168,7 @@ function AudienceBuilder({
                     className="rounded text-indigo-600"
                   />
                   <span className="text-slate-700 dark:text-slate-300 truncate flex-1">{o.label}</span>
-                  <span className="text-slate-500 tabular-nums">{o.count}</span>
+                  <span className="text-slate-500 dark:text-slate-400 tabular-nums">{o.count}</span>
                 </label>
               ))
             )}
@@ -441,7 +441,7 @@ export function PlatformAnnouncementsView() {
       {/* Search Bar */}
       <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300 w-full sm:w-80">
-          <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+          <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="Search announcements..."
@@ -508,20 +508,20 @@ export function PlatformAnnouncementsView() {
                       : "Everyone"}
                   </span>
                   {item.audienceMode === "FILTERED" && (item.targets || []).length > 0 && (
-                    <span className="text-[11px] text-slate-500 truncate max-w-md">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-md">
                       {[...new Set((item.targets || []).map((t: any) => t.kind))]
                         .map((k: any) => String(k).replace(/_/g, " ").toLowerCase())
                         .join(", ")}
                     </span>
                   )}
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     · {new Date(item.createdAt).toLocaleDateString()}
                   </span>
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{item.title}</h3>
                 <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{item.message}</p>
                 {item.expiresAt && (
-                  <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     Expires: {new Date(item.expiresAt).toLocaleString()}
                   </p>
@@ -582,7 +582,7 @@ export function PlatformAnnouncementsView() {
         })}
 
         {filtered.length === 0 && !loading && (
-          <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs">
+          <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs">
             No system announcements recorded.
           </div>
         )}
@@ -660,7 +660,7 @@ export function PlatformAnnouncementsView() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-slate-600 dark:text-slate-400 block mb-1">
-                    Starts <span className="text-slate-500">(blank = now)</span>
+                    Starts <span className="text-slate-500 dark:text-slate-400">(blank = now)</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -671,7 +671,7 @@ export function PlatformAnnouncementsView() {
                 </div>
                 <div>
                   <label className="text-slate-600 dark:text-slate-400 block mb-1">
-                    Expires <span className="text-slate-500">(blank = never)</span>
+                    Expires <span className="text-slate-500 dark:text-slate-400">(blank = never)</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -713,7 +713,7 @@ export function PlatformAnnouncementsView() {
                 />
                 <label htmlFor="broadcastNotify" className="text-slate-700 dark:text-slate-300">
                   Also send a notification
-                  <span className="block text-[11px] text-slate-500">
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400">
                     Goes only to the audience selected above — resolved server-side, not to everyone.
                   </span>
                 </label>
@@ -810,7 +810,7 @@ export function PlatformAnnouncementsView() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-slate-600 dark:text-slate-400 block mb-1">
-                    Starts <span className="text-slate-500">(blank = now)</span>
+                    Starts <span className="text-slate-500 dark:text-slate-400">(blank = now)</span>
                   </label>
                   <input
                     type="datetime-local"
@@ -821,7 +821,7 @@ export function PlatformAnnouncementsView() {
                 </div>
                 <div>
                   <label className="text-slate-600 dark:text-slate-400 block mb-1">
-                    Expires <span className="text-slate-500">(blank = never)</span>
+                    Expires <span className="text-slate-500 dark:text-slate-400">(blank = never)</span>
                   </label>
                   <input
                     type="datetime-local"

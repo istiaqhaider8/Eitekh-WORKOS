@@ -202,7 +202,7 @@ export default function OrganizationSettingsPage() {
     <div className="max-w-4xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Organization Settings</h1>
-        <p className="text-sm text-slate-500">Manage your organization's details, work schedule, and members.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Manage your organization's details, work schedule, and members.</p>
       </div>
 
       {!isAdmin && (
@@ -221,7 +221,7 @@ export default function OrganizationSettingsPage() {
         {/* General Details */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-300 dark:border-slate-800 shadow-sm space-y-6">
           <h2 className="text-lg font-semibold flex items-center gap-2 border-b border-slate-300 dark:border-slate-800 pb-4">
-            <Building className="w-5 h-5 text-slate-400" />
+            <Building className="w-5 h-5 text-slate-500 dark:text-slate-400" />
             General Details
           </h2>
           
@@ -256,7 +256,7 @@ export default function OrganizationSettingsPage() {
         {/* Work Schedule */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-300 dark:border-slate-800 shadow-sm space-y-6">
           <h2 className="text-lg font-semibold flex items-center gap-2 border-b border-slate-300 dark:border-slate-800 pb-4">
-            <Clock className="w-5 h-5 text-slate-400" />
+            <Clock className="w-5 h-5 text-slate-500 dark:text-slate-400" />
             Work Schedule & Localization
           </h2>
 
@@ -324,7 +324,7 @@ export default function OrganizationSettingsPage() {
                 className="p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent outline-none disabled:opacity-50"
               />
             </div>
-            <div className="pb-3 text-slate-500">to</div>
+            <div className="pb-3 text-slate-500 dark:text-slate-400">to</div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-workingHoursEnd">End Time</label>
               <input id="page-workingHoursEnd"
@@ -356,7 +356,7 @@ export default function OrganizationSettingsPage() {
       <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-300 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex items-center justify-between border-b border-slate-300 dark:border-slate-800 pb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Users className="w-5 h-5 text-slate-400" />
+            <Users className="w-5 h-5 text-slate-500 dark:text-slate-400" />
             Members ({members.length})
           </h2>
           {isAdmin && (
@@ -374,9 +374,9 @@ export default function OrganizationSettingsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-300 dark:border-slate-800">
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase">User</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Role</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Joined</th>
+                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">User</th>
+                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Role</th>
+                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Joined</th>
               </tr>
             </thead>
             <tbody>
@@ -390,7 +390,7 @@ export default function OrganizationSettingsPage() {
                       <div className="font-medium text-sm text-slate-900 dark:text-white">
                         {member.user?.firstName} {member.user?.lastName}
                       </div>
-                      <div className="text-xs text-slate-500">{member.user?.email}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{member.user?.email}</div>
                     </div>
                   </td>
                   <td className="py-3 px-4 text-sm">
@@ -402,7 +402,7 @@ export default function OrganizationSettingsPage() {
                       {member.role}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-slate-500">
+                  <td className="py-3 px-4 text-sm text-slate-500 dark:text-slate-400">
                     {new Date(member.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

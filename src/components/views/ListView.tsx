@@ -327,7 +327,7 @@ export function ListView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white/70 dark:bg-slate-900/60 p-2.5 sm:p-3 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-xs backdrop-blur-xs">
         <div className="flex items-center flex-wrap gap-2">
           <div className="relative flex-1 sm:flex-initial">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Filter issues..."
@@ -372,7 +372,7 @@ export function ListView({
                 setFilterPriority("");
                 setFilterType("");
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-semibold cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-semibold cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Clear</span>
@@ -472,7 +472,7 @@ export function ListView({
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 font-normal">
               {filteredIssues.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400 italic">
+                  <td colSpan={10} className="py-12 text-center text-slate-500 dark:text-slate-400 italic">
                     No issues match your current filters.
                   </td>
                 </tr>
@@ -615,7 +615,7 @@ export function ListView({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 dark:text-slate-500 font-medium italic">Unassigned</span>
+                          <span className="text-slate-500 dark:text-slate-500 font-medium italic">Unassigned</span>
                         );
                       })()}
                     </td>
@@ -647,7 +647,7 @@ export function ListView({
                     <td className="py-3 px-3.5 text-slate-500 dark:text-slate-400 text-[11px] font-medium hidden lg:table-cell">
                       {issue.dueDate ? (
                         <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3 h-3 text-slate-400" />
+                          <Calendar className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                           <span>{new Date(issue.dueDate).toLocaleDateString()}</span>
                         </div>
                       ) : (
@@ -674,7 +674,7 @@ export function ListView({
 
           {/* Status Change */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400 font-medium">Status:</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Status:</span>
             <select
               disabled={isBulkUpdating}
               onChange={(e) => {
@@ -695,7 +695,7 @@ export function ListView({
 
           {/* Priority Change */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400 font-medium">Priority:</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Priority:</span>
             <select
               disabled={isBulkUpdating}
               onChange={(e) => {
@@ -718,7 +718,7 @@ export function ListView({
           <button
             type="button"
             onClick={() => setSelectedIssueIds(new Set())}
-            className="ml-2 text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+            className="ml-2 text-xs text-slate-500 dark:text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors"
           >
             Deselect
           </button>
