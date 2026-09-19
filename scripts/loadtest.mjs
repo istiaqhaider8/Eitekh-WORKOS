@@ -117,6 +117,68 @@ function stats(samples) {
 }
 
 console.log(`[load] target ${BASE}`);
+/**
+ * Refuse to start if the database schema is behind the Prisma client.
+ *
+ * A two-hour soak that measures the wrong thing costs two hours, and that is
+ * exactly how one was lost: the volume database had never had the latest
+ * migration applied, so every issue update failed inside Prisma. The run
+ * looked alive — requests flowing, memory climbing — while the server was
+ * answering errors. The tell was subtle and easy to miss: the capability
+ * cache and the SSE registry both sat at zero when they should have been at
+ * 40 and 25.
+ *
+ * Checking costs one query. Not checking costs the run.
+ */
+async function assertSchemaIsCurrent() {
+  /**
+   * Each probe exercises a column the way the APPLICATION does, not the way
+   * that is easiest to write.
+   *
+   * A first version selected `searchVector` directly and failed against a
+   * perfectly current database: the column is `Unsupported("tsvector")`, so
+   * Prisma cannot deserialise its value and the raw select throws whether or
+   * not the migration ran. A probe that fails on a healthy database is worse
+   * than no probe — it trains you to pass a flag to skip it.
+   */
+  const probes = [
+    {
+      what: "Project.version (migration 0011)",
+      // Through the client, because the failure being caught is the client
+      // selecting a column the database does not have.
+      run: () => prisma.project.findFirst({ select: { version: true } }),
+    },
+    {
+      what: "Issue.searchVector (migration 0010)",
+      // As a MATCH, which is how search uses it, and which returns a boolean
+      // rather than a tsvector the driver cannot represent.
+      run: () =>
+        prisma.$queryRawUnsafe(
+          `SELECT 1 AS ok FROM "Issue" WHERE "searchVector" @@ plainto_tsquery('english', 'probe') LIMIT 1`
+        ),
+    },
+  ];
+  for (const probe of probes) {
+    try {
+      await probe.run();
+    } catch (err) {
+      const first = String(err?.message || err).split("\n")[0];
+      console.error(
+        "\n[load] REFUSING TO RUN: the target database is behind the Prisma client.\n" +
+          `[load]   failing probe: ${probe.what}\n` +
+          `[load]   ${first}\n\n` +
+          "[load] Apply migrations to the database this test points at:\n" +
+          "[load]   DATABASE_URL=<that url> npx prisma migrate deploy\n\n" +
+          "[load] Running anyway would measure error responses. A previous soak\n" +
+          "[load] did exactly that and had to be discarded.\n"
+      );
+      await prisma.$disconnect();
+      process.exit(2);
+    }
+  }
+}
+await assertSchemaIsCurrent();
+
 console.log(`[load] ${CONCURRENCY} concurrent workers for ${DURATION_S}s${SOAK ? " (soak)" : ""}\n`);
 
 // ---------------------------------------------------------------------------
