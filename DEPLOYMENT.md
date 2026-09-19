@@ -348,7 +348,7 @@ Thresholds below are what the code ships with.
 |---|---|---|
 | **5xx rate** | `counters["events.error"]` growth vs request volume | > 1% of requests over 5 min, or any sustained increase after a deploy |
 | **Auth-failure spike** | `counters["action.LOGIN_FAILED"]`, `action.RATE_LIMIT_*` | > 5× the trailing hour's baseline over 5 min |
-| **DB pool exhaustion** | `db.latencyMs` climbing, `health.db_unreachable` > 0, `status: "error"` | latency p95 > 500 ms for 5 min, or any `db_unreachable` |
+| **DB pool exhaustion** | `db.latencyMs` climbing, `health.db_unreachable` > 0, `status: "error"` | **> 50 ms sustained** (measured baseline is 1–2 ms under a 6-minute soak, so 500 ms was two orders of magnitude too loose to be an early warning), or any `db_unreachable` |
 | **Store unavailable** | `counters["RATE_LIMIT_UNAVAILABLE"]`, `counters["SYNC_BUS_LISTEN_FAILED"]` | any occurrence — the limiter fails **closed**, so this is user-visible |
 | **SSE connection count** | `realtime.openConnections` | flat-lining at 0 with live traffic, or unbounded growth over a soak |
 
@@ -381,9 +381,12 @@ destination is a deployment decision, not a code change.
 Source maps are not uploaded anywhere, so production stack traces will be minified until a vendor
 is chosen and a map-upload step is added to the build.
 
-These thresholds are starting points written against the signals that exist. They have not been
-tuned against production traffic, because there is none yet. Revisit after PROD-8 (load testing)
-gives real baselines.
+These thresholds have now been checked against measured baselines (see "Load and soak results"
+below) — the database-latency one was two orders of magnitude too loose and has been tightened.
+
+They have still never seen PRODUCTION traffic, on production hardware, through a load balancer.
+Re-check them once there is real traffic; a threshold calibrated on a developer machine with a
+local database will be wrong in the direction of not firing.
 
 
 ---
@@ -494,4 +497,81 @@ it as `RECORD THIS:` — put it in the table.
   default, encrypt before upload — the dump contains every tenant's data.
 - **`prisma/dev.db` still holds pre-migration data** (CP-525–529 exist only there) and is not
   covered by any of this.
+
+
+---
+
+## Load and soak results (A2)
+
+Measured 2026-09-19 against the production build and the 20,000-issue volume dataset, using
+[`scripts/loadtest.mjs`](scripts/loadtest.mjs). Before this, every performance decision in the
+codebase had been made one request at a time.
+
+### Baselines — 40 concurrent users, 6-minute soak
+
+13,699 requests, 37.9 req/s, 96.6% success.
+
+| Journey | p50 | p95 | p99 | max |
+|---|---|---|---|---|
+| Board load | 37 ms | 74 ms | 125 ms | 224 ms |
+| Issue open | 40 ms | 79 ms | 117 ms | 219 ms |
+| Issue update | 46 ms | 103 ms | 176 ms | 319 ms |
+| Search | 44 ms | 83 ms | 132 ms | 362 ms |
+
+Comfortably inside the 500 ms p95 target. Latency did not drift over the run, database latency
+stayed at 1–2 ms, and nothing leaked.
+
+The 3.4% non-2xx is legitimate: 403s where the acting user holds a project role that may not edit,
+and 400s from validation. Those are the application working.
+
+### The knee — and it is the connection pool
+
+| Users | Board p95 | Issue open p95 | Issue update p95 | req/s |
+|---|---|---|---|---|
+| 40 | 74 ms | 79 ms | 103 ms | 37.9 |
+| 80 | 312 ms | 308 ms | **466 ms** | 71.2 |
+
+Throughput roughly doubles; latency roughly quadruples. At 80 users, issue update is at 466 ms
+against a 500 ms target — that is the knee.
+
+**The constraint is the Prisma connection pool, not the application.** `DATABASE_URL` sets no
+`connection_limit`, so Prisma defaults to `num_cpus * 2 + 1` — 25 on the 12-core machine used
+here, which is exactly where observed connections pinned at both 40 and 80 users.
+
+So before launch:
+
+1. Set `connection_limit` explicitly rather than inheriting it from whatever the host's CPU count
+   happens to be. A container with a different core count silently gets a different pool.
+2. Respect `N_instances × connection_limit < max_connections`, which `.env.example` already
+   states — now with a measured reason to care.
+3. Re-run this at the chosen pool size. The knee moves with it.
+
+### Two things this measurement taught about measuring
+
+Both cost a run, and both are the kind of thing that makes a load test report confident nonsense:
+
+- **With no think time, the rate limiter is what you measure.** Five workers at full speed produced
+  455 req/s and a **7% success ratio** — 93% of the run was 429s, and the latency numbers described
+  refusals rather than work. Authenticated traffic is limited per user, so capacity here is
+  modelled by adding users, not by making each one faster.
+- **All load from one host looks like one client.** The per-IP backstop (600 reads/min) fired on
+  40% of a run until each worker was given its own source address. Either distribute the generator
+  or set `x-forwarded-for` per worker, as the harness now does.
+
+The harness fails the run when success drops below 95%, so a repeat of either mistake is loud
+rather than silent.
+
+### What this does NOT establish
+
+- **The soak was 6 minutes, not the 2 hours the plan called for.** Nothing drifted in that window,
+  which is evidence against a fast leak and says nothing about a slow one. Run the full soak on the
+  target host.
+- **No SSE leak was proven.** No journey opens a real-time stream, so `openConnections` stayed at 0
+  throughout. The check is wired and reported; it has not been exercised. Add a streaming journey
+  before trusting it.
+- **This is a single Node process driving load**, not a real generator. It becomes the bottleneck
+  before k6 would, so treat the p95s as a floor on latency rather than a ceiling on capacity, and
+  re-measure with k6 or Artillery before quoting a number to anyone.
+- **One host, one instance, local Postgres.** No network latency, no load balancer, no replication
+  lag. Real numbers will be worse.
 
