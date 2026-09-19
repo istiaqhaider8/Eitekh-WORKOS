@@ -14,6 +14,7 @@
 
 import { assertProductionRateLimitStore } from "./lib/rate-limit-store";
 import { parseTrustedProxyHops } from "@/lib/client-ip";
+import { resolveStorage } from "@/lib/storage/factory";
 import { telemetryStartupWarnings } from "./lib/telemetry";
 
 const HEX_64 = /^[0-9a-f]{64}$/i;
@@ -143,6 +144,27 @@ function validateProductionConfig(): string[] {
    * about rather than refused, because it also means every unauthenticated
    * caller shares one bucket.
    */
+  /**
+   * B3 — where attachments are stored, and whether that survives a second
+   * instance.
+   *
+   * The failure being guarded is not "no storage configured" — it is a local
+   * directory behind a load balancer, where an attachment uploaded through
+   * one instance is a 404 through another, intermittently, by whichever one
+   * the balancer picked. resolveStorage reports that as an error; here it
+   * joins every other configuration fault so an operator fixes them in one
+   * deploy rather than discovering them one restart at a time.
+   */
+  const storage = resolveStorage(process.env);
+  errors.push(...storage.errors);
+  warnings.push(...storage.warnings);
+  if (storage.backend && !storage.backend.isSharedAcrossInstances) {
+    warnings.push(
+      `Attachment storage (${storage.backend.name}) is not shared between instances. ` +
+        "This is fine for a single process and wrong for more than one."
+    );
+  }
+
   const hops = parseTrustedProxyHops(process.env.TRUSTED_PROXY_HOPS);
   if (hops === null) {
     errors.push(

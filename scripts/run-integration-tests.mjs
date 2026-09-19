@@ -18,6 +18,8 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ghError } from "./gh-annotate.mjs";
 
 /** Resolve Next's CLI entry so the server can be spawned without a shell. */
@@ -137,6 +139,23 @@ const env = {
    * that look like authorization failures.
    */
   TRUSTED_PROXY_HOPS: "1",
+  /**
+   * Attachment storage. The production guard requires a driver, and rightly:
+   * without one, files go into a Postgres column.
+   *
+   * A directory under the OS temp dir, declared shared because this IS a
+   * single instance with a single directory — which is the one case where
+   * that claim is true.
+   *
+   * This is the THIRD harness break caused by a new production guard
+   * (TRUSTED_PROXY_HOPS, then the placeholder secrets, now this). The pattern
+   * is always the same: the guard is right, and the harness was relying on a
+   * developer's .env to satisfy it. Anything added to instrumentation.ts has
+   * to be answered here too.
+   */
+  STORAGE_DRIVER: "local-fs",
+  STORAGE_FS_ROOT: join(tmpdir(), "eitekh-integration-attachments"),
+  STORAGE_FS_SHARED: "1",
 };
 
 // Now guaranteed by construction above; kept as a tripwire in case the

@@ -13,6 +13,10 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // Lets scripts/ import these modules through Node's native type
+    // stripping, which resolves relative specifiers literally and therefore
+    // needs the extension. Safe here because noEmit is set.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

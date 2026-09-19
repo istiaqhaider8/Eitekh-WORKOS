@@ -120,3 +120,33 @@ export function attachmentKey(attachmentId: string): StorageKey {
   const shard = attachmentId.slice(-4, -2) || "00";
   return `attachments/${shard}/${attachmentId}`;
 }
+
+/**
+ * Pull the bytes out of a `data:` URI.
+ *
+ * Both the upload route and the backfill script need this — the route to move
+ * a new upload into the store, the script to move an old one — and they must
+ * decode identically or a migrated file will not match the original. So it
+ * lives here rather than in either of them.
+ *
+ * Returns null for anything that is not a data URI: an `http(s)://` value is
+ * already external and has nothing to decode, and an unrecognised shape is
+ * left alone rather than guessed at.
+ */
+export function decodeDataUri(
+  value: string | null | undefined
+): { bytes: Buffer; mime: string } | null {
+  const match = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(value ?? "");
+  if (!match) return null;
+  const [, mime, isBase64, payload] = match;
+  try {
+    const bytes = isBase64
+      ? Buffer.from(payload, "base64")
+      : Buffer.from(decodeURIComponent(payload), "utf8");
+    return { bytes, mime: mime || "application/octet-stream" };
+  } catch {
+    // A malformed percent-encoding. Treat it as "not a data URI" rather than
+    // storing a mangled file.
+    return null;
+  }
+}

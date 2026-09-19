@@ -31,7 +31,7 @@ import {
   type ReadTarget,
   type StorageBackend,
   type StorageKey,
-} from "./index";
+} from "./index.ts";
 
 export class LocalFsBackend implements StorageBackend {
   readonly name: string;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertProjectAccess } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api-error";
+import { getStorage } from "@/lib/storage/factory";
 
 /**
  * A4 — serve attachment content on demand.
@@ -38,6 +39,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         fileName: true,
         mimeType: true,
         fileUrl: true,
+        storageKey: true,
         issue: { select: { projectId: true } },
       },
     });
@@ -50,6 +52,41 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     // id without this is exactly the shape of the cross-tenant leaks the
     // isolation suite found twice.
     await assertProjectAccess(attachment.issue.projectId);
+
+    /**
+     * B3 — the object store first, when this row has been moved there.
+     *
+     * Three states coexist while the backfill runs, and all three are served:
+     * a storageKey (the destination), an http(s) fileUrl (already external),
+     * and a data: fileUrl (legacy base64, not yet moved). That is what lets
+     * the migration be a background job rather than a deployment step.
+     */
+    const storage = getStorage();
+    if (attachment.storageKey && storage) {
+      const target = await storage.read(attachment.storageKey, {
+        fileName: attachment.fileName,
+        contentType: attachment.mimeType,
+      });
+
+      if (target.kind === "redirect") {
+        // The bytes travel from the store to the client and never through
+        // this process. The URL is short-lived and was minted only after the
+        // project check above.
+        return NextResponse.redirect(target.url, 302);
+      }
+
+      return new NextResponse(target.body, {
+        headers: {
+          "Content-Type": attachment.mimeType || "application/octet-stream",
+          "Content-Length": String(target.size),
+          // `attachment` rather than `inline`: never let an uploaded file
+          // render as a document in this application's own origin.
+          "Content-Disposition": `attachment; filename="${encodeURIComponent(attachment.fileName)}"`,
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "private, max-age=300",
+        },
+      });
+    }
 
     const url = attachment.fileUrl;
 

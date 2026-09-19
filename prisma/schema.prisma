@@ -589,6 +589,11 @@ model Attachment {
   fileSize   Int
   mimeType   String
   fileUrl    String
+  /// B3 — the object-store key, once the bytes have been moved out of
+  /// `fileUrl`. Null means this row is still legacy base64 or an external
+  /// URL; the content route serves all three, which is what lets the
+  /// backfill run in the background instead of during a deploy.
+  storageKey String?
   createdAt  DateTime @default(now())
 
   issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)

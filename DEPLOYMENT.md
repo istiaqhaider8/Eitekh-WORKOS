@@ -562,6 +562,69 @@ local database will be wrong in the direction of not firing.
 
 ---
 
+## Attachment storage (B3)
+
+**`STORAGE_DRIVER` is required in production and the server refuses to start without it.**
+
+Without a store, uploaded files are kept base64-encoded in a Postgres column. One upload then
+inflates four things at once — the table, every backup (and so the restore time, and so your
+RTO), replication, and server memory, because a base64 column is read whole and there is no
+streaming part of a text value. On a public host it is also amplification: one request from the
+uploader, paid for by you on every backup thereafter.
+
+### Choosing a backend
+
+```bash
+STORAGE_DRIVER="s3"
+S3_BUCKET="eitekh-attachments"
+S3_REGION="eu-west-2"
+S3_ACCESS_KEY_ID="…"
+S3_SECRET_ACCESS_KEY="…"
+S3_ENDPOINT="https://<account>.r2.cloudflarestorage.com"   # omit for AWS
+S3_SIGNED_URL_TTL_SECONDS="600"                            # 30–3600
+```
+
+This speaks plain S3, so AWS, Cloudflare R2, Backblaze B2, DigitalOcean Spaces and MinIO all
+work. Downloads are served as a short-lived **presigned URL**: the bytes go from the store to
+the browser and never through the application. The URL is minted only after the project access
+check, and expires quickly so one copied out of a network tab is useless by the time it is
+pasted.
+
+A directory is also supported, and is the right choice for development:
+
+```bash
+STORAGE_DRIVER="local-fs"
+STORAGE_FS_ROOT="/var/lib/eitekh/attachments"
+STORAGE_FS_SHARED="1"     # ONLY if this is genuinely a shared volume
+```
+
+> **The boot guard refuses `local-fs` in production unless `STORAGE_FS_SHARED=1`.** A local
+> directory is not visible to other instances, so an attachment uploaded through one would be a
+> 404 through another — intermittently, depending on which instance the load balancer picked,
+> which is the worst way for a fault to present. Set it only for NFS/EFS or a single instance
+> by design.
+
+### Migrating existing attachments
+
+```bash
+node scripts/migrate-attachments.mjs --dry-run     # report only
+node scripts/migrate-attachments.mjs               # move them
+```
+
+Safe to run while the application serves traffic, and safe to re-run. For each file it writes to
+the store, **reads it back and compares a hash**, and only then records `storageKey`. A crash
+at any point leaves a row still served from `fileUrl`; the worst case is an orphaned object,
+which costs storage rather than data.
+
+`fileUrl` is **not** cleared. Dropping the old copy is a separate migration, to be written once
+the object store has a backup of its own. One irreversible step at a time.
+
+Three states coexist during the migration and all three are served: `storageKey` set, an
+`http(s)` `fileUrl`, and a legacy `data:` `fileUrl`. That is what makes this a background
+job rather than a deployment step.
+
+---
+
 ## Backup and restore (A1)
 
 > Read this before you need it. The restore is the half that decides whether the backups were
