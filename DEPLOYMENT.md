@@ -329,12 +329,26 @@ silently inert — they will appear configured in the UI and simply never execut
 | Data retention purge | `POST /api/super-admin/jobs` (retention job) | daily, off-peak |
 | Database backup | `POST /api/super-admin/backup` | daily |
 
-Example crontab (authenticate as a super-admin; use a dedicated service account):
+**Recurring tasks are authenticated by a SECRET, not a session** (changed; see below).
+The others still authenticate as a super-admin, so use a dedicated service account for them.
 
 ```cron
-*/15 * * * * curl -fsS -X POST https://your-domain/api/recurring-tasks/trigger -H "Cookie: token=$SERVICE_TOKEN" >> /var/log/eitekh-cron.log 2>&1
-15 3   * * * curl -fsS -X POST https://your-domain/api/super-admin/backup      -H "Cookie: token=$SERVICE_TOKEN" >> /var/log/eitekh-cron.log 2>&1
+*/15 * * * * curl -fsS -X POST https://your-domain/api/recurring-tasks/trigger -H "x-cron-secret: $RECURRING_TASKS_SECRET" >> /var/log/eitekh-cron.log 2>&1
+15 3   * * * curl -fsS -X POST https://your-domain/api/super-admin/backup      -H "Cookie: token=$SERVICE_TOKEN"              >> /var/log/eitekh-cron.log 2>&1
 ```
+
+> **BREAKING as of H5.** `POST /api/recurring-tasks/trigger` previously accepted any
+> authenticated session. It processes **every tenant's** due tasks, so that meant any user
+> who could log in could fire every other organization's schedule, create issues in projects
+> they cannot see, and have their own name recorded as the reporter on them. It now requires
+> `RECURRING_TASKS_SECRET` in the `x-cron-secret` header (or as a Bearer token), the same
+> shape as `/api/internal/alerts/check`. **With the variable unset the route returns 503 and
+> creates nothing** — set it, or recurring tasks stop running. A crontab still sending a
+> session cookie will get 403.
+
+> **Note.** `getNextCronDate` ignores `scheduleCron`, so WEEKLY and MONTHLY recurring tasks
+> currently fire daily. That is a scheduling defect, tracked separately; the authorization fix
+> above deliberately did not change when tasks run.
 
 > **Known gaps as of 2026-09-18** — see [`PRE-PRODUCTION-VERIFICATION.md`](PRE-PRODUCTION-VERIFICATION.md):
 > **automation rules** and **webhooks** have CRUD endpoints and UI but **no execution engine at

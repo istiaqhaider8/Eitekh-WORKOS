@@ -113,13 +113,16 @@ export interface ApiResult {
 export async function api(
   user: TestUser | null,
   path: string,
-  init: { method?: string; body?: unknown } = {}
+  init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}
 ): Promise<ApiResult> {
   const headers: Record<string, string> = {
     Origin: BASE_URL,
     "Content-Type": "application/json",
   };
   if (user) headers.Cookie = `eitekh_session_token=${user.token}`;
+  // For routes authenticated by something other than a session — the cron
+  // endpoints, which take a shared secret in a header.
+  Object.assign(headers, init.headers ?? {});
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method: init.method || "GET",

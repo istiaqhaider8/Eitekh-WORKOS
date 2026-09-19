@@ -64,6 +64,11 @@ const env = {
   BASE_URL: process.env.INTEGRATION_PUBLIC_URL || "https://integration.eitekh.test",
   SMTP_HOST: process.env.SMTP_HOST || "smtp.integration.test",
   SMTP_PASS: process.env.SMTP_PASS || "integration",
+  // H5. POST /api/recurring-tasks/trigger refuses with 503 when this is unset,
+  // so the suite could not tell "correctly locked" from "misconfigured". A
+  // fixed test value lets it prove the interesting case: that a valid SESSION
+  // is not accepted here, which is the hole this replaced.
+  RECURRING_TASKS_SECRET: "integration-recurring-secret",
 };
 
 if (!env.JWT_SECRET) {

@@ -40,6 +40,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
+import { ghCommand } from "./gh-annotate.mjs";
 
 const require_ = createRequire(import.meta.url);
 const { Client } = require_("pg");
@@ -74,33 +75,23 @@ if (sourceDb === SCRATCH_DB) die("The source and the scratch target are the same
 const TARGET = ADMIN.replace(/\/[^/?]+(\?|$)/, `/${SCRATCH_DB}$1`);
 
 /**
- * Say WHY the drill failed somewhere a reader can actually get to.
+ * A crash is a failure too, and the one no `check()` can report.
  *
- * On a public repository, Actions job logs are readable only with admin
- * rights. Everyone else — including anyone triaging from a phone, and anyone
- * looking at a fork's run — gets "Process completed with exit code 1" and
- * nothing else. That is a useless signal for the one check whose whole purpose
- * is to tell you your backups are broken.
- *
- * Annotations are not log output: they are attached to the check run and are
- * public. So each failed check is emitted as one, and the environment is
- * emitted as a notice on every run, because "which pg_dump, against which
- * server" is the first question anyone asks and the answer moves under you
- * when a hosted runner image updates.
- *
- * Newlines and percent signs have to be encoded or they terminate the
- * workflow command early and the annotation arrives truncated.
+ * The drill does real work between its checks — creating a scratch database,
+ * spawning pg_dump — and a throw in any of it kills the process before a
+ * single check has run, leaving the CI step failing with nothing attached.
  */
-const ANNOTATE = Boolean(process.env.GITHUB_ACTIONS);
-function ghCommand(kind, title, line) {
-  if (!ANNOTATE) return;
-  const encoded = String(line)
-    .replace(/%/g, "%25")
-    .replace(/\r/g, "%0D")
-    .replace(/\n/g, "%0A");
-  console.log(`::${kind} title=${title}::${encoded}`);
+for (const event of ["unhandledRejection", "uncaughtException"]) {
+  process.on(event, (err) => {
+    const message = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
+    ghCommand("error", "Backup drill", `crashed before finishing (${event}): ${message}`);
+    console.error(`\n[drill] ${event}:`, err);
+    process.exit(1);
+  });
 }
 
+// Each failed check emits an annotation; see scripts/gh-annotate.mjs for why
+// the job log is not enough.
 let pass = 0;
 let fail = 0;
 function check(name, ok, detail) {
@@ -126,9 +117,9 @@ const run = (args, extra) =>
  * The last three lines of output were what these checks used to report, and
  * on a restore that is the verifier's summary — which names the SYMPTOM ("a
  * table is missing") while pg_restore's account of WHY scrolled past long
- * before. `pg_restore --exit-on-error=0` deliberately keeps going past
- * failures so the verifier can judge the result, so its errors are mid-stream
- * by design.
+ * before. pg_restore deliberately keeps going past failures — that is its
+ * default, and the verifier is what judges the result — so its errors are
+ * mid-stream by design.
  *
  * Capped, because an annotation is a message and not a log, and de-duplicated,
  * because a parallel restore reports the same dependency failure once per

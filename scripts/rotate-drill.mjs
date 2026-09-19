@@ -38,6 +38,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
+import { ghError, ghNotice } from "./gh-annotate.mjs";
 
 const require_ = createRequire(import.meta.url);
 const { Client } = require_("pg");
@@ -71,8 +72,43 @@ let pass = 0;
 let fail = 0;
 function check(name, ok, detail) {
   console.log((ok ? "PASS  " : "FAIL  ") + name + (detail ? "  -- " + detail : ""));
-  if (ok) pass += 1; else fail += 1;
+  if (ok) {
+    pass += 1;
+  } else {
+    fail += 1;
+    // See scripts/gh-annotate.mjs: the job log is admin-only on a public
+    // repository, so a failure that speaks only to the log speaks to nobody.
+    ghError("Key rotation drill", name + (detail ? " -- " + detail : ""));
+  }
 }
+
+/**
+ * A crash is a failure too, and it is the one the annotations would miss.
+ *
+ * Every `check()` reports itself, but this script does real work between the
+ * checks — creating a scratch database, running migrations, spawning the
+ * rotation tool — and a throw in any of that kills the process before a single
+ * check has run. The CI step then fails with nothing attached at all, which is
+ * the exact silence these annotations exist to end.
+ */
+for (const event of ["unhandledRejection", "uncaughtException"]) {
+  process.on(event, (err) => {
+    const message = err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err);
+    ghError("Key rotation drill", `crashed before finishing (${event}): ${message}`);
+    console.error(`\n[rotate-drill] ${event}:`, err);
+    process.exit(1);
+  });
+}
+
+/**
+ * The environment, recorded up front.
+ *
+ * This drill compares the rotation tool against the application's own
+ * encryption module, and both run on whatever node the runner ships. When it
+ * starts failing on a commit that touched neither, this is the line that says
+ * whether the ground moved.
+ */
+ghNotice("Key rotation drill environment", `node ${process.version} on ${process.platform}`);
 
 async function admin(sql) {
   const c = new Client({ connectionString: ADMIN });
@@ -226,4 +262,7 @@ await prisma.$disconnect();
 await admin(`DROP DATABASE IF EXISTS "${SCRATCH_DB}" WITH (FORCE)`);
 console.log("\n[rotate-drill] scratch database dropped");
 console.log(`\n[rotate-drill] ${pass} passed, ${fail} failed`);
+if (fail > 0) {
+  ghError("Key rotation drill", `${fail} of ${pass + fail} checks failed. Do not attempt a real rotation.`);
+}
 process.exit(fail === 0 ? 0 : 1);
