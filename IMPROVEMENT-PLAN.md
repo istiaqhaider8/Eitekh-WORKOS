@@ -29,39 +29,63 @@ Each item carries:
 | | Status |
 |---|---|
 | Gate 0 (launch blockers) | **8 / 8 complete** |
-| Gate 1 (pre-launch hardening) | **0 / 8** |
-| Multi-tenant paid production | ~80% |
-| Jira-class functional parity | ~55% |
-| Verified | tsc 0 · unit 262/262 · integration 80/80 · lint 0 errors |
-| Outstanding | 1 high + 1 moderate CVE · no backups · no load test · 125 API routes, 2 integration suites |
+| Gate 1 (pre-launch hardening) | **5 / 8** — Phase A complete 2026-09-19 |
+| Multi-tenant paid production | ~88% (was ~80%) |
+| Jira-class functional parity | ~55% — unchanged; Phase A was operational, not functional |
+| Verified 2026-09-19 | tsc 0 · unit 271/271 · integration 80/80 · lint 0 errors · **0 CVEs** |
+| Outstanding | files stored in the database · no optimistic locking · workflow unenforced · 125 API routes, 2 integration suites |
 
-The infrastructure is in good shape. **The product underneath it has holes**, and the operational
-safety net does not exist yet. That is what this plan addresses, in that order.
+The infrastructure is in good shape and now has a safety net. **The product underneath it still has
+holes**, and they are what the rest of this plan is about.
 
 ---
 
 ## The sequencing argument
 
 Do not work this list top-to-bottom by priority label. Work it by **what would hurt most if it
-happened tomorrow**:
+happened tomorrow**. The first three are now done:
 
-1. **You have no backups.** Everything else is recoverable. This is not.
-2. **You do not know what breaks under load.** Every performance decision so far has been made
-   against a 460-row dataset or a synthetic 20k one, never against concurrent users.
-3. **Two known CVEs**, and the fix (Next 16) also stabilises the experimental flag PROD-2 depends
-   on. One upgrade, two problems.
-4. **Then the correctness holes** — silent data loss on concurrent edits, unenforced workflow.
-5. **Then the missing features** — attachments being the visible one.
+1. ~~**You have no backups.**~~ ✅ A1 — and the restore drill runs in CI.
+2. ~~**You do not know what breaks under load.**~~ ✅ A2 — baselines recorded, knee identified.
+3. ~~**Two known CVEs.**~~ ✅ A3 — audit clean, and the middleware runtime is no longer
+   experimental.
+4. **Now: the correctness holes** — silent data loss on concurrent edits (B1), unenforced workflow
+   (B2), and files sitting in the primary database (B3).
+5. **Then**: delivery guarantees and search quality.
 
-Phases A and B below can run in parallel by different people. Nothing in B blocks A.
+B1 and B2 touch the same update path; do them together. B4 (finishing isolation coverage) should
+land before B3 adds a file-download surface.
 
 ---
 
-# Phase A — Operational safety (Gate 1)
+# Phase A — Operational safety (Gate 1) — ✅ **COMPLETE 2026-09-19**
 
 *Nothing here changes what the product does. All of it changes whether you survive a bad day.*
 
-## A1 · Backup and restore, rehearsed — **P0, size M**
+| Item | Status | Outcome |
+|---|---|---|
+| A1 backups | ✅ `1d7cfb0` | dump + restore + verifier; the drill runs in CI on every build |
+| A2 load/soak | ✅ `fb7d1a6` | baselines recorded; **the connection pool is the ceiling**, not the app |
+| A3 Next 16 / CVEs | ✅ `33b8e53` | **0 vulnerabilities**; Node middleware no longer experimental |
+| A4 unbounded loads | ✅ `20eba11` | **689 KB → 54 KB**, 48 ms → 19 ms |
+| A5 secrets + runbook | ✅ | rotation is executable and rehearsed; deploy/rollback/incident runbook written |
+
+**What Phase A did not and could not do**: choose your managed Postgres, provision object storage,
+or point telemetry at a destination. Those remain open decisions, listed at the end of this
+document. Everything that was code is done.
+
+Three findings emerged from doing the work, and they change what comes next:
+
+1. **Files are stored base64-encoded inside the database** (found while measuring A4). This is not
+   "attachments are missing" as B3 originally framed it — they work, and they are in the worst
+   possible place, inflating the database, every backup and replication. B3 is now more urgent and
+   differently shaped: *get files out of the database*.
+2. **The connection pool, not the application, is the capacity ceiling** — and it is implicit,
+   defaulting to `num_cpus * 2 + 1`. Set it explicitly before launch.
+3. **The alert thresholds were calibrated on guesses.** The database-latency one was two orders of
+   magnitude too loose. It is now measured. The rest still need production traffic.
+
+## A1 · Backup and restore, rehearsed — ✅ DONE (`1d7cfb0`)
 
 **Evidence**: `src/lib/backup.ts` deliberately refuses — it was written to copy a SQLite file and
 now returns `{ success: false }` rather than produce something that looks like a backup and is not
@@ -88,7 +112,7 @@ elapsed time is written down, and the row counts match.
 
 ---
 
-## A2 · Load and soak testing — **P0, size M**
+## A2 · Load and soak testing — ✅ DONE (`fb7d1a6`)
 
 **Evidence**: no load test exists in the repository. The A3 volume dataset (20k issues) exists and
 is seeded by `prisma/seed-volume.js`, but it has only ever been used for single-request timing.
@@ -115,7 +139,7 @@ all *untested under concurrency*. The pool maths in `.env.example` is arithmetic
 
 ---
 
-## A3 · Next 16 upgrade and CVE resolution — **P1, size M**
+## A3 · Next 16 upgrade and CVE resolution — ✅ DONE (`33b8e53`)
 
 **Evidence**: `npm audit --omit=dev` reports 1 high, 1 moderate (postcss via Next).
 
@@ -138,7 +162,7 @@ config key.
 
 ---
 
-## A4 · Bound the unbounded loads — **P1, size S**
+## A4 · Bound the unbounded loads — ✅ DONE (`20eba11`)
 
 **Evidence**: `GET /api/issues/[id]` contains **zero `take:` clauses** (verified by count) while
 including `comments`, `timeEntries`, `activityLogs` and `attachments`. Previously measured at
@@ -160,7 +184,7 @@ dataset.
 
 ---
 
-## A5 · Secrets, runbook and deployment config — **P1, size M**
+## A5 · Secrets, runbook and deployment config — ✅ DONE (code and docs; the secret-manager and telemetry destinations are deployment decisions)
 
 **Evidence**: secrets are environment variables; `DEPLOYMENT.md` documents configuration but has no
 rollback or incident procedure.
@@ -228,15 +252,25 @@ migrations and two rounds of client work).
 
 ---
 
-## B3 · Real attachment storage — **P0, size L**
+## B3 · Get files OUT of the database — **P0, size L** — *reframed after A4*
 
-**Evidence**: `POST /api/issues/[id]/attachments` parses a **JSON body** containing `fileUrl`. The
-`Attachment` model stores `fileName`, `fileSize`, `mimeType`, `fileUrl`. There is no multipart
-handling anywhere.
+**Evidence, corrected 2026-09-19**: attachments DO work, and that is the problem. The UI does
+`reader.readAsDataURL(file)` and POSTs a base64 data URI as JSON; `attachmentSchema` explicitly
+permits `data:image/`, `data:application/pdf` and `data:application/octet-stream` up to 5 MB; and
+`Attachment.fileUrl` stores the whole thing in a Postgres column. In the volume dataset, 25
+attachments are 5.8 MB of base64, the largest single row 389 KB.
 
-**Why it matters**: **you cannot attach a file.** You can record a link to one. For an issue
-tracker this is not a gap in polish, it is a missing core feature — and it is the kind of thing a
-buyer discovers in the first week of a trial.
+My earlier assessment said "you cannot attach a file". That was wrong, and the truth is worse.
+
+**Why it matters**: every byte of every uploaded file sits in the primary database. It inflates the
+database, every backup, every restore and replication lag, and it is transferred by any query that
+selects the column — which is how one unopened file became 380 KB of a 689 KB issue payload before
+A4. The 5 MB cap plus base64 overhead means a single row can approach 7 MB of TEXT.
+
+A4 already removed it from the read path: the issue payload is metadata only, and
+`GET /api/attachments/[id]/content` serves the bytes on demand with an authorization check. That
+endpoint is the seam — once objects live in S3 it becomes a redirect to a signed URL and nothing
+else changes.
 
 **Tasks**
 1. Multipart upload endpoint with a size cap and a MIME allow-list.

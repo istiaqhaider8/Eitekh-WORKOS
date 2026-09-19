@@ -575,3 +575,135 @@ rather than silent.
 - **One host, one instance, local Postgres.** No network latency, no load balancer, no replication
   lag. Real numbers will be worse.
 
+
+---
+
+## Secrets (A5)
+
+### Where they must live
+
+Not in `.env` on a server, and not in a shell history. Use the platform's secret manager — AWS
+Secrets Manager, GCP Secret Manager, Vault, or your host's encrypted environment settings — and
+inject at process start.
+
+The application already refuses to boot in production without `JWT_SECRET`,
+`FIELD_ENCRYPTION_KEY`, `DATABASE_URL`, SMTP credentials and a non-local `BASE_URL`
+([`src/instrumentation.ts`](src/instrumentation.ts)), so a missing secret is a failed deploy rather
+than a runtime surprise. It cannot tell whether the value came from a secret manager or a text
+file, so that part is on you.
+
+### Rotate anything that has been exposed
+
+Before first production traffic, rotate every secret that has ever sat in a developer `.env`, a
+shell history, a CI log or a chat message. Assume all of them have.
+
+| Secret | Effect of rotating | Procedure |
+|---|---|---|
+| `JWT_SECRET` | **Every session ends.** All users sign in again | Replace and restart. No migration |
+| `FIELD_ENCRYPTION_KEY` | **Existing encrypted rows become unreadable** unless re-encrypted first | Use the script below. Do not skip it |
+| `DATABASE_URL` password | Connections drop until restart | Rotate in the provider, then redeploy |
+| SMTP credentials | Mail stops until updated | Replace and restart |
+| `ALERT_CHECK_SECRET` | The alert cron 403s until updated | Update both sides together |
+| `TELEMETRY_API_KEY` | Events are rejected until updated | Replace and restart |
+
+### Rotating FIELD_ENCRYPTION_KEY
+
+This is the one with teeth. `Webhook.secret` and `User.mfaSecret` are encrypted at rest with it, so
+swapping the key without re-encrypting makes them **permanently unreadable** — and you discover it
+when a customer's integration stops firing, not at deploy time.
+
+```bash
+# 1. Back up first. This rewrites rows.
+node scripts/db-backup.mjs --label pre-key-rotation
+
+# 2. Dry run. Reports what it would do and writes nothing.
+OLD_FIELD_ENCRYPTION_KEY="$CURRENT" FIELD_ENCRYPTION_KEY="$NEW" \
+  node scripts/rotate-encryption-key.mjs --dry-run
+
+# 3. Re-encrypt.
+OLD_FIELD_ENCRYPTION_KEY="$CURRENT" FIELD_ENCRYPTION_KEY="$NEW" \
+  node scripts/rotate-encryption-key.mjs
+
+# 4. Only now deploy the new key.
+```
+
+The script self-tests its own understanding of the encryption envelope before touching a row, and
+**refuses to write anything if the old key cannot decrypt a value** — that means the old key is
+wrong, or a row was written with a third key, and writing would destroy it. Every re-encrypted
+value is verified by decrypting it again before the update is issued.
+
+Verified 2026-09-19 against a throwaway encrypted webhook: a wrong old key produced a failure and
+no writes; the real rotation preserved the plaintext exactly, and the old key could no longer read
+the row afterwards.
+
+`User.recoveryCodes` is **hashed, not encrypted**, and is deliberately untouched.
+
+---
+
+## Deploy and rollback (A5)
+
+### Deploying
+
+```bash
+# 1. Migrations first, and they must be backwards compatible with the running
+#    version — during a rolling deploy both versions serve traffic at once.
+npx prisma migrate deploy
+
+# 2. Then the application.
+npm run build && npm start   # or your platform's deploy
+```
+
+The boot guard validates configuration before serving. If it refuses, read the message: it names
+every invalid setting rather than failing on the first.
+
+### Watch these for the first ten minutes
+
+- `/api/health` — `status`, `db.latencyMs` (baseline **1–2 ms**; > 50 ms sustained is the alert),
+  `telemetry.configured`
+- `counters["events.error"]` — a step change after a deploy is the deploy
+- `realtime.openConnections` — should climb back as clients reconnect. Flat at zero with live
+  traffic means SSE is broken
+- The five alerts in the monitoring section. If none can fire, you are not watching, you are hoping
+
+### Rolling back
+
+```bash
+# Application only — the common case, and always try this first.
+<deploy the previous image/commit>
+```
+
+**Do not roll back a migration by default.** Most schema changes here are additive and the previous
+application version tolerates them. A migration rollback is a data-loss operation; reach for it
+only when the migration itself is the fault, and take a backup first.
+
+If a migration must be undone:
+
+1. Take a backup (`node scripts/db-backup.mjs --label pre-rollback`).
+2. Write the reversing SQL by hand and review it. There is no `migrate down`.
+3. Apply it, then `npx prisma migrate resolve --rolled-back <name>` so the history matches reality.
+4. Run the drift check: `npx prisma migrate diff --from-migrations prisma/migrations
+   --to-schema-datamodel prisma/schema.prisma --exit-code`. A non-empty diff means the database and
+   the schema disagree, which is how PROD-0 happened.
+
+### If the application will not start
+
+The boot guard names the problem. The usual causes, in order:
+
+1. A missing or placeholder secret — it says which.
+2. `DATABASE_URL` unreachable, or pointing at a `file:` URL (SQLite support was removed in PROD-1).
+3. `BASE_URL` set to localhost — rejected, because every link in outgoing email would be
+   unreachable for the recipient.
+4. `RATE_LIMIT_STORE=memory` in production — refused, because a per-process limiter silently grants
+   N × the configured limit once there is more than one instance.
+
+### Incident escalation
+
+| | |
+|---|---|
+| On-call | _record_ |
+| Escalation after | _record — 15 minutes is a reasonable default_ |
+| Database provider support | _record, with the account/contract reference_ |
+| Status page / customer comms owner | _record_ |
+
+Fill these in. An escalation path discovered during an incident is not an escalation path.
+
