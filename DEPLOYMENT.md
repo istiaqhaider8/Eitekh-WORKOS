@@ -245,6 +245,28 @@ The per-IP ceiling is what stands in front of the unauthenticated routes, so
 that was a bypass of login throttling. The chain is now read from the right,
 by the configured hop count.
 
+### Proving the proxy path
+
+```bash
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 1 -nodes   -subj "//CN=localhost" -addext "subjectAltName=IP:127.0.0.1"
+
+node scripts/proxy-drill.mjs --app http://127.0.0.1:3000 --cert cert.pem --key key.pem
+```
+
+It stands a TLS terminator in front of the running app that appends to
+`X-Forwarded-For` exactly as `proxy_add_x_forwarded_for` does, then asserts
+the things a misconfigured proxy silently breaks:
+
+| Check | Why it matters |
+|---|---|
+| A caller **cannot** change its rate-limit bucket by rewriting `X-Forwarded-For` | the login-throttle bypass |
+| HSTS, CSP and `X-Frame-Options` survive the proxy | a proxy can drop response headers |
+| A mutating request from a foreign `Origin` is refused | a proxy rewrites `Host`; get it wrong and everything looks same-origin |
+| **The app port is not reachable off-host** | the residual below |
+
+Measured here: **9/9**, with the bucket holding steady across three different
+claimed client addresses.
+
 > **The application port must not be reachable except through the proxy.**
 > With one trusted hop, a request that skipped Nginx carries a chain
 > indistinguishable from a genuine one, and no application code can tell them
