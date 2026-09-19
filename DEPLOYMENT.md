@@ -385,3 +385,113 @@ These thresholds are starting points written against the signals that exist. The
 tuned against production traffic, because there is none yet. Revisit after PROD-8 (load testing)
 gives real baselines.
 
+
+---
+
+## Backup and restore (A1)
+
+> Read this before you need it. The restore is the half that decides whether the backups were
+> worth taking, and it is the half nobody rehearses.
+
+### What the application does and does not do
+
+The app **does not take backups**. There is no "create backup" button, and that is deliberate:
+triggering a database-wide dump from an HTTP request would mean the web process holds
+bulk-export credentials and writes every tenant's data to local disk, and one admin's click
+could fill the disk the database runs on.
+
+`GET /api/super-admin/backups` reports only what it can see. An empty list there is **not** a
+statement that backups are missing — it usually means they are correctly stored off-host.
+
+### Choose one of these two
+
+| | Recovery point | Effort | Use when |
+|---|---|---|---|
+| **Provider PITR** (recommended) | seconds | configuration | Your managed Postgres offers it — RDS, Cloud SQL, Neon, Supabase all do |
+| **Scheduled `pg_dump`** | up to one interval | a cron job | PITR is unavailable, or you want a second copy under your own control |
+
+**Prefer PITR.** A nightly dump means a bad afternoon costs a day of everyone's work. Use the
+dump as a *second* line, not the only one.
+
+### Taking a dump
+
+```bash
+DATABASE_URL="postgresql://..." node scripts/db-backup.mjs --label nightly
+```
+
+It refuses rather than improvising if `pg_dump` is missing, deletes any partial file on failure,
+and treats a suspiciously small dump as a failure. Output is `--format=custom`, so `pg_restore`
+can work selectively and in parallel — which matters when the restore is what stands between you
+and being down.
+
+**Copy it off-host.** A backup on the same disk as the database does not survive the failure it
+exists for. `BACKUP_RETAIN` only controls local pruning.
+
+### Restoring — the part to rehearse
+
+```bash
+# 1. Always restore into a scratch database first, never straight over production.
+node scripts/db-restore.mjs \
+  --file backups/<dump> \
+  --url "postgresql://.../eitekh_restore_drill" \
+  --verify "postgresql://.../eitekh_production"
+```
+
+The script refuses a target that looks like production, and refuses any database that already
+holds rows, unless given `--force`. Both guards exist because this gets run by tired people.
+
+**`pg_restore` exiting 0 is not proof.** It can finish having skipped rows. `--verify` runs
+`scripts/db-verify-restore.mjs`, which compares row counts *and* primary-key checksums table by
+table — the second catches the case a row count misses: same number of rows, different contents.
+
+```bash
+# Verify independently at any time:
+node scripts/db-verify-restore.mjs <source-url> <restored-url>
+```
+
+Exit 0 means every table matched. It refuses to compare a database with itself, and fails if the
+source is empty, because both would pass while proving nothing.
+
+### This drill runs in CI
+
+`.github/workflows/ci.yml` performs a full dump → restore → verify against the seeded database on
+**every run**. A drill that depends on someone remembering to do it is a drill that stops
+happening.
+
+That covers the mechanism. It does **not** cover your production data volume, so once there is
+real data, run the drill against a production-sized copy and record the timing.
+
+### Record these, and keep them current
+
+| Fact | Value |
+|---|---|
+| Mechanism (PITR / dump / both) | _decide and record_ |
+| Where dumps are stored off-host | _record_ |
+| Retention, and its monthly cost | _record_ |
+| Last rehearsed restore | _date_ |
+| **How long a full restore took** | _seconds — this is your RTO_ |
+| Who to call if it fails | _record_ |
+
+The restore duration is the number people guess at and get badly wrong. `db-restore.mjs` prints
+it as `RECORD THIS:` — put it in the table.
+
+### If you are restoring for real, right now
+
+1. **Stop writes.** Put the app in maintenance or scale it to zero, or you will restore into a
+   moving target and lose whatever lands in between.
+2. Restore into a **scratch** database and verify it.
+3. Only then decide whether to promote it, or to repoint `DATABASE_URL` at the scratch database
+   — often faster and always less destructive than restoring over the original.
+4. Keep the damaged database. It is evidence, and it may hold rows the backup does not.
+5. After service is back: write down what happened while it is fresh.
+
+### Known gaps
+
+- **The `pg_dump` path has not been rehearsed on a developer machine**, because no PostgreSQL
+  client binaries are installed there. It is exercised in CI on every run. Rehearse it on the
+  host that will actually run it before relying on it.
+- **Dumps are not encrypted at rest by this script.** If your storage does not encrypt by
+  default, encrypt before upload — the dump contains every tenant's data.
+- **`prisma/dev.db` still holds pre-migration data** (CP-525–529 exist only there) and is not
+  covered by any of this.
+

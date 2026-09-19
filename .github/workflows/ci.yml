@@ -87,6 +87,33 @@ jobs:
           node prisma/seed.js
           npx prisma migrate status
 
+      # A1. The backup/restore drill, performed on every run.
+      #
+      # An unrehearsed backup is a hypothesis. Teams discover theirs was broken
+      # during the incident it existed for, because "the nightly job exits 0"
+      # was the only thing ever checked.
+      #
+      # This takes a real pg_dump of the seeded database, restores it into a
+      # scratch database, and then VERIFIES it — row counts and primary-key
+      # checksums, table by table. pg_restore finishing is not proof the data
+      # arrived; a restore can complete having skipped rows.
+      #
+      # It runs here rather than only in a runbook because a drill that depends
+      # on someone remembering to do it is a drill that stops happening.
+      - name: Backup and restore drill (A1)
+        run: |
+          set -e
+          pg_dump --version
+          echo 'CREATE DATABASE eitekh_restore_drill;' | npx prisma db execute \
+            --url "postgresql://postgres:postgres@localhost:5432/postgres" --stdin
+          node scripts/db-backup.mjs \
+            --url "$DATABASE_URL" --out /tmp/ci-backups --label ci
+          DUMP=$(ls -t /tmp/ci-backups/*.dump | head -1)
+          node scripts/db-restore.mjs \
+            --file "$DUMP" \
+            --url "postgresql://postgres:postgres@localhost:5432/eitekh_restore_drill" \
+            --verify "$DATABASE_URL"
+
       # S4/F7. A mutating route must not read a request body without a schema.
       # Eight did. One of them, auth/invite, took `role` from the body with no
       # check on the inviter's own role, and auth/invitation creates the
