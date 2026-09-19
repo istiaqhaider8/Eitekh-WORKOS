@@ -160,8 +160,8 @@ be pointed at `dev.db` by accident.
 | ~~B2~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting in-process. Both limiters now go through a shared Postgres-backed store. | [`src/lib/rate-limit-store.ts`](src/lib/rate-limit-store.ts); verified across 2 live instances, see PROD-2 below |
 | ~~B3~~ | ✅ **ADDRESSED 2026-09-19** (PROD-3). The `Map` is still there and still in-process — because **nothing ever writes to it**: `set()` has no callers, so it holds no data. The real cross-instance defect in that file was the invalidation path, which now bumps the shared PBAC version. See the PROD-3 cache finding. | [`src/lib/cache-manager.ts`](src/lib/cache-manager.ts) header comment |
 | ~~B4~~ | ✅ **FIXED 2026-09-19** (PROD-4). The registry is still per-process, which is correct — a socket belongs to the process holding it. What was missing was fan-out: events now relay between instances over Postgres `LISTEN/NOTIFY`. | [`src/lib/sync-bus.ts`](src/lib/sync-bus.ts); verified with a client on each of 2 live instances |
-| ~~B5~~ | ⚠️ **HALF FIXED 2026-09-19** (PROD-5). Tenant isolation now has 40 integration tests running in CI — and they found a live cross-tenant leak of team members' email addresses on their first complete run. Authorization/PBAC route tests (PROD-6) are still absent. | [`__tests__/integration/tenant-isolation.test.ts`](__tests__/integration/tenant-isolation.test.ts) |
-| B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
+| ~~B5~~ | ✅ **FIXED 2026-09-19** (PROD-5 + PROD-6). 80 integration tests across tenant isolation and authorization, required in CI. They found two live defects on their first runs: a cross-tenant leak of team members' email addresses, and a PROJECT_MANAGER able to grant PROJECT_ADMIN. | [`__tests__/integration/`](__tests__/integration/) |
+| ~~B6~~ | ⚠️ **CODE COMPLETE 2026-09-19** (PROD-7). Every log now ships through a scrubbing telemetry seam, unhandled server errors are caught by `onRequestError`, and `/api/health` exposes the counters the alerts threshold on. **Still needs `TELEMETRY_ENDPOINT` pointed at a real collector** — until then nothing is shipped anywhere. | [`src/lib/telemetry.ts`](src/lib/telemetry.ts), DEPLOYMENT.md |
 | B7 | `/projects/[id]` ships **296 kB** First Load JS (was 310 kB; PROD-4 removed the server-side delegation engine from the client bundle, −20 kB) | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
 | ~~**B9**~~ | ✅ **FIXED 2026-09-18** (PROD-0, originally `0007_repair_schema_drift`; the SQLite history was archived to `prisma/migrations-sqlite-archive/` when PROD-1 regenerated it for Postgres). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
@@ -202,17 +202,23 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~84%** | all of Gate 0 — 8 items, **6 complete** |
+| **Multi-tenant paid production** | **~92%** | all of Gate 0 — 8 items, **7 complete + 1 needing a deployment decision** |
 
-The percentage is a judgement, not a measurement. The countable part: **6 of 8 Gate 0 items are
-complete** (PROD-0 through PROD-5). All of the shared-state work is done: the database, the rate
-limiters, the authorization model and real-time fan-out now work across instances, and tenant
-isolation is tested in CI. What remains is PROD-6 (authorization/PBAC route tests) and PROD-7
-(error tracking).
+The percentage is a judgement, not a measurement. The countable part: **7 of 8 Gate 0 items are
+complete** (PROD-0 through PROD-6), and PROD-7 is code-complete but not switched on.
 
-One caveat on PROD-5 worth carrying forward: the suite covers the route families it covers, not
-all 123 routes. An audit listed further families with no denial test; they are recorded under
-PROD-5 as follow-up rather than treated as covered.
+All of the shared-state work is done — database, rate limiters, authorization model, real-time
+fan-out — and both tenant isolation and authorization are tested in CI. **The one thing standing
+between here and Gate 0 is a deployment decision, not code**: point `TELEMETRY_ENDPOINT` at a
+collector and confirm events arrive. Until then the application runs blind, which is the original
+PROD-7 objection.
+
+Two caveats worth carrying forward:
+
+- The integration suites cover the route families they cover, not all 123 routes. An audit listed
+  further families with no denial test; they are recorded under PROD-5 as follow-up rather than
+  treated as covered.
+- Client-side error reporting is not wired. The telemetry seam is server-side only.
 
 ---
 
@@ -834,33 +840,68 @@ INTEGRATION_DATABASE_URL=postgresql://…/something_test npm run test:integratio
 | | |
 |---|---|
 | **Severity** | Blocker |
-| **Status** | PENDING |
+| **Status** | ✅ **DONE 2026-09-19** |
 | **Depends on** | PROD-5 (shares the fixture) |
-| **Files** | new `__tests__/integration/authz.test.ts` |
+| **Files** | `__tests__/integration/authz.test.ts` (new), `__tests__/integration/fixture.ts`, `src/lib/project-roles.ts`, `src/app/api/projects/[id]/members/route.ts`, `src/lib/__tests__/project-role-hierarchy.test.ts` (new) |
 
-**Why**: PBAC is the most security-critical and most intricate subsystem in the codebase
-([`pbac-engine.ts`](src/lib/pbac-engine.ts) is 2,254 lines) and it has **no** tests. Five PBAC
-findings were filed, including privilege escalation (PBAC-1) and a stale-cache bug (PBAC-2).
-Role-hierarchy logic without tests will regress.
+**Why it mattered**: PBAC is the most security-critical and most intricate subsystem here
+(~2,300 lines) and had no tests. Five findings were filed against it, including privilege
+escalation (PBAC-1) and a stale-cache bug (PBAC-2). Where PROD-5 asks "can tenant A reach tenant
+B's data", this asks a different question about one tenant: **can a role do more than its rank
+allows?** Neither is detectable from unit tests of the engine, because the question is whether the
+route consults the engine at all.
 
-**Do this**:
-1. Reuse the PROD-5 fixture; add one user per role: `VIEWER`, `MEMBER`, `ADMIN`,
-   `PROJECT_ADMIN`, `OWNER`, `SUPER_ADMIN`.
-2. Assert the **hierarchy** holds: no role can grant or assume a level above itself (this is
-   exactly PBAC-1 — prove it stays fixed).
-3. Assert `VIEWER` is denied every mutating route.
-4. Assert permission changes take effect within the documented cache TTL (guards PBAC-2/PBAC-4,
-   and must still pass after PROD-3).
-5. Cover the super-admin routes as a group (ADMIN-2 was a systemic authorization gap).
+**It found a real escalation.** A `PROJECT_MANAGER` could set another member — or themselves — to
+`PROJECT_ADMIN`. The engine declares the hierarchy (`project-manager: 30`, `project-admin: 40`)
+and has `enforceHierarchy` for exactly this, but that only runs on the PBAC assignment paths; the
+member routes checked the `projects:manage_members` permission, which a manager legitimately
+holds, and then wrote `ProjectMember.role` directly. Holding "you may manage members" is not the
+same as "you may create someone with more authority than you have". Reachable through PATCH
+(promote) and POST (add as admin, which also creates an account); both are now guarded.
 
-**Acceptance criteria**:
-- [ ] One test user per role
-- [ ] Escalation attempts denied for every role pair
-- [ ] `VIEWER` denied on all mutating routes
-- [ ] Cache-invalidation timing asserted
-- [ ] Runs in CI as a required job
+**What the suite covers**
 
-**Verify**: `npm test`
+1. **One user per role, per tenant** — OWNER, ADMIN, MANAGER, MEMBER, VIEWER, plus a super admin
+   and a user who belongs to nothing.
+2. **VIEWER is denied every mutating route** — create/edit/delete an issue, edit/delete the
+   project, add members, create teams and projects — each followed by a **database** assertion
+   that nothing was written, because a route can refuse after having already written.
+3. **The full escalation matrix**: every pair where the actor would grant above its own project
+   authority. Both the matrix and the roles are reset before each case.
+4. **The org-invite escalation** closed in `0f895a0` is pinned: an org MEMBER cannot mint an OWNER
+   invitation, and neither can an ADMIN.
+5. **The super-admin surface as a group** (ADMIN-2 was a systemic gap): every role and the
+   outsider are denied all 21 routes, and a test reads the directory listing so that a newly added
+   super-admin route makes the count drift rather than slipping in uncovered.
+6. **Cache-invalidation timing** (PBAC-2/PBAC-4): a demoted user loses the ability to edit within
+   the documented window (PROD-3's 2 s version poll plus the 5 s capability TTL), *and* a promoted
+   user gains it — without the second half, a permanently-broken permission check would pass the
+   first.
+7. **Control cases throughout**, so a denial cannot pass because a route is broken for everyone.
+
+**A fixture bug worth recording.** The fixture wrote `ProjectMember.role = "OWNER"`, which is not
+a valid project role at all — the project vocabulary is PROJECT_ADMIN / PROJECT_MANAGER / MEMBER /
+VIEWER (see `project-roles.ts`, written after the two vocabularies were conflated once before).
+Nothing caught it because nothing asserted on the project role. A fixture that creates data the
+API would reject makes every test built on it suspect.
+
+**And a false positive I nearly reported.** The suite's first run appeared to show a plain MEMBER
+promoting themselves to PROJECT_ADMIN. That was my own tests: they mutated a shared fixture and
+never restored it, so a legitimate promotion by an earlier test left the MEMBER user sitting at
+PROJECT_ADMIN, and every later case ran against a fixture that no longer matched its description.
+Order-dependent state is how a test suite manufactures a vulnerability report. The tests now reset
+roles before each case; the manager-to-admin escalation survived that correction and was
+reproduced in isolation.
+
+**Acceptance criteria**
+- [x] One test user per role
+- [x] Escalation attempts denied for every role pair
+- [x] `VIEWER` denied on all mutating routes tested, each with a database assertion
+- [x] Cache-invalidation timing asserted, in both directions
+- [x] Runs in CI as a required job (same step as PROD-5)
+
+**Verified 2026-09-19**: `npm run test:integration` → **80 passed, 80 total** across both
+integration suites. Unit 249/249, tsc 0, lint 0 errors.
 
 ---
 
@@ -869,35 +910,65 @@ Role-hierarchy logic without tests will regress.
 | | |
 |---|---|
 | **Severity** | Blocker |
-| **Status** | PENDING |
-| **Depends on** | nothing (can run in parallel) |
-| **Files** | `src/lib/logger.ts`, `next.config.ts`, `.env.example`, `DEPLOYMENT.md` |
+| **Status** | ⚠️ **CODE COMPLETE 2026-09-19 — requires one deployment decision** |
+| **Depends on** | nothing |
+| **Files** | `src/lib/telemetry.ts` (new), `src/lib/log-sanitize.ts` (new), `src/lib/logger.ts`, `src/instrumentation.ts`, `src/app/api/health/route.ts`, `src/lib/__tests__/telemetry.test.ts` (new), `.env.example`, `DEPLOYMENT.md` |
 
-**Why**: [`logger.ts`](src/lib/logger.ts) writes to `console.*` only. Note that OPS-3 ("No
-monitoring or alerting") is marked COMPLETED in `AI-STATUS.md` with the justification
-*"(health endpoint + logging)"* — a health endpoint is liveness, not monitoring. With no sink,
-no aggregation, and no alerting, you would learn about production incidents from customers.
-You cannot operate a paid SaaS blind.
+**Why it mattered**: `logger.ts` wrote to `console.*` and nowhere else — no sink, no aggregation,
+no alerting. You would learn about production incidents from customers. (OPS-3, "No monitoring or
+alerting", had been marked COMPLETED with the justification *"health endpoint + logging"*. A health
+endpoint is liveness. It does not tell you that 4% of requests are failing.)
 
-**Do this**:
-1. Add error tracking (Sentry or equivalent) for server and client, with release tagging and
-   source maps so stack traces are readable.
-2. Ship structured logs to an aggregator; keep the existing `SECURITY`/`AUDIT` log levels
-   queryable — they are the audit trail for the PBAC-5 / ADMIN-3 work.
-3. Alert on: 5xx rate, auth-failure spikes, DB connection-pool exhaustion, Redis unavailability,
-   SSE connection count.
-4. **Scrub PII and secrets** before anything leaves the process. Tenant data in a third-party
-   error tracker is its own compliance problem.
+**What was built**
 
-**Acceptance criteria**:
-- [ ] Unhandled server + client errors appear in the tracker with usable stack traces
-- [ ] Structured logs queryable outside the host
-- [ ] The five alerts above fire and route to a real destination
-- [ ] PII/secret scrubbing verified with a deliberate test error containing a fake token
-- [ ] `DEPLOYMENT.md` documents required env vars
+1. **A single seam** — [`src/lib/telemetry.ts`](src/lib/telemetry.ts). Every `logger.*` call ships
+   through it, including `SECURITY` and `AUDIT`, which are the audit trail the PBAC-5 / ADMIN-3
+   work depends on.
+2. **Scrubbing before anything leaves the process.** Key-based redaction first, then value-pattern
+   scrubbing over every string however deeply nested — including error messages and stack frames,
+   which is where secrets actually hide, because there is no key to match on. Removed: database
+   URLs with inline passwords, JWTs, `Bearer` tokens, provider keys, GitHub tokens, 64-hex values
+   (the shape of `FIELD_ENCRYPTION_KEY`), the session cookie, and **email addresses** — tenant PII
+   in a third-party tracker is its own compliance problem.
+3. **Unhandled errors are caught.** `onRequestError` in `instrumentation.ts` receives server errors
+   that never reach a `try/catch`, including inside Server Components. Without it, tracking would
+   only ever see what code remembered to log — which excludes the errors nobody anticipated.
+4. **Counters on `/api/health`**, unauthenticated and free of tenant data, which is what the alert
+   thresholds are written against. A health endpoint plus nothing to threshold is how OPS-3 got
+   closed wrongly the first time.
+5. **Telemetry cannot break the app.** `capture()` never throws and never awaits the network on the
+   caller's behalf; a failed send increments a counter. A dropped event costs visibility, a thrown
+   one costs the user's work.
+6. **A loud startup warning** when `TELEMETRY_ENDPOINT` is unset in production — a warning, not a
+   refusal, because turning a monitoring gap into an outage is the wrong trade.
 
-**Verify**: throw a deliberate error in a non-production environment; confirm it arrives scrubbed
-and alerts fire.
+**Why no Sentry SDK.** No error-tracking vendor is provisioned for this deployment. Installing an
+SDK that cannot be pointed anywhere would be ceremony: unverifiable, and it would make the tracker
+*look* present in code review while shipping nothing — the same failure as OPS-3's original
+closure. The transport is vendor-neutral JSON-over-HTTP; Sentry, Datadog, Axiom, Loki and an OTLP
+collector all accept that shape, and pointing at one is an adapter implementing
+`TelemetryTransport`, not a refactor.
+
+**Acceptance criteria**
+- [x] Unhandled server errors reach the seam with usable stack traces — `onRequestError`, full
+      stack shipped (scrubbed) even in production
+- [x] Structured logs shippable outside the host, with `SECURITY`/`AUDIT` preserved
+- [x] PII/secret scrubbing verified with a deliberate test error containing a fake token — 17
+      tests, including that exact case
+- [x] `DEPLOYMENT.md` documents the required env vars
+- [x] The five alerts are specified with signals and thresholds
+- [ ] **The five alerts fire and route to a real destination** — *not done, and not doable from
+      here: it needs a chosen vendor and credentials*
+- [ ] **Client-side errors** — the seam is server-side; a browser error boundary reporting through
+      it is not wired
+
+**What remains, and it is not code**
+
+Set `TELEMETRY_ENDPOINT` to a real collector and confirm events arrive. Until that is done, nothing
+is shipped anywhere and this item is not truly closed — which is why the status above says
+"requires one deployment decision" rather than DONE. The alert thresholds in `DEPLOYMENT.md` are
+also starting points: they have not been tuned against production traffic because there is none
+yet. Revisit after PROD-8.
 
 ---
 

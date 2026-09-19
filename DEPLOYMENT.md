@@ -254,3 +254,83 @@ https://editor.swagger.io/?url=https://workos.mycompany.com/api/docs
 ## Support
 
 Open an issue at [github.com/istiaqhaider8/Eitekh-WORKOS/issues](https://github.com/istiaqhaider8/Eitekh-WORKOS/issues).
+
+---
+
+## Monitoring and alerting (PROD-7)
+
+Before this section existed, `logger.ts` wrote to `console.*` and nowhere else: no sink, no
+aggregation, no alerting. You would have learned about production incidents from customers.
+
+> A note on history: OPS-3 ("No monitoring or alerting") was once marked COMPLETED with the
+> justification *"health endpoint + logging"*. A health endpoint tells you the process is alive.
+> It does not tell you that 4% of requests are failing, or that someone is brute-forcing a login.
+> Do not re-close this on the same reasoning.
+
+### What ships in the codebase
+
+| Piece | Where | What it does |
+|---|---|---|
+| Telemetry seam | [`src/lib/telemetry.ts`](src/lib/telemetry.ts) | One place every error and structured log passes through, with a pluggable transport |
+| Scrubbing | same file | Removes secrets and PII **before** anything leaves the process |
+| Logger integration | [`src/lib/logger.ts`](src/lib/logger.ts) | Every `logger.*` call ships, including `SECURITY` and `AUDIT` |
+| Unhandled errors | `onRequestError` in [`src/instrumentation.ts`](src/instrumentation.ts) | Catches server errors that never reach a `try/catch`, including in Server Components |
+| Counters | `/api/health` | The numbers the alerts below threshold on |
+
+### Required configuration
+
+```bash
+# Where events are shipped. Unset means console-only: nothing is aggregated and
+# nothing can alert. The app logs a loud startup warning in production if unset.
+TELEMETRY_ENDPOINT="https://<your-collector>/ingest"
+
+# Optional; sent as `Authorization: Bearer <key>` when present.
+TELEMETRY_API_KEY="..."
+
+# Optional but strongly recommended: lets a stack trace be mapped to a build.
+RELEASE_SHA="$(git rev-parse HEAD)"
+```
+
+The transport posts JSON and is deliberately vendor-neutral. Sentry, Datadog, Axiom, Grafana Loki
+and an OTLP collector all accept a JSON POST; pointing at a specific one is an adapter implementing
+`TelemetryTransport`, not a refactor.
+
+### What is scrubbed, and verified
+
+Scrubbing runs on every event, over every string however deeply nested, including error messages
+and stack frames — which is where secrets usually hide, since there is no key to match on.
+
+Removed: database URLs with inline passwords, JWTs, `Bearer` tokens, `sk_/pk_/rk_` provider keys,
+GitHub tokens, 64-hex values (the shape of `FIELD_ENCRYPTION_KEY`), the session cookie, and email
+addresses. Key-based redaction (`password`, `token`, `secret`, `mfaSecret`, …) runs first.
+
+Verified by 17 tests in [`src/lib/__tests__/telemetry.test.ts`](src/lib/__tests__/telemetry.test.ts),
+including the acceptance criterion's deliberate error carrying a fake token and a customer email.
+
+### The five alerts
+
+Threshold these against `/api/health`, which is unauthenticated and contains no tenant data.
+
+| Alert | Signal | Suggested threshold |
+|---|---|---|
+| **5xx rate** | `counters["events.error"]` growth vs request volume | > 1% of requests over 5 min, or any sustained increase after a deploy |
+| **Auth-failure spike** | `counters["action.LOGIN_FAILED"]`, `action.RATE_LIMIT_*` | > 5× the trailing hour's baseline over 5 min |
+| **DB pool exhaustion** | `db.latencyMs` climbing, `health.db_unreachable` > 0, `status: "error"` | latency p95 > 500 ms for 5 min, or any `db_unreachable` |
+| **Store unavailable** | `counters["RATE_LIMIT_UNAVAILABLE"]`, `counters["SYNC_BUS_LISTEN_FAILED"]` | any occurrence — the limiter fails **closed**, so this is user-visible |
+| **SSE connection count** | `realtime.openConnections` | flat-lining at 0 with live traffic, or unbounded growth over a soak |
+
+`SYNC_BUS_LISTEN_FAILED` deserves a word: real-time fan-out degrades to polling rather than
+breaking, so nothing looks wrong from outside. Without an alert, "real-time quietly became
+single-instance again" is invisible — which is the failure PROD-4 exists to prevent.
+
+### What is NOT done
+
+No error-tracking vendor is provisioned for this deployment, so nothing is currently being shipped
+anywhere. **Set `TELEMETRY_ENDPOINT` and confirm events arrive before taking paid traffic.** The
+seam, the scrubbing and the counters are in place and tested; the destination is a deployment
+decision.
+
+Likewise, these alert thresholds are starting points written against the signals that exist. They
+have not been tuned against production traffic, because there is none yet. Revisit after PROD-8
+(load testing) gives real baselines.
+

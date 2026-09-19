@@ -13,6 +13,7 @@
  */
 
 import { assertProductionRateLimitStore } from "./lib/rate-limit-store";
+import { telemetryStartupWarnings } from "./lib/telemetry";
 
 const HEX_64 = /^[0-9a-f]{64}$/i;
 
@@ -88,6 +89,12 @@ function validateProductionConfig(): string[] {
   // more than one instance. Refuse rather than scale into it.
   errors.push(...assertProductionRateLimitStore());
 
+  // PROD-7. Not an error: an operator running without a sink has made a
+  // choice, and refusing to boot over observability would turn a monitoring
+  // gap into an outage. Loud, because the failure mode is learning about
+  // incidents from customers.
+  warnings.push(...telemetryStartupWarnings());
+
   for (const w of warnings) {
     console.warn(`[config] WARNING: ${w}`);
   }
@@ -123,4 +130,30 @@ export async function register() {
   }
 
   console.log("[config] Production configuration validated.");
+}
+
+/**
+ * PROD-7 — Next.js calls this for every unhandled server error, including ones
+ * thrown inside React Server Components and route handlers that never reach a
+ * try/catch.
+ *
+ * Without it, error tracking would only ever see what code remembered to log,
+ * which is exactly the errors nobody anticipated — the ones worth tracking.
+ */
+export async function onRequestError(
+  err: unknown,
+  request: { path?: string; method?: string; headers?: Record<string, string> },
+  context: { routerKind?: string; routePath?: string; routeType?: string }
+) {
+  const { logger } = await import("./lib/logger");
+  logger.error(
+    "UNHANDLED_SERVER_ERROR",
+    `Unhandled error in ${request?.method ?? "?"} ${request?.path ?? context?.routePath ?? "?"}`,
+    err,
+    {
+      routeType: context?.routeType,
+      routerKind: context?.routerKind,
+      routePath: context?.routePath,
+    }
+  );
 }
