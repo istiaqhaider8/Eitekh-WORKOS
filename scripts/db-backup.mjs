@@ -53,6 +53,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, rmSync, creat
 import { join, resolve } from "node:path";
 import { pipeline } from "node:stream/promises";
 import crypto from "node:crypto";
+import { libpqUrlFor } from "./pg-url.mjs";
 
 const argv = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -60,7 +61,10 @@ const argOf = (name, fallback) => {
   return i !== -1 && argv[i + 1] ? argv[i + 1] : fallback;
 };
 
-const url = argOf("--url", process.env.DATABASE_URL);
+// pg_dump connects through libpq, which refuses any query parameter it does
+// not recognise — and DATABASE_URL is Prisma's, so it carries `schema` and
+// friends. See scripts/pg-url.mjs.
+const url = libpqUrlFor("backup", argOf("--url", process.env.DATABASE_URL) || "");
 const outDir = resolve(argOf("--out", process.env.BACKUP_DIR || "backups"));
 const label = argOf("--label", "scheduled").replace(/[^A-Za-z0-9._-]/g, "-");
 const retain = Number(process.env.BACKUP_RETAIN || 7);

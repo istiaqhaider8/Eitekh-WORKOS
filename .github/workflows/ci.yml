@@ -109,6 +109,16 @@ jobs:
       # production does not use is how a drill passes on the day a restore
       # fails, so scripts/backup-drill.mjs runs both and also asserts the
       # negatives — wrong key, tampered byte, malformed key.
+      # The drill hands DATABASE_URL to pg_dump, and DATABASE_URL is Prisma's:
+      # it carries `?schema=public`, which libpq rejects outright. The node
+      # driver ignores unknown query parameters, so every other check in this
+      # job connected happily while the two commands that matter could not.
+      # scripts/pg-url.mjs strips them; these tests are what keep it correct.
+      # A directory argument is treated as a module path, not a glob, so the
+      # files are named. `run:` uses bash on this runner, which expands it.
+      - name: Connection-string cleaner (A1)
+        run: node --test scripts/__tests__/*.test.mjs
+
       - name: Backup and restore drill, plaintext and encrypted (A1)
         run: |
           set -e

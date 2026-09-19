@@ -24,6 +24,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, statSync, createReadStream, createWriteStream, rmSync } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import crypto from "node:crypto";
+import { libpqUrlFor } from "./pg-url.mjs";
 import { createRequire } from "node:module";
 
 const require_ = createRequire(import.meta.url);
@@ -36,7 +37,9 @@ const argOf = (name, fallback) => {
 };
 
 const file = argOf("--file");
-const url = argOf("--url", process.env.DATABASE_URL);
+// pg_restore connects through libpq, which refuses Prisma's query parameters.
+// See scripts/pg-url.mjs — the restore half of the same problem.
+const url = libpqUrlFor("restore", argOf("--url", process.env.DATABASE_URL) || "");
 const force = argv.includes("--force");
 const verifyAgainst = argOf("--verify");
 const pgRestore = process.env.PG_RESTORE || "pg_restore";
