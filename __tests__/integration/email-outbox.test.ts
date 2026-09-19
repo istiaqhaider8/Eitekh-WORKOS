@@ -121,7 +121,7 @@ describe("the message is persisted before it is sent", () => {
 // ---------------------------------------------------------------------------
 describe("sending", () => {
   it("marks the row SENT and records when", async () => {
-    await enqueueEmail({ to: TO, customSubject: "ok" });
+    await enqueueEmail({ to: TO, customSubject: "ok" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
 
@@ -132,7 +132,7 @@ describe("sending", () => {
   });
 
   it("passes the stored template and variables to the sender", async () => {
-    await enqueueEmail({ to: TO, templateKey: "WELCOME", variables: { userName: "Bo" } });
+    await enqueueEmail({ to: TO, templateKey: "WELCOME", variables: { userName: "Bo" } }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
 
@@ -145,7 +145,7 @@ describe("sending", () => {
 
   it("treats MOCKED as done, so a developer without SMTP accrues no backlog", async () => {
     (global as any).__sendResult = () => ({ status: "MOCKED", messageId: "mock" });
-    await enqueueEmail({ to: TO, customSubject: "dev" });
+    await enqueueEmail({ to: TO, customSubject: "dev" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
 
@@ -157,7 +157,7 @@ describe("sending", () => {
 describe("a failing provider", () => {
   it("is retried rather than losing the message", async () => {
     (global as any).__sendResult = () => ({ status: "FAILED", error: "smtp 451" });
-    await enqueueEmail({ to: TO, customSubject: "retry me" });
+    await enqueueEmail({ to: TO, customSubject: "retry me" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
 
@@ -179,7 +179,7 @@ describe("a failing provider", () => {
      * Note this does NOT call makeDue(). That is the point.
      */
     (global as any).__sendResult = () => ({ status: "FAILED", error: "down" });
-    await enqueueEmail({ to: TO, customSubject: "backoff" });
+    await enqueueEmail({ to: TO, customSubject: "backoff" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
     expect((await rows())[0].attempts).toBe(1);
@@ -193,7 +193,7 @@ describe("a failing provider", () => {
 
   it("succeeds on a later attempt once the provider recovers", async () => {
     (global as any).__sendResult = () => ({ status: "FAILED", error: "down" });
-    await enqueueEmail({ to: TO, customSubject: "recovers" });
+    await enqueueEmail({ to: TO, customSubject: "recovers" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
 
@@ -208,7 +208,7 @@ describe("a failing provider", () => {
 
   it("dead-letters after the attempt limit", async () => {
     (global as any).__sendResult = () => ({ status: "FAILED", error: "permanent" });
-    await enqueueEmail({ to: TO, customSubject: "dead" });
+    await enqueueEmail({ to: TO, customSubject: "dead" }, { deliverNow: false });
 
     for (let i = 0; i < MAX_EMAIL_ATTEMPTS; i++) {
       await makeDue();
@@ -246,7 +246,7 @@ describe("a failing provider", () => {
     (global as any).__sendResult = () => {
       throw new Error("transport exploded");
     };
-    await enqueueEmail({ to: TO, customSubject: "throws" });
+    await enqueueEmail({ to: TO, customSubject: "throws" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
 
@@ -291,7 +291,7 @@ describe("multi-instance and recovery", () => {
 
   it("a dead message can be replayed once the cause is fixed", async () => {
     (global as any).__sendResult = () => ({ status: "FAILED", error: "bad address" });
-    const id = await enqueueEmail({ to: TO, customSubject: "replay" });
+    const id = await enqueueEmail({ to: TO, customSubject: "replay" }, { deliverNow: false });
     await prisma.emailOutbox.update({
       where: { id: id! },
       data: { status: "DEAD", attempts: MAX_EMAIL_ATTEMPTS },
@@ -309,7 +309,7 @@ describe("multi-instance and recovery", () => {
   });
 
   it("a SENT message cannot be replayed", async () => {
-    const id = await enqueueEmail({ to: TO, customSubject: "already sent" });
+    const id = await enqueueEmail({ to: TO, customSubject: "already sent" }, { deliverNow: false });
     await makeDue();
     await runDueEmails();
     expect((await rows())[0].status).toBe("SENT");

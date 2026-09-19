@@ -254,6 +254,10 @@ model Project {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  /// D1 — full-text search vector over key, name and description.
+  /// See Issue.searchVector for why the default is declared this way.
+  searchVector Unsupported("tsvector")? @default(dbgenerated("((setweight(to_tsvector('english'::regconfig, COALESCE(key, ''::text)), 'A'::\"char\") || setweight(to_tsvector('english'::regconfig, COALESCE(name, ''::text)), 'A'::\"char\")) || setweight(to_tsvector('english'::regconfig, COALESCE(description, ''::text)), 'B'::\"char\"))"))
+
   workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   team            Team?            @relation(fields: [teamId], references: [id])
   projectTeams    Team[]           @relation("ProjectTeamsList")
@@ -274,6 +278,7 @@ model Project {
   @@index([createdAt])
   @@index([ownerId])
   @@index([teamId])
+  @@index([searchVector], type: Gin)
 }
 
 model ProjectMember {
@@ -433,6 +438,25 @@ model Issue {
   /// it never saw. Default 0 so existing rows are immediately usable.
   version        Int       @default(0)
 
+  /// D1 — full-text search vector over issueKey, title and description.
+  ///
+  /// A GENERATED column, maintained by Postgres, so it cannot drift from the
+  /// columns it summarises. A trigger would work too and would be one more
+  /// thing to forget on the next schema change.
+  ///
+  /// `Unsupported` because Prisma has no tsvector type: it knows the column
+  /// exists, so `migrate diff` stays quiet, and excludes it from the client so
+  /// nothing tries to write a generated column. Search reads it through
+  /// $queryRaw in src/lib/search.ts.
+  ///
+  /// The `dbgenerated` default is how the GENERATED expression is declared:
+  /// Prisma has no syntax for a generated column but reads the expression as a
+  /// column default, so without this the PROD-0 drift check fails on every run.
+  /// The text must be the CANONICAL form Postgres stores (with ::regconfig,
+  /// ::text and its own parentheses), not the prettier version in the
+  /// migration — `migrate diff` compares the normalised string.
+  searchVector   Unsupported("tsvector")? @default(dbgenerated("((setweight(to_tsvector('english'::regconfig, COALESCE(\"issueKey\", ''::text)), 'A'::\"char\") || setweight(to_tsvector('english'::regconfig, COALESCE(title, ''::text)), 'A'::\"char\")) || setweight(to_tsvector('english'::regconfig, COALESCE(description, ''::text)), 'B'::\"char\"))"))
+
   project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   status            WorkflowStatus      @relation(fields: [statusId], references: [id])
   reporter          User                @relation("IssueReporter", fields: [reporterId], references: [id])
@@ -476,6 +500,9 @@ model Issue {
   @@index([statusId])
   @@index([sprintId])
   @@index([componentId])
+  /// D1 — the GIN index that makes `@@` a lookup rather than a scan over
+  /// every row. Without it the tsvector column is just storage.
+  @@index([searchVector], type: Gin)
 }
 
 model Subtask {
@@ -519,11 +546,16 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// D1 — full-text search vector over `content`.
+  /// See Issue.searchVector for why the default is declared this way.
+  searchVector Unsupported("tsvector")? @default(dbgenerated("to_tsvector('english'::regconfig, COALESCE(content, ''::text))"))
+
   issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
   @@index([userId])
+  @@index([searchVector], type: Gin)
 }
 
 model Attachment {

@@ -1,9 +1,32 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { searchSchema, parseQuery } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { search } from "@/lib/search";
 
+/**
+ * D1 — search.
+ *
+ * This handler used to do three things that did not scale, and one that was
+ * simply wrong:
+ *
+ *   - matched with ILIKE '%term%', which cannot use an index. Measured at
+ *     83.671 ms on 20,000 issues with `Rows Removed by Filter: 18017` — a
+ *     sequential scan of the whole table, growing linearly.
+ *   - fetched EVERY accessible project id into the application and sent them
+ *     back as `projectId IN (...)`. For a super admin that is every project in
+ *     the installation; the EXPLAIN output was mostly id literals.
+ *   - ordered issues by createdAt and comments and projects by nothing at all,
+ *     so the best match was wherever it happened to fall.
+ *
+ * The query now lives in src/lib/search.ts, against the tsvector columns and
+ * GIN indexes from migration 0010, ranked with ts_rank, with the tenant
+ * predicate as a subquery inside the SQL rather than an id list on the wire.
+ *
+ * The response shape is unchanged — `{ issues, comments, projects }` — so the
+ * command palette and the search page need no edits. Each hit now carries a
+ * `rank`, which they can ignore.
+ */
 export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
@@ -14,86 +37,10 @@ export async function GET(req: Request) {
     if (!parsed.success) return parsed.error;
     const { q, type, limit } = parsed.data;
 
-    // Find projects user has access to
-    // They have access via projectMemberships, OR via org membership (as admin/owner)
-    // For simplicity and security, get all project IDs they explicitly or implicitly have access to
-    // In a real app with large number of projects, you might need a more optimized query
-    
-    // Get user's orgs
-    const orgMemberships = await prisma.organizationMember.findMany({
-      where: { userId: user.id },
-      select: { orgId: true, role: true }
+    const results = await search(q, type, limit, {
+      userId: user.id,
+      isSuperAdmin: Boolean(user.isSuperAdmin),
     });
-
-    // STRICT PROJECT-BASED ACCESS CONTROL:
-    // Only search projects where the user is an explicitly assigned member or direct project owner
-    let allowedProjectIds: string[] = [];
-
-    if (user.isSuperAdmin) {
-      const allProjects = await prisma.project.findMany({ select: { id: true } });
-      allowedProjectIds = allProjects.map(p => p.id);
-    } else {
-      const assignedProjects = await prisma.project.findMany({
-        where: {
-          OR: [
-            { members: { some: { userId: user.id } } },
-            { ownerId: user.id },
-          ],
-        },
-        select: { id: true }
-      });
-      allowedProjectIds = assignedProjects.map(p => p.id);
-    }
-
-    const results: any = {
-      issues: [],
-      comments: [],
-      projects: [],
-    };
-
-    if (type === "all" || type === "issues") {
-      results.issues = await prisma.issue.findMany({
-        where: {
-          projectId: { in: allowedProjectIds },
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-            { issueKey: { contains: q, mode: "insensitive" } },
-          ]
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-        include: { status: true }
-      });
-    }
-
-    if (type === "all" || type === "comments") {
-      results.comments = await prisma.comment.findMany({
-        where: {
-          issue: { projectId: { in: allowedProjectIds } },
-          content: { contains: q, mode: "insensitive" },
-        },
-        take: limit,
-        include: { 
-          issue: { select: { id: true, issueKey: true, title: true } },
-          user: { select: { id: true, firstName: true, lastName: true } }
-        }
-      });
-    }
-
-    if (type === "all" || type === "projects") {
-      results.projects = await prisma.project.findMany({
-        where: {
-          id: { in: allowedProjectIds },
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { key: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-          ]
-        },
-        take: limit,
-      });
-    }
 
     return NextResponse.json(results);
   } catch (error: any) {
