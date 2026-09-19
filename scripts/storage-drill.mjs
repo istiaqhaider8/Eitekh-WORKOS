@@ -233,14 +233,45 @@ try {
 }
 
 /**
- * Release the S3 socket pool before exiting.
+ * Release every socket pool before exiting.
  *
  * Without this, `process.exit()` races a live handle and Node aborts on
  * Windows with a libuv assertion — printed AFTER the work has already
  * succeeded and the exit code has already been set to 0. Noise that looks
  * like a crash but isn't is the most misleading output a drill can produce.
+ *
+ * There are TWO pools, which is why the first attempt at this did not work.
+ * Closing the S3 client was not enough: redeeming a presigned URL uses
+ * `fetch`, whose keep-alive connections belong to Node's global undici
+ * dispatcher, not to the SDK. That is the one still holding a handle.
+ *
+ * The dispatcher is reachable only through a well-known symbol, so this is
+ * guarded — a Node version that moves it should make the drill print an
+ * assertion again, not fail.
  */
 await backend.close?.();
+await closeGlobalFetchPool();
+
+async function closeGlobalFetchPool() {
+  try {
+    const dispatcher = globalThis[Symbol.for("undici.globalDispatcher.1")];
+    if (dispatcher && typeof dispatcher.close === "function") await dispatcher.close();
+  } catch {
+    /* best effort: this is tidiness, not correctness */
+  }
+}
 
 console.log(`\n[storage-drill] ${pass} passed, ${fail} failed`);
-process.exit(fail === 0 ? 0 : 1);
+/**
+ * exitCode rather than exit().
+ *
+ * process.exit() tears the process down immediately, racing any socket that
+ * has not finished closing — which on Windows surfaces as a libuv assertion
+ * printed after the run has already succeeded. Closing the pools first helped
+ * but did not remove the race; it appeared on two runs out of three.
+ *
+ * Setting the code and letting Node exit when the loop drains has no race at
+ * all, and if something ever DOES hold the loop open, a script that hangs is
+ * a better signal than one that aborts with a message resembling a crash.
+ */
+process.exitCode = fail === 0 ? 0 : 1;

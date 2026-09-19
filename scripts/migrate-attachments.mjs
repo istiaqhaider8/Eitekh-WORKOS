@@ -222,4 +222,16 @@ if (!DRY_RUN && moved > 0) {
       "[attachments] then drop the column in a separate migration."
   );
 }
-process.exit(failed === 0 ? 0 : 1);
+/**
+ * exitCode rather than exit(), for the same reason as the storage drill.
+ *
+ * process.exit() tears the process down immediately, racing any socket still
+ * closing — which on Windows surfaces as a libuv assertion printed after the
+ * migration has already succeeded. Closing the pools first reduced it but did
+ * not remove the race; it still appeared on two runs out of three.
+ *
+ * Letting Node exit when the loop drains has no race, and if something ever
+ * does hold the loop open, a script that hangs is a better signal than one
+ * that aborts with a message resembling a crash.
+ */
+process.exitCode = failed === 0 ? 0 : 1;
