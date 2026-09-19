@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { epicUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 
 export async function GET(
   req: Request,
@@ -45,15 +46,21 @@ export async function PATCH(
     const { id } = await params;
     const parsed = await parseJsonBody(req, epicUpdateSchema);
     if (!parsed.success) return parsed.error;
-    const { name, summary, color, status, ownerId, startDate, targetDate } = parsed.data;
+    const { name, summary, color, status, ownerId, startDate, targetDate, version } = parsed.data;
 
     const epic = await prisma.epic.findUnique({ where: { id } });
     if (!epic) return NextResponse.json({ error: "Epic not found" }, { status: 404 });
 
     await assertProjectPermission(epic.projectId, "epics:edit");
 
-    const updatedEpic = await prisma.epic.update({
-      where: { id },
+    /**
+     * M4 — epics are edited during planning, by several people at once, and
+     * the fields that collide are the ones that matter: status and target
+     * date. Losing one of those loses a decision the room had just made.
+     */
+    await applyVersionedUpdate(prisma.epic, {
+      id,
+      expectedVersion: version,
       data: {
         ...(name !== undefined && { name }),
         ...(summary !== undefined && { summary }),
@@ -63,7 +70,9 @@ export async function PATCH(
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(targetDate !== undefined && { targetDate: targetDate ? new Date(targetDate) : null }),
       },
+      entity: "epic",
     });
+    const updatedEpic = await prisma.epic.findUniqueOrThrow({ where: { id } });
 
     try {
       const { syncEngine } = await import("@/lib/sync-engine");
@@ -83,6 +92,11 @@ export async function PATCH(
 
     return NextResponse.json(updatedEpic);
   } catch (error: any) {
+    if (error?.code === "VERSION_CONFLICT") {
+      const { id } = await params;
+      const current = await prisma.epic.findUnique({ where: { id } });
+      return versionConflictResponse(error.message, "epic", current);
+    }
     return handleApiError(error, "epics/[id]");
   }
 }

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { sprintCreateSchema, sprintUpdateSchema, sprintReorderSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 
 export async function GET(req: Request) {
   try {
@@ -165,13 +166,19 @@ export async function PUT(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  // Which sprint the request was for, so the conflict handler can fetch the
+  // current state. Unlike the [id] routes there is no path parameter to read
+  // again in the catch — it arrives in the body.
+  let conflictSprintId: string | undefined;
+
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const parsed = await parseJsonBody(req, sprintUpdateSchema);
     if (!parsed.success) return parsed.error;
-    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes, position } = parsed.data;
+    const { sprintId, status, rolloverToSprintId, name, goal, startDate, endDate, retrospectiveNotes, position, version } = parsed.data;
+    conflictSprintId = sprintId;
 
     const sprint = await prisma.sprint.findUnique({
       where: { id: sprintId },
@@ -287,10 +294,22 @@ export async function PATCH(req: Request) {
       updateData.retrospectiveNotes = retrospectiveNotes ? retrospectiveNotes.trim() : null;
     }
 
-    const updatedSprint = await prisma.sprint.update({
-      where: { id: sprintId },
+    /**
+     * M4 — this is the route where a lost update costs the most.
+     *
+     * Sprint start and completion recompute plannedPoints, completedPoints
+     * and the dates from the issues in the sprint, so two people pressing
+     * "Complete sprint" in the same minute did not just overwrite a field —
+     * they wrote two different sets of derived totals, and whichever landed
+     * second became the sprint's permanent record of what the team delivered.
+     */
+    await applyVersionedUpdate(prisma.sprint, {
+      id: sprintId,
+      expectedVersion: version,
       data: updateData,
+      entity: "sprint",
     });
+    const updatedSprint = await prisma.sprint.findUniqueOrThrow({ where: { id: sprintId } });
 
     // REAL-TIME DATA SYNCHRONIZATION:
     try {
@@ -315,6 +334,10 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ sprint: updatedSprint });
   } catch (error: any) {
+    if (error?.code === "VERSION_CONFLICT" && conflictSprintId) {
+      const current = await prisma.sprint.findUnique({ where: { id: conflictSprintId } });
+      return versionConflictResponse(error.message, "sprint", current);
+    }
     return handleApiError(error, "sprints");
   }
 }

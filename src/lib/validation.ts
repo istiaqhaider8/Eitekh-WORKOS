@@ -159,6 +159,33 @@ export const notificationPostSchema = z.object({
   projectId: z.string().max(50).optional(),
 });
 
+/**
+ * B1 / M4 — the version the client last read, on every route that has one.
+ *
+ * Optional, deliberately. Making it required would break every existing client
+ * and every script the moment it shipped, and a 400 for a missing field is a
+ * worse failure than the one being fixed. When it IS sent, a mismatch is a 409
+ * rather than a silent overwrite — so a client opts into conflict detection by
+ * sending back what it read.
+ *
+ * ABSENT IS THE ONLY THING THAT MEANS "DO NOT CHECK", which is why this is not
+ * a bare `z.coerce.number().optional()`. `z.coerce` sends `null` through
+ * `Number()` and gets 0, so `{"version": null}` — which is what a client with
+ * no version loaded naturally serialises — would have meant "I expect version
+ * 0" rather than "I have none". On a row past 0 that is a spurious 409; on a
+ * fresh row it is an unguarded write that looks guarded. Both are worse than
+ * either honest answer, so null and "" are mapped to absent explicitly, and
+ * anything else unparseable is a 400 rather than being quietly dropped.
+ *
+ * This lives here, once, because it is a validation rule. An earlier draft
+ * also parsed `version` inside `optimistic-lock.ts`, which would have been two
+ * validators for one field — the duplication that module exists to remove.
+ */
+export const optimisticVersionField = z.preprocess(
+  (v) => (v === null || v === "" ? undefined : v),
+  z.coerce.number().int().min(0).optional()
+);
+
 export const issueUpdateSchema = z.object({
   title: safeStringSchema.min(1).optional(),
   description: safeLongStringSchema.optional().nullable(),
@@ -179,16 +206,7 @@ export const issueUpdateSchema = z.object({
   dueDate: z.string().max(50).nullable().optional(),
   position: z.coerce.number().int().min(0).optional(),
   securityLevel: z.string().max(50).nullable().optional(),
-  /**
-   * B1 — the version the client last read.
-   *
-   * Optional, deliberately. Making it required would break every existing
-   * client and every script the moment this shipped, and a 400 for a missing
-   * field is a worse failure than the one being fixed. When it IS sent, a
-   * mismatch is a 409 rather than a silent overwrite — so a client opts into
-   * conflict detection by sending what it read.
-   */
-  version: z.coerce.number().int().min(0).optional(),
+  version: optimisticVersionField,
 }).passthrough();
 
 export const projectUpdateSchema = z.object({
@@ -198,6 +216,8 @@ export const projectUpdateSchema = z.object({
   priority: z.string().max(50).optional(),
   startDate: z.string().max(50).nullable().optional(),
   targetDate: z.string().max(50).nullable().optional(),
+  // M4 — see optimisticVersionField.
+  version: optimisticVersionField,
 });
 
 export const searchSchema = z.object({
@@ -269,6 +289,8 @@ export const sprintUpdateSchema = z.object({
   retrospectiveNotes: safeLongStringSchema.trim().optional().nullable(),
   position: z.coerce.number().int().min(0).optional(),
   rolloverToSprintId: cuidSchema.optional().nullable(),
+  // M4 — see optimisticVersionField.
+  version: optimisticVersionField,
 });
 
 export const sprintReorderSchema = z.object({
@@ -395,6 +417,8 @@ export const epicCreateSchema = z.object({
 
 export const commentUpdateSchema = z.object({
   content: z.string().min(1, "Comment content is required").max(10_000).trim(),
+  // M4 — see optimisticVersionField.
+  version: optimisticVersionField,
 });
 
 export const workspaceUpdateSchema = z.object({
@@ -427,6 +451,8 @@ export const epicUpdateSchema = z.object({
   ownerId: cuidSchema.optional().nullable(),
   startDate: z.string().max(50).optional().nullable(),
   targetDate: z.string().max(50).optional().nullable(),
+  // M4 — see optimisticVersionField.
+  version: optimisticVersionField,
 });
 
 export const subtaskCreateSchema = z.object({
@@ -444,6 +470,8 @@ export const subtaskUpdateSchema = z.object({
   dueDate: z.string().max(50).optional().nullable(),
   isCompleted: z.boolean().optional(),
   status: z.string().max(50).optional(),
+  // M4 — see optimisticVersionField.
+  version: optimisticVersionField,
 });
 
 export const timeEntryCreateSchema = z.object({
@@ -542,6 +570,8 @@ export const automationUpdateSchema = z.object({
   conditionRules: z.string().max(10_000).nullable().optional(),
   actionConfig: z.string().max(10_000).nullable().optional(),
   isActive: z.boolean().optional(),
+  // M4 — see optimisticVersionField.
+  version: optimisticVersionField,
 });
 
 // ── Webhook schemas ───────────────────────────────────────────────

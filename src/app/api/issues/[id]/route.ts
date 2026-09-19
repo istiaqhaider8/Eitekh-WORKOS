@@ -7,9 +7,10 @@ import { issueUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
-import { handleApiError, ConflictError } from "@/lib/api-error";
+import { handleApiError } from "@/lib/api-error";
 import { getIssueSubscribers } from "@/lib/issue-subscribers";
 import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 
 /**
  * A4 — how much history a single issue fetch carries.
@@ -21,23 +22,16 @@ import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/
 const HISTORY_PAGE_SIZE = 50;
 
 /**
- * B1 — thrown inside the update transaction when the client's `version` no
- * longer matches the row.
+ * B1 shipped the version guard inline here. M4 moved it to
+ * `src/lib/optimistic-lock.ts` unchanged, because extending it to the other
+ * six things people edit meant either one rule or seven copies of it — and
+ * the copies drift, which is how `issue-relations.ts` came to exist.
  *
- * A sentinel rather than a direct response because it has to abort the
- * transaction: the activity-log rows written alongside the update must not
- * survive an edit that did not happen. It is converted to a 409 below, with
- * the current server state attached so the client can show what changed
- * instead of just refusing.
+ * The behaviour is identical: the same message, the same 409 shape, the same
+ * abort-the-transaction sentinel so that activity-log rows written alongside
+ * an update cannot survive an edit that did not happen. The eight tests in
+ * `optimistic-locking.test.ts` are what say so.
  */
-class IssueVersionConflictError extends ConflictError {
-  constructor() {
-    super(
-      "This issue was changed by someone else while you were editing it.",
-      "VERSION_CONFLICT"
-    );
-  }
-}
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -577,26 +571,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
      * exists to close — two requests could both read version 3 and both
      * proceed. `where: { id, version }` is atomic.
      */
+    // Coerced and validated by optimisticVersionField in the request schema.
     const expectedVersion = body.version;
 
     const updatedIssue = await prisma.$transaction(async (tx) => {
-      if (expectedVersion !== undefined) {
-        const { count } = await tx.issue.updateMany({
-          where: { id, version: expectedVersion },
-          data: { ...updateData, version: { increment: 1 } },
-        });
-        if (count === 0) {
-          throw new IssueVersionConflictError();
-        }
-      } else {
-        // No version sent: the caller has not opted into conflict detection.
-        // Still bump the counter, so a client that IS sending versions is not
-        // fooled into thinking nothing changed.
-        await tx.issue.update({
-          where: { id },
-          data: { ...updateData, version: { increment: 1 } },
-        });
-      }
+      await applyVersionedUpdate(tx.issue, {
+        id,
+        expectedVersion,
+        data: updateData,
+        entity: "issue",
+      });
 
       const issue = await tx.issue.findUniqueOrThrow({
         where: { id },
@@ -765,15 +749,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           component: true,
         },
       });
-      return NextResponse.json(
-        {
-          error: error.message,
-          code: "VERSION_CONFLICT",
-          currentVersion: current?.version ?? null,
-          issue: current,
-        },
-        { status: 409 }
-      );
+      return versionConflictResponse(error.message, "issue", current);
     }
     console.error("Update issue error:", error);
     return handleApiError(error, "issues/[id]");

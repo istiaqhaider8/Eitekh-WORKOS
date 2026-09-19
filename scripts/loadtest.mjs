@@ -513,16 +513,58 @@ if (samples.length > 1) {
       }
     }
 
-    // A soak is the run that is entitled to make a claim about drift. A short
-    // run is not: growth over 30 seconds is warm-up.
+    /**
+     * A soak is the run entitled to make a claim about drift. A short one is
+     * not: growth over 30 seconds is warm-up.
+     *
+     * AND SO IS THE START OF A LONG ONE. The first sample is taken five
+     * seconds in, while the process is still compiling routes, filling caches
+     * and growing its heap to working size. Measuring from there makes every
+     * healthy run look like a leak: the first two-hour soak went 200MB -> 450MB
+     * in its opening minutes and then sat between 446 and 459MB for the rest
+     * of the run, which is a settled process and would have been reported as
+     * +125% growth.
+     *
+     * So the verdict is taken over the post-warm-up window only, and from the
+     * MEDIAN of the first and last tenth of it rather than single endpoints —
+     * RSS moves several megabytes between consecutive samples, and picking two
+     * of them is picking noise.
+     */
     if (SOAK) {
+      const WARMUP_FRACTION = 0.2;
+      const settled = mem.slice(Math.floor(mem.length * WARMUP_FRACTION));
+
       if (restarted) {
         soakFailures.push("the server restarted mid-run, so memory drift could not be measured");
-      } else if (growthPct > 25) {
-        soakFailures.push(
-          `server RSS grew ${growthPct.toFixed(1)}% over the run ` +
-            `(${mb(mFirst.serverRss)}MB -> ${mb(mLast.serverRss)}MB)`
+      } else if (settled.length < 10) {
+        console.log(
+          "\n  (too few samples after warm-up to judge drift; not treating that as a pass)"
         );
+        soakFailures.push(
+          `only ${settled.length} sample(s) after warm-up — the run was too short to say anything about memory`
+        );
+      } else {
+        const median = (xs) => {
+          const s = [...xs].sort((a, b) => a - b);
+          return s[Math.floor(s.length / 2)];
+        };
+        const slice = Math.max(1, Math.floor(settled.length / 10));
+        const early = median(settled.slice(0, slice).map((s) => s.serverRss));
+        const late = median(settled.slice(-slice).map((s) => s.serverRss));
+        const settledGrowth = ((late - early) / early) * 100;
+
+        console.log(
+          `  settled drift    ${mb(early)}MB -> ${mb(late)}MB ` +
+            `(${settledGrowth >= 0 ? "+" : ""}${settledGrowth.toFixed(1)}%, ` +
+            `median of first and last tenth after ${Math.round(WARMUP_FRACTION * 100)}% warm-up)`
+        );
+
+        if (settledGrowth > 15) {
+          soakFailures.push(
+            `server RSS grew ${settledGrowth.toFixed(1)}% AFTER warm-up ` +
+              `(${mb(early)}MB -> ${mb(late)}MB). That is drift, not startup.`
+          );
+        }
       }
     }
   }

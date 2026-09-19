@@ -5,6 +5,7 @@ import { assertProjectAccess } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { commentUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 
 export async function PATCH(
   req: Request,
@@ -17,7 +18,7 @@ export async function PATCH(
     const { id } = await params;
     const parsed = await parseJsonBody(req, commentUpdateSchema);
     if (!parsed.success) return parsed.error;
-    const { content } = parsed.data;
+    const { content, version } = parsed.data;
 
     const comment = await prisma.comment.findUnique({
       where: { id },
@@ -41,10 +42,21 @@ export async function PATCH(
       return NextResponse.json({ error: "Only the author can edit this comment" }, { status: 403 });
     }
 
-    const updatedComment = await prisma.comment.update({
-      where: { id },
+    /**
+     * M4 — a comment is prose, and a lost edit loses somebody's writing.
+     *
+     * Only the author can edit, so the two writers here are usually the same
+     * person in two tabs, or a tab left open since yesterday. That is not a
+     * rarer case than two people — it is a more common one, and the outcome
+     * was the same: the older tab's Save silently replaced the newer text.
+     */
+    await applyVersionedUpdate(prisma.comment, {
+      id,
+      expectedVersion: version,
       data: { content },
+      entity: "comment",
     });
+    const updatedComment = await prisma.comment.findUniqueOrThrow({ where: { id } });
 
     await logAuditEvent({
       actorId: user.id,
@@ -68,6 +80,11 @@ export async function PATCH(
 
     return NextResponse.json(updatedComment);
   } catch (error: any) {
+    if (error?.code === "VERSION_CONFLICT") {
+      const { id } = await params;
+      const current = await prisma.comment.findUnique({ where: { id } });
+      return versionConflictResponse(error.message, "comment", current);
+    }
     return handleApiError(error, "comments/[id]");
   }
 }

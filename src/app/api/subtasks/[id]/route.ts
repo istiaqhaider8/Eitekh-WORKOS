@@ -5,6 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { subtaskUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -79,7 +80,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const parsed = await parseJsonBody(req, subtaskUpdateSchema);
     if (!parsed.success) return parsed.error;
-    const { title, assigneeId, priority, estimateHours, dueDate, isCompleted, status } = parsed.data;
+    const { title, assigneeId, priority, estimateHours, dueDate, isCompleted, status, version } = parsed.data;
 
     // H2 — the sibling of the hole in POST /issues/[id]/subtasks. `undefined`
     // means the field is not being changed and `null` means unassign; neither
@@ -100,9 +101,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.isCompleted = status === "DONE";
     }
 
-    const subtask = await prisma.subtask.update({
-      where: { id },
+    /**
+     * M4 — a subtask is edited from the issue detail view and the board at
+     * the same time, which is one person with two tabs as often as it is two
+     * people. Ticking "done" in one and renaming in the other lost whichever
+     * saved first.
+     */
+    await applyVersionedUpdate(prisma.subtask, {
+      id,
+      expectedVersion: version,
       data: updateData,
+      entity: "subtask",
+    });
+
+    const subtask = await prisma.subtask.findUniqueOrThrow({
+      where: { id },
       include: {
         assignee: {
           select: {
@@ -143,6 +156,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json({ subtask });
   } catch (error: any) {
+    if (error?.code === "VERSION_CONFLICT") {
+      const { id } = await params;
+      const current = await prisma.subtask.findUnique({ where: { id } });
+      return versionConflictResponse(error.message, "subtask", current);
+    }
     return handleApiError(error, "subtasks/[id]");
   }
 }

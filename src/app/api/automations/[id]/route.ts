@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { automationUpdateSchema, parseBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -34,15 +35,27 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const parsed = parseBody(automationUpdateSchema, await request.json());
     if (!parsed.success) return parsed.error;
-    const { name, triggerConfig, conditionRules, actionConfig, isActive } = parsed.data;
+    const { name, triggerConfig, conditionRules, actionConfig, isActive, version } = parsed.data;
 
-    const rule = await prisma.automationRule.update({
-      where: { id },
-      data: { name, triggerConfig, conditionRules, actionConfig, isActive }
+    /**
+     * M4 — a lost edit here changes what the system DOES, not just what it
+     * says. Two admins tuning the same rule, and the older tab's Save quietly
+     * restores a trigger someone had just turned off.
+     */
+    await applyVersionedUpdate(prisma.automationRule, {
+      id,
+      expectedVersion: version,
+      data: { name, triggerConfig, conditionRules, actionConfig, isActive },
+      entity: "automation rule",
     });
+    const rule = await prisma.automationRule.findUniqueOrThrow({ where: { id } });
 
     return NextResponse.json(rule);
   } catch (error: any) {
+    if (error?.code === "VERSION_CONFLICT") {
+      const current = await prisma.automationRule.findUnique({ where: { id } });
+      return versionConflictResponse(error.message, "rule", current);
+    }
     return handleApiError(error, "automations/[id]");
   }
 }

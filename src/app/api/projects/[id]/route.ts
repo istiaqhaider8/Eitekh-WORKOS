@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { projectUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -45,9 +46,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
     if (body.targetDate !== undefined) data.targetDate = body.targetDate ? new Date(body.targetDate) : null;
 
-    const updated = await prisma.project.update({
-      where: { id },
+    /**
+     * M4 — the project record is the one several admins edit, and the fields
+     * that collide are status, dates and priority. A lost update here quietly
+     * reverts a decision about the project itself, which is the change people
+     * are least likely to re-check.
+     */
+    await applyVersionedUpdate(prisma.project, {
+      id,
+      expectedVersion: body.version,
       data,
+      entity: "project",
+    });
+
+    const updated = await prisma.project.findUniqueOrThrow({
+      where: { id },
       include: {
         workspace: {
           include: {
@@ -78,6 +91,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json(updated);
   } catch (error: any) {
+    if (error?.code === "VERSION_CONFLICT") {
+      const { id } = await params;
+      const current = await prisma.project.findUnique({ where: { id } });
+      return versionConflictResponse(error.message, "project", current);
+    }
     return handleApiError(error, "projects/[id]");
   }
 }
