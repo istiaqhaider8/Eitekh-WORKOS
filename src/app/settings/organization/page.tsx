@@ -227,8 +227,8 @@ export default function OrganizationSettingsPage() {
           
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Organization Name</label>
-              <input
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-name">Organization Name</label>
+              <input id="page-name"
                 type="text"
                 name="name"
                 value={formData.name}
@@ -239,8 +239,8 @@ export default function OrganizationSettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Allowed Domain</label>
-              <input
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-domain">Allowed Domain</label>
+              <input id="page-domain"
                 type="text"
                 name="domain"
                 value={formData.domain}
@@ -262,8 +262,8 @@ export default function OrganizationSettingsPage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Timezone</label>
-              <select
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-timezone">Timezone</label>
+              <select id="page-timezone"
                 name="timezone"
                 value={formData.timezone}
                 onChange={handleChange}
@@ -279,8 +279,8 @@ export default function OrganizationSettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date Format</label>
-              <select
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-dateFormat">Date Format</label>
+              <select id="page-dateFormat"
                 name="dateFormat"
                 value={formData.dateFormat}
                 onChange={handleChange}
@@ -314,8 +314,8 @@ export default function OrganizationSettingsPage() {
 
           <div className="flex gap-4 items-end">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Start Time</label>
-              <input
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-workingHoursStart">Start Time</label>
+              <input id="page-workingHoursStart"
                 type="time"
                 name="workingHoursStart"
                 value={formData.workingHoursStart}
@@ -326,8 +326,8 @@ export default function OrganizationSettingsPage() {
             </div>
             <div className="pb-3 text-slate-500">to</div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End Time</label>
-              <input
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-workingHoursEnd">End Time</label>
+              <input id="page-workingHoursEnd"
                 type="time"
                 name="workingHoursEnd"
                 value={formData.workingHoursEnd}
@@ -459,8 +459,8 @@ export default function OrganizationSettingsPage() {
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">First Name</label>
-                  <input
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-first-name">First Name</label>
+                  <input id="page-first-name"
                     type="text"
                     value={inviteForm.firstName}
                     onChange={(e) => setInviteForm({ ...inviteForm, firstName: e.target.value })}
@@ -469,8 +469,8 @@ export default function OrganizationSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
-                  <input
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-last-name">Last Name</label>
+                  <input id="page-last-name"
                     type="text"
                     value={inviteForm.lastName}
                     onChange={(e) => setInviteForm({ ...inviteForm, lastName: e.target.value })}
@@ -481,8 +481,8 @@ export default function OrganizationSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address *</label>
-                <input
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-email-address">Email Address *</label>
+                <input id="page-email-address"
                   type="email"
                   required
                   value={inviteForm.email}
@@ -493,8 +493,8 @@ export default function OrganizationSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Organization Role</label>
-                <select
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-organization-role">Organization Role</label>
+                <select id="page-organization-role"
                   value={inviteForm.role}
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
                   className="w-full p-2.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 outline-none focus:border-blue-500"

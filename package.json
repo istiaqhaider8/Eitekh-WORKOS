@@ -20,7 +20,8 @@
     "test:integration": "node scripts/run-integration-tests.mjs",
     "check:isolation": "node scripts/check-isolation-coverage.mjs",
     "check:email-dns": "node scripts/check-email-dns.mjs",
-    "check:bundle": "node scripts/check-bundle-budget.mjs"
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "check:a11y": "node scripts/check-a11y.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

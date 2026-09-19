@@ -211,8 +211,8 @@ export default function SecuritySettingsPage() {
 
           <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Current Password</label>
-              <input
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1" htmlFor="page-current-password">Current Password</label>
+              <input id="page-current-password"
                 type="password"
                 required
                 value={currentPassword}
@@ -221,8 +221,8 @@ export default function SecuritySettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">New Password</label>
-              <input
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1" htmlFor="page-new-password">New Password</label>
+              <input id="page-new-password"
                 type="password"
                 required
                 value={newPassword}
@@ -244,8 +244,8 @@ export default function SecuritySettingsPage() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Confirm New Password</label>
-              <input
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1" htmlFor="page-confirm-new-password">Confirm New Password</label>
+              <input id="page-confirm-new-password"
                 type="password"
                 required
                 value={confirmPassword}

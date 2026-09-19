@@ -455,8 +455,8 @@ export default function ProfileSettingsPage() {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Personal Details</h2>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name</label>
-            <input
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-firstName">First Name</label>
+            <input id="page-firstName"
               type="text"
               name="firstName"
               value={formData.firstName}
@@ -466,8 +466,8 @@ export default function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
-            <input
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-lastName">Last Name</label>
+            <input id="page-lastName"
               type="text"
               name="lastName"
               value={formData.lastName}
@@ -480,8 +480,8 @@ export default function ProfileSettingsPage() {
 
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Job Title</label>
-            <input
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-jobTitle">Job Title</label>
+            <input id="page-jobTitle"
               type="text"
               name="jobTitle"
               value={formData.jobTitle}
@@ -490,8 +490,8 @@ export default function ProfileSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Company</label>
-            <input
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-company">Company</label>
+            <input id="page-company"
               type="text"
               name="company"
               value={formData.company}
@@ -503,8 +503,8 @@ export default function ProfileSettingsPage() {
 
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Timezone</label>
-            <select
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-timezone">Timezone</label>
+            <select id="page-timezone"
               name="timezone"
               value={formData.timezone}
               onChange={handleChange}
@@ -523,8 +523,8 @@ export default function ProfileSettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Language</label>
-            <select
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-language">Language</label>
+            <select id="page-language"
               name="language"
               value={formData.language}
               onChange={handleChange}
@@ -800,8 +800,8 @@ export default function ProfileSettingsPage() {
             <form onSubmit={handleCreateLeave} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Start Date *</label>
-                  <input
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-start-date">Start Date *</label>
+                  <input id="page-start-date"
                     type="date"
                     required
                     value={leaveForm.startDate}
@@ -810,8 +810,8 @@ export default function ProfileSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">End Date *</label>
-                  <input
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-end-date">End Date *</label>
+                  <input id="page-end-date"
                     type="date"
                     required
                     value={leaveForm.endDate}
@@ -822,8 +822,8 @@ export default function ProfileSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Leave Type</label>
-                <select
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-leave-type">Leave Type</label>
+                <select id="page-leave-type"
                   value={leaveForm.leaveType}
                   onChange={(e) => setLeaveForm((prev) => ({ ...prev, leaveType: e.target.value }))}
                   className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -837,8 +837,8 @@ export default function ProfileSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Reason / Note (Optional)</label>
-                <textarea
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-reason-note-optional">Reason / Note (Optional)</label>
+                <textarea id="page-reason-note-optional"
                   rows={2}
                   value={leaveForm.note}
                   onChange={(e) => setLeaveForm((prev) => ({ ...prev, note: e.target.value }))}
@@ -865,8 +865,8 @@ export default function ProfileSettingsPage() {
                 {leaveForm.delegateWork && (
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3 animate-in fade-in duration-150">
                     <div>
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Delegate to (Team Member) *</label>
-                      <select
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="page-delegate-to-team-member">Delegate to (Team Member) *</label>
+                      <select id="page-delegate-to-team-member"
                         value={leaveForm.delegateUserId}
                         onChange={(e) => setLeaveForm((prev) => ({ ...prev, delegateUserId: e.target.value }))}
                         className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"

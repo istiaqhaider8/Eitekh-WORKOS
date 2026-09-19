@@ -193,6 +193,49 @@ Set `FORCE_HTTPS=true` in `.env` after enabling TLS.
 
 ---
 
+## 6b. Accessibility (D3) — what is checked, and what is not
+
+`npm run check:a11y` runs in CI and **fails the build if any file gains an
+interactive control with no accessible name**. The current count is in
+`a11y-baseline.json`; it may go down freely and cannot go up.
+
+### What the ratchet catches
+
+- a `<button>` whose only content is an icon, with no `aria-label` or `title`
+- an `<input>`, `<select>` or `<textarea>` with no label, `aria-label` or
+  `aria-labelledby`
+
+A screen reader announces the first as "button" and the second as "edit text".
+On a page with 40 icon buttons that is not a degraded experience, it is an
+unusable one.
+
+### What it does NOT catch — and so what is NOT verified
+
+This is a static scan of JSX source, not an `axe` run. It cannot judge:
+
+| Not checked | Why it needs a browser |
+|---|---|
+| **Colour contrast** | needs computed styles, in both themes |
+| **Focus order** | needs a live tab sequence |
+| **Focus trapping in modals** | needs to observe where focus goes on open/close |
+| **Whether a label is *useful*** | `aria-label="button"` passes and helps nobody |
+| **Keyboard operability** | needs real key events |
+
+Those require `axe-core` in a headless browser. **That has not been set up, and
+D3 is not complete until it is.** Two measurements that say how far off it is:
+`tabIndex` appears **0 times** in the codebase and `onKeyDown` **4 times**, so
+focus management is essentially unimplemented.
+
+> **Status:** 336 controls without an accessible name, down from 360. The forms
+> on the settings pages are fixed (labels associated with `htmlFor`/`id`, which
+> also makes them click targets). The remaining count is mostly icon-only
+> buttons, each of which needs a human to say what it does — a mechanical
+> rewrite would produce labels that pass the check and tell a user nothing.
+>
+> An enterprise buyer asking for a VPAT cannot be answered from this yet.
+
+---
+
 ## 6a. Mail authentication (C2) — SPF, DKIM, DMARC
 
 **Run `npm run check:email-dns` against the real sending domain before launch,

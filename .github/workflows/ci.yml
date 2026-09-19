@@ -181,6 +181,19 @@ jobs:
       - name: Client bundle budget (D2)
         run: node scripts/check-bundle-budget.mjs
 
+      # D3. A ratchet on interactive controls with no accessible name.
+      #
+      # A button whose only child is an icon is announced as "button"; an input
+      # with no associated label is announced as "edit text". On a page with 40
+      # icon buttons that is not a degraded experience, it is an unusable one.
+      #
+      # This is NOT an axe run — it cannot judge contrast, focus order or
+      # whether a modal traps focus, and D3 is not finished until something
+      # can. What it does is stop the number growing while that is arranged,
+      # because retrofitting accessibility costs far more than adding it.
+      - name: Accessibility ratchet (D3)
+        run: node scripts/check-a11y.mjs
+
       # PROD-5. Tenant-isolation integration tests, against a real server and a
       # real database.
       #
