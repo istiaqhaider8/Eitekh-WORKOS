@@ -41,6 +41,37 @@ export async function GET(req: NextRequest) {
     const whereClause: any = {};
 
     if (issueId) {
+      /**
+       * H4 — `issueId` is a caller-supplied id on a path that names no tenant.
+       *
+       * This branch used to set the filter and stop there. Every other branch
+       * scopes to the caller — `sent` and `received` by their user id, the
+       * default by an OR of both — so this was the one way to ask the route
+       * for rows that are nobody's business of yours, and it answered:
+       *
+       *     GET /api/users/delegations?issueId=<another tenant's issue>
+       *
+       * returned both parties' id, first and last name, EMAIL and avatar, the
+       * issue's key, title and project, and the full delegation history with
+       * every actor's email. The same shape as the team-members leak.
+       *
+       * The `orgId` check above does not help. It validates an org the CALLER
+       * named, defaulting to one of their own memberships, and never relates
+       * it to the issue being asked about.
+       *
+       * Verified against the running app: the existing isolation test for
+       * this route had been passing only because the fixture contained no
+       * delegation rows for it to find.
+       */
+      const issue = await prisma.issue.findUnique({
+        where: { id: issueId },
+        select: { projectId: true },
+      });
+      if (!issue) {
+        return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+      }
+      // Throws for a project the caller cannot reach; the catch maps it.
+      await assertProjectAccess(issue.projectId);
       whereClause.issueId = issueId;
     } else if (type === "sent") {
       whereClause.originalAssigneeId = currentUser.id;

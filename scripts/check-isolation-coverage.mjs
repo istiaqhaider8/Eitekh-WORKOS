@@ -50,6 +50,7 @@ const EXEMPT = new Map([
   ["telemetry/client", "write-only error sink; accepts reports, returns nothing"],
   ["internal/alerts/check", "cron endpoint behind ALERT_CHECK_SECRET, not a session"],
   ["recurring-tasks/trigger", "cron endpoint behind RECURRING_TASKS_SECRET, not a session (H5)"],
+  ["jobs/:id", "in-memory job store that nothing writes to — enqueueJob has no callers — and the route already refuses any job whose userId is not the caller's (H4)"],
 
   // --- authentication: pre-tenant by definition ----------------------------
   ["auth/login", "establishes a session; there is no tenant yet"],
@@ -90,12 +91,6 @@ const EXEMPT = new Map([
  * Each needs a fixture the two-tenant fixture does not build yet.
  */
 const KNOWN_GAPS = new Map([
-  ["jobs/:id", "needs a Job row per tenant in the fixture"],
-  ["pbac/roles/:id", "needs a PbacRole per tenant; the fixture provisions none"],
-  ["pbac/roles/:id/users", "same as pbac/roles/:id"],
-  ["recurring-tasks/:id", "needs a RecurringTask per tenant"],
-  ["users/delegations/:id", "needs a TaskDelegation per tenant"],
-  ["users/leave/:id", "needs a LeaveRequest per tenant"],
 ]);
 
 /** Route families covered by the super-admin denial sweep in authz.test.ts. */

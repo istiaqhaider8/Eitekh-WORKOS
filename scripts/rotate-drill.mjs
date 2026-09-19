@@ -131,6 +131,19 @@ const HASHED_RECOVERY = JSON.stringify(["$2a$10$fakehashone", "$2a$10$fakehashtw
  * FIELD_ENCRYPTION_KEY on every call, so flipping the environment variable
  * between calls is enough — there is no module-level key to invalidate.
  */
+/**
+ * The APPLICATION's module, imported as source.
+ *
+ * That is the whole point of this drill — comparing the rotation tool against
+ * the real envelope rather than against a copy of it — and it rests on Node's
+ * native type stripping, which is unflagged from 22.18 (see `engines` in
+ * package.json; CI ran Node 20 and this threw ERR_UNKNOWN_FILE_EXTENSION
+ * before the first check).
+ *
+ * Type stripping only handles ERASABLE syntax. If encryption.ts ever grows an
+ * enum, a namespace or a parameter property, this import stops working and the
+ * drill will say so here rather than anywhere useful.
+ */
 const appEnc = await import(pathToFileURL(join(REPO, "src", "lib", "encryption.ts")).href);
 function appEncrypt(keyHex, plaintext) {
   process.env.FIELD_ENCRYPTION_KEY = keyHex;

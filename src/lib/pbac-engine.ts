@@ -916,6 +916,46 @@ class UnifiedPBACEngine {
     const id = data.id || `role_${orgId}_${slug}_${Date.now()}`;
 
     const existing = this.roles.get(id);
+
+    /**
+     * H4 — the role being updated must belong to the organization named.
+     *
+     * `getRole`, `toggleRoleStatus` and `deleteRole` all check
+     * `role.orgId !== orgId`. This one did not, and it is the only one of the
+     * four that WRITES the orgId. So:
+     *
+     *     PATCH /api/pbac/roles/<TENANT B's role id>
+     *     { "orgId": "<tenant A's own org>", "name": "...", "permissions": [...] }
+     *
+     * passed every guard on the route — the caller really is an OWNER of the
+     * org they named — and then rebuilt tenant B's role with `orgId` set to
+     * tenant A. The role was not merely edited across the boundary, it was
+     * MOVED: tenant B lost it, its assignments in PbacUserRoleAssignment were
+     * left pointing at a role in someone else's organization, and the three
+     * scoped methods above began answering for tenant A because by then the
+     * row really was theirs.
+     *
+     * Verified against the running app before this check existed: org A's
+     * OWNER renamed org B's role, then deactivated it, then deleted it — the
+     * second and third only working because the first had already moved it.
+     *
+     * A lookup by id that FINDS something belonging to someone else is not a
+     * missing row, so this is a refusal rather than a create.
+     *
+     * The DATABASE is what decides this, not `this.roles`. That map holds
+     * only the organizations this process has seeded, so a request naming a
+     * role in an org nobody had touched yet finds nothing in it, takes the
+     * create path, and upserts straight over the victim's row by id — which
+     * is exactly what happened when the first version of this check consulted
+     * the map alone. A guard that depends on a warm cache is not a guard.
+     */
+    if (data.id) {
+      const ownerOrgId = existing?.orgId ?? (await pbacStore.getRoleOrgId(data.id));
+      if (ownerOrgId && ownerOrgId !== orgId) {
+        throw new Error('Role not found');
+      }
+    }
+
     const role: PBACRole = {
       id,
       orgId,
@@ -933,8 +973,12 @@ class UnifiedPBACEngine {
       updatedAt: now,
     };
 
-    this.roles.set(id, role);
+    // Write first, cache second. The other order meant a store write that
+    // threw — the tenant guard above, a constraint, a dropped connection —
+    // still left the in-memory map claiming the change had happened, and this
+    // map is what every authorization decision in the process reads.
     await pbacStore.upsertRole(this.toStored(role));
+    this.roles.set(id, role);
     await this.afterMutation(orgId);
 
     this.recordAudit({

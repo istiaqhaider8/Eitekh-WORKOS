@@ -315,11 +315,77 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
     },
   });
 
+  /**
+   * H4 — the rows the last of the KNOWN_GAPS routes need.
+   *
+   * Each of these is reachable by its own id on a path that names no tenant,
+   * which is the shape both previously found vulnerabilities had. They could
+   * not be tested before for a mundane reason: the fixture provisioned no row
+   * of the right kind, so a denial test would have been asking for an id that
+   * does not exist and proving only the 404 path.
+   */
+  const pbacRoleId = `${RUN}_pbacrole${tag}`;
+  await prisma.pbacRole.create({
+    data: {
+      id: pbacRoleId,
+      orgId,
+      name: `Role of tenant ${tag}`,
+      slug: `role-of-tenant-${tag}`,
+      description: `PBAC SECRET OF TENANT ${tag}`,
+      permissions: ["issues:view"],
+    },
+  });
+  await prisma.pbacUserRoleAssignment.create({
+    data: { userId: spare.id, roleId: pbacRoleId, orgId },
+  });
+
+  const recurringTaskId = `${RUN}_recurring${tag}`;
+  await prisma.recurringTask.create({
+    data: {
+      id: recurringTaskId,
+      projectId,
+      scheduleCron: "DAILY",
+      templateData: JSON.stringify({ title: `Recurring of tenant ${tag}` }),
+      isActive: true,
+      // Far in the future: a fixture row must not be swept up by a trigger run
+      // from another test in the same suite.
+      nextRunAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const leaveId = `${RUN}_leave${tag}`;
+  await prisma.leave.create({
+    data: {
+      id: leaveId,
+      userId: users.OWNER.id,
+      organizationId: orgId,
+      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      note: `LEAVE NOTE OF TENANT ${tag}`,
+    },
+  });
+
+  const delegationId = `${RUN}_delegation${tag}`;
+  await prisma.taskDelegation.create({
+    data: {
+      id: delegationId,
+      leaveId,
+      issueId,
+      originalAssigneeId: users.OWNER.id,
+      delegateUserId: spare.id,
+      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      reason: `DELEGATION REASON OF TENANT ${tag}`,
+      createdBy: users.OWNER.id,
+    },
+  });
+
   return {
     orgId, workspaceId, projectId, projectKey, issueId, issueKey, teamId,
     spareUserId: spare.id,
     workflowId, statusId, statusInProgressId, statusDoneId, sprintId, epicId,
     commentId, subtaskId, componentId, customFieldId, attachmentId, webhookId, automationId,
+    pbacRoleId, recurringTaskId, leaveId, delegationId,
     users,
   };
 }
@@ -357,6 +423,12 @@ export async function destroyFixture(prisma: PrismaClient): Promise<void> {
   await prisma.customField.deleteMany({ where: { id: like } });
   await prisma.automationRule.deleteMany({ where: { id: like } });
   await prisma.webhook.deleteMany({ where: { id: like } });
+  // H4 rows. Delegations reference the issue and the leave, so they go before
+  // both; history cascades from the delegation but is removed explicitly so a
+  // test that created its own history row does not survive teardown.
+  await prisma.delegationHistory.deleteMany({ where: { delegation: { issueId: like } } });
+  await prisma.taskDelegation.deleteMany({ where: { issueId: like } });
+  await prisma.recurringTask.deleteMany({ where: { projectId: like } });
   await prisma.issue.deleteMany({ where: { projectId: like } });
   await prisma.component.deleteMany({ where: { projectId: like } });
   // Sprints and epics are referenced BY issues, so they go after them.
@@ -371,6 +443,7 @@ export async function destroyFixture(prisma: PrismaClient): Promise<void> {
   await prisma.project.deleteMany({ where: { id: like } });
   await prisma.workspaceMember.deleteMany({ where: { workspaceId: like } });
   await prisma.workspace.deleteMany({ where: { id: like } });
+  await prisma.leave.deleteMany({ where: { organizationId: like } });
   await prisma.pbacUserRoleAssignment.deleteMany({ where: { orgId: like } });
   await prisma.pbacRole.deleteMany({ where: { orgId: like } });
   await prisma.pbacAuditRecord.deleteMany({ where: { orgId: like } });

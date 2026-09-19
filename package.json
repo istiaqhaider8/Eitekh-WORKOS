@@ -1,6 +1,9 @@
 {
   "name": "eitekh-workos",
   "version": "2.0.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "description": "Enterprise Multi-Tenant Agile Work Operating System with PBAC Governance",
   "private": true,
   "scripts": {

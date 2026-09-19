@@ -41,10 +41,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Node 24, because that is what this repository is developed and
+      # verified on — and because the gap was not theoretical. The A5 drill
+      # imports src/lib/encryption.ts directly, on purpose: using the
+      # APPLICATION's own module is what makes the drill able to catch drift
+      # between it and the rotation tool. That import needs Node's native type
+      # stripping, which is unflagged from 22.18. On Node 20 it threw
+      #
+      #     ERR_UNKNOWN_FILE_EXTENSION: Unknown file extension ".ts"
+      #
+      # so the drill crashed before its first check while passing locally.
+      # A CI runtime that differs from the development one hides exactly this
+      # class of thing.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -109,11 +121,13 @@ jobs:
       # production does not use is how a drill passes on the day a restore
       # fails, so scripts/backup-drill.mjs runs both and also asserts the
       # negatives — wrong key, tampered byte, malformed key.
+
       # The drill hands DATABASE_URL to pg_dump, and DATABASE_URL is Prisma's:
       # it carries `?schema=public`, which libpq rejects outright. The node
       # driver ignores unknown query parameters, so every other check in this
       # job connected happily while the two commands that matter could not.
       # scripts/pg-url.mjs strips them; these tests are what keep it correct.
+      #
       # A directory argument is treated as a module path, not a glob, so the
       # files are named. `run:` uses bash on this runner, which expands it.
       - name: Connection-string cleaner (A1)

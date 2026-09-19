@@ -222,8 +222,44 @@ class PbacStore {
   // edits to different roles in the same organization do not interfere.
   // -------------------------------------------------------------------------
 
+  /**
+   * Which organization owns a role id, or null if no such role exists.
+   *
+   * Deliberately NOT scoped by org: the question being asked is "does this id
+   * already belong to someone", and a scoped lookup cannot answer it. Callers
+   * compare the result themselves.
+   */
+  async getRoleOrgId(roleId: string): Promise<string | null> {
+    const row = await prisma.pbacRole.findUnique({
+      where: { id: roleId },
+      select: { orgId: true },
+    });
+    return row?.orgId ?? null;
+  }
+
   async upsertRole(role: StoredRole): Promise<void> {
     await prisma.$transaction(async (tx) => {
+      /**
+       * H4 — the last gate before the row.
+       *
+       * `upsert` keys on `id` alone, because that is the only unique column,
+       * and its `update` branch never sets `orgId`. So a call naming another
+       * organization's role id did not move the row, but it did rewrite that
+       * row's name, permissions, scope and status — a cross-tenant write, with
+       * the victim's orgId still on it to make it look untouched.
+       *
+       * The engine refuses this before getting here. This check exists anyway
+       * because the store is what actually writes, and a guard that lives only
+       * in the caller is a guard the next caller will not have.
+       */
+      const owner = await tx.pbacRole.findUnique({
+        where: { id: role.id },
+        select: { orgId: true },
+      });
+      if (owner && owner.orgId !== role.orgId) {
+        throw new Error("Role not found");
+      }
+
       await tx.pbacRole.upsert({
         where: { id: role.id },
         create: {

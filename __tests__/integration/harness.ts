@@ -74,6 +74,15 @@ export interface TenantFixture {
   attachmentId: string;
   webhookId: string;
   automationId: string;
+  /**
+   * H4 — the last of the leaf resources, each reachable by its own id on a
+   * path that names no tenant. `pbacRoleId` also carries an assignment for
+   * `spareUserId`, so the roles/:id/users route has something to leak.
+   */
+  pbacRoleId: string;
+  recurringTaskId: string;
+  leaveId: string;
+  delegationId: string;
   users: Record<string, TestUser>;
 }
 
@@ -180,9 +189,18 @@ export function expectAllowed(result: ApiResult, what: string): void {
  * This checks the serialized body, so it catches the value wherever it is
  * nested.
  */
-export function expectBodyExcludes(result: ApiResult, needle: string, what: string): void {
-  if (result.text.includes(needle)) {
-    throw new Error(`${what}: the response contained another tenant's identifier ${needle}.`);
+export function expectBodyExcludes(
+  result: ApiResult,
+  // A list is the common case — a resource usually has more than one marker
+  // worth checking — and a single string still works, so existing callers are
+  // unchanged.
+  needle: string | string[],
+  what: string
+): void {
+  for (const n of Array.isArray(needle) ? needle : [needle]) {
+    if (result.text.includes(n)) {
+      throw new Error(`${what}: the response contained another tenant's identifier ${n}.`);
+    }
   }
 }
 
