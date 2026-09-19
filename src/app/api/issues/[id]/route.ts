@@ -8,6 +8,7 @@ import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
 import { handleApiError, ConflictError } from "@/lib/api-error";
+import { getIssueSubscribers } from "@/lib/issue-subscribers";
 import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
 
 /**
@@ -665,6 +666,44 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     await deliverIssueWebhook("issue.updated", currentIssue.projectId, updatedIssue);
+
+    /**
+     * C3 — the STATUS notification.
+     *
+     * The preferences page has always offered a status toggle, and nothing
+     * ever sent this notification, so the switch did nothing whichever way it
+     * was set. Moving an issue through the workflow is the single most common
+     * event in a tracker and the one people most expect to hear about.
+     *
+     * Recipients are the watchers, assignee and reporter, minus whoever made
+     * the change. See src/lib/issue-subscribers.ts for why it is not the whole
+     * project.
+     */
+    if (body.statusId !== undefined && body.statusId !== currentIssue.statusId) {
+      const subscribers = await getIssueSubscribers({ issueId: id, actorId: user.id });
+      if (subscribers.length > 0) {
+        const { notificationEngine } = await import("@/lib/notifications");
+        const actorName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+        const fromName = currentIssue.status?.name || "its previous status";
+        const toName = updatedIssue.status?.name || "a new status";
+
+        await notificationEngine.dispatch({
+          recipientUserIds: subscribers,
+          type: "STATUS",
+          title: `${updatedIssue.issueKey} moved to ${toName}`,
+          message: `${actorName} moved ${updatedIssue.issueKey} from ${fromName} to ${toName}.`,
+          linkUrl: `/projects/${currentIssue.projectId}?issue=${id}`,
+          projectId: currentIssue.projectId,
+          issueId: id,
+          actorId: user.id,
+          actorName,
+          actorEmail: user.email,
+          // Keyed on the resulting version, so a retried request cannot send
+          // the same transition twice.
+          idempotencyKey: `status:${id}:${updatedIssue.version}`,
+        });
+      }
+    }
 
     // Fire the automation triggers that correspond to what actually changed,
     // so a rule listening for a status change is not run on an unrelated edit.

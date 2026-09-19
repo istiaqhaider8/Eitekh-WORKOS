@@ -1,0 +1,31 @@
+-- C2 follow-up — discard rate-limit counters written under the old timestamp
+-- scheme.
+--
+-- WHY THIS IS NEEDED
+--
+-- RateLimitCounter."resetAt" is a `timestamp` WITHOUT time zone. It used to be
+-- written as `now() + interval`, where `now()` is a `timestamptz`: casting that
+-- into a naive column stored the SESSION-LOCAL wall clock rather than the UTC
+-- instant. The comparison that decides whether a window has expired used
+-- `now()` too, so it was internally consistent and the limiter worked — but the
+-- value handed back to the application was wrong by the server's UTC offset,
+-- which is why a 60-second limit reported a Retry-After of 21,660 seconds.
+--
+-- The code now writes and compares `now() AT TIME ZONE 'UTC'`, so new rows hold
+-- the real UTC instant. Rows written BEFORE that change hold a value that is
+-- ahead by the offset, and under the new comparison they look like windows that
+-- stay open for hours. On a +06 database, every existing counter would keep its
+-- accumulated count and refuse requests for about five and a half hours after
+-- deploy. Measured on the integration database: 249 rows, all ~19,000 seconds
+-- ahead.
+--
+-- WHY DELETING EVERYTHING IS THE RIGHT REPAIR
+--
+-- This table is a cache of counters, not a record of anything. Every row is
+-- rebuilt by the next request for that key. Clearing it resets every window
+-- once, at deploy — which is a far smaller cost than locking legitimate users
+-- out for the length of the UTC offset, and unlike a heuristic ("delete rows
+-- more than an hour ahead") it cannot mis-target.
+--
+-- Nothing else reads this table, so there is nothing to cascade.
+DELETE FROM "RateLimitCounter";

@@ -18,7 +18,8 @@
     "analyze": "ANALYZE=true npm run build",
     "check:validation": "node scripts/check-route-validation.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",
-    "check:isolation": "node scripts/check-isolation-coverage.mjs"
+    "check:isolation": "node scripts/check-isolation-coverage.mjs",
+    "check:email-dns": "node scripts/check-email-dns.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

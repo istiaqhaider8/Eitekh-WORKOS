@@ -189,6 +189,66 @@ Set `FORCE_HTTPS=true` in `.env` after enabling TLS.
 - [ ] SMTP credentials are app-specific passwords, not primary account passwords
 - [ ] `BASE_URL` set to the public URL (email links use it; unset means links point at localhost)
 - [ ] `NEXT_PUBLIC_APP_URL` matches `BASE_URL`
+- [ ] **Mail authentication verified** — `npm run check:email-dns` exits 0 (see below)
+
+---
+
+## 6a. Mail authentication (C2) — SPF, DKIM, DMARC
+
+**Run `npm run check:email-dns` against the real sending domain before launch,
+and again whenever the domain or the mail provider changes.**
+
+```bash
+npm run check:email-dns -- --domain eitekh.com
+# or, if your DKIM selector is unusual:
+npm run check:email-dns -- --domain eitekh.com --selector mySelector
+```
+
+### Why this is a launch blocker and not a nicety
+
+Without these records mail is still *accepted* by the provider and *delivered
+to spam* by the recipient. The application reports success in both cases —
+`sendEmail` returns SENT, the outbox row says SENT, the log says SENT. There is
+no signal anywhere in the system that anything is wrong.
+
+The flows this breaks are the ones a locked-out user cannot work around:
+password reset, OTP, invitation. "Check your spam folder" is a poor answer to a
+customer who cannot get in, and a worse one to a prospect evaluating you.
+
+### What each record does
+
+| Record | Answers | Failure if missing |
+|---|---|---|
+| **SPF** | which servers may send as this domain | receivers cannot distinguish you from a spoofer |
+| **DKIM** | was this message signed by the domain owner | the message cannot be shown to be unmodified |
+| **DMARC** | what to do when SPF and DKIM fail, and where to report | receivers decide for themselves, usually unfavourably |
+
+### Getting them right
+
+1. **SPF** — exactly ONE `v=spf1` TXT record on the apex. Two records is a
+   permanent error (RFC 7208) and worse than having none. End with `~all` or
+   `-all`; `+all` authorises the entire internet and is equivalent to no SPF.
+2. **DKIM** — published by your provider at `<selector>._domainkey.<domain>`.
+   Note that an *empty* `p=` means the key is **revoked**, and looks identical
+   to a working record in a DNS lookup. The checker flags this specifically.
+3. **DMARC** — a `_dmarc.<domain>` TXT record. Start at `p=none` with a `rua=`
+   address to collect reports without affecting delivery, read the reports for
+   a couple of weeks, then move to `quarantine` and `reject`. Without `rua=`
+   you will never see the reports, which defeats the point of starting at
+   `none`.
+
+### What the checker cannot tell you
+
+That the records are correct *for your provider*. A DKIM selector left over
+from a provider you no longer use parses exactly like a working one. After the
+checker passes, **send a real message to a Gmail account and read the
+`Authentication-Results` header** — it will say `spf=pass dkim=pass
+dmarc=pass`, or tell you which one does not. There is no substitute for that
+step and the checker says so on success.
+
+> **Status at time of writing:** NOT VERIFIED for this deployment. There is no
+> public sending domain yet, so there is nothing to check. The verification is
+> executable and is a checklist item above rather than a claim.
 
 ---
 

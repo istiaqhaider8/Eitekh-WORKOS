@@ -7,6 +7,7 @@ import { getBaseUrl } from "@/lib/config";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { commentSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { getIssueSubscribers } from "@/lib/issue-subscribers";
 import { assertIssueHistoryAccess, parsePaging, paginate } from "@/lib/issue-history";
 
 /**
@@ -94,6 +95,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       },
     });
 
+    /**
+     * Who has already been notified about this comment.
+     *
+     * Hoisted out of the mention block so the COMMENT notification below can
+     * exclude them: a mentioned watcher would otherwise receive a MENTION and
+     * a COMMENT for the same comment, and the more specific one should win.
+     */
+    const notifiedUserIds = new Set<string>();
+
     // Detect @mentions (e.g. @sarah or @marcus) and notify mentioned users
     const mentions = content.match(/@([a-zA-Z0-9_.-]+)/g);
     if (mentions && issue) {
@@ -139,8 +149,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       };
 
       // De-duplicate so "@alex @alex" notifies once.
-      const notifiedUserIds = new Set<string>();
-
       for (const mention of mentions) {
         const mentionedUser = matchMention(mention.slice(1));
         if (mentionedUser && notifiedUserIds.has(mentionedUser.id)) continue;
@@ -171,6 +179,51 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             sendEmailAsync: true,
           });
         }
+      }
+    }
+
+    /**
+     * C3 — the COMMENT notification.
+     *
+     * The preferences page has always offered a "Comment" toggle. Nothing ever
+     * sent a COMMENT notification, so the toggle did nothing whichever way it
+     * was set — the user configures it, no notification arrives, and they
+     * conclude the product is broken rather than that the switch was
+     * decorative.
+     *
+     * Recipients are the issue's watchers, assignee and reporter, minus the
+     * author and minus anyone already given a MENTION for this same comment.
+     * Not project members: a comment on one issue is not news to two hundred
+     * people, and a notification stream nobody can keep up with gets muted,
+     * which costs the notifications that DID matter.
+     */
+    if (issue) {
+      const subscribers = await getIssueSubscribers({
+        issueId: issue.id,
+        actorId: user.id,
+        excludeUserIds: notifiedUserIds,
+      });
+
+      if (subscribers.length > 0) {
+        const { notificationEngine } = await import("@/lib/notifications");
+        const actorName =
+          user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+
+        await notificationEngine.dispatch({
+          recipientUserIds: subscribers,
+          type: "COMMENT",
+          title: `New comment on ${issue.issueKey}`,
+          message: `${actorName} commented on ${issue.issueKey}: "${content.substring(0, 80)}"`,
+          linkUrl: `/projects/${issue.projectId}?issue=${issue.id}`,
+          projectId: issue.projectId,
+          issueId: issue.id,
+          actorId: user.id,
+          actorName,
+          actorEmail: user.email,
+          // Keyed on the comment, so a retry of this request cannot produce a
+          // second notification for the same comment.
+          idempotencyKey: `comment:${comment.id}`,
+        });
       }
     }
 

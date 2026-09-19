@@ -89,14 +89,33 @@ export async function POST(req: Request) {
       // a project-targeted announcement reached the whole platform.
       const recipientIds = await resolveRecipientIds(announcement.id);
       if (recipientIds.length > 0) {
-        await prisma.notification.createMany({
-          data: recipientIds.map((userId) => ({
-            userId,
-            title: `📢 ${title.trim()}`,
-            message: message.trim(),
-            type: "SYSTEM",
-            linkUrl: null,
-          })),
+        /**
+         * C3 — routed through the notification engine rather than written
+         * straight to the table.
+         *
+         * `prisma.notification.createMany` bypassed the engine entirely, and
+         * with it the per-user preference check. A user who had turned SYSTEM
+         * notifications off still received every broadcast, so that toggle was
+         * partially inert too — it worked for engine-dispatched SYSTEM
+         * notifications and silently did nothing for the ones that actually
+         * arrive in volume.
+         *
+         * Dispatching also gets realtime delivery for free: the direct write
+         * published no SSE event, so a broadcast only appeared after the
+         * recipient's next poll or page load.
+         */
+        const { notificationEngine } = await import("@/lib/notifications");
+        await notificationEngine.dispatch({
+          recipientUserIds: recipientIds,
+          type: "SYSTEM",
+          title: `📢 ${title.trim()}`,
+          message: message.trim(),
+          actorId: user.id,
+          actorEmail: user.email,
+          // One announcement, one notification per recipient, however many
+          // times this handler is retried.
+          idempotencyKey: `announcement:${announcement.id}`,
+          sendEmailAsync: false,
         });
         broadcastCount = recipientIds.length;
       }

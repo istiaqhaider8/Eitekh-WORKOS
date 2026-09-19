@@ -64,6 +64,11 @@ export function getRetentionPolicies(): RetentionPolicy[] {
       description: 'Email delivery log entries',
     },
     {
+      entity: 'EmailOutbox',
+      retentionDays: getRetentionDays('EMAIL_OUTBOX_RETENTION_DAYS', 30),
+      description: 'Completed outbox rows (SENT and DEAD). Pending and retrying rows are never purged: they are work still to do.',
+    },
+    {
       entity: 'PlatformAuditLog',
       retentionDays: getRetentionDays('AUDIT_LOG_RETENTION_DAYS', 365),
       description: 'Super-admin platform audit log entries',
@@ -115,6 +120,15 @@ async function purgeEntity(
       case 'EmailLog': {
         const r = await container.prisma.emailLog.deleteMany({
           where: { createdAt: { lt: cutoff } },
+        });
+        return { deletedCount: r.count };
+      }
+      case 'EmailOutbox': {
+        // ONLY terminal rows. A PENDING or FAILED row is a message still
+        // waiting to go out, and deleting it would reintroduce exactly the
+        // silent loss the outbox replaced — this time by our own hand.
+        const r = await container.prisma.emailOutbox.deleteMany({
+          where: { createdAt: { lt: cutoff }, status: { in: ['SENT', 'DEAD'] } },
         });
         return { deletedCount: r.count };
       }

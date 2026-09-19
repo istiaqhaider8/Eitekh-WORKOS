@@ -926,6 +926,61 @@ model EmailLog {
   createdAt   DateTime @default(now())
 }
 
+/// C2 — the email outbox.
+///
+/// WHY THIS REPLACES AN IN-MEMORY ARRAY
+///
+/// Queued mail lived in `NotificationEngine.emailQueue`, a plain array on the
+/// process. Three consequences, none of them visible from inside the app:
+///
+///   - a restart or a deploy discarded everything not yet sent, silently;
+///   - the retry timer was per-instance, so with several instances each one
+///     retried only what it happened to enqueue;
+///   - nothing outside that process could see the queue, so "was the
+///     invitation sent?" had no answer.
+///
+/// The flows this affects are the ones a locked-out user cannot work around:
+/// password resets, OTP codes and invitations. Losing one is a support ticket
+/// at best.
+///
+/// EmailLog is not a substitute. It records what happened to an attempt AFTER
+/// the fact; this is the work still to do. Both exist on purpose.
+model EmailOutbox {
+  id String @id @default(cuid())
+
+  to            String
+  templateKey   String?
+  /// JSON. The variables the template is rendered with.
+  variables     String?
+  customSubject String?
+  customHtml    String?
+
+  /// PENDING | SENDING | SENT | FAILED | DEAD
+  status   String @default("PENDING")
+  attempts Int    @default(0)
+
+  nextAttemptAt DateTime  @default(now())
+  lastAttemptAt DateTime?
+  sentAt        DateTime?
+  error         String?
+
+  /// Set while an instance holds the row, so two workers cannot send the same
+  /// message twice. Same claim pattern as WebhookDelivery.
+  claimedBy String?
+  claimedAt DateTime?
+
+  /// Deduplicates at the point of enqueue: a retried request that would queue
+  /// the same message twice is rejected by the unique index rather than
+  /// producing two emails.
+  idempotencyKey String? @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([createdAt])
+  @@index([to])
+}
+
 model Leave {
   id             String       @id @default(cuid())
   userId         String

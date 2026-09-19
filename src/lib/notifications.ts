@@ -43,37 +43,8 @@ export interface DispatchNotificationOptions {
   idempotencyKey?: string;
 }
 
-export interface EmailQueueItem {
-  id: string;
-  to: string;
-  templateKey?: string;
-  variables?: Record<string, any>;
-  customSubject?: string;
-  customHtml?: string;
-  retryCount: number;
-  maxRetries: number;
-  status: 'QUEUED' | 'SENDING' | 'SENT' | 'FAILED';
-  error?: string;
-  createdAt: string;
-  nextAttemptAt: number;
-}
-
 class NotificationEngine {
-  /** Hard ceiling on the in-memory email queue; see enqueueEmail. */
-  private static readonly MAX_EMAIL_QUEUE = 5000;
-
-  private emailQueue: EmailQueueItem[] = [];
-  private isWorkerRunning = false;
   private processedEventIds = new Set<string>();
-
-  constructor() {
-    // Start background queue processor
-    if (typeof setInterval !== 'undefined') {
-      setInterval(() => {
-        this.processEmailQueue();
-      }, 3000);
-    }
-  }
 
   /**
    * Enterprise Multi-Channel Notification Dispatcher
@@ -251,10 +222,14 @@ class NotificationEngine {
             ...emailVariables,
           };
 
-          this.enqueueEmail({
+          await this.enqueueEmail({
             to: r.email,
             templateKey: emailTemplateKey,
             variables: vars,
+            // One notification, one email per recipient, however many times
+            // this handler is retried. Without it the durable outbox would
+            // faithfully persist duplicates.
+            idempotencyKey: idempotencyKey ? `${idempotencyKey}:${r.id}` : undefined,
           });
           emailQueuedCount++;
         }
@@ -272,134 +247,53 @@ class NotificationEngine {
   /**
    * Enqueue Email for Asynchronous Non-Blocking Processing
    */
-  public enqueueEmail(item: {
+  /**
+   * Queue an email.
+   *
+   * C2 — THIS NO LONGER KEEPS THE MESSAGE IN MEMORY.
+   *
+   * It used to push onto `this.emailQueue`, a plain array on the process,
+   * drained by a setInterval. A restart threw away everything not yet sent,
+   * silently; the retry timer was per-instance, so with several instances each
+   * retried only what it had enqueued itself; and nothing outside the process
+   * could see the queue, so "was the invitation sent?" had no answer.
+   *
+   * The flows that depend on this are the ones a locked-out user cannot work
+   * around — password resets, OTP codes, invitations.
+   *
+   * src/lib/email-outbox.ts now owns queueing, retry, backoff and
+   * dead-lettering against a table. This method remains as the seam its
+   * callers already use.
+   */
+  public async enqueueEmail(item: {
     to: string;
     templateKey?: string;
     variables?: Record<string, any>;
     customSubject?: string;
     customHtml?: string;
-  }) {
-    const queueItem: EmailQueueItem = {
-      id: `mail_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-      to: item.to,
-      templateKey: item.templateKey,
-      variables: item.variables,
-      customSubject: item.customSubject,
-      customHtml: item.customHtml,
-      retryCount: 0,
-      maxRetries: 3,
-      status: 'QUEUED',
-      createdAt: new Date().toISOString(),
-      nextAttemptAt: Date.now(),
-    };
-
-    // A ceiling, so that a burst — an import notifying a large project, or SMTP
-    // being down while traffic continues — cannot grow this array until the
-    // process runs out of memory. Dropping the OLDEST is deliberate: the items
-    // at the front are the ones that have been failing longest, and a queue
-    // that refuses new mail because it is full of undeliverable mail is the
-    // worse failure. This is loud because losing a notification silently is
-    // exactly the complaint that is impossible to investigate afterwards.
-    if (this.emailQueue.length >= NotificationEngine.MAX_EMAIL_QUEUE) {
-      const dropped = this.emailQueue.shift();
-      logger.error(
-        'EMAIL_QUEUE_OVERFLOW',
-        `Email queue hit ${NotificationEngine.MAX_EMAIL_QUEUE} items; dropped the oldest without sending.`,
-        undefined,
-        { droppedTo: dropped?.to, droppedTemplate: dropped?.templateKey, queueDepth: this.emailQueue.length }
-      );
-    }
-
-    this.emailQueue.push(queueItem);
+    idempotencyKey?: string;
+  }): Promise<void> {
+    const { enqueueEmail } = await import('./email-outbox');
+    await enqueueEmail(item);
   }
 
   /**
-   * Asynchronous Background Email Worker with Exponential Backoff
+   * Outbox depth by status, for the admin view and /api/health.
+   *
+   * Reads the table rather than an array, so it reports the whole system's
+   * backlog instead of whatever this one process happened to hold.
    */
-  private async processEmailQueue() {
-    if (this.isWorkerRunning || this.emailQueue.length === 0) return;
-    this.isWorkerRunning = true;
-
-    try {
-      const now = Date.now();
-      const readyItems = this.emailQueue.filter(
-        (item) => item.status === 'QUEUED' && item.nextAttemptAt <= now
-      );
-
-      for (const item of readyItems) {
-        item.status = 'SENDING';
-        try {
-          const result = await sendEmail({
-            to: item.to,
-            templateKey: item.templateKey,
-            variables: item.variables,
-            customSubject: item.customSubject,
-            customHtml: item.customHtml,
-          });
-
-          if (result.status === 'SENT') {
-            item.status = 'SENT';
-            // Remove from queue
-            this.emailQueue = this.emailQueue.filter((q) => q.id !== item.id);
-          } else if (result.status === 'MOCKED') {
-            // SMTP not configured — remove from queue but log warning
-            console.warn(`[EmailQueue] Email to ${item.to} was MOCKED (SMTP not configured). Removing from queue.`);
-            this.emailQueue = this.emailQueue.filter((q) => q.id !== item.id);
-          } else {
-            throw new Error(result.error || 'Failed to dispatch email');
-          }
-        } catch (err: any) {
-          item.retryCount += 1;
-          item.error = err.message || 'Email dispatch failed';
-
-          if (item.retryCount >= item.maxRetries) {
-            item.status = 'FAILED';
-            console.error(`[EmailQueue] Dead-letter item ${item.id} to ${item.to} exceeded max retries.`);
-            try {
-              await prisma.emailLog.create({
-                data: {
-                  to: item.to,
-                  from: 'noreply@eitekh.com',
-                  subject: item.customSubject || item.templateKey || 'notification',
-                  templateKey: item.templateKey,
-                  status: 'FAILED',
-                  error: item.error,
-                },
-              });
-            } catch {}
-
-            // Drop it. SENT and MOCKED items were already removed above, but
-            // FAILED ones were not, so every permanently-undeliverable email
-            // stayed in this array for the lifetime of the process — holding
-            // its `variables` and its fully rendered `customHtml`, which is
-            // tens of KB of user data per item. An unbounded array that only
-            // ever grows, re-scanned by the filter at the top of this method
-            // every three seconds.
-            //
-            // The EmailLog row written just above is the durable record, which
-            // is what makes dropping it safe: the failure is still auditable
-            // through /api/super-admin/email-logs.
-            this.emailQueue = this.emailQueue.filter((q) => q.id !== item.id);
-          } else {
-            item.status = 'QUEUED';
-            // Exponential backoff: 2s, 6s, 18s
-            item.nextAttemptAt = Date.now() + Math.pow(3, item.retryCount) * 2000;
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[NotificationEngine] Error in email worker tick:', e);
-    } finally {
-      this.isWorkerRunning = false;
-    }
-  }
-
-  public getQueueStats() {
+  public async getQueueStats() {
+    const counts = await prisma.emailOutbox.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    const by = Object.fromEntries(counts.map((c) => [c.status, c._count._all]));
     return {
-      totalQueued: this.emailQueue.filter((i) => i.status === 'QUEUED').length,
-      totalSending: this.emailQueue.filter((i) => i.status === 'SENDING').length,
-      totalFailed: this.emailQueue.filter((i) => i.status === 'FAILED').length,
-      queueDepth: this.emailQueue.length,
+      totalQueued: (by.PENDING ?? 0) + (by.FAILED ?? 0),
+      totalSending: by.SENDING ?? 0,
+      totalFailed: by.DEAD ?? 0,
+      queueDepth: (by.PENDING ?? 0) + (by.FAILED ?? 0) + (by.SENDING ?? 0),
     };
   }
 }

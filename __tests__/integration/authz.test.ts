@@ -396,6 +396,9 @@ describe("PROD-6 — a role cannot exceed its own authority", () => {
       "/api/super-admin/security-threats",
       "/api/super-admin/announcements",
       "/api/super-admin/email-templates",
+      // C2. Recipient addresses and subject lines across every tenant, so an
+      // organization admin must not reach it either.
+      "/api/super-admin/email-outbox",
     ];
 
     it("covers the whole family", async () => {

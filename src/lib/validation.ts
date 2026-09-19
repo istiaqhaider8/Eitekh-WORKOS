@@ -566,6 +566,11 @@ export const webhookCreateSchema = z.object({
  * the alternative is a free-form value reaching a `findFirst` — and the route
  * checker exists precisely to stop "it's only one string" reasoning.
  */
+/** C2 — the body of an outbox replay. */
+export const emailOutboxReplaySchema = z.object({
+  id: cuidSchema,
+});
+
 export const webhookReplaySchema = z.object({
   deliveryId: cuidSchema,
 });

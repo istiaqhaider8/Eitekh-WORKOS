@@ -26,6 +26,7 @@ describe("getRetentionPolicies", () => {
     expect(entities).toContain("Notification");
     expect(entities).toContain("ActivityLog");
     expect(entities).toContain("EmailLog");
+    expect(entities).toContain("EmailOutbox");
     expect(entities).toContain("PlatformAuditLog");
   });
 
@@ -74,6 +75,7 @@ describe("runDataRetention (mocked prisma)", () => {
     notification: { deleteMany: mockDeleteMany },
     activityLog: { deleteMany: mockDeleteMany },
     emailLog: { deleteMany: mockDeleteMany },
+    emailOutbox: { deleteMany: mockDeleteMany },
     platformAuditLog: { deleteMany: mockDeleteMany },
   } as any;
 
@@ -89,9 +91,10 @@ describe("runDataRetention (mocked prisma)", () => {
   it("calls deleteMany for each entity", async () => {
     const { runDataRetention } = await import("../data-retention");
     const results = await runDataRetention();
-    // One deleteMany call per entity. OtpCode was added so expired one-time
-    // codes stop accumulating indefinitely.
-    const policyCount = 6;
+    // One deleteMany call per entity, derived rather than hardcoded: a new
+    // policy should extend the assertion, not break it and get the number
+    // bumped without anyone checking the purge was wired up.
+    const policyCount = getRetentionPolicies().length;
     expect(mockDeleteMany).toHaveBeenCalledTimes(policyCount);
     expect(results).toHaveLength(policyCount);
     results.forEach((r) => {
