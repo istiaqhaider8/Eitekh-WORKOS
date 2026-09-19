@@ -73,11 +73,44 @@ if (sourceDb === SCRATCH_DB) die("The source and the scratch target are the same
 
 const TARGET = ADMIN.replace(/\/[^/?]+(\?|$)/, `/${SCRATCH_DB}$1`);
 
+/**
+ * Say WHY the drill failed somewhere a reader can actually get to.
+ *
+ * On a public repository, Actions job logs are readable only with admin
+ * rights. Everyone else — including anyone triaging from a phone, and anyone
+ * looking at a fork's run — gets "Process completed with exit code 1" and
+ * nothing else. That is a useless signal for the one check whose whole purpose
+ * is to tell you your backups are broken.
+ *
+ * Annotations are not log output: they are attached to the check run and are
+ * public. So each failed check is emitted as one, and the environment is
+ * emitted as a notice on every run, because "which pg_dump, against which
+ * server" is the first question anyone asks and the answer moves under you
+ * when a hosted runner image updates.
+ *
+ * Newlines and percent signs have to be encoded or they terminate the
+ * workflow command early and the annotation arrives truncated.
+ */
+const ANNOTATE = Boolean(process.env.GITHUB_ACTIONS);
+function ghCommand(kind, title, line) {
+  if (!ANNOTATE) return;
+  const encoded = String(line)
+    .replace(/%/g, "%25")
+    .replace(/\r/g, "%0D")
+    .replace(/\n/g, "%0A");
+  console.log(`::${kind} title=${title}::${encoded}`);
+}
+
 let pass = 0;
 let fail = 0;
 function check(name, ok, detail) {
   console.log((ok ? "PASS  " : "FAIL  ") + name + (detail ? "  -- " + detail : ""));
-  if (ok) pass += 1; else fail += 1;
+  if (ok) {
+    pass += 1;
+  } else {
+    fail += 1;
+    ghCommand("error", "Backup drill", name + (detail ? " -- " + detail : ""));
+  }
 }
 
 const run = (args, extra) =>
@@ -128,6 +161,35 @@ mkdirSync(OUT, { recursive: true });
 const srcLive = await scalar(SOURCE, "SELECT COALESCE(SUM(n_live_tup),0)::bigint n FROM pg_stat_user_tables");
 console.log(`[drill] source ${sourceDb}, ~${srcLive.toLocaleString()} live rows`);
 console.log(`[drill] scratch target ${SCRATCH_DB}\n`);
+
+/**
+ * The client/server pair, recorded before anything is attempted.
+ *
+ * A dump is produced by one version and read back by another, and on a hosted
+ * runner neither is pinned by this repository. When the drill starts failing
+ * on a commit that did not touch the database, this is the line that says
+ * whether the ground moved.
+ */
+{
+  const clientVersion = spawnSync(process.env.PG_DUMP || "pg_dump", ["--version"], {
+    encoding: "utf8",
+  });
+  const serverVersion = await (async () => {
+    const c = new Client({ connectionString: SOURCE });
+    await c.connect();
+    try {
+      return (await c.query("SHOW server_version")).rows[0].server_version;
+    } finally {
+      await c.end();
+    }
+  })();
+  const env =
+    `client ${String(clientVersion.stdout || clientVersion.stderr || "unknown").trim()}` +
+    ` | server ${serverVersion}` +
+    ` | node ${process.version} on ${process.platform}`;
+  console.log(`[drill] ${env}\n`);
+  ghCommand("notice", "Backup drill environment", env);
+}
 
 // ------------------------------------------------------------- 1. plaintext
 console.log("--- 1. PLAINTEXT backup -> restore -> verify");
@@ -228,4 +290,7 @@ await admin(`DROP DATABASE IF EXISTS "${SCRATCH_DB}" WITH (FORCE)`);
 rmSync(OUT, { recursive: true, force: true });
 console.log("\n[drill] scratch database dropped, drill dumps removed");
 console.log(`\n[drill] ${pass} passed, ${fail} failed`);
+if (fail > 0) {
+  ghCommand("error", "Backup drill", `${fail} of ${pass + fail} checks failed. Do not trust the backups.`);
+}
 process.exit(fail === 0 ? 0 : 1);
