@@ -558,6 +558,18 @@ export const webhookCreateSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+/**
+ * C1 — the body of a delivery replay.
+ *
+ * One field, but it is an id used to look a row up, so it goes through the
+ * same gate as everything else. `cuidSchema` rather than `z.string()` because
+ * the alternative is a free-form value reaching a `findFirst` — and the route
+ * checker exists precisely to stop "it's only one string" reasoning.
+ */
+export const webhookReplaySchema = z.object({
+  deliveryId: cuidSchema,
+});
+
 export const webhookUpdateSchema = z.object({
   targetUrl: z.string().max(2000).url("Must be a valid URL").optional(),
   secret: z.string().max(500).optional(),

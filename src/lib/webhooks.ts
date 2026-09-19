@@ -1,5 +1,4 @@
 import { prisma } from "./prisma";
-import { decryptField } from "./encryption";
 import { logger } from "./logger";
 
 /**
@@ -82,91 +81,30 @@ export function isWebhookTargetAllowed(rawUrl: string): { ok: true } | { ok: fal
   return { ok: true };
 }
 
-const DELIVERY_TIMEOUT_MS = 10_000;
-
+/**
+ * Dispatch an event to every subscribed endpoint.
+ *
+ * C1 — THIS NO LONGER DELIVERS DIRECTLY.
+ *
+ * It used to be one un-awaited `fetch` per webhook. Nothing recorded the
+ * attempt, a receiver's transient 500 lost the event permanently, and on a
+ * short-lived process the socket could be torn down before it opened. It also
+ * sent the shared secret in a header on every request, which exposed it to
+ * every intermediary and proved nothing about the payload.
+ *
+ * Now it writes a durable row per endpoint and returns; src/lib/webhook-delivery.ts
+ * signs, attempts, retries with backoff and dead-letters. The property worth
+ * keeping from the old design is preserved: the caller's request is still never
+ * blocked on a receiver.
+ */
 export async function dispatchWebhook(eventType: string, payload: any, projectId?: string, orgId?: string) {
   try {
-    const where: any = {
-      isActive: true,
-      OR: [],
-    };
-
-    if (projectId) {
-      where.OR.push({ projectId });
-    }
-    if (orgId) {
-      where.OR.push({ orgId, projectId: null });
-    }
-
-    if (where.OR.length === 0) return;
-
-    const webhooks = await prisma.webhook.findMany({ where });
-    if (webhooks.length === 0) return;
-
-    for (const webhook of webhooks) {
-      try {
-        let events: string[] = [];
-        try {
-          events = JSON.parse(webhook.events);
-        } catch {
-          events = webhook.events.split(",").map((e: string) => e.trim());
-        }
-
-        if (!events.includes(eventType)) continue;
-
-        const allowed = isWebhookTargetAllowed(webhook.targetUrl);
-        if (!allowed.ok) {
-          logger.security(
-            "WEBHOOK_TARGET_BLOCKED",
-            `Refused to deliver ${eventType} to webhook ${webhook.id}: ${allowed.reason}`,
-            { webhookId: webhook.id, targetUrl: webhook.targetUrl, reason: allowed.reason }
-          );
-          continue;
-        }
-
-        // Deliberately not awaited: a slow or hostile endpoint must not delay
-        // the user's request. A timeout bounds the socket, and redirects are
-        // not followed so a 302 cannot be used to reach a blocked host.
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
-
-        fetch(webhook.targetUrl, {
-          method: "POST",
-          redirect: "manual",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "X-Webhook-Event": eventType,
-            "X-Webhook-Secret": decryptField(webhook.secret),
-          },
-          body: JSON.stringify({
-            event: eventType,
-            timestamp: new Date().toISOString(),
-            data: payload,
-          }),
-        })
-          .then((res) => {
-            if (!res.ok) {
-              logger.warn(
-                "WEBHOOK_DELIVERY_NON_2XX",
-                `Webhook ${webhook.id} responded ${res.status} to ${eventType}`,
-                { webhookId: webhook.id, status: res.status, eventType }
-              );
-            }
-          })
-          .catch((err) => {
-            logger.error("WEBHOOK_DELIVERY_FAILED", `Failed to deliver ${eventType} to webhook ${webhook.id}`, err, {
-              webhookId: webhook.id,
-              eventType,
-            });
-          })
-          .finally(() => clearTimeout(timer));
-      } catch (err: any) {
-        logger.error("WEBHOOK_PROCESSING_ERROR", `Error processing webhook ${webhook.id}`, err, {
-          webhookId: webhook.id,
-        });
-      }
-    }
+    // Imported lazily to keep the SSRF guard above importable on its own —
+    // webhook-delivery.ts imports THIS module for isWebhookTargetAllowed, and
+    // a static import both ways is a cycle.
+    const { enqueueWebhookDeliveries, startWebhookWorker } = await import("./webhook-delivery");
+    startWebhookWorker();
+    await enqueueWebhookDeliveries(eventType, payload, projectId, orgId);
   } catch (error: any) {
     logger.error("WEBHOOK_DISPATCH_ERROR", "Failed to process webhooks", error);
   }

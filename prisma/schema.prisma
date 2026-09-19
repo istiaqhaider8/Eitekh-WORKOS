@@ -798,11 +798,79 @@ model Webhook {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// C1 — per-endpoint circuit breaker.
+  ///
+  /// An endpoint that has been dead for a week should not be retried at full
+  /// rate forever: it wastes the worker on deliveries that cannot succeed and
+  /// buries the endpoints that CAN. After a threshold of consecutive failures
+  /// the endpoint is suspended until `disabledUntil`, and one success resets
+  /// the counter. `isActive` stays the tenant's own switch; this is ours.
+  consecutiveFailures Int       @default(0)
+  disabledUntil       DateTime?
+
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  project      Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
 
   @@index([orgId])
   @@index([projectId])
+}
+
+/// C1 — one row per webhook delivery attempt sequence.
+///
+/// WHY A TABLE AND NOT A FIRE-AND-FORGET fetch()
+///
+/// Delivery used to be `fetch(...)` with no await: the request returned, the
+/// promise was left running, and nothing recorded whether it ever completed.
+/// A receiver returning a transient 500 lost the event permanently, and there
+/// was no way for anyone — the tenant or us — to find out that it had. On a
+/// short-lived process the request could be torn down before the socket even
+/// opened.
+///
+/// The row is written BEFORE the attempt, so an event that was accepted is
+/// never silently dropped: worst case it is a PENDING row a worker picks up.
+/// That is the difference between at-most-once and at-least-once, and a
+/// receiver that cannot tolerate a duplicate can use `id` to dedupe — which is
+/// why it is sent as the X-Eitekh-Delivery header.
+model WebhookDelivery {
+  id        String @id @default(cuid())
+  webhookId String
+  eventType String
+  /// The exact bytes that were signed and sent. Kept so a retry re-sends the
+  /// same payload rather than a regenerated one, and so support can answer
+  /// "what did you actually send us".
+  payload   String
+
+  /// PENDING | DELIVERING | DELIVERED | FAILED | DEAD
+  /// FAILED is retryable; DEAD has exhausted its attempts.
+  status    String   @default("PENDING")
+  attempts  Int      @default(0)
+
+  /// When a worker may next try. Set to now() on creation and pushed out by
+  /// the backoff on each failure.
+  nextAttemptAt DateTime @default(now())
+  lastAttemptAt DateTime?
+  deliveredAt   DateTime?
+
+  /// What the receiver said. Truncated: a body is diagnostic, not storage.
+  responseStatus Int?
+  responseBody   String?
+  error          String?
+
+  /// Set while an instance holds the row, so two workers cannot deliver the
+  /// same event twice. See the claim query in src/lib/webhook-delivery.ts.
+  claimedBy String?
+  claimedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  /// The worker's query: due, retryable rows, oldest first.
+  @@index([status, nextAttemptAt])
+  /// The admin history view.
+  @@index([webhookId, createdAt])
+  @@index([createdAt])
 }
 
 // -------------------------------------------------------------

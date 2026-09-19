@@ -141,6 +141,22 @@ describe("leaf resources addressed by their own id", () => {
     expect(res.text).not.toContain("ATTACHMENT BODY OF TENANT B");
   });
 
+  it("delivery history is refused to another tenant", async () => {
+    // C1 added this route. The payload column holds the tenant's own event
+    // data, so a missing guard here leaks issue titles and ids wholesale.
+    const res = await api(fx.orgA.users.ADMIN, `/api/webhooks/${fx.orgB.webhookId}/deliveries`);
+    expectDenied(res, "org A admin reading org B's webhook deliveries");
+    expectNoLeak(res, "org B webhook deliveries");
+  });
+
+  it("a delivery cannot be replayed through another tenant's webhook", async () => {
+    const res = await api(fx.orgA.users.ADMIN, `/api/webhooks/${fx.orgB.webhookId}/deliveries`, {
+      method: "POST",
+      body: { deliveryId: "cuidthatdoesnotexist000" },
+    });
+    expectDenied(res, "org A admin replaying through org B's webhook");
+  });
+
   it("a webhook secret never reaches another tenant", async () => {
     // The secret is what a receiver uses to verify payloads came from us.
     // Leaking it lets another tenant forge them.

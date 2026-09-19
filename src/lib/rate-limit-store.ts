@@ -86,7 +86,7 @@ export interface RateLimitStore {
 /**
  * The shared store. One statement per hit.
  *
- * `resetAt <= now()` is evaluated inside the UPDATE rather than in JS so that
+ * `resetAt <= (now() AT TIME ZONE 'UTC')` is evaluated inside the UPDATE rather than in JS so that
  * the window boundary is decided by the database clock. With several app
  * instances, their clocks differ; the database's is the only one all of them
  * agree on, and a limiter whose window depends on which instance you reached
@@ -99,15 +99,15 @@ class PostgresRateLimitStore implements RateLimitStore {
   async hit(key: string, windowSeconds: number): Promise<RateLimitHit> {
     const rows = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
       INSERT INTO "RateLimitCounter" ("key", "count", "resetAt")
-      VALUES (${key}, 1, now() + ${`${windowSeconds} seconds`}::interval)
+      VALUES (${key}, 1, (now() AT TIME ZONE 'UTC') + ${`${windowSeconds} seconds`}::interval)
       ON CONFLICT ("key") DO UPDATE SET
         "count" = CASE
-          WHEN "RateLimitCounter"."resetAt" <= now() THEN 1
+          WHEN "RateLimitCounter"."resetAt" <= (now() AT TIME ZONE 'UTC') THEN 1
           ELSE "RateLimitCounter"."count" + 1
         END,
         "resetAt" = CASE
-          WHEN "RateLimitCounter"."resetAt" <= now()
-            THEN now() + ${`${windowSeconds} seconds`}::interval
+          WHEN "RateLimitCounter"."resetAt" <= (now() AT TIME ZONE 'UTC')
+            THEN (now() AT TIME ZONE 'UTC') + ${`${windowSeconds} seconds`}::interval
           ELSE "RateLimitCounter"."resetAt"
         END
       RETURNING "count", "resetAt"
@@ -144,15 +144,15 @@ class PostgresRateLimitStore implements RateLimitStore {
 
     const rows = await prisma.$queryRaw<Array<{ key: string; count: number; resetAt: Date }>>`
       INSERT INTO "RateLimitCounter" ("key", "count", "resetAt")
-      SELECT t.k, 1, now() + make_interval(secs => t.w)
+      SELECT t.k, 1, (now() AT TIME ZONE 'UTC') + make_interval(secs => t.w)
         FROM unnest(${keys}::text[], ${windows}::int[]) AS t(k, w)
       ON CONFLICT ("key") DO UPDATE SET
         "count" = CASE
-          WHEN "RateLimitCounter"."resetAt" <= now() THEN 1
+          WHEN "RateLimitCounter"."resetAt" <= (now() AT TIME ZONE 'UTC') THEN 1
           ELSE "RateLimitCounter"."count" + 1
         END,
         "resetAt" = CASE
-          WHEN "RateLimitCounter"."resetAt" <= now() THEN excluded."resetAt"
+          WHEN "RateLimitCounter"."resetAt" <= (now() AT TIME ZONE 'UTC') THEN excluded."resetAt"
           ELSE "RateLimitCounter"."resetAt"
         END
       RETURNING "key", "count", "resetAt"
