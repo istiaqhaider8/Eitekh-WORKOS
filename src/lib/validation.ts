@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { RECURRENCE_VALUES } from "./recurrence";
 
 // ── Reusable field schemas ──────────────────────────────────────────
 
@@ -711,7 +712,13 @@ export const pbacClassicActionSchema = z.object({
 
 export const recurringTaskCreateSchema = z.object({
   projectId: cuidSchema,
-  scheduleCron: z.string().min(1, "Cron schedule is required").max(100),
+  /**
+   * Named "cron" and never a cron expression: the schema comment has always
+   * said DAILY | WEEKLY | MONTHLY and those are the only values the product
+   * produces. An enum here means no NEW row can be ambiguous; existing rows
+   * holding something else still run, daily and with a warning.
+   */
+  scheduleCron: z.enum(RECURRENCE_VALUES),
   templateData: z.any(),
   isActive: z.boolean().default(true),
 });

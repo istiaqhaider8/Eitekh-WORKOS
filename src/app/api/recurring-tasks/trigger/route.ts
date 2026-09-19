@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { handleApiError } from "@/lib/api-error";
 import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
+import { nextRunFrom } from "@/lib/recurrence";
 
 /**
  * H5 — the recurring-task scheduler.
@@ -42,24 +43,9 @@ import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
  * BREAKING: an existing crontab passing a session cookie will now get a 403.
  * Set RECURRING_TASKS_SECRET and send it as `x-cron-secret`; see DEPLOYMENT.md.
  *
- * NOT FIXED HERE, and worth its own change: `getNextCronDate` ignores
- * `scheduleCron` entirely and always adds one day, so WEEKLY and MONTHLY tasks
- * fire daily. That is a scheduling defect, not an authorization one, and
- * correcting it changes when existing tasks run.
+ * The scheduling defect this note used to describe — every cadence firing
+ * daily — is fixed: see src/lib/recurrence.ts.
  */
-
-/**
- * The next run.
- *
- * Unchanged, deliberately — see the note above. `scheduleCron` holds DAILY,
- * WEEKLY or MONTHLY and this returns tomorrow for all three.
- */
-function getNextCronDate(cron: string, fromDate = new Date()): Date {
-  // Simple fallback: add 1 day
-  const next = new Date(fromDate);
-  next.setDate(next.getDate() + 1);
-  return next;
-}
 
 export async function POST(request: Request) {
   try {
@@ -228,7 +214,15 @@ export async function POST(request: Request) {
 
       createdCount++;
 
-      const nextRun = getNextCronDate(task.scheduleCron, now);
+      const { at: nextRun, assumedDaily } = nextRunFrom(task.scheduleCron, now);
+      if (assumedDaily) {
+        // A legacy or mistyped cadence. It keeps firing daily, as it did
+        // before, rather than stopping — but it is no longer silent about it.
+        logger.warn(
+          "RECURRING_TASK_UNKNOWN_SCHEDULE",
+          `Recurring task ${task.id} has schedule "${task.scheduleCron}", which is not DAILY, WEEKLY or MONTHLY; assuming DAILY.`
+        );
+      }
       await prisma.recurringTask.update({
         where: { id: task.id },
         data: { lastRunAt: now, nextRunAt: nextRun },

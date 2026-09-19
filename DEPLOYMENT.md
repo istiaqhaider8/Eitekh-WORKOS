@@ -374,9 +374,13 @@ The others still authenticate as a super-admin, so use a dedicated service accou
 > creates nothing** — set it, or recurring tasks stop running. A crontab still sending a
 > session cookie will get 403.
 
-> **Note.** `getNextCronDate` ignores `scheduleCron`, so WEEKLY and MONTHLY recurring tasks
-> currently fire daily. That is a scheduling defect, tracked separately; the authorization fix
-> above deliberately did not change when tasks run.
+> **Changed: recurring tasks now keep the schedule they were given.** Until this release every
+> cadence fired **daily** — `getNextCronDate` ignored its argument — so WEEKLY tasks ran seven
+> times and MONTHLY tasks about thirty times more often than configured. `scheduleCron` accepts
+> `DAILY`, `WEEKLY` or `MONTHLY`; a row holding anything else keeps firing daily and now logs
+> `RECURRING_TASK_UNKNOWN_SCHEDULE` naming the task.
+>
+> **Expect volume to drop after you deploy this.** That is the fix working, not tasks failing.
 
 > **Known gaps as of 2026-09-18** — see [`PRE-PRODUCTION-VERIFICATION.md`](PRE-PRODUCTION-VERIFICATION.md):
 > **automation rules** and **webhooks** have CRUD endpoints and UI but **no execution engine at
