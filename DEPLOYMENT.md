@@ -129,6 +129,57 @@ pm2 save && pm2 startup
 
 ---
 
+## 5b. Container (Phase 2)
+
+`next.config.mjs` sets `output: "standalone"`, so the build emits a
+self-contained server in `.next/standalone` that runs with `node server.js`
+and nothing else — no repository, no `npm ci` on the target, no network at
+deploy time.
+
+```bash
+docker build -t eitekh-workos .
+docker run --rm -p 3000:3000 --env-file .env.production eitekh-workos
+```
+
+The image is multi-stage: the build needs the full dependency tree, the Prisma
+CLI and the source; the runtime needs none of them. It runs as a non-root user
+and carries a `HEALTHCHECK` against `/api/health`, which checks the database
+too — so an unhealthy container is one that cannot do its job, not merely one
+whose process is alive.
+
+### Two things that bite the first time
+
+**Static assets are not traced into `standalone`.** `.next/static` and
+`public/` must be copied alongside it, which the Dockerfile does explicitly.
+Miss them and the app boots, serves HTML, and every script, style and font
+404s.
+
+**Check what ends up in the image.** The first standalone build here was
+**766 MB** and had copied the entire project root — including `storage/`,
+where local-fs attachments live. A layer is readable by anyone who can pull
+the image, and deleting a file in a later instruction does **not** remove it
+from the layer that added it. `outputFileTracingExcludes` now keeps user
+data, backups, tests and build-only tooling out, and `.dockerignore` is the
+second line of defence.
+
+After that: **106 MB**, with no user data in it.
+
+### If `node_modules` looks enormous
+
+On Windows, a `prisma generate` that fails with `EPERM` — which happens when
+a running process holds the query engine — leaves a 19 MB
+`query_engine-*.tmpNNNNN` behind, every time. Thirty-six of them had
+accumulated here: **684 MB** in `node_modules/.prisma` alone.
+
+```bash
+find node_modules/.prisma -name "*.tmp*" -delete
+```
+
+Stop anything holding the engine first (the dev server, a load test, a
+migration script), or the next generate leaks another one.
+
+---
+
 ## 6. Reverse proxy (Nginx + TLS)
 
 Install Nginx and Certbot, then create `/etc/nginx/sites-available/workos`:

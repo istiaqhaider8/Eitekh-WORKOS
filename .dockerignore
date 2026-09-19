@@ -1,0 +1,47 @@
+# What must never enter the build context.
+#
+# This is a security boundary as much as a speed one. Everything listed here
+# would otherwise be copied into an image layer by `COPY . .`, and a layer is
+# readable by anyone who can pull the image — deleting a file in a later
+# instruction does NOT remove it from the layer it was added in.
+
+# Secrets. The single most important line in this file.
+.env
+.env.*
+!.env.example
+
+# Local attachment storage (STORAGE_DRIVER=local-fs). User uploads.
+/storage/
+
+# Backups and dumps — every tenant's data in one file.
+/backups/
+*.dump
+*.dump.enc
+*.sql
+
+# Reinstalled in the image; copying the host's is slower and can carry
+# platform-specific binaries that do not run on Alpine.
+node_modules
+.next
+out
+
+# Version control history, which contains every file ever committed.
+.git
+.gitignore
+
+# Test, CI and tooling surface the runtime has no use for.
+__tests__
+coverage
+.github
+*.log
+npm-debug.log*
+
+# Editor and OS noise.
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Local development helpers.
+/pgdata/
+/.claude/
