@@ -15,7 +15,38 @@ import { signToken, type Fixture, type TestUser, type TenantFixture } from "./ha
 
 export const RUN = `it${Date.now().toString(36)}`;
 
-export type Role = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+/**
+ * The fixture's role labels, and the two vocabularies each one maps to.
+ *
+ * These are deliberately spelled out rather than reused as a single string,
+ * because the codebase has two separate role vocabularies that were once
+ * conflated (see src/lib/project-roles.ts):
+ *
+ *   OrganizationMember.role — OWNER | ADMIN | MEMBER | GUEST
+ *   ProjectMember.role      — PROJECT_ADMIN | PROJECT_MANAGER | MEMBER | VIEWER | …
+ *
+ * An earlier version of this fixture wrote `ProjectMember.role = "OWNER"`,
+ * which is not a valid project role at all. The tests still passed, because
+ * nothing asserted on the project role — a fixture that creates data the API
+ * would reject makes every test built on it suspect.
+ */
+export interface RoleSpec {
+  label: string;
+  orgRole: "OWNER" | "ADMIN" | "MEMBER";
+  projectRole: "PROJECT_ADMIN" | "PROJECT_MANAGER" | "MEMBER" | "VIEWER";
+  /** Authority rank, highest first. Used by the escalation tests. */
+  rank: number;
+}
+
+export const ROLE_SPECS: RoleSpec[] = [
+  { label: "OWNER", orgRole: "OWNER", projectRole: "PROJECT_ADMIN", rank: 0 },
+  { label: "ADMIN", orgRole: "ADMIN", projectRole: "PROJECT_ADMIN", rank: 1 },
+  { label: "MANAGER", orgRole: "MEMBER", projectRole: "PROJECT_MANAGER", rank: 2 },
+  { label: "MEMBER", orgRole: "MEMBER", projectRole: "MEMBER", rank: 3 },
+  { label: "VIEWER", orgRole: "MEMBER", projectRole: "VIEWER", rank: 4 },
+];
+
+export type Role = "OWNER" | "ADMIN" | "MANAGER" | "MEMBER" | "VIEWER";
 
 function makeUser(prisma: PrismaClient, label: string, isSuperAdmin = false): TestUser {
   const id = `${RUN}_${label}`;
@@ -53,26 +84,21 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
   const projectId = `${RUN}_proj${tag}`;
   const projectKey = `IT${tag}`;
 
-  const roles: Role[] = ["OWNER", "ADMIN", "MEMBER", "VIEWER"];
   const users: Record<string, TestUser> = {};
-  for (const role of roles) {
-    users[role] = makeUser(prisma, `${tag}_${role.toLowerCase()}`);
+  for (const spec of ROLE_SPECS) {
+    users[spec.label] = makeUser(prisma, `${tag}_${spec.label.toLowerCase()}`);
   }
 
   await prisma.organization.create({
     data: { id: orgId, name: `Integration Org ${tag}`, slug: orgId },
   });
 
-  for (const role of roles) {
-    await persistUser(prisma, users[role]);
+  for (const spec of ROLE_SPECS) {
+    await persistUser(prisma, users[spec.label]);
     await prisma.organizationMember.create({
-      data: {
-        orgId,
-        userId: users[role].id,
-        // The org-level vocabulary has no VIEWER; a viewer is a MEMBER at the
-        // organization who holds VIEWER on the project.
-        role: role === "VIEWER" ? "MEMBER" : role,
-      },
+      // The organization vocabulary has no VIEWER or MANAGER: those are
+      // project-level roles held by an organization MEMBER.
+      data: { orgId, userId: users[spec.label].id, role: spec.orgRole },
     });
   }
 
@@ -85,12 +111,12 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
   // these rows every such listing returns [] for everyone, so a cross-tenant
   // probe against them would pass whether the guard worked or not — and the
   // control case proving the probe reaches live code would fail.
-  for (const role of roles) {
+  for (const spec of ROLE_SPECS) {
     await prisma.workspaceMember.create({
       data: {
         workspaceId,
-        userId: users[role].id,
-        role: role === "OWNER" || role === "ADMIN" ? "WORKSPACE_ADMIN" : "MEMBER",
+        userId: users[spec.label].id,
+        role: spec.orgRole === "MEMBER" ? "MEMBER" : "WORKSPACE_ADMIN",
       },
     });
   }
@@ -106,9 +132,12 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
     },
   });
 
-  for (const role of roles) {
+  for (const spec of ROLE_SPECS) {
+    // The PROJECT vocabulary — PROJECT_ADMIN / PROJECT_MANAGER / MEMBER /
+    // VIEWER. Writing an organization role here (an earlier version wrote
+    // "OWNER") produces a row the API's own whitelist would reject.
     await prisma.projectMember.create({
-      data: { projectId, userId: users[role].id, role },
+      data: { projectId, userId: users[spec.label].id, role: spec.projectRole },
     });
   }
 
@@ -138,11 +167,19 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
       description: `team of tenant ${tag}`,
     },
   });
-  for (const role of roles) {
+  for (const spec of ROLE_SPECS) {
     await prisma.teamMember.create({
-      data: { teamId, userId: users[role].id, role: role === "OWNER" ? "LEAD" : "MEMBER" },
+      data: { teamId, userId: users[spec.label].id, role: spec.rank === 0 ? "LEAD" : "MEMBER" },
     });
   }
+
+  // An organization member who is deliberately NOT a project member. Routes
+  // that assign someone to a project validate organization membership first,
+  // so using a total outsider as the target produces a 400 from validation
+  // before any permission check runs — and the test proves nothing.
+  const spare = makeUser(prisma, `${tag}_spare`);
+  await persistUser(prisma, spare);
+  await prisma.organizationMember.create({ data: { orgId, userId: spare.id, role: "MEMBER" } });
 
   const issueId = `${RUN}_issue${tag}`;
   const issueKey = `${projectKey}-1`;
@@ -160,7 +197,7 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
     },
   });
 
-  return { orgId, workspaceId, projectId, projectKey, issueId, issueKey, teamId, users };
+  return { orgId, workspaceId, projectId, projectKey, issueId, issueKey, teamId, spareUserId: spare.id, users };
 }
 
 export async function createFixture(prisma: PrismaClient): Promise<Fixture> {

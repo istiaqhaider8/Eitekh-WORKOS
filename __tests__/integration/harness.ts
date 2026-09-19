@@ -45,6 +45,8 @@ export interface TenantFixture {
   issueId: string;
   issueKey: string;
   teamId: string;
+  /** An organization member who is NOT a project member — an assignment target. */
+  spareUserId: string;
   sprintId?: string;
   users: Record<string, TestUser>;
 }
