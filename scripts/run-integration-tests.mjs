@@ -30,8 +30,19 @@ function require_resolve_next() {
 const PORT = Number(process.env.INTEGRATION_PORT || 3141);
 const BASE_URL = `http://localhost:${PORT}`;
 
+/**
+ * Every way this script gives up, annotated.
+ *
+ * The jest-failure path was annotated first and it was the wrong half: the CI
+ * run that prompted it never reached jest, so the step failed with exit code 1
+ * and no annotation at all — exactly the silence being fixed, in the one place
+ * the fix had not been applied. The runner refuses for several reasons of its
+ * own (no database URL, no JWT secret, migrations failed, the server never
+ * came up), and each of those is a message worth reading.
+ */
 function fail(msg) {
   console.error(`\n[integration] ${msg}\n`);
+  ghError("Integration tests", msg);
   process.exit(1);
 }
 
@@ -156,12 +167,33 @@ process.on("uncaughtException", (e) => {
   process.exit(1);
 });
 
+/**
+ * The lines of the server's log that say something.
+ *
+ * A readiness timeout reports the runner's view — "it never answered" — while
+ * the reason is always in the server's own output: a config guard refusing to
+ * boot, a migration that did not apply, a port already in use. On CI that log
+ * is unreadable without admin rights, so the useful part travels in the
+ * annotation instead.
+ */
+function serverTail(max = 6) {
+  const lines = serverLog
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && /error|fatal|refus|invalid|must|cannot|fail|listen|EADDR/i.test(l));
+  const unique = [...new Set(lines)];
+  return unique.slice(-max).join(" | ") || "(nothing on stdout or stderr)";
+}
+
 async function waitForReady(timeoutMs = 120_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (server.exitCode !== null) {
       console.error(serverLog.slice(-3000));
-      fail(`server exited with code ${server.exitCode} before becoming ready`);
+      fail(
+        `server exited with code ${server.exitCode} before becoming ready. ` +
+          `Server said: ${serverTail()}`
+      );
     }
     try {
       const res = await fetch(`${BASE_URL}/api/health`);
@@ -170,7 +202,7 @@ async function waitForReady(timeoutMs = 120_000) {
     await new Promise((r) => setTimeout(r, 500));
   }
   console.error(serverLog.slice(-3000));
-  fail("server did not become ready in time");
+  fail(`server did not become ready in time. Server said: ${serverTail()}`);
 }
 
 await waitForReady();
