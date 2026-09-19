@@ -2682,7 +2682,12 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {issue?.attachments?.map((att: any) => {
-                        const isImage = att.mimeType?.startsWith("image/") || att.fileUrl?.startsWith("data:image");
+                        // A4: the issue payload carries attachment METADATA only.
+                        // Including the bytes made one unopened file 380 KB of a
+                        // 689 KB response. Content is fetched from its own endpoint,
+                        // so a file is only transferred when someone looks at it.
+                        const contentUrl = `/api/attachments/${att.id}/content`;
+                        const isImage = att.mimeType?.startsWith("image/");
                         return (
                           <div
                             key={att.id}
@@ -2697,7 +2702,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
-                                    src={att.fileUrl}
+                                    src={contentUrl}
                                     alt={att.fileName}
                                     className="w-full h-full object-cover group-hover/img:scale-105 transition-transform"
                                   />
@@ -2744,7 +2749,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                                 </button>
                               ) : (
                                 <a
-                                  href={sanitizeUrl(att.fileUrl)}
+                                  href={contentUrl}
                                   download={att.fileName}
                                   target="_blank"
                                   rel="noopener noreferrer"
@@ -2757,7 +2762,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
                               <div className="flex items-center gap-1">
                                 <a
-                                  href={sanitizeUrl(att.fileUrl)}
+                                  href={contentUrl}
                                   download={att.fileName}
                                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-600 cursor-pointer"
                                   title="Download file"
@@ -4325,7 +4330,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={sanitizeUrl(previewAttachment.fileUrl)}
+                    href={`/api/attachments/${previewAttachment.id}/content`}
                     download={previewAttachment.fileName}
                     className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
@@ -4344,10 +4349,10 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
 
               {/* Lightbox Body */}
               <div className="p-6 flex-1 flex items-center justify-center overflow-auto bg-slate-950/20 dark:bg-black/40 min-h-[300px]">
-                {previewAttachment.mimeType?.startsWith("image/") || previewAttachment.fileUrl?.startsWith("data:image") ? (
+                {previewAttachment.mimeType?.startsWith("image/") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={previewAttachment.fileUrl}
+                    src={`/api/attachments/${previewAttachment.id}/content`}
                     alt={previewAttachment.fileName}
                     className="max-h-[70vh] max-w-full object-contain rounded-xl shadow-lg"
                   />
@@ -4357,7 +4362,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{previewAttachment.fileName}</p>
                     <p className="text-xs text-slate-400 mt-1 mb-4">Preview not directly supported for this file type.</p>
                     <a
-                      href={sanitizeUrl(previewAttachment.fileUrl)}
+                      href={`/api/attachments/${previewAttachment.id}/content`}
                       download={previewAttachment.fileName}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl"
                     >

@@ -9,6 +9,15 @@ import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
 import { handleApiError } from "@/lib/api-error";
 
+/**
+ * A4 — how much history a single issue fetch carries.
+ *
+ * These are deliberately small. The full history is available from the
+ * paginated sub-resources; what the detail view needs on open is the recent
+ * end of each list, and every row beyond that is latency nobody asked for.
+ */
+const HISTORY_PAGE_SIZE = 50;
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -38,8 +47,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           orderBy: { createdAt: "asc" },
           include: { assignee: publicUserRelation },
         },
+        // Newest first, bounded. The previous ordering was ascending, which
+        // combined with a limit would have returned the OLDEST comments —
+        // the opposite of what a reader wants.
         comments: {
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
+          take: HISTORY_PAGE_SIZE,
           include: {
             user: {
               select: { id: true, firstName: true, lastName: true, avatarUrl: true },
@@ -48,12 +61,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         },
         timeEntries: {
           orderBy: { createdAt: "desc" },
+          take: HISTORY_PAGE_SIZE,
           include: {
             user: { select: { id: true, firstName: true, lastName: true } },
           },
         },
         activityLogs: {
           orderBy: { timestamp: "desc" },
+          take: HISTORY_PAGE_SIZE,
           include: {
             actor: { select: { id: true, firstName: true, lastName: true } },
           },
@@ -75,11 +90,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         customFieldValues: {
           include: { customField: true },
         },
+        // METADATA ONLY. `fileUrl` holds a base64 data URI, so including it
+        // meant every issue fetch carried every attachment's full bytes —
+        // measured at 380 KB of a 689 KB payload for one unopened file.
+        // Content is served by /api/attachments/[id]/content on demand.
         attachments: {
           orderBy: { createdAt: "desc" },
-          include: {
+          take: HISTORY_PAGE_SIZE,
+          select: {
+            id: true,
+            fileName: true,
+            fileSize: true,
+            mimeType: true,
+            createdAt: true,
             uploader: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, email: true } },
           },
+        },
+        // Totals, so a client can tell the bounded lists above are partial
+        // and offer "show all" rather than silently presenting 50 of 374.
+        _count: {
+          select: { comments: true, timeEntries: true, activityLogs: true, attachments: true },
         },
         delegations: {
           orderBy: { createdAt: "desc" },
