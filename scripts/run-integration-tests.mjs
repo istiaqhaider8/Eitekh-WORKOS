@@ -21,6 +21,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ghError } from "./gh-annotate.mjs";
+import { productionEnvFor } from "./local-production-env.mjs";
 
 /** Resolve Next's CLI entry so the server can be spawned without a shell. */
 function require_resolve_next() {
@@ -86,88 +87,23 @@ if (!/test/i.test(dbName)) {
  * rejects. A test harness that is correct only when the surrounding
  * environment is already correct is not a harness.
  */
-const isPlaceholderJwt = (v) =>
-  !v || v.length < 32 || v.includes("dev-only") || v.includes("change-in-production") || v.includes("ci-test");
-const isPlaceholderKey = (v) => !v || !/^[0-9a-f]{64}$/i.test(v) || /^0+$/.test(v);
-
 /**
- * Generated per run when what we were handed will not do.
- *
- * Random rather than a fixed literal so that nothing here can be mistaken for
- * a credential, or copied into somewhere it would matter. The server and jest
- * both receive this same object, so the fixture signs tokens with the same
- * secret the server verifies them with.
+ * The boot guard's requirements, answered in scripts/local-production-env.mjs
+ * rather than here. This harness was the first of five broken by a new guard;
+ * the shared module is what stops the sixth.
  */
-const { randomBytes } = await import("node:crypto");
-const jwtSecret = isPlaceholderJwt(process.env.JWT_SECRET)
-  ? `integration-${randomBytes(24).toString("hex")}`
-  : process.env.JWT_SECRET;
-const fieldKey = isPlaceholderKey(process.env.FIELD_ENCRYPTION_KEY)
-  ? randomBytes(32).toString("hex")
-  : process.env.FIELD_ENCRYPTION_KEY;
-
-const env = {
-  ...process.env,
-  NODE_ENV: "production",
+const { env: baseEnv, notes } = productionEnvFor("integration", {
   DATABASE_URL: dbUrl,
   INTEGRATION_BASE_URL: BASE_URL,
-  JWT_SECRET: jwtSecret,
-  FIELD_ENCRYPTION_KEY: fieldKey,
-  /**
-   * This server exists for two minutes on a loopback port and sends no email,
-   * so it has no public URL to give — which is precisely the case the flag
-   * exists for. Set here rather than left to the developer's `.env`, which is
-   * how the CI failure stayed hidden.
-   */
-  ALLOW_LOCAL_BASE_URL: "1",
   BASE_URL: process.env.INTEGRATION_PUBLIC_URL || "https://integration.eitekh.test",
-  SMTP_HOST: process.env.SMTP_HOST || "smtp.integration.test",
-  SMTP_PASS: process.env.SMTP_PASS || "integration",
-  // H5. POST /api/recurring-tasks/trigger refuses with 503 when this is unset,
-  // so the suite could not tell "correctly locked" from "misconfigured". A
-  // fixed test value lets it prove the interesting case: that a valid SESSION
-  // is not accepted here, which is the hole this replaced.
-  RECURRING_TASKS_SECRET: "integration-recurring-secret",
-  /**
-   * The production boot guard requires this, and rightly: without it the
-   * per-IP rate limit is keyed on a header the caller writes.
-   *
-   * One hop, because the harness sends an X-Forwarded-For per test user — the
-   * way a real deployment sees distinct clients arriving through one proxy.
-   * With 0 the address would be unknowable and every user in the suite would
-   * share a single backstop bucket, so a long run would start returning 429s
-   * that look like authorization failures.
-   */
-  TRUSTED_PROXY_HOPS: "1",
-  /**
-   * Attachment storage. The production guard requires a driver, and rightly:
-   * without one, files go into a Postgres column.
-   *
-   * A directory under the OS temp dir, declared shared because this IS a
-   * single instance with a single directory — which is the one case where
-   * that claim is true.
-   *
-   * This is the THIRD harness break caused by a new production guard
-   * (TRUSTED_PROXY_HOPS, then the placeholder secrets, now this). The pattern
-   * is always the same: the guard is right, and the harness was relying on a
-   * developer's .env to satisfy it. Anything added to instrumentation.ts has
-   * to be answered here too.
-   */
-  STORAGE_DRIVER: "local-fs",
-  STORAGE_FS_ROOT: join(tmpdir(), "eitekh-integration-attachments"),
-  STORAGE_FS_SHARED: "1",
-};
+});
+for (const n of notes) console.log(`[integration] ${n}`);
+const env = baseEnv;
 
 // Now guaranteed by construction above; kept as a tripwire in case the
 // derivation is ever changed back into something that can yield nothing.
 if (!env.JWT_SECRET || !env.FIELD_ENCRYPTION_KEY) {
   fail("JWT_SECRET and FIELD_ENCRYPTION_KEY must both be set: the fixture signs tokens with one and the server boots with the other.");
-}
-if (jwtSecret !== process.env.JWT_SECRET) {
-  console.log("[integration] JWT_SECRET was a placeholder the production guard rejects; using a generated one for this run");
-}
-if (fieldKey !== process.env.FIELD_ENCRYPTION_KEY) {
-  console.log("[integration] FIELD_ENCRYPTION_KEY was a placeholder the production guard rejects; using a generated one for this run");
 }
 
 console.log(`[integration] database: ${dbName}`);

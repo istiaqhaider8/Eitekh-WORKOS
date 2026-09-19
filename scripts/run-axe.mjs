@@ -19,6 +19,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
+import { productionEnvFor } from "./local-production-env.mjs";
 
 const require_ = createRequire(import.meta.url);
 const { PrismaClient } = require_("@prisma/client");
@@ -47,17 +48,14 @@ if (!/test/i.test(dbName)) {
 
 if (!process.env.JWT_SECRET) fail("JWT_SECRET must be set: the session is signed with it.");
 
-const env = {
-  ...process.env,
-  NODE_ENV: "production",
-  DATABASE_URL: dbUrl,
-  JWT_SECRET: process.env.JWT_SECRET,
-  FIELD_ENCRYPTION_KEY: process.env.FIELD_ENCRYPTION_KEY || "1".repeat(64),
-  BASE_URL: "https://axe.eitekh.example",
-  ALLOW_LOCAL_BASE_URL: "1",
-  SMTP_HOST: process.env.SMTP_HOST || "smtp.axe.test",
-  SMTP_PASS: process.env.SMTP_PASS || "axe",
-};
+/**
+ * The boot guard's requirements, answered in one place. See
+ * scripts/local-production-env.mjs — this harness was the FIFTH to be broken
+ * by a new guard, which is why that module exists.
+ */
+const { env: baseEnv, notes } = productionEnvFor("axe", { DATABASE_URL: dbUrl });
+for (const n of notes) console.log(`[axe] ${n}`);
+const env = baseEnv;
 
 console.log(`[axe] database: ${dbName}`);
 
