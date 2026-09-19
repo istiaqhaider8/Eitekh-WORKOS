@@ -87,20 +87,30 @@ export const ALERT_RULES: AlertRule[] = [
      *
      * The login route now emits both.
      *
-     * A THIRD limitation, which is why rate-limit refusals are NOT listed
-     * here: counters incremented in MIDDLEWARE never reach this evaluation.
-     * Next bundles middleware separately from route handlers, so the counters
-     * singleton is duplicated — verified by logging AUTH_RATE_LIMITED four
-     * times from middleware and watching /api/health report it ABSENT.
-     * `shared-store-unavailable` is affected by the same thing and is
-     * recorded in DEPLOYMENT.md rather than quietly left looking armed.
+     * A THIRD fault sat underneath both: counters incremented in MIDDLEWARE
+     * did not reach this evaluation at all, because Next bundles middleware
+     * separately and each bundle got its own counters Map. Rate-limit
+     * refusals are listed here because that is now fixed — the store is
+     * pinned to globalThis, the way prisma.ts and sync-engine.ts already pin
+     * theirs. It also un-breaks `shared-store-unavailable`, which watches a
+     * counter only middleware emits.
+     *
+     * And a FOURTH under that, found only because the counter finally worked:
+     * the login route has its OWN limiter, tighter than the middleware's, and
+     * both of its refusal paths called logAuditEvent and nothing else. So the
+     * first and strictest line of defence — the one a real attack meets — was
+     * still silent. 40 attempts produced 8 failures and 32 refusals, of which
+     * 10 reached a counter; the other 22 were refused by the route.
+     * AUTH_ACCOUNT_LOCKED is listed because it is the signal a DISTRIBUTED
+     * attack produces: the per-IP ceiling is evaded by spreading the source,
+     * the per-account one is not.
      *
      * Found by inducing 30 failed logins and watching nothing happen.
      * `alerts.test.ts` now asserts every key here is emitted somewhere in
      * `src/`, so a renamed action breaks a test instead of silently disarming
      * an alert.
      */
-    keys: ["action.AUTH_LOGIN_FAILED"],
+    keys: ["action.AUTH_LOGIN_FAILED", "action.AUTH_RATE_LIMITED", "action.AUTH_ACCOUNT_LOCKED"],
     threshold: 25,
     detail: (v, t) =>
       `${v} authentication failures or rate-limit refusals in the last window (threshold ${t}). ` +

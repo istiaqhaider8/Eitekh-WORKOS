@@ -117,6 +117,30 @@ try {
     baselineBody.routed ? "ALERT_WEBHOOK_URL is set" : "NOT ROUTED — firings would go nowhere"
   );
 
+  /**
+   * Whether the process was quiet before the drill started.
+   *
+   * The baseline call above is a real evaluation. If the process has already
+   * accumulated auth failures — because someone was poking at it, or because
+   * an earlier drill ran against this same process — that call FIRES the rule
+   * and consumes its fifteen-minute cooldown. The induced spike below is then
+   * correctly suppressed, and the drill reports two failures that look exactly
+   * like a broken alert.
+   *
+   * That is the worst possible output: a drill that cries wolf is a drill
+   * people learn to ignore, which is the failure this whole phase was about.
+   * So say which it is rather than leaving the reader to guess.
+   */
+  const baselineFired = Array.isArray(baselineBody.firings) ? baselineBody.firings : [];
+  if (baselineFired.some((f) => f.id === "auth-failure-spike")) {
+    console.log(
+      "\n[alert-drill] WARNING: the baseline evaluation ALREADY fired auth-failure-spike.\n" +
+        "[alert-drill] This process was not quiet before the drill, so the rule is now in\n" +
+        "[alert-drill] cooldown and the induced spike below WILL be suppressed. A failure\n" +
+        "[alert-drill] below is that, not a broken alert. Restart the server and re-run."
+    );
+  }
+
   delivered.length = 0;
 
   // ------------------------------------------------------------------ 2

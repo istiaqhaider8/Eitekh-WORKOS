@@ -30,6 +30,25 @@ export async function POST(req: Request) {
         ipAddress: ipAddress === 'anonymous' ? '127.0.0.1' : ipAddress,
         details: { ip: ipAddress, limit: LOGIN_IP_LIMIT, scope: 'IP' },
       });
+      /**
+       * Counted as well as audited, because they are different systems.
+       *
+       * `logAuditEvent` writes a Postgres row; the alert rules read the
+       * PROCESS COUNTERS, which only `logger.*` touches. This route already
+       * had that distinction fixed for AUTH_LOGIN_FAILED and not for the two
+       * throttle paths — so during an actual credential-stuffing run, where
+       * the refusals ARE the signal, most of them were invisible to
+       * `auth-failure-spike`. Only the far looser middleware ceiling
+       * underneath ever reached a counter.
+       *
+       * Measured: 40 attempts produced 8 failures and 32 refusals, of which
+       * exactly 10 were counted. The other 22 were refused here, in silence.
+       */
+      logger.security(
+        "AUTH_RATE_LIMITED",
+        "Per-IP login limit refused an attempt",
+        { scope: "IP", limit: LOGIN_IP_LIMIT },
+      );
       return NextResponse.json(
         { error: `Too many login attempts. Please try again in ${rl.resetInSeconds} seconds.` },
         { status: 429, headers: { "Retry-After": String(rl.resetInSeconds) } }
@@ -58,6 +77,24 @@ export async function POST(req: Request) {
         ipAddress: ipAddress === 'anonymous' ? '127.0.0.1' : ipAddress,
         details: { email, limit: LOGIN_ACCOUNT_LIMIT, windowSeconds: LOGIN_ACCOUNT_WINDOW_SECONDS, scope: 'ACCOUNT' },
       });
+      /**
+       * The strongest single signal this application has.
+       *
+       * The per-IP ceiling is evaded by distributing the attack; this one is
+       * not, because it is keyed on the account under attack rather than on
+       * the source. A spike here means someone is working through one
+       * address's password list from many hosts — and until now it produced
+       * an audit row and nothing that could page anybody.
+       *
+       * No email or account identifier in the meta: telemetry may leave the
+       * host, and the audit row above already holds it for whoever is
+       * entitled to look.
+       */
+      logger.security(
+        "AUTH_ACCOUNT_LOCKED",
+        "Per-account login limit refused an attempt",
+        { scope: "ACCOUNT", limit: LOGIN_ACCOUNT_LIMIT, windowSeconds: LOGIN_ACCOUNT_WINDOW_SECONDS },
+      );
       // Deliberately the same wording as the IP-based message: revealing that a
       // specific account is being throttled would confirm the address exists.
       return NextResponse.json(

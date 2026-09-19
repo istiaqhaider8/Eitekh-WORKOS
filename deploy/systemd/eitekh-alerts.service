@@ -1,0 +1,43 @@
+# Evaluate the alert rules once (PROD-7). Driven by eitekh-alerts.timer.
+#
+# This is a Type=oneshot unit, not a daemon: the application does not schedule
+# its own evaluation on purpose. A setInterval in module scope runs once per
+# INSTANCE, so N instances means N evaluations and N pages for one condition —
+# which is what PROD-2 and PROD-3 removed elsewhere. A scheduler calling an
+# endpoint is explicit about who runs it and how often.
+#
+# Point this at ONE instance. Alert state (the previous sample and the
+# cooldowns) is per-process, so aiming it at a load balancer in front of
+# several instances means each call lands somewhere different, every window
+# looks like a huge delta, and the cooldown never applies.
+
+[Unit]
+Description=Evaluate Eitekh WorkOS alert rules (one cycle)
+Documentation=file:///opt/eitekh/DEPLOYMENT.md
+
+[Service]
+Type=oneshot
+
+# ALERT_CHECK_SECRET and the app URL live here, not in this file. A unit file
+# is world-readable by default; a secret in it is a secret in `systemctl cat`.
+#   sudo install -m 0600 -o root -g root /dev/null /etc/eitekh/alerts.env
+# then put ALERT_CHECK_SECRET=... and APP_URL=... in it.
+EnvironmentFile=/etc/eitekh/alerts.env
+
+User=eitekh
+Group=eitekh
+
+# --fail turns an HTTP 4xx/5xx into a non-zero exit, so a 503 (secret unset)
+# or 403 (wrong secret) shows up as a failed unit instead of a success that
+# silently evaluated nothing. Without it curl exits 0 on any response it
+# received, which is exactly the shape of failure this phase was about.
+# --max-time bounds a hung request so a stuck cycle cannot overlap the next.
+ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 30 \
+    -X POST \
+    -H "x-alert-secret: ${ALERT_CHECK_SECRET}" \
+    ${APP_URL}/api/internal/alerts/check
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

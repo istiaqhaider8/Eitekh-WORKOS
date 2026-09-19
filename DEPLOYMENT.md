@@ -514,8 +514,9 @@ pointing at the drill's receiver. It induces 30 failed logins from distinct
 source addresses, calls the evaluation endpoint the way cron does, and waits
 for the webhook. **11/11** here, with a real payload delivered.
 
-> **These alerts had never fired, and could not have.** Three separate faults,
-> each hiding the next:
+> **These alerts had never fired, and could not have.** Four separate faults,
+> each one hiding the next, so each was only findable once the one above it
+> was fixed:
 >
 > 1. `auth-failure-spike` watched `LOGIN_FAILED`, `AUTH_FAILED` and
 >    `RATE_LIMIT_EXCEEDED` — **names nothing in the codebase emits**.
@@ -523,18 +524,47 @@ for the webhook. **11/11** here, with a real payload delivered.
 >    `logAuditEvent`, which persists a row to Postgres and does **not** touch
 >    the process counters the rules read. Audit and telemetry are different
 >    systems; the login route used only the first.
-> 3. Counters incremented in **middleware never reach the evaluation at all**.
->    Next bundles middleware separately from route handlers, so the counters
->    singleton is duplicated — verified by logging `AUTH_RATE_LIMITED` four
->    times from middleware and watching `/api/health` report it **absent**.
+> 3. Counters incremented in **middleware never reached the evaluation at
+>    all**. Next bundles middleware separately from route handlers, so the
+>    counters singleton was duplicated — verified by logging
+>    `AUTH_RATE_LIMITED` four times from middleware and watching `/api/health`
+>    report it **absent**.
+> 4. The login route has its **own** limiter, tighter than the middleware's,
+>    and both of its refusal paths called `logAuditEvent` and nothing else. So
+>    the first and strictest line of defence — the one a real attack actually
+>    meets — was still silent.
 
-**Known limitation, not yet fixed.** Because of (3), `shared-store-unavailable`
-watches `RATE_LIMIT_UNAVAILABLE`, which is only ever emitted from middleware —
-so that rule still cannot fire in-process. Its events *are* visible in the
-server log and would reach a `TELEMETRY_ENDPOINT`, so the condition is not
-invisible; it just does not page. Fixing it properly means either persisting
-middleware counters to the shared store or evaluating that rule in the
-telemetry backend.
+All four are fixed: (3) by pinning the counter store to `globalThis`, the way
+`prisma.ts` and `sync-engine.ts` already pin theirs, and (4) by emitting
+`logger.security` alongside the audit row on both throttle paths.
+
+The difference (4) makes, measured on this host — 40 failed attempts from one
+address against one account, before and after:
+
+| counter | before | after |
+| --- | --- | --- |
+| `action.AUTH_LOGIN_FAILED` | 8 | 8 |
+| `action.AUTH_RATE_LIMITED` | 10 | 30 |
+| `action.AUTH_ACCOUNT_LOCKED` | — | 2 |
+| **total the rule sees** | **18** | **40** |
+
+The threshold is 25. Before the fix, forty consecutive attempts on one account
+summed to eighteen and **the alert stayed silent** — the 22 refusals the route
+itself issued were counted by nothing. `action.AUTH_ACCOUNT_LOCKED` is now one
+of the rule's keys because it is the signal a **distributed** attack produces:
+the per-IP ceiling is evaded by spreading the source, the per-account one is
+not.
+
+`shared-store-unavailable` was also structurally unable to fire, for reason
+(3) — it watches `RATE_LIMIT_UNAVAILABLE`, which only middleware emits. The
+`globalThis` fix repairs that rule too.
+
+> **Re-running the drill needs a quiet process.** The drill's own baseline call
+> is a real evaluation, so if the server has already accumulated auth failures
+> that call fires the rule and consumes its fifteen-minute cooldown. The
+> induced spike is then correctly suppressed, and the drill reports two
+> failures that look exactly like a broken alert. It now detects this and says
+> so; restart the server for a clean run.
 
 ### Scheduled endpoints and CSRF
 
@@ -554,6 +584,38 @@ automatically; these routes ignore cookies entirely and authenticate on a
 header a cross-origin page cannot set without a preflight. Session-authenticated
 endpoints — including `/api/super-admin/backup` — still require `Origin`, so a
 crontab calling those must send `-H "Origin: https://your-domain"`.
+
+### The scheduler itself
+
+Fixing the 403 made the endpoints reachable. It did not make anything call
+them — and an alert rule nobody evaluates is not a safety net, it is a belief.
+
+Ready-to-install units are in [`deploy/`](deploy/): systemd timers and services
+in [`deploy/systemd/`](deploy/systemd/), an `/etc/cron.d` equivalent in
+[`deploy/cron/eitekh.crontab`](deploy/cron/eitekh.crontab), and the install and
+verification steps in [`deploy/README.md`](deploy/README.md). They cover alert
+evaluation (every 5 minutes), recurring-task generation (hourly) and the
+nightly encrypted backup.
+
+Three things in there are load-bearing and easy to get wrong:
+
+- **`curl --fail`.** Without it curl exits 0 on any response it received, so a
+  permanently rejected alert check (403, wrong secret) looks identical to a
+  permanently healthy one. With it, the unit fails and you can see it.
+- **Secrets in `/etc/eitekh/alerts.env`, mode 0600** — not in the unit file
+  (world-readable, so `systemctl cat` prints them) and not on the cron command
+  line (visible in `ps` for the duration of every run).
+- **Point `APP_URL` at one instance, not a load balancer.** Alert state — the
+  previous counter sample and the per-rule cooldowns — is per-process. Spread
+  round-robin, every call lands on a process that has never sampled, so every
+  window reads as an enormous delta and the cooldown never applies.
+
+**Status: written, not executed.** This host is Windows; there is no systemd
+and no cron here, so the units have not been loaded, have not been seen to
+fire, and `systemd-analyze verify` has not been run. What *is* verified is the
+endpoint they call, end to end, by `scripts/alert-drill.mjs` — the schedule
+around it is the unproven part. That is why the install instructions end with a
+manual `systemctl start` and a look at the journal.
 
 
 Before this section existed, `logger.ts` wrote to `console.*` and nowhere else: no sink, no

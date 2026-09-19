@@ -140,19 +140,54 @@ class HttpTelemetryTransport implements TelemetryTransport {
   }
 }
 
+/**
+ * Where the counter values actually live.
+ *
+ * WHY globalThis AND NOT A MODULE-LEVEL Map
+ *
+ * A `new Map()` in module scope is one map per MODULE INSTANCE, and Next
+ * bundles middleware separately from route handlers. Both bundles import this
+ * file, both get their own copy, and nothing in either one suggests that.
+ *
+ * The consequence was silent and specific: everything counted in middleware
+ * was invisible to `/api/health`, and therefore to the alert evaluation that
+ * reads it. `shared-store-unavailable` watches `RATE_LIMIT_UNAVAILABLE`, which
+ * ONLY middleware emits — so the rule that fires when the rate limiter starts
+ * failing closed, which is a user-visible outage, could never fire.
+ *
+ * Verified before the fix by logging `AUTH_RATE_LIMITED` four times from
+ * middleware and watching `/api/health` report it absent.
+ *
+ * This is the same shape as PROD-2's per-process rate-limit Map: a singleton
+ * that turns out not to be as singular as it looks. `prisma.ts` and
+ * `sync-engine.ts` already pin their instances to globalThis for the same
+ * reason, and this now follows that convention.
+ */
+const globalForCounters = globalThis as unknown as {
+  __eitekhCounters?: { values: Map<string, number>; startedAt: number };
+};
+
+function counterStore(): { values: Map<string, number>; startedAt: number } {
+  if (!globalForCounters.__eitekhCounters) {
+    globalForCounters.__eitekhCounters = { values: new Map(), startedAt: Date.now() };
+  }
+  return globalForCounters.__eitekhCounters;
+}
+
 /** Counters the alerting rules are written against. */
 class Counters {
-  private readonly values = new Map<string, number>();
-  private readonly startedAt = Date.now();
-
   increment(name: string, by = 1): void {
-    this.values.set(name, (this.values.get(name) ?? 0) + by);
+    const store = counterStore();
+    store.values.set(name, (store.values.get(name) ?? 0) + by);
   }
 
   snapshot(): Record<string, number> & { uptimeSeconds: number } {
+    const store = counterStore();
     return {
-      ...Object.fromEntries(this.values),
-      uptimeSeconds: Math.round((Date.now() - this.startedAt) / 1000),
+      ...Object.fromEntries(store.values),
+      // Shared too: a per-bundle startedAt would report a different uptime
+      // depending on which bundle answered.
+      uptimeSeconds: Math.round((Date.now() - store.startedAt) / 1000),
     };
   }
 }

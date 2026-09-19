@@ -1,0 +1,22 @@
+# Generate due recurring tasks (A-series).
+#
+#   sudo cp deploy/systemd/eitekh-recurring-tasks.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now eitekh-recurring-tasks.timer
+
+[Unit]
+Description=Generate due Eitekh WorkOS recurring tasks
+After=network-online.target
+
+[Timer]
+# Hourly on the hour. Recurrence schedules are day-grained at their finest, so
+# a tighter interval buys nothing; an hour bounds how late a task appears after
+# its due moment, which is the only thing a user notices.
+OnCalendar=hourly
+RandomizedDelaySec=120
+# Catch up after downtime. Without this, tasks due while the host was off are
+# simply never generated — the schedule moves on and nobody is told.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,31 @@
+# Evaluate the alert rules (PROD-7).
+#
+# Nothing in the application schedules itself. Without this unit — or an
+# equivalent cron entry — the five alert rules are evaluated by nobody, and
+# an alert that is never evaluated is not a safety net. It is a belief, and
+# the worst version is an operator who trusts it.
+#
+#   sudo cp deploy/systemd/eitekh-alerts.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now eitekh-alerts.timer
+#   systemctl list-timers eitekh-alerts.timer     # confirm it is scheduled
+
+[Unit]
+Description=Evaluate Eitekh WorkOS alert rules
+# If the app is not up there is nothing to evaluate, and a failed curl every
+# five minutes is noise that trains people to ignore the journal.
+After=network-online.target
+
+[Timer]
+# Five minutes. The rules measure the CHANGE since the previous evaluation, so
+# the interval is also the alerting window: longer means slower to notice,
+# shorter means a smaller sample and more chance of a threshold never being
+# crossed within one window.
+OnBootSec=2min
+OnUnitActiveSec=5min
+# Without this, every instance in a fleet fires at exactly the same second.
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

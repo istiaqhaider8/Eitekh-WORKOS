@@ -1,0 +1,32 @@
+# Eitekh WorkOS scheduled work, for hosts without systemd.
+#
+#   sudo install -m 0600 -o root -g root deploy/cron/eitekh.crontab /etc/cron.d/eitekh
+#   sudo systemctl reload cron        # or: service cron reload
+#
+# /etc/cron.d entries take a USER FIELD (the sixth column). This file is not a
+# user crontab and `crontab -e` will reject it.
+#
+# SECRETS
+#
+# The secrets are read from /etc/eitekh/alerts.env rather than set here,
+# because /etc/cron.d files are commonly world-readable and a secret in one is
+# a secret in `ps` for the duration of every run. Keep that file 0600.
+#
+# MAILTO matters: cron's only failure report is mail. Without it a job that has
+# been failing for a month looks exactly like one that has been working.
+MAILTO=ops@example.com
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Evaluate the five alert rules. Five minutes is also the alerting window: the
+# rules measure the CHANGE since the previous call.
+# `--fail` is what turns an HTTP 403/503 into a non-zero exit, so it is mailed.
+# Without it curl exits 0 on any response and a misconfigured secret is silent.
+*/5 * * * * eitekh set -a; . /etc/eitekh/alerts.env; set +a; curl --fail --silent --show-error --max-time 30 -X POST -H "x-alert-secret: $ALERT_CHECK_SECRET" "$APP_URL/api/internal/alerts/check" >/dev/null
+
+# Generate due recurring tasks.
+7 * * * * eitekh set -a; . /etc/eitekh/alerts.env; set +a; curl --fail --silent --show-error --max-time 60 -X POST -H "x-recurring-secret: $RECURRING_TASKS_SECRET" "$APP_URL/api/recurring-tasks/trigger" >/dev/null
+
+# Nightly encrypted database backup. BACKUP_ENCRYPTION_KEY must be set in the
+# env file: a dump holds every tenant's data in the clear.
+17 2 * * * eitekh set -a; . /etc/eitekh/alerts.env; set +a; cd /opt/eitekh && node scripts/db-backup.mjs

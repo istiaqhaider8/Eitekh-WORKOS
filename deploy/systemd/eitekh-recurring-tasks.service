@@ -1,0 +1,28 @@
+# Materialise due recurring tasks. Driven by eitekh-recurring-tasks.timer.
+#
+# Same reasoning as eitekh-alerts.service: the generation is triggered by a
+# scheduler, not by a timer inside the app, so it runs exactly once per tick
+# regardless of how many instances are up.
+
+[Unit]
+Description=Generate due Eitekh WorkOS recurring tasks
+Documentation=file:///opt/eitekh/DEPLOYMENT.md
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/eitekh/alerts.env
+User=eitekh
+Group=eitekh
+
+# Generation writes rows, so a silent failure means tasks that should exist
+# simply do not — invisible from outside until someone misses a deadline.
+# --fail makes that a failed unit.
+ExecStart=/usr/bin/curl --fail --silent --show-error --max-time 60 \
+    -X POST \
+    -H "x-recurring-secret: ${RECURRING_TASKS_SECRET}" \
+    ${APP_URL}/api/recurring-tasks/trigger
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
