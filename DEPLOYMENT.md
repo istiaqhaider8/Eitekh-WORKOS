@@ -174,6 +174,34 @@ Set `FORCE_HTTPS=true` in `.env` after enabling TLS.
 
 ---
 
+### Trusting the client address (REQUIRED)
+
+`TRUSTED_PROXY_HOPS` must be set, and the server refuses to start without it.
+It is the number of proxies between the internet and the app — `1` for the
+Nginx configuration above.
+
+`X-Forwarded-For` is a chain the **client** starts and each proxy appends to,
+so the leftmost entry is whatever the caller typed. The rate limiter used to
+read it, which meant any caller could get a fresh per-IP budget by rotating the
+header. That was demonstrated against a running server:
+
+```
+X-Forwarded-For: 203.0.113.10   ->  remaining 99, 98, 97
+X-Forwarded-For: 198.51.100.77  ->  remaining 99, 98, 97   <- a new budget
+```
+
+The per-IP ceiling is what stands in front of the unauthenticated routes, so
+that was a bypass of login throttling. The chain is now read from the right,
+by the configured hop count.
+
+> **The application port must not be reachable except through the proxy.**
+> With one trusted hop, a request that skipped Nginx carries a chain
+> indistinguishable from a genuine one, and no application code can tell them
+> apart. Bind the app to `127.0.0.1` (or a private interface) and let only
+> the proxy reach it. This is a requirement, not a hardening tip.
+
+---
+
 ## 7. Security checklist before going live
 
 - [ ] `NODE_ENV=production` — enables secure cookies, strict error handling

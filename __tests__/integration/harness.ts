@@ -113,6 +113,16 @@ export interface ApiResult {
 }
 
 /**
+ * A stable, private-range address per user id. Not routable, and never the
+ * same for two users, which is all the rate limiter needs.
+ */
+function fakeAddressFor(userId: string): string {
+  let h = 0;
+  for (let i = 0; i < userId.length; i += 1) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+  return `10.${(h >> 16) & 255}.${(h >> 8) & 255}.${(h & 255) || 1}`;
+}
+
+/**
  * Make a request as a given user.
  *
  * `Origin` is always set, because the middleware rejects mutating requests
@@ -129,6 +139,17 @@ export async function api(
     "Content-Type": "application/json",
   };
   if (user) headers.Cookie = `eitekh_session_token=${user.token}`;
+
+  /**
+   * Arrive from a distinct address per user.
+   *
+   * The server runs with TRUSTED_PROXY_HOPS=1, so a single-entry chain is the
+   * address a proxy would have appended. Without this every request in the
+   * suite shares one per-IP backstop bucket, and a long run starts collecting
+   * 429s — which `expectDenied` correctly refuses to count as a pass, so the
+   * failure would look like a broken guard rather than a spent budget.
+   */
+  headers["X-Forwarded-For"] = user ? fakeAddressFor(user.id) : "203.0.113.254";
   // For routes authenticated by something other than a session — the cron
   // endpoints, which take a shared secret in a header.
   Object.assign(headers, init.headers ?? {});

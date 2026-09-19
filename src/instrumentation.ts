@@ -13,6 +13,7 @@
  */
 
 import { assertProductionRateLimitStore } from "./lib/rate-limit-store";
+import { parseTrustedProxyHops } from "@/lib/client-ip";
 import { telemetryStartupWarnings } from "./lib/telemetry";
 
 const HEX_64 = /^[0-9a-f]{64}$/i;
@@ -123,6 +124,40 @@ function validateProductionConfig(): string[] {
   // exists to remove: it silently grants N x the configured limit once there is
   // more than one instance. Refuse rather than scale into it.
   errors.push(...assertProductionRateLimitStore());
+
+  /**
+   * The per-IP rate limit is only as trustworthy as the address it is keyed
+   * on, and that address comes from a header the caller can write.
+   *
+   * Verified against a running server: rotating `X-Forwarded-For` handed out a
+   * fresh budget every time. The per-IP ceiling is what stands in front of the
+   * UNAUTHENTICATED routes — login included — so a bypass there is a bypass of
+   * the brute-force control.
+   *
+   * There is no safe default to infer. One proxy and a CDN-plus-balancer
+   * produce chains a caller can make look identical, and guessing permissively
+   * restores the hole silently. So it is a decision the operator has to make,
+   * and a production server that never made it does not start.
+   *
+   * `0` is a legitimate answer — "nothing in front of me" — and is warned
+   * about rather than refused, because it also means every unauthenticated
+   * caller shares one bucket.
+   */
+  const hops = parseTrustedProxyHops(process.env.TRUSTED_PROXY_HOPS);
+  if (hops === null) {
+    errors.push(
+      "TRUSTED_PROXY_HOPS is not set (or is not an integer 0-10). X-Forwarded-For is " +
+        "written by the caller, so without knowing how many proxies to trust, the per-IP " +
+        "rate limit — the control in front of login — can be bypassed by rotating the header. " +
+        "Set it to the number of proxies in front of this server, or 0 if it is directly exposed."
+    );
+  } else if (hops === 0) {
+    warnings.push(
+      "TRUSTED_PROXY_HOPS=0: no proxy is trusted, so no client address can be established. " +
+        "Every unauthenticated request shares ONE rate-limit bucket. That is safe but blunt — " +
+        "set it to the real number of proxies once this is behind one."
+    );
+  }
 
   // PROD-7. Not an error: an operator running without a sink has made a
   // choice, and refusing to boot over observability would turn a monitoring

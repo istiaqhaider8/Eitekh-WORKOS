@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, COOKIE_NAME } from "@/lib/session-token";
+import { clientIpFromForwarded, parseTrustedProxyHops } from "@/lib/client-ip";
 import { getRateLimitStore, maybeSweepRateLimits, type RateLimitSpec } from "@/lib/rate-limit-store";
 import { logger } from "@/lib/logger";
 
@@ -51,10 +52,26 @@ const RATE_LIMIT_MAX_IP_BACKSTOP_MUTATION = 200;
  * occasional opportunistic sweep inside the store itself.
  */
 
+/**
+ * How many proxies sit in front of this process. See src/lib/client-ip.ts.
+ *
+ * Read once: it is configuration, not per-request state, and re-parsing an
+ * environment variable on every request is work for nothing.
+ */
+const TRUSTED_PROXY_HOPS = parseTrustedProxyHops(process.env.TRUSTED_PROXY_HOPS);
+
+/**
+ * This used to read `x-forwarded-for` left-to-right, which let any caller pick
+ * their own rate-limit bucket by sending the header themselves — verified
+ * against the running server, where rotating the value reset the remaining
+ * count every time. `x-real-ip` was the same hole with a different name.
+ *
+ * The chain is now read from the right, by a configured number of trusted
+ * hops, and an unconfigured deployment gets one shared bucket rather than one
+ * bucket per forged value.
+ */
 function getClientIp(req: NextRequest): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || req.headers.get("x-real-ip")
-    || "anonymous";
+  return clientIpFromForwarded(req.headers.get("x-forwarded-for"), TRUSTED_PROXY_HOPS);
 }
 
 /**

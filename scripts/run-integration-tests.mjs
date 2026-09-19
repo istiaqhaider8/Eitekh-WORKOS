@@ -126,6 +126,17 @@ const env = {
   // fixed test value lets it prove the interesting case: that a valid SESSION
   // is not accepted here, which is the hole this replaced.
   RECURRING_TASKS_SECRET: "integration-recurring-secret",
+  /**
+   * The production boot guard requires this, and rightly: without it the
+   * per-IP rate limit is keyed on a header the caller writes.
+   *
+   * One hop, because the harness sends an X-Forwarded-For per test user — the
+   * way a real deployment sees distinct clients arriving through one proxy.
+   * With 0 the address would be unknowable and every user in the suite would
+   * share a single backstop bucket, so a long run would start returning 429s
+   * that look like authorization failures.
+   */
+  TRUSTED_PROXY_HOPS: "1",
 };
 
 // Now guaranteed by construction above; kept as a tripwire in case the
