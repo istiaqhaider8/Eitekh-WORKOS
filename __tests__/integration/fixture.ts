@@ -244,10 +244,82 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
     },
   });
 
+  /**
+   * Leaf resources (B4).
+   *
+   * Each of these is reachable by its own id, on a route whose path contains
+   * no project or organization. That is the shape both vulnerabilities found
+   * so far had: `GET /api/teams/[id]/members` leaked emails because nothing in
+   * the path told the handler which tenant to check against, so nothing did.
+   *
+   * They exist in the fixture only so a denial test has a REAL id to ask for.
+   * A test that requests a made-up id proves the 404 path, not the guard.
+   */
+  const commentId = `${RUN}_comment${tag}`;
+  await prisma.comment.create({
+    data: { id: commentId, issueId, userId: users.OWNER.id, content: `Comment of tenant ${tag}` },
+  });
+
+  const subtaskId = `${RUN}_subtask${tag}`;
+  await prisma.subtask.create({
+    data: { id: subtaskId, parentIssueId: issueId, title: `Subtask of tenant ${tag}` },
+  });
+
+  const componentId = `${RUN}_component${tag}`;
+  await prisma.component.create({
+    data: { id: componentId, projectId, name: `Component of tenant ${tag}` },
+  });
+
+  const customFieldId = `${RUN}_cf${tag}`;
+  await prisma.customField.create({
+    data: { id: customFieldId, scopeType: "PROJECT", scopeId: projectId, name: `Field of tenant ${tag}`, fieldType: "TEXT" },
+  });
+
+  // fileUrl holds a base64 data URI today (see B3). The content here is a
+  // marker the leak assertions can search for.
+  const attachmentId = `${RUN}_attach${tag}`;
+  await prisma.attachment.create({
+    data: {
+      id: attachmentId,
+      issueId,
+      uploaderId: users.OWNER.id,
+      fileName: `secret-of-tenant-${tag}.txt`,
+      fileSize: 32,
+      mimeType: "text/plain",
+      fileUrl: `data:text/plain;base64,${Buffer.from(`ATTACHMENT BODY OF TENANT ${tag}`).toString("base64")}`,
+    },
+  });
+
+  // The webhook SECRET is the sensitive part: it is what a receiver uses to
+  // verify payloads, so leaking it lets another tenant forge them.
+  const webhookId = `${RUN}_webhook${tag}`;
+  await prisma.webhook.create({
+    data: {
+      id: webhookId,
+      orgId,
+      projectId,
+      targetUrl: `https://hooks.tenant-${tag}.test/incoming`,
+      secret: `whsec_secret_of_tenant_${tag}`,
+      events: "issue.created",
+    },
+  });
+
+  const automationId = `${RUN}_automation${tag}`;
+  await prisma.automationRule.create({
+    data: {
+      id: automationId,
+      projectId,
+      name: `Automation of tenant ${tag}`,
+      triggerType: "ISSUE_CREATED",
+      actionType: "NOTIFY",
+    },
+  });
+
   return {
     orgId, workspaceId, projectId, projectKey, issueId, issueKey, teamId,
     spareUserId: spare.id,
     workflowId, statusId, statusInProgressId, statusDoneId, sprintId, epicId,
+    commentId, subtaskId, componentId, customFieldId, attachmentId, webhookId, automationId,
     users,
   };
 }
@@ -278,7 +350,15 @@ export async function destroyFixture(prisma: PrismaClient): Promise<void> {
   const like = { startsWith: RUN };
 
   await prisma.syncEventOutbox.deleteMany({ where: { OR: [{ projectId: like }, { userId: like }] } });
+  // Leaf resources first: they reference the issue and the project.
+  await prisma.attachment.deleteMany({ where: { id: like } });
+  await prisma.comment.deleteMany({ where: { id: like } });
+  await prisma.subtask.deleteMany({ where: { id: like } });
+  await prisma.customField.deleteMany({ where: { id: like } });
+  await prisma.automationRule.deleteMany({ where: { id: like } });
+  await prisma.webhook.deleteMany({ where: { id: like } });
   await prisma.issue.deleteMany({ where: { projectId: like } });
+  await prisma.component.deleteMany({ where: { projectId: like } });
   // Sprints and epics are referenced BY issues, so they go after them.
   await prisma.sprint.deleteMany({ where: { projectId: like } });
   await prisma.epic.deleteMany({ where: { projectId: like } });

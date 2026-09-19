@@ -196,7 +196,23 @@ describe("PROD-5 — a user of org A cannot reach org B's resources", () => {
     it("nothing was written to org B's issue despite the refusals", async () => {
       // A route can refuse and still have written first, so a refusal alone is
       // not proof that nothing happened.
-      expect(await prisma.comment.count({ where: { issueId: fx.orgB.issueId } })).toBe(0);
+      //
+      // Asserts on the INJECTED CONTENT rather than on a count of zero. The
+      // count was only correct while the fixture created no comments of its
+      // own; the moment it did (for the B4 leaf-resource tests) this started
+      // failing without anything being wrong. Naming what must not exist is
+      // both more precise and independent of what the fixture builds.
+      const injectedComments = await prisma.comment.count({
+        where: { issueId: fx.orgB.issueId, content: { contains: "injected by tenant A" } },
+      });
+      expect(injectedComments).toBe(0);
+
+      const injectedSubtasks = await prisma.subtask.count({
+        where: { parentIssueId: fx.orgB.issueId, title: { contains: "injected by tenant A" } },
+      });
+      expect(injectedSubtasks).toBe(0);
+
+      // The original check: no child ISSUE was created under org B's issue.
       expect(await prisma.issue.count({ where: { parentIssueId: fx.orgB.issueId } })).toBe(0);
     });
   });

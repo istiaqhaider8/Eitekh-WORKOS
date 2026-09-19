@@ -144,6 +144,21 @@ jobs:
       - name: API input-validation check
         run: node scripts/check-route-validation.mjs
 
+      # B4. A tenant-scoped route with no isolation test fails the build.
+      #
+      # The isolation suite reached two route families first, and BOTH held a
+      # real vulnerability — the team-members email leak and the
+      # project-manager privilege escalation. The gap in the rest was not
+      # carelessness: routes were added after the tests existed, with nothing
+      # to notice. A sweep goes stale the next time someone adds a route; this
+      # makes adding one a decision.
+      #
+      # It counts requests ISSUED by the suite, not assertions proven correct —
+      # a checker cannot know the latter. What it makes impossible is shipping
+      # a route that nothing tests at all.
+      - name: Tenant-isolation coverage check (B4)
+        run: node scripts/check-isolation-coverage.mjs
+
       - name: TypeScript type-check
         run: npx tsc --noEmit
 

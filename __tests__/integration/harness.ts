@@ -63,6 +63,17 @@ export interface TenantFixture {
   statusDoneId: string;
   sprintId: string;
   epicId: string;
+  /**
+   * Leaf resources, each reachable by its own id on a path that names no
+   * tenant. That shape is where both vulnerabilities found so far lived.
+   */
+  commentId: string;
+  subtaskId: string;
+  componentId: string;
+  customFieldId: string;
+  attachmentId: string;
+  webhookId: string;
+  automationId: string;
   users: Record<string, TestUser>;
 }
 
