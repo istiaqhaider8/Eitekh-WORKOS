@@ -9,15 +9,14 @@ import { logger } from "@/lib/logger";
  * The general API rate limit lives here, and after PROD-2 it is backed by a
  * store every instance shares — Postgres, reached through Prisma. Prisma
  * cannot run on the edge runtime, so this middleware must run on Node. The
- * `runtime` export below plus `experimental.nodeMiddleware` in next.config.mjs
- * is what arranges that; `isNodeRuntime()` checks it actually happened
- * rather than trusting the configuration.
+ * `runtime` export below is what arranges that, and `isNodeRuntime()` checks
+ * it actually happened rather than trusting the configuration.
  *
- * Node middleware is experimental in Next 15.5 and stable in Next 16, which
- * the PROD-19 upgrade already plans — so this is a step towards that version,
- * not a bet against it. If the flag were ever dropped, the build fails on the
- * Prisma import rather than quietly falling back to edge, so the failure is
- * loud.
+ * Node middleware became STABLE in Next 16 (A3). It previously needed
+ * `experimental.nodeMiddleware` in next.config.mjs, which the build did not
+ * even recognise in its config schema — one of the reasons that upgrade was
+ * worth doing. If the runtime were ever lost, the build fails on the Prisma
+ * import rather than quietly falling back to edge, so the failure is loud.
  */
 export const runtime = "nodejs";
 
@@ -179,7 +178,8 @@ export async function middleware(req: NextRequest) {
     logger.error(
       "RATE_LIMIT_RUNTIME_INVALID",
       "Middleware is not running on the Node runtime, so the shared rate-limit store " +
-        "is unreachable. Check experimental.nodeMiddleware in next.config.mjs.",
+        'is unreachable. Check that `export const runtime = "nodejs"` is still present ' +
+        "in src/middleware.ts.",
     );
     return NextResponse.json({ error: "Service misconfigured." }, { status: 503 });
   }

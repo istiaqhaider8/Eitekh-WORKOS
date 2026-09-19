@@ -161,12 +161,13 @@ jobs:
       # Postgres store, which Prisma cannot reach from the edge runtime. The
       # middleware therefore must build as a NODE function.
       #
-      # This is asserted rather than assumed because the failure is silent in
-      # the direction that matters: 'experimental.nodeMiddleware' is not in
-      # Next 15.5's config schema (the build prints "Unrecognized key(s)" and
-      # honours it anyway), so a future patch release could stop honouring it.
-      # A middleware that quietly runs on the edge is a middleware with no
-      # working rate limiter.
+      # Node middleware is STABLE as of Next 16 (A3), so this no longer rests on
+      # an experimental flag — `export const runtime = "nodejs"` in
+      # src/middleware.ts is enough, and next.config.mjs no longer sets one.
+      #
+      # The assertion stays because the failure is silent in the direction that
+      # matters: a middleware that quietly runs on the edge is a middleware with
+      # no working rate limiter, and nothing else in the build would say so.
       - name: Middleware builds for the Node runtime
         run: |
           node -e '

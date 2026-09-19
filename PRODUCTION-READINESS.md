@@ -492,13 +492,13 @@ domain or secret. The cost is one round-trip per API request, **measured at p50 
 material: implement `hit`/`hitMany`/`reset` against Redis and change `resolveStore()`. Nothing
 else in the codebase knows which store it is talking to.
 
-**One dependency worth recording**: the middleware now runs on the **Node** runtime
-(`export const runtime = "nodejs"` plus `experimental.nodeMiddleware`), because Prisma cannot run
-on the edge. That flag is experimental in Next 15.5 — the build prints `Unrecognized key(s) in
-object: nodeMiddleware` and enables it anyway — and **stable in Next 16**, which PROD-19 already
-plans. It is a step towards that upgrade, not a bet against it. If the flag were ever dropped, the
-build fails on the Prisma import rather than silently falling back to edge, and `isNodeRuntime()`
-in the middleware refuses to serve if it somehow does.
+**One dependency worth recording**: the middleware runs on the **Node** runtime
+(`export const runtime = "nodejs"`), because Prisma cannot run on the edge. This originally
+required `experimental.nodeMiddleware`, a flag Next 15.5 did not even carry in its config schema —
+the build printed `Unrecognized key(s)` and honoured it anyway. **Node middleware is stable as of
+Next 16**, and that flag was removed in A3. If the runtime were ever lost, the build fails on the
+Prisma import rather than silently falling back to edge, and `isNodeRuntime()` refuses to serve if
+it somehow does.
 
 > **A trap worth documenting.** Middleware must not import `@/lib/auth`: that module imports
 > `next/headers`, and pulling it into the middleware module graph makes **every** response a bare
