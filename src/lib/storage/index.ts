@@ -85,6 +85,17 @@ export interface StorageBackend {
   read(key: StorageKey, opts?: { fileName?: string; contentType?: string }): Promise<ReadTarget>;
   delete(key: StorageKey): Promise<void>;
   exists(key: StorageKey): Promise<boolean>;
+
+  /**
+   * Release whatever the backend holds open.
+   *
+   * Only meaningful for a network backend. A long-running server never calls
+   * it; a SCRIPT must, because an HTTP client with a live socket pool keeps
+   * the event loop alive, and calling process.exit() around it made Node
+   * abort on Windows with a libuv handle assertion after the work had already
+   * succeeded. Noise that looks like a crash is worse than no message.
+   */
+  close?(): Promise<void>;
 }
 
 /**

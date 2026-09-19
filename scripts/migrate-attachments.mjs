@@ -206,6 +206,9 @@ try {
   failed += 1;
 } finally {
   await prisma.$disconnect();
+  // Same reason as the drill: an open S3 socket pool plus process.exit()
+  // aborts Node on Windows, after the migration has already succeeded.
+  await backend.close?.();
 }
 
 const mb = (bytesMoved / 1048576).toFixed(2);

@@ -604,6 +604,39 @@ STORAGE_FS_SHARED="1"     # ONLY if this is genuinely a shared volume
 > which is the worst way for a fault to present. Set it only for NFS/EFS or a single instance
 > by design.
 
+### Verifying your store
+
+Before migrating anything, prove the credentials and the bucket actually work:
+
+```bash
+node scripts/storage-drill.mjs
+```
+
+It round-trips binary content, **redeems a presigned URL with no credentials**
+(which is what a browser does), checks the URL expires and carries the right
+filename, and confirms traversal keys are refused. Presigning is where an S3
+misconfiguration hides: a wrong region, a clock skew or path-style addressing
+all surface as one opaque `SignatureDoesNotMatch`.
+
+Measured locally against MinIO: **12/12**.
+
+### What moving attachments out actually buys
+
+Measured on this codebase — 400 attachments, 200 MB of files:
+
+| | Attachment table | Backup |
+|---|---|---|
+| base64 in the database | **277.4 MB** | carries all of it |
+| after migration, both copies | 277.4 MB | — |
+| after dropping `fileUrl` | **0.2 MB** | **0.17 MB** |
+
+The 277 MB from 200 MB of files is base64's 4/3 inflation. Note the middle row:
+immediately after the backfill the database is **not** smaller, because both
+copies exist deliberately. The space returns when `fileUrl` is dropped, which
+is a separate migration to run once the object store has a backup of its own.
+
+Backup drill with the files in the store: **16/16**, dump 0.17 MB.
+
 ### Migrating existing attachments
 
 ```bash

@@ -152,6 +152,11 @@ export class S3Backend implements StorageBackend {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  /** Close the socket pool, so a script can exit cleanly. */
+  async close(): Promise<void> {
+    this.client.destroy();
+  }
+
   async exists(key: StorageKey): Promise<boolean> {
     assertSafeKey(key);
     try {
