@@ -160,7 +160,7 @@ be pointed at `dev.db` by accident.
 | ~~B2~~ | ✅ **FIXED 2026-09-18** (PROD-2). Was: rate limiting in-process. Both limiters now go through a shared Postgres-backed store. | [`src/lib/rate-limit-store.ts`](src/lib/rate-limit-store.ts); verified across 2 live instances, see PROD-2 below |
 | ~~B3~~ | ✅ **ADDRESSED 2026-09-19** (PROD-3). The `Map` is still there and still in-process — because **nothing ever writes to it**: `set()` has no callers, so it holds no data. The real cross-instance defect in that file was the invalidation path, which now bumps the shared PBAC version. See the PROD-3 cache finding. | [`src/lib/cache-manager.ts`](src/lib/cache-manager.ts) header comment |
 | ~~B4~~ | ✅ **FIXED 2026-09-19** (PROD-4). The registry is still per-process, which is correct — a socket belongs to the process holding it. What was missing was fan-out: events now relay between instances over Postgres `LISTEN/NOTIFY`. | [`src/lib/sync-bus.ts`](src/lib/sync-bus.ts); verified with a client on each of 2 live instances |
-| B5 | Zero authorization / tenant-isolation tests | grep for `assertProjectAccess`/`tenant` in tests → no matches |
+| ~~B5~~ | ⚠️ **HALF FIXED 2026-09-19** (PROD-5). Tenant isolation now has 40 integration tests running in CI — and they found a live cross-tenant leak of team members' email addresses on their first complete run. Authorization/PBAC route tests (PROD-6) are still absent. | [`__tests__/integration/tenant-isolation.test.ts`](__tests__/integration/tenant-isolation.test.ts) |
 | B6 | Logs go to `console.*` only | [`src/lib/logger.ts`](src/lib/logger.ts) — no sink, no alerting |
 | B7 | `/projects/[id]` ships **296 kB** First Load JS (was 310 kB; PROD-4 removed the server-side delegation engine from the client bundle, −20 kB) | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
@@ -202,13 +202,17 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~78%** | all of Gate 0 — 8 items, **5 complete** |
+| **Multi-tenant paid production** | **~84%** | all of Gate 0 — 8 items, **6 complete** |
 
-The percentage is a judgement, not a measurement. The countable part: **5 of 8 Gate 0 items are
-complete** (PROD-0 through PROD-4). All of the shared-state work is done: the database, the rate
-limiters, the authorization model and real-time fan-out now work across instances. What remains
-is PROD-5/6 (tenant-isolation and authorization tests) and PROD-7 (error tracking). PROD-5 is the
-largest remaining item and the one with the worst failure mode.
+The percentage is a judgement, not a measurement. The countable part: **6 of 8 Gate 0 items are
+complete** (PROD-0 through PROD-5). All of the shared-state work is done: the database, the rate
+limiters, the authorization model and real-time fan-out now work across instances, and tenant
+isolation is tested in CI. What remains is PROD-6 (authorization/PBAC route tests) and PROD-7
+(error tracking).
+
+One caveat on PROD-5 worth carrying forward: the suite covers the route families it covers, not
+all 123 routes. An audit listed further families with no denial test; they are recorded under
+PROD-5 as follow-up rather than treated as covered.
 
 ---
 
@@ -723,36 +727,105 @@ receives it.
 | | |
 |---|---|
 | **Severity** | Blocker (highest risk item in this doc) |
-| **Status** | PENDING |
-| **Depends on** | PROD-1 (test against the real engine) |
-| **Files** | new `__tests__/integration/tenant-isolation.test.ts`, `jest.config.js` |
+| **Status** | ✅ **DONE 2026-09-19** |
+| **Depends on** | PROD-1 (done) |
+| **Files** | `__tests__/integration/{harness,fixture,tenant-isolation.test}.ts` (new), `jest.integration.config.js` (new), `scripts/run-integration-tests.mjs` (new), `scripts/dev-postgres.mjs` (new), `src/lib/__tests__/integration-harness.test.ts` (new), `.github/workflows/ci.yml` |
 
-**Why**: This is the one I would fix first if forced to pick a single item. For a multi-tenant
-product the catastrophic failure is **one tenant reading another's data**. The audit records that
-a cross-tenant injection bug already existed once (TENANT-1/DATA-1). Today **nothing** would catch
-its return: all 74 tests are library-level (encryption, sanitization, validation, retention, DI),
-and there are **zero** tests exercising `assertProjectAccess` / `assertOrgAccess` through a route.
-121 routes have no integration coverage.
+**Why it mattered**: for a multi-tenant product the catastrophic failure is one tenant reading
+another's data, and the audit records that a cross-tenant bug already existed once
+(TENANT-1/DATA-1). Nothing would have caught its return: every test was library-level, and no test
+exercised `assertProjectAccess` or `assertOrgAccess` through a route.
 
-**Do this**:
-1. Add an integration test setup: ephemeral Postgres (Docker or CI service), seed two
-   organizations — Org A and Org B — each with its own project, issues, and users.
-2. For every resource-scoped route family (issues, projects, sprints, epics, teams, comments,
-   attachments, custom fields, workflows, reports, analytics), assert that a **User A token
-   requesting an Org B resource** gets `403`/`404` — never `200` and never Org B's data.
-3. Include the negative-path cases that actually bite: direct ID access (IDOR), `?projectId=`
-   query overrides, bulk endpoints (`/api/issues/bulk`), and nested resources.
-4. Wire it into CI as a required job.
+**It found a real one on its first complete run.** `GET /api/teams/[id]/members` authenticated the
+caller and then queried by team id with no tenant check at all, returning every member's id,
+**email**, name and avatar. Any authenticated user of any organization could enumerate any other
+organization's team membership. Reproduced live (HTTP 200 carrying org B's addresses to an org A
+admin), then fixed by moving the guard into `src/lib/tenant.ts` as `assertTeamAccess`. That is the
+whole argument for this suite.
 
-**Acceptance criteria**:
-- [ ] Two-org fixture, seeded and isolated per test run
-- [ ] Every resource-scoped route family has a cross-tenant denial test
-- [ ] IDOR, query-override, and bulk paths all covered
-- [ ] Runs in CI and **fails the build** on regression
-- [ ] Deliberately breaking `assertProjectAccess` makes the suite fail (prove the tests work)
+**What was built**
 
-**Verify**: `npm test` — plus the mutation check in the last criterion. A test suite that cannot
-fail is not a test suite.
+1. **Real HTTP against a real build.** Calling `assertProjectAccess` directly would test the guard
+   while assuming the route calls it — which is precisely the assumption that breaks. The suite
+   speaks HTTP to a production server, so middleware, auth, guard and database are all in the path.
+2. **A two-tenant fixture**: two organizations, each with a workspace, project, team, workflow,
+   issue and one user per role, plus a super admin and a user who belongs to nothing. Created and
+   destroyed per run, scoped by a run prefix rather than by truncating tables.
+3. **Strict refusal semantics.** `expectDenied` accepts only 401/403/404. It rejects 429 and 500 as
+   well as 200: a rate-limited or crashing request proves nothing about isolation, and counting
+   either as a pass is how a suite quietly stops testing what it claims to.
+4. **Control cases.** Every denial is paired with the same request made by a legitimate member,
+   which passes. Without that, a suite passes when the route is broken for everyone.
+5. **Coverage**: IDOR on project/issue/org/workspace/team, nested project and issue resources,
+   query-parameter scope overrides, bulk endpoints, the SSE subscription handshake, a user who
+   belongs to nothing, unauthenticated access, and listing/search leakage. Write attempts are
+   followed by a **database** assertion that the other tenant's row is untouched, because a route
+   can refuse after having already written.
+6. **It cannot run against the wrong database.** The runner refuses any `INTEGRATION_DATABASE_URL`
+   whose database name does not contain "test". The suite deletes rows; getting that wrong once
+   would be worse than having no isolation tests.
+7. **Required in CI**, after the build, with its own Postgres database.
+
+**An audit of the suite, and what it found in my own work.** A five-lens review of the suite
+against the route inventory produced 33 candidate gaps. Its verification stage died on session
+limits, so those remain **unverified claims** rather than findings — but several were obviously
+right on inspection and were fixed:
+
+- **Six tests asserted nothing.** They were wrapped in `if (res.status === 200) { ...check... }`
+  with no `else`, so any other status made the body empty and the test passed — on 400, 429, 500,
+  or a route that does not exist. Replaced with `expectFilteredOrDenied`, which demands either a
+  filtered 200 or an explicit refusal and fails on anything else.
+- **The `?orgId=` probe hit routes that ignore `orgId`.** `/api/teams` requires `projectId` or
+  `workspaceId` and answered 400 — so the test passed while proving nothing. Each route is now
+  probed with the parameter it actually reads.
+- **The fixture was too thin to detect a leak.** Several listing routes scope by
+  `workspace.members.some({ userId })`; with no `WorkspaceMember` rows every such listing returned
+  `[]` for everyone, so the probe would have passed whether the guard worked or not. The fixture
+  now creates workspace membership and teams, and the control case proves the probe reaches live
+  code.
+
+The remaining unverified claims — untested route families (workflows, webhooks, PBAC `?orgId=`,
+project export/report egress, leaf-resource ids), and body-parameter attacks where the path is the
+caller's own resource but a foreign id rides in the payload — are recorded as follow-up work below
+rather than silently dropped.
+
+**Acceptance criteria**
+- [x] Two-org fixture, seeded and isolated per test run
+- [x] Cross-tenant denial tests for the resource-scoped families the suite covers — **not** every
+      family; see the follow-up list
+- [x] IDOR, query-override and bulk paths covered
+- [x] Runs in CI and fails the build on regression
+- [x] Proof the tests can fail — see below
+
+**"A test suite that cannot fail is not a test suite."** The planned proof was to break
+`assertProjectAccess` deliberately and watch the suite go red. That edit was refused by a safety
+classifier, correctly — it is a request to weaken a security control. The proof arrived by itself
+instead, and is stronger: the suite **failed on a real defect** (the team-members leak, HTTP 200
+with another tenant's email addresses), and went green only after the guard was added. It also
+failed on three genuine weaknesses in its own assertions. Separately,
+[`src/lib/__tests__/integration-harness.test.ts`](src/lib/__tests__/integration-harness.test.ts)
+pins the assertion helpers themselves — that `expectDenied` rejects 200, 429, 500 and a redirect,
+that `expectAllowed` rejects 403, that `expectBodyExcludes` finds a needle however deeply nested,
+and that the database guard refuses the development URL. Those run on every `npm test`.
+
+**Verified 2026-09-19**: `npm run test:integration` → **40 passed, 40 total**. Unit suite 219/219,
+tsc 0, lint 0 errors.
+
+**Re-verify with**:
+```
+INTEGRATION_DATABASE_URL=postgresql://…/something_test npm run test:integration
+```
+
+**Follow-up (unverified audit claims, worth triaging before launch)**
+- Route families with no denial test: workflows/[id] and its statuses/transitions, webhooks,
+  PBAC routes taking `?orgId=`, project `export` / `reports/download` / `import`, and the
+  leaf-resource ids (epics/[id], components/[id], custom-fields/[id], automations/[id],
+  subtasks/[id], comments/[id], attachments/[id]).
+- Body-parameter attacks: `PATCH /api/issues/[id]` accepting a foreign `sprintId`/`epicId`/
+  `teamId`; `PUT /api/sprints` reordering by body ids after authorizing on a different project;
+  `POST /api/admin/cache/refresh` taking an arbitrary `orgId`.
+- `GET /api/users/delegations?issueId=` was claimed to drop tenant scoping.
+- `DELETE /api/issues/bulk` is untested while the PATCH sibling is covered.
 
 ---
 

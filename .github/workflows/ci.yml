@@ -107,6 +107,29 @@ jobs:
       - name: Next.js build
         run: npm run build
 
+      # PROD-5. Tenant-isolation integration tests, against a real server and a
+      # real database.
+      #
+      # This is the suite that catches one tenant reading another's data — the
+      # failure that would end the business. It is a REQUIRED step, because a
+      # job that can be skipped is a job that stops running, and the first
+      # thing to stop being checked would be the thing that matters most.
+      #
+      # It earned its place on its first run: GET /api/teams/[id]/members
+      # authenticated the caller and then returned every member's id, email and
+      # name for any team id at all.
+      #
+      # It runs after the build because it starts the production server.
+      - name: Create the integration test database
+        run: |
+          echo 'CREATE DATABASE eitekh_integration_test;' | npx prisma db execute --url "postgresql://postgres:postgres@localhost:5432/postgres" --stdin
+
+      - name: Tenant-isolation integration tests (PROD-5)
+        env:
+          INTEGRATION_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eitekh_integration_test?schema=public
+          INTEGRATION_PORT: 3141
+        run: npm run test:integration
+
       # PROD-2. The general rate limit lives in middleware and is backed by a
       # Postgres store, which Prisma cannot reach from the edge runtime. The
       # middleware therefore must build as a NODE function.
