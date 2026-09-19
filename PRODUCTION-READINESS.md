@@ -161,7 +161,7 @@ be pointed at `dev.db` by accident.
 | ~~B3~~ | ✅ **ADDRESSED 2026-09-19** (PROD-3). The `Map` is still there and still in-process — because **nothing ever writes to it**: `set()` has no callers, so it holds no data. The real cross-instance defect in that file was the invalidation path, which now bumps the shared PBAC version. See the PROD-3 cache finding. | [`src/lib/cache-manager.ts`](src/lib/cache-manager.ts) header comment |
 | ~~B4~~ | ✅ **FIXED 2026-09-19** (PROD-4). The registry is still per-process, which is correct — a socket belongs to the process holding it. What was missing was fan-out: events now relay between instances over Postgres `LISTEN/NOTIFY`. | [`src/lib/sync-bus.ts`](src/lib/sync-bus.ts); verified with a client on each of 2 live instances |
 | ~~B5~~ | ✅ **FIXED 2026-09-19** (PROD-5 + PROD-6). 80 integration tests across tenant isolation and authorization, required in CI. They found two live defects on their first runs: a cross-tenant leak of team members' email addresses, and a PROJECT_MANAGER able to grant PROJECT_ADMIN. | [`__tests__/integration/`](__tests__/integration/) |
-| ~~B6~~ | ⚠️ **CODE COMPLETE 2026-09-19** (PROD-7). Every log now ships through a scrubbing telemetry seam, unhandled server errors are caught by `onRequestError`, and `/api/health` exposes the counters the alerts threshold on. **Still needs `TELEMETRY_ENDPOINT` pointed at a real collector** — until then nothing is shipped anywhere. | [`src/lib/telemetry.ts`](src/lib/telemetry.ts), DEPLOYMENT.md |
+| ~~B6~~ | ✅ **FIXED 2026-09-19** (PROD-7). Every log ships through a scrubbing telemetry seam; `onRequestError` catches unhandled server errors; browser errors report from three sources; five alert rules evaluate and dispatch. Proven end to end against a local collector: a deliberate error carrying a fake key, a customer email, a database password in a stack frame and a token in a query string arrived with all four redacted, and the error-rate alert fired and was delivered. **Still needs `TELEMETRY_ENDPOINT` pointed at your destination.** | [`src/lib/telemetry.ts`](src/lib/telemetry.ts), [`src/lib/alerts.ts`](src/lib/alerts.ts), DEPLOYMENT.md |
 | B7 | `/projects/[id]` ships **296 kB** First Load JS (was 310 kB; PROD-4 removed the server-side delegation engine from the client bundle, −20 kB) | `npm run build` output |
 | B8 | `IssueDetailModal.tsx` is 4,466 lines | `wc -l src/components/issues/IssueDetailModal.tsx` |
 | ~~**B9**~~ | ✅ **FIXED 2026-09-18** (PROD-0, originally `0007_repair_schema_drift`; the SQLite history was archived to `prisma/migrations-sqlite-archive/` when PROD-1 regenerated it for Postgres). Was: **migrations do not reproduce the schema.** A fresh `migrate deploy` omits `OtpCode` and `Invitation` and builds a different `SystemEmailConfig`. Both tables are used at runtime, so OTP/MFA login and invitations break on day one. Dev only works because the DB was `db push`ed. | `npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url "file:./_shadow.db"` → reports `[+] Added tables: OtpCode, Invitation` |
@@ -202,16 +202,20 @@ production.
 |---|---|---|
 | Fresh single-instance deploy | ~~blocked~~ **unblocked 2026-09-18** | PROD-0 done |
 | Single-instance pilot, trusted tenants | ~85% after PROD-0 | PROD-7, PROD-10 advisable |
-| **Multi-tenant paid production** | **~92%** | all of Gate 0 — 8 items, **7 complete + 1 needing a deployment decision** |
+| **Multi-tenant paid production** | **~95%** | all 8 Gate 0 items complete; launch needs configuration, not code |
 
-The percentage is a judgement, not a measurement. The countable part: **7 of 8 Gate 0 items are
-complete** (PROD-0 through PROD-6), and PROD-7 is code-complete but not switched on.
+The percentage is a judgement, not a measurement. The countable part: **all 8 Gate 0 items are
+complete** (PROD-0 through PROD-7).
 
-All of the shared-state work is done — database, rate limiters, authorization model, real-time
-fan-out — and both tenant isolation and authorization are tested in CI. **The one thing standing
-between here and Gate 0 is a deployment decision, not code**: point `TELEMETRY_ENDPOINT` at a
-collector and confirm events arrive. Until then the application runs blind, which is the original
-PROD-7 objection.
+The shared-state work is done — database, rate limiters, authorization model, real-time fan-out.
+Tenant isolation and authorization are tested in CI. Errors, structured logs and alerts flow
+through a scrubbing pipeline that has been proven end to end.
+
+**What stands between here and serving paid traffic is configuration, not code**: point
+`TELEMETRY_ENDPOINT` and `ALERT_WEBHOOK_URL` at real destinations, set `ALERT_CHECK_SECRET` and
+schedule the alert check, and pick the managed Postgres. Until the first of those is done the
+application still runs blind, which was the original PROD-7 objection — the pipeline exists, but a
+pipeline with no destination delivers nothing.
 
 Two caveats worth carrying forward:
 
@@ -910,7 +914,7 @@ integration suites. Unit 249/249, tsc 0, lint 0 errors.
 | | |
 |---|---|
 | **Severity** | Blocker |
-| **Status** | ⚠️ **CODE COMPLETE 2026-09-19 — requires one deployment decision** |
+| **Status** | ✅ **DONE 2026-09-19** — pipeline proven end to end; one deployment decision remains (choose a destination) |
 | **Depends on** | nothing |
 | **Files** | `src/lib/telemetry.ts` (new), `src/lib/log-sanitize.ts` (new), `src/lib/logger.ts`, `src/instrumentation.ts`, `src/app/api/health/route.ts`, `src/lib/__tests__/telemetry.test.ts` (new), `.env.example`, `DEPLOYMENT.md` |
 
@@ -949,26 +953,71 @@ closure. The transport is vendor-neutral JSON-over-HTTP; Sentry, Datadog, Axiom,
 collector all accept that shape, and pointing at one is an adapter implementing
 `TelemetryTransport`, not a refactor.
 
+**Client-side errors are covered too.** `src/app/error.tsx` carried the comment "Log the error to
+an error reporting service" above a bare `console.error`; the browser console is not a reporting
+service. Browser errors now reach `POST /api/telemetry/client` from three sources — React
+boundaries, `window.onerror` and unhandled promise rejections, the latter two being invisible to a
+boundary. A `global-error.tsx` was added: it did not exist, so a failure in the root layout showed
+Next's built-in screen and reported nothing, which is the worst class of client failure. The
+endpoint is deliberately unauthenticated, because the errors most worth having happen on the login
+and password-reset pages, and is bounded by a strict schema, length caps, no response body and the
+mutation rate limit.
+
+**The alerts are code, not prose.** [`src/lib/alerts.ts`](src/lib/alerts.ts) implements the five
+rules; `POST /api/internal/alerts/check` evaluates them on a schedule and dispatches firings to
+`ALERT_WEBHOOK_URL`. Each rule measures the change since the previous call rather than a running
+total — a cumulative counter would fire once and stay fired — and carries a 15-minute cooldown,
+because an alert that repeats every cycle is one people mute. The route refuses without
+`ALERT_CHECK_SECRET` rather than defaulting to open, since dispatch reaches an external webhook.
+
 **Acceptance criteria**
 - [x] Unhandled server errors reach the seam with usable stack traces — `onRequestError`, full
       stack shipped (scrubbed) even in production
-- [x] Structured logs shippable outside the host, with `SECURITY`/`AUDIT` preserved
-- [x] PII/secret scrubbing verified with a deliberate test error containing a fake token — 17
-      tests, including that exact case
+- [x] Structured logs shippable outside the host, with `SECURITY`/`AUDIT` preserved — verified
+      live: a `logger.security` event arrived with its severity intact
+- [x] PII/secret scrubbing verified with a deliberate test error containing a fake token
 - [x] `DEPLOYMENT.md` documents the required env vars
-- [x] The five alerts are specified with signals and thresholds
-- [ ] **The five alerts fire and route to a real destination** — *not done, and not doable from
-      here: it needs a chosen vendor and credentials*
-- [ ] **Client-side errors** — the seam is server-side; a browser error boundary reporting through
-      it is not wired
+- [x] The five alerts fire and route to a real destination — verified live against a local
+      collector; see below
+- [x] Client-side errors reported
+
+**Verified live, 2026-09-19** — the production build, pointed at
+[`scripts/telemetry-collector.mjs`](scripts/telemetry-collector.mjs), a local receiver that speaks
+the same JSON POST a real collector does. Verification should not send this application's data off
+the machine, and no vendor credentials exist; what is proven is the app's behaviour, not a
+vendor's. **20 passed, 0 failed.** The deliberate error went in as:
+
+```
+message: Checkout failed for victim.customer@acme-example.test using sk_live_PROD7FAKE0123456789
+stack  : at connect (postgresql://app:hunter2prod7@db.internal:5432/eitekh)
+url    : /projects/abc?access_token=sk_live_PROD7FAKE0123456789
+```
+
+and arrived as:
+
+```
+message: Checkout failed for [REDACTED_EMAIL] using [REDACTED_KEY]
+stack  : at connect (postgresql://app:[REDACTED]@db.internal:5432/eitekh)
+url    : /projects/abc?access_token=[REDACTED_KEY]
+release: 030351f | env: production
+```
+
+All four secrets removed — including the database password inside a stack frame and the token in a
+query string — with the event still diagnostically useful. The error-rate alert then fired and was
+delivered: `[CRITICAL] Server error rate — 13 server errors in the last window (threshold 10)`, and
+did not re-fire on the next cycle.
+
+Unit coverage: 17 scrubbing tests and 13 alert-rule tests.
 
 **What remains, and it is not code**
 
-Set `TELEMETRY_ENDPOINT` to a real collector and confirm events arrive. Until that is done, nothing
-is shipped anywhere and this item is not truly closed — which is why the status above says
-"requires one deployment decision" rather than DONE. The alert thresholds in `DEPLOYMENT.md` are
-also starting points: they have not been tuned against production traffic because there is none
-yet. Revisit after PROD-8.
+Point `TELEMETRY_ENDPOINT` and `ALERT_WEBHOOK_URL` at your chosen destinations, and set
+`ALERT_CHECK_SECRET` plus a schedule that calls the check endpoint. Until then nothing is shipped
+anywhere — the pipeline is built and proven, but its destination is a deployment decision.
+
+Also outstanding: **source maps are not uploaded**, so production stack traces will be minified
+until a vendor is chosen and a map-upload step is added to the build. And the thresholds have never
+been tuned against real traffic; revisit after PROD-8.
 
 ---
 

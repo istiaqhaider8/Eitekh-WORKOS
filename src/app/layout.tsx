@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Toaster } from "react-hot-toast";
+import { ClientErrorReporter } from "@/components/ClientErrorReporter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +23,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased min-h-screen bg-background text-foreground" suppressHydrationWarning>
         <ThemeProvider>
+          {/* PROD-7: catches errors no React boundary sees — event handlers,
+              timers, failed scripts, unhandled promise rejections. */}
+          <ClientErrorReporter />
           {children}
           <Toaster
             position="bottom-right"

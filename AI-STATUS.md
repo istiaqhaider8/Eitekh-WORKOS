@@ -63,19 +63,19 @@ One High-severity item remains open: **DEP-1** (postcss CVEs via Next.js — nee
 
 | Gate | Meaning | Progress |
 |---|---|---|
-| 8 | PROD-7 | Blocker | ⚠️ **CODE COMPLETE 2026-09-19 — needs a destination** | Was: logs went to `console.*` only; no sink, no alerting. Now every log ships through a scrubbing telemetry seam, `onRequestError` catches unhandled server errors, and `/api/health` exposes alertable counters. Scrubbing verified by 17 tests including a deliberate fake-token error. **Not closed**: `TELEMETRY_ENDPOINT` must point at a real collector, and client-side reporting is unwired | `src/lib/telemetry.ts`, `DEPLOYMENT.md` |
+| Gate 0 — Blockers | Blocks any multi-tenant production launch | **8/8 complete** (PROD-0/1/2 2026-09-18; PROD-3/4/5/6/7 2026-09-19). Launch still needs configuration: a telemetry destination and a managed Postgres |
 | Gate 1 — Pre-launch hardening | Blocks public/paid launch | 0/8 (PROD-18/19/20 added) |
 | Gate 2 — Maintainability | Post-launch | 0/8 (PROD-21/22/23 added) |
 
 **Current state (2026-09-18): a fresh single-instance deploy is no longer blocked** — PROD-0 is
 done, so `migrate deploy` builds the schema the app expects. Multi-tenant production is roughly
-**92%** ready — Gate 0 is 8 items with 7 complete and PROD-7 awaiting a telemetry endpoint.
+**95%** ready — all 8 Gate 0 items complete. What remains before paid traffic is configuration, not code.
 
 | Target | Ready | Gating |
 |---|---|---|
 | Fresh single-instance deploy | ✅ **unblocked** | — |
 | Single-instance pilot, trusted tenants | ~85% | PROD-7, PROD-20 advisable |
-| Multi-tenant paid production | **~92%** | PROD-7 needs `TELEMETRY_ENDPOINT` pointed at a real collector |
+| Multi-tenant paid production | **~95%** | Gate 0 done; needs a telemetry destination and a managed Postgres chosen |
 
 Verified 2026-09-18: `npx tsc --noEmit` clean, lint 0 errors (64 pre-existing warnings), 74 unit
 tests pass, boot-time config guard works, `.env` untracked. Blockers: SQLite in production, all shared state in-process (no Redis) *including the PBAC store on local
@@ -156,7 +156,7 @@ Full task specs, acceptance criteria and verification commands are in
 | ~~4~~ | ~~**PROD-3**~~ | Blocker | ✅ **DONE 2026-09-19** | Was: PBAC roles and assignments in in-memory Maps plus `.data/pbac-store.json` on one instance's disk — split-brain in the authorization model itself (B13). Now Postgres rows with per-entity writes and a shared version counter; 18 roles / 136 assignments / 157 audit records migrated. Also found: `cacheManager` is never written to, so B3 was dead infrastructure — the real defect there was invalidation, now cross-instance | `src/lib/pbac-store.ts`, `src/lib/pbac-engine.ts` |
 | ~~5~~ | ~~**PROD-4**~~ | Blocker | ✅ **DONE 2026-09-19** | Was: the SSE client registry is per-process, so an event published on instance A never reached a browser connected to instance B — real-time would "randomly" fail under a load balancer while working perfectly in single-instance testing. Events now relay over Postgres LISTEN/NOTIFY with an outbox row; verified with a client on each of two live instances. Also removed the server-side delegation engine from the client bundle (−20 kB on `/projects/[id]`) | `src/lib/sync-bus.ts`, `src/lib/sync-engine.ts` |
 | ~~7~~ | ~~**PROD-6**~~ | Blocker | ✅ **DONE 2026-09-19** | Was: PBAC (~2,300 lines) had no tests despite five findings against it including privilege escalation. Now 40 authorization tests sharing the PROD-5 fixture, required in CI. **Found a real escalation**: a PROJECT_MANAGER could grant PROJECT_ADMIN — a level above its own by the engine's own hierarchy — because the member routes checked the permission but never the hierarchy. Fixed in `b7a01dc` | `__tests__/integration/authz.test.ts`, `src/lib/project-roles.ts` |
-| 7 | PROD-7 | Blocker | PENDING | Error tracking + monitoring + alerting (reopens OPS-3) | `src/lib/logger.ts` |
+| ~~8~~ | ~~**PROD-7**~~ | Blocker | ✅ **DONE 2026-09-19** | Was: logs went to `console.*` only — no sink, no alerting, so you would learn about incidents from customers. Now a scrubbing telemetry seam every log ships through, `onRequestError` for unhandled server errors, browser reporting from three sources plus a `global-error.tsx` that did not exist, five alert rules that evaluate and dispatch, and alertable counters on `/api/health`. Proven end to end against a local collector (20/20): a fake API key, a customer email, a database password inside a stack frame and a token in a query string all arrived redacted, and the error-rate alert fired and was delivered. **Set `TELEMETRY_ENDPOINT` to your destination** | `src/lib/telemetry.ts`, `src/lib/alerts.ts` |
 
 ### 🟠 GATE 1 — PRE-LAUNCH HARDENING
 

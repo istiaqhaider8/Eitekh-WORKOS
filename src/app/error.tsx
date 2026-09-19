@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportClientError } from '@/lib/report-client-error';
 
 export default function GlobalError({
   error,
@@ -10,8 +11,17 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // PROD-7. This used to be a bare console.error under the comment "Log the
+    // error to an error reporting service". The browser console is not a
+    // reporting service: a crash only a customer's devtools ever saw is a
+    // crash nobody knows about.
     console.error(error);
+    reportClientError({
+      message: error.message,
+      stack: error.stack,
+      digest: error.digest,
+      source: 'boundary',
+    });
   }, [error]);
 
   return (

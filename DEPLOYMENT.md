@@ -307,9 +307,42 @@ addresses. Key-based redaction (`password`, `token`, `secret`, `mfaSecret`, …)
 Verified by 17 tests in [`src/lib/__tests__/telemetry.test.ts`](src/lib/__tests__/telemetry.test.ts),
 including the acceptance criterion's deliberate error carrying a fake token and a customer email.
 
+### Client-side errors
+
+Browser errors are reported to `POST /api/telemetry/client` and flow through the same scrubbing
+seam. Three sources are covered: React error boundaries (`error.tsx` and `global-error.tsx`),
+`window.onerror`, and unhandled promise rejections — the last two matter because a boundary sees
+none of them.
+
+The endpoint is deliberately **unauthenticated**: the errors most worth having happen on the login,
+registration and password-reset pages, where there is no session. It is bounded by a strict schema,
+short length caps, no response body, and the middleware's mutation rate limit.
+
 ### The five alerts
 
-Threshold these against `/api/health`, which is unauthenticated and contains no tenant data.
+They are implemented in [`src/lib/alerts.ts`](src/lib/alerts.ts) and evaluated by
+`POST /api/internal/alerts/check`. **Call that on a schedule** — a platform cron, an external
+uptime checker, or a Kubernetes CronJob:
+
+```bash
+# every minute
+curl -fsS -X POST https://<host>/api/internal/alerts/check   -H "x-alert-secret: $ALERT_CHECK_SECRET"
+```
+
+```bash
+ALERT_CHECK_SECRET="<a long random string>"   # required; the route refuses without it
+ALERT_WEBHOOK_URL="https://hooks.slack.com/..." # Slack, PagerDuty, Opsgenie or any JSON receiver
+```
+
+Each rule compares the change since the previous call, not a running total, and has a 15-minute
+cooldown — an alert that repeats every cycle is one people mute. Firings with no webhook configured
+are still logged locally, so an operator without one is slower rather than blind.
+
+> Alert state is per process. With several instances each evaluates its own counters, so the same
+> condition can page once per instance. Deduplicate in the receiver, or point the schedule at one
+> instance.
+
+Thresholds below are what the code ships with.
 
 | Alert | Signal | Suggested threshold |
 |---|---|---|
@@ -323,14 +356,32 @@ Threshold these against `/api/health`, which is unauthenticated and contains no 
 breaking, so nothing looks wrong from outside. Without an alert, "real-time quietly became
 single-instance again" is invisible — which is the failure PROD-4 exists to prevent.
 
+### Verifying it before you trust it
+
+`scripts/telemetry-collector.mjs` is a local receiver that speaks the same JSON POST a real
+collector does. Use it to prove the pipeline end to end without sending anything off the machine:
+
+```bash
+node scripts/telemetry-collector.mjs --port 4318 --out events.jsonl
+
+TELEMETRY_ENDPOINT=http://127.0.0.1:4318/ingest ALERT_WEBHOOK_URL=http://127.0.0.1:4318/alerts ALERT_CHECK_SECRET=local-verification RELEASE_SHA=$(git rev-parse --short HEAD) npm start
+```
+
+Then trigger a deliberate error and inspect `events.jsonl`. This was run against the production
+build on 2026-09-19: an error carrying a fake API key, a customer email address, a database
+password inside a stack frame, and a token in a query string arrived with **all four redacted** and
+the event still useful, and the error-rate alert fired and was delivered.
+
 ### What is NOT done
 
-No error-tracking vendor is provisioned for this deployment, so nothing is currently being shipped
-anywhere. **Set `TELEMETRY_ENDPOINT` and confirm events arrive before taking paid traffic.** The
-seam, the scrubbing and the counters are in place and tested; the destination is a deployment
-decision.
+**No error-tracking vendor is provisioned, so nothing is shipped anywhere until you set
+`TELEMETRY_ENDPOINT`.** The pipeline is built and proven against a local collector; choosing the
+destination is a deployment decision, not a code change.
 
-Likewise, these alert thresholds are starting points written against the signals that exist. They
-have not been tuned against production traffic, because there is none yet. Revisit after PROD-8
-(load testing) gives real baselines.
+Source maps are not uploaded anywhere, so production stack traces will be minified until a vendor
+is chosen and a map-upload step is added to the build.
+
+These thresholds are starting points written against the signals that exist. They have not been
+tuned against production traffic, because there is none yet. Revisit after PROD-8 (load testing)
+gives real baselines.
 
