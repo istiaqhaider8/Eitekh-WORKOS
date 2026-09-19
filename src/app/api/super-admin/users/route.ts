@@ -4,6 +4,7 @@ import { getCurrentUser, hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/config";
 import { superAdminUserCreateSchema, superAdminUserUpdateSchema, parseBody, parseJsonBody, DEFAULT_USER_TYPE } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 // GET /api/super-admin/users
 export async function GET(req: Request) {
@@ -99,7 +100,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ users, total: users.length });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/users");
   }
 }
 
@@ -220,7 +221,7 @@ export async function POST(req: Request) {
       message: "User " + normalizedEmail + " created successfully",
     }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/users");
   }
 }
 
@@ -346,7 +347,7 @@ export async function PATCH(req: Request) {
       message: passwordUpdated ? "User password updated successfully" : "User updated successfully",
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/users");
   }
 }
 
@@ -414,6 +415,6 @@ export async function DELETE(req: Request) {
       message: "User " + targetUser.email + " has been deleted permanently",
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/users");
   }
 }

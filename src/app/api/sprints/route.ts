@@ -4,6 +4,7 @@ import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { sprintCreateSchema, sprintUpdateSchema, sprintReorderSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: Request) {
   try {
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ sprints });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "sprints");
   }
 }
 
@@ -106,7 +107,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ sprint }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "sprints");
   }
 }
 
@@ -159,7 +160,7 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: true, sprints: updatedSprints });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "sprints");
   }
 }
 
@@ -314,7 +315,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ sprint: updatedSprint });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "sprints");
   }
 }
 
@@ -386,6 +387,6 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true, message: "Sprint deleted and issues moved to backlog" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "sprints");
   }
 }

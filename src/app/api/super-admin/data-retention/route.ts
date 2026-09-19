@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getRetentionPolicies, runDataRetention } from "@/lib/data-retention";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
     const policies = getRetentionPolicies();
     return NextResponse.json({ policies });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/data-retention");
   }
 }
 
@@ -35,6 +36,6 @@ export async function POST() {
       ...(errors.length > 0 ? { partialErrors: errors.map((r) => `${r.entity}: ${r.error}`) } : {}),
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/data-retention");
   }
 }

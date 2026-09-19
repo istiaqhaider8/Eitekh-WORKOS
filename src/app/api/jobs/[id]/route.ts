@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { backgroundJobManager } from '@/lib/background-jobs';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -24,6 +25,6 @@ export async function GET(
 
     return NextResponse.json({ job });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    return handleApiError(err, "jobs/[id]");
   }
 }

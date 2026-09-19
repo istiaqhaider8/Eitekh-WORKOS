@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyEmailSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -40,6 +41,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Email verification error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return handleApiError(error, "auth/verify-email");
   }
 }

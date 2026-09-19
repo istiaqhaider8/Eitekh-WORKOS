@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { DEFAULT_ISSUE_TYPES, resolveProjectIssueTypes } from "@/lib/project-context";
 import { issueTypeCreateSchema, issueTypeUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,10 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json(await resolveProjectIssueTypes(projectId));
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch issue types" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/types");
   }
 }
 
@@ -101,10 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       { status: 201 }
     );
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to create issue type" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/types");
   }
 }
 
@@ -196,10 +191,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       types: currentList,
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to update issue type" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/types");
   }
 }
 
@@ -261,9 +253,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       types: currentList,
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to delete issue type" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/types");
   }
 }

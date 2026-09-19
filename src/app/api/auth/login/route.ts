@@ -4,6 +4,7 @@ import { verifyPassword, createSession, COOKIE_NAME, SESSION_COOKIE_MAX_AGE } fr
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { loginSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 // Login throttling. Both ceilings apply: the IP one stops one host hammering
 // many accounts, the account one stops many hosts hammering one account.
@@ -163,6 +164,6 @@ export async function POST(req: Request) {
     return response;
   } catch (error: any) {
     console.error("Login error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return handleApiError(error, "auth/login");
   }
 }

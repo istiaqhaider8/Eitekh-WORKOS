@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { cacheManager, CacheRefreshAction } from '@/lib/cache-manager';
 import { pbacEngine } from '@/lib/pbac-engine';
 import { cacheRefreshSchema, parseBody, parseJsonBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: NextRequest) {
   try {
@@ -64,6 +65,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (e: any) {
     console.error('Failed to execute cache refresh:', e);
-    return NextResponse.json({ error: e.message || 'Failed to refresh cache' }, { status: 500 });
+    return handleApiError(e, "admin/cache/refresh");
   }
 }

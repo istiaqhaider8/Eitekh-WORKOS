@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,6 +22,6 @@ export async function GET(req: NextRequest) {
     const logs = await pbacEngine.getAuditLedger(orgId, { search, action, limit });
     return NextResponse.json({ logs, total: logs.length });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch audit logs' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
+    return handleApiError(e, "pbac/audit");
   }
 }

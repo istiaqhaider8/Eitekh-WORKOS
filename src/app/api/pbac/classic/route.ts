@@ -2,6 +2,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { pbacClassicActionSchema, parseBody, parseJsonBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ users, projects });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "pbac/classic");
   }
 }
 
@@ -155,6 +156,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, membership });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "pbac/classic");
   }
 }

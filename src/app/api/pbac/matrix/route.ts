@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine, PBAC_PERMISSION_CATEGORIES } from '@/lib/pbac-engine';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,6 +43,6 @@ export async function GET(req: NextRequest) {
       categories: PBAC_PERMISSION_CATEGORIES,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch access matrix' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
+    return handleApiError(e, "pbac/matrix");
   }
 }

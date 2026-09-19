@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { getBaseUrl } from "@/lib/config";
 import { orgMemberCreateSchema, orgMemberUpdateSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -122,8 +123,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       message: `User ${email} added successfully as ${member.role}`
     }, { status: 201 });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 400;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "orgs/[id]/members", 400);
   }
 }
 
@@ -148,8 +148,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 400;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "orgs/[id]/members", 400);
   }
 }
 
@@ -185,7 +184,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 400;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "orgs/[id]/members", 400);
   }
 }

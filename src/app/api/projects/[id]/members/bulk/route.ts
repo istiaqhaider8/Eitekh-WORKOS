@@ -6,6 +6,7 @@ import { bulkMemberImportSchema, parseJsonBody } from "@/lib/validation";
 import { readCsvTable, cell, stripCsvComments } from "@/lib/csv";
 import { ALLOWED_PROJECT_ROLES, MAX_IMPORT_ROWS, summarise, type RowResult } from "@/lib/bulk-import";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { handleApiError } from "@/lib/api-error";
 
 /**
  * Bulk project member upload.
@@ -216,11 +217,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(summarise("import", results.sort((a, b) => a.row - b.row)));
   } catch (error: any) {
     const msg = error?.message || "Internal Server Error";
-    const status = msg.includes("Unauthorized")
-      ? 401
-      : msg.includes("Forbidden") || msg.includes("permission") || msg.includes("access")
-      ? 403
-      : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return handleApiError(error, "projects/[id]/members/bulk");
   }
 }

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailConfig } from "@/lib/email";
 import { superAdminEmailSettingsUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
@@ -27,7 +28,7 @@ export async function GET() {
 
     return NextResponse.json({ config: safeConfig, logs });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-settings");
   }
 }
 
@@ -91,6 +92,6 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ config: safeConfig, message: "Email configuration updated successfully" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-settings");
   }
 }

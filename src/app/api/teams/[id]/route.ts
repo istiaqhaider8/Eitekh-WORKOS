@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { teamUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 async function checkTeamAccess(teamId: string) {
   const user = await getCurrentUser();
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(team);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message === "Unauthorized" ? 401 : 500 });
+    return handleApiError(error, "teams/[id]");
   }
 }
 
@@ -118,7 +119,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "teams/[id]", 400);
   }
 }
 
@@ -144,6 +145,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.team.delete({ where: { id } });
     return NextResponse.json({ success: true, message: "Team deleted successfully" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "teams/[id]", 400);
   }
 }

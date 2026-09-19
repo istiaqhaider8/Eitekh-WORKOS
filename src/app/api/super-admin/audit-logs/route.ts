@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: NextRequest) {
   try {
@@ -243,6 +244,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Audit log query error:", error);
-    return NextResponse.json({ error: error.message || "Failed to query audit logs" }, { status: 500 });
+    return handleApiError(error, "super-admin/audit-logs");
   }
 }

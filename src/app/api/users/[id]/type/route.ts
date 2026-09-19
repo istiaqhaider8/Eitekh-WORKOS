@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { userTypeSchema } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 /**
  * PATCH /api/users/[id]/type — set a person's Employee/Client classification.
@@ -131,13 +132,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ user: updated });
   } catch (error: any) {
     const msg = error?.message || "Failed to update user type";
-    const status = msg.includes("Unauthorized")
-      ? 401
-      : msg.includes("Forbidden") || msg.includes("permission")
-        ? 403
-        : msg.includes("not found")
-          ? 404
-          : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return handleApiError(error, "users/[id]/type");
   }
 }

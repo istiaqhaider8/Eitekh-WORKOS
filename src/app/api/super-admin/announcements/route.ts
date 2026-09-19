@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { superAdminAnnouncementCreateSchema, superAdminAnnouncementUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 import {
   announcementStatus,
   dedupeTargets,
@@ -28,7 +29,7 @@ export async function GET() {
 
     return NextResponse.json({ announcements });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/announcements");
   }
 }
 
@@ -128,7 +129,7 @@ export async function POST(req: Request) {
         : "Announcement published successfully",
     }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/announcements");
   }
 }
 
@@ -220,7 +221,7 @@ export async function PATCH(req: Request) {
       message: "Announcement updated successfully",
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/announcements");
   }
 }
 
@@ -270,6 +271,6 @@ export async function DELETE(req: Request) {
       message: `Announcement '${existing.title}' deleted permanently`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/announcements");
   }
 }

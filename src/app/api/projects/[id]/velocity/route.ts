@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { calculateProjectVelocity } from "@/lib/velocity-engine";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -47,11 +48,6 @@ export async function GET(
     );
   } catch (error: any) {
     console.error("Error calculating sprint velocity:", error);
-    const status = error.message?.includes("Forbidden") || error.message?.includes("Unauthorized")
-      ? 403
-      : error.message?.includes("not found")
-      ? 404
-      : 500;
-    return NextResponse.json({ error: error.message || "Failed to calculate velocity" }, { status });
+    return handleApiError(error, "projects/[id]/velocity");
   }
 }

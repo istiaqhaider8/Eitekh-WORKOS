@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getEmailTemplates, DEFAULT_TEMPLATES } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { superAdminEmailTemplateResetSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
     const templates = await getEmailTemplates();
     return NextResponse.json({ templates });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-templates");
   }
 }
 
@@ -39,6 +40,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "Invalid operation" }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-templates");
   }
 }

@@ -7,6 +7,7 @@ import { issueCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -100,7 +101,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ issues, total });
   } catch (error: any) {
     console.error("Fetch issues error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "projects/[id]/issues");
   }
 }
 
@@ -445,6 +446,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ issue: issueToReturn }, { status: 201 });
   } catch (error: any) {
     console.error("Create issue error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "projects/[id]/issues");
   }
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { assertOrgAccess } from "@/lib/tenant";
 import { getCurrentUser } from "@/lib/auth";
 import { workspaceCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,8 +33,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(workspaces);
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "workspaces");
   }
 }
 
@@ -67,6 +67,6 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(workspace, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "workspaces", 400);
   }
 }

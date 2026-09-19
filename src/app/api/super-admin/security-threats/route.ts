@@ -2,6 +2,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { securityEngine } from '@/lib/security-engine';
 import { superAdminSecurityThreatUpdateSchema, parseBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: Request) {
   try {
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
       isolationViolations,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/security-threats");
   }
 }
 
@@ -53,6 +54,6 @@ export async function PATCH(request: Request) {
       threat: updated,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/security-threats");
   }
 }

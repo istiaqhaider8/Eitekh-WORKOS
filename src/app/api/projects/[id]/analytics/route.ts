@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertProjectAccess } from "@/lib/tenant";
 import { calculateProjectVelocity } from "@/lib/velocity-engine";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -719,9 +720,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error("Analytics Route Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: error.message?.includes("Unauthorized") ? 401 : error.message?.includes("Forbidden") || error.message?.includes("tenant") ? 403 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/analytics");
   }
 }

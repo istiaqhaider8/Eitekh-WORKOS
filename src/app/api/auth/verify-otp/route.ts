@@ -5,6 +5,7 @@ import { verifyOtp } from "@/lib/otp";
 import { createSession, COOKIE_NAME, SESSION_COOKIE_MAX_AGE } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -132,6 +133,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid purpose." }, { status: 400 });
   } catch (error: any) {
     console.error("OTP verification error:", error);
-    return NextResponse.json({ error: error.message || "Verification failed" }, { status: 500 });
+    return handleApiError(error, "auth/verify-otp");
   }
 }

@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { superAdminWorkspaceCreateSchema, superAdminWorkspaceUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: Request) {
   try {
@@ -42,7 +43,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ workspaces });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/workspaces");
   }
 }
 
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ workspace: newWorkspace, message: `Workspace ${newWorkspace.name} created successfully` }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/workspaces");
   }
 }
 
@@ -155,7 +156,7 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ workspace: updatedWorkspace, message: `Workspace ${updatedWorkspace.name} updated successfully` });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/workspaces");
   }
 }
 
@@ -234,6 +235,6 @@ export async function DELETE(req: Request) {
       message: `Workspace ${existingWs.name} deleted permanently`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/workspaces");
   }
 }

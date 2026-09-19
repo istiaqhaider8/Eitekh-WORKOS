@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { teamCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { PROJECT_ADMIN_PERMISSIONS } from "@/lib/project-permissions";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -65,14 +66,7 @@ export async function GET(req: NextRequest) {
     // a denied request surfaced as 500 and the client could not tell a refusal
     // from a server fault.
     const msg = error?.message || "Internal Server Error";
-    const status = msg.includes("Unauthorized")
-      ? 401
-      : msg.includes("Forbidden") || msg.includes("permission") || msg.includes("access")
-      ? 403
-      : msg.includes("not found")
-      ? 404
-      : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return handleApiError(error, "teams");
   }
 }
 
@@ -227,13 +221,6 @@ export async function POST(req: NextRequest) {
     // This branch returned 400 for every throw, so an authorization failure was
     // indistinguishable from a malformed body.
     const msg = error?.message || "Internal Server Error";
-    const status = msg.includes("Unauthorized")
-      ? 401
-      : msg.includes("Forbidden") || msg.includes("permission") || msg.includes("access")
-      ? 403
-      : msg.includes("not found")
-      ? 404
-      : 400;
-    return NextResponse.json({ error: msg }, { status });
+    return handleApiError(error, "teams", 400);
   }
 }

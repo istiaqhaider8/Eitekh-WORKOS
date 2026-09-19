@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { workflowUpdateSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -57,7 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json(workflow);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Forbidden") ? 403 : 500 });
+    return handleApiError(error, "workflows/[id]");
   }
 }
 
@@ -83,6 +84,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await prisma.workflow.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Forbidden") ? 403 : 500 });
+    return handleApiError(error, "workflows/[id]");
   }
 }

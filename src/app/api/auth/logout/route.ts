@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { COOKIE_NAME, verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST() {
   try {
@@ -28,6 +29,6 @@ export async function POST() {
     response.cookies.delete(COOKIE_NAME);
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "auth/logout");
   }
 }

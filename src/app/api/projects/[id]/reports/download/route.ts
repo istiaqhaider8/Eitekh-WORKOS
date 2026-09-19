@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { escapeHtml as esc } from "@/lib/sanitize";
 import { assertProjectAccess } from "@/lib/tenant";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -1093,9 +1094,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error("Report Download Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: error.message?.includes("Unauthorized") ? 401 : error.message?.includes("Forbidden") || error.message?.includes("tenant") ? 403 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/reports/download");
   }
 }

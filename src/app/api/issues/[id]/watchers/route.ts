@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { watcherSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: Request,
@@ -31,7 +32,7 @@ export async function GET(
 
     return NextResponse.json(watchers);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/watchers");
   }
 }
 
@@ -79,7 +80,7 @@ export async function POST(
 
     return NextResponse.json(watcher, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/watchers");
   }
 }
 
@@ -124,6 +125,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/watchers");
   }
 }

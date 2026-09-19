@@ -6,6 +6,7 @@ import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
 import { leaveUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function PATCH(
   req: NextRequest,
@@ -114,10 +115,7 @@ export async function PATCH(
     return NextResponse.json({ leave: updatedLeave });
   } catch (error: any) {
     logger.error("PATCH /api/users/leave/[id] error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to update leave" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/leave/[id]");
   }
 }
 
@@ -247,9 +245,6 @@ export async function DELETE(
     });
   } catch (error: any) {
     logger.error("DELETE /api/users/leave/[id] error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to delete leave" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/leave/[id]");
   }
 }

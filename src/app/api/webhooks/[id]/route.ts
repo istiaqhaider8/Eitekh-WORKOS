@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
 import { webhookUpdateSchema, parseBody } from "@/lib/validation";
 import { encryptField, maskSecret } from "@/lib/encryption";
+import { handleApiError } from "@/lib/api-error";
 
 async function verifyWebhookAccess(webhook: { orgId: string; projectId: string | null }, requireAdmin = true) {
   if (webhook.projectId) {
@@ -25,8 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     await verifyWebhookAccess(webhook, false);
     return NextResponse.json({ ...webhook, secret: maskSecret(webhook.secret) });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "webhooks/[id]");
   }
 }
 
@@ -60,8 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ ...webhook, secret: maskSecret(webhook.secret) });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "webhooks/[id]");
   }
 }
 
@@ -79,7 +78,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await prisma.webhook.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "webhooks/[id]");
   }
 }

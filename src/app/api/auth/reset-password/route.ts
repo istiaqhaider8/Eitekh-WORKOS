@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { resetPasswordSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import crypto from "crypto";
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Reset password error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return handleApiError(error, "auth/reset-password");
   }
 }

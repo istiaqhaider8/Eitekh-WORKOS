@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectPermission } from "@/lib/tenant";
 import { bulkTaskImportSchema, parseJsonBody } from "@/lib/validation";
 import { readCsvTable, cell, stripCsvComments } from "@/lib/csv";
+import { handleApiError } from "@/lib/api-error";
 import {
   ALLOWED_ISSUE_TYPES,
   ALLOWED_PRIORITIES,
@@ -354,16 +355,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(summarise("import", results.sort((a, b) => a.row - b.row)));
   } catch (error: any) {
     const msg = error?.message || "Internal Server Error";
-    const status = msg.includes("Unauthorized")
-      ? 401
-      : msg.includes("Forbidden") || msg.includes("permission") || msg.includes("access")
-      ? 403
-      // assertProjectAccess throws "Project not found" for an unknown id. Without
-      // this branch it fell through to 500, which reports a client mistake as a
-      // server fault and would page someone for a mistyped URL.
-      : msg.includes("not found")
-      ? 404
-      : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return handleApiError(error, "projects/[id]/import");
   }
 }

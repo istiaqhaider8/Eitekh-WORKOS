@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { securityEngine } from '@/lib/security-engine';
 import { syncEngine } from '@/lib/sync-engine';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: Request) {
   try {
@@ -146,6 +147,6 @@ export async function GET(request: Request) {
       reportData,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/reports");
   }
 }

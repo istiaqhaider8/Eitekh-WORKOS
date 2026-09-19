@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { commentUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function PATCH(
   req: Request,
@@ -67,7 +68,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedComment);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "comments/[id]");
   }
 }
 
@@ -126,7 +127,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "comments/[id]");
   }
 }
 

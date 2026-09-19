@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createAndSendOtp } from "@/lib/otp";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { forgotPasswordSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -33,6 +34,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Forgot password error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return handleApiError(error, "auth/forgot-password");
   }
 }

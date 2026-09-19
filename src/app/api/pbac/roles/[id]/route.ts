@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 import { pbacRoleUpdateSchema, parseBody, parseJsonBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -26,10 +27,7 @@ export async function GET(
 
     return NextResponse.json({ role });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e.message || 'Failed to fetch role' },
-      { status: e.message?.includes('Forbidden') ? 403 : 500 }
-    );
+    return handleApiError(e, "pbac/roles/[id]");
   }
 }
 
@@ -79,10 +77,7 @@ export async function PATCH(
 
     return NextResponse.json({ role: updatedRole, success: true });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e.message || 'Failed to update role' },
-      { status: e.message?.includes('Forbidden') ? 403 : 500 }
-    );
+    return handleApiError(e, "pbac/roles/[id]");
   }
 }
 
@@ -118,13 +113,6 @@ export async function DELETE(
     // deliberate rule, not a server fault. Both returned 500, which reads as a
     // crash in the UI and in error monitoring, and buries an instruction the
     // operator needs to act on ("Unassign assigned users first...").
-    const status = msg.includes('Forbidden')
-      ? 403
-      : msg.includes('not found')
-      ? 404
-      : /assigned to|system role|cannot delete/i.test(msg)
-      ? 409
-      : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return handleApiError(e, "pbac/roles/[id]");
   }
 }

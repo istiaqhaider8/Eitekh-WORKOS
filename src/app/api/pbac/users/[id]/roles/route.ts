@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 import { pbacUserRolesUpdateSchema, parseBody, parseJsonBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,8 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const effectiveAccess = await pbacEngine.getEffectiveUserAccess(orgId, id);
     return NextResponse.json(effectiveAccess);
   } catch (e: any) {
-    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: e.message || 'Failed to fetch user roles' }, { status });
+    return handleApiError(e, "pbac/users/[id]/roles");
   }
 }
 
@@ -48,7 +48,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const result = await pbacEngine.assignRolesToUser(orgId, id, roleIds, actor);
     return NextResponse.json({ success: true, result });
   } catch (e: any) {
-    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: e.message || 'Failed to assign user roles' }, { status });
+    return handleApiError(e, "pbac/users/[id]/roles");
   }
 }

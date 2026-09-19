@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 import { pbacRoleUsersSchema, parseBody, parseJsonBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ users: role.assignedUsers || [], total: role.assignedUserCount });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to fetch role users' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
+    return handleApiError(e, "pbac/roles/[id]/users");
   }
 }
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'userId or userIds required' }, { status: 400 });
     }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to assign role to users' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
+    return handleApiError(e, "pbac/roles/[id]/users");
   }
 }
 
@@ -93,6 +94,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'userId or userIds required' }, { status: 400 });
     }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to remove role from users' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
+    return handleApiError(e, "pbac/roles/[id]/users");
   }
 }

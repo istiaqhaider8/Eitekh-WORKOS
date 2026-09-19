@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission, assertOrgPermission } from "@/lib/tenant";
 import { customFieldCreateSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: Request) {
   try {
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ customFields: fields, fields });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
+    return handleApiError(error, "custom-fields");
   }
 }
 
@@ -62,6 +63,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(field, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
+    return handleApiError(error, "custom-fields");
   }
 }

@@ -2,6 +2,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { sendEmail, getEmailConfig } from "@/lib/email";
 import { superAdminEmailTestSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -39,6 +40,6 @@ export async function POST(req: Request) {
       result,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-settings/test");
   }
 }

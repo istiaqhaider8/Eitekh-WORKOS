@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createBackup, listBackups } from "@/lib/backup";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
     const backups = listBackups();
     return NextResponse.json({ backups });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to list backups" }, { status: 500 });
+    return handleApiError(error, "super-admin/backups");
   }
 }
 
@@ -36,6 +37,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, backup: result.path });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Backup failed" }, { status: 500 });
+    return handleApiError(error, "super-admin/backups");
   }
 }

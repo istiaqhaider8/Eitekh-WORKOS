@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { dependencyCreateSchema, dependencyDeleteSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: Request,
@@ -35,7 +36,7 @@ export async function GET(
       incoming: issue.incomingDeps,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/dependencies");
   }
 }
 
@@ -97,7 +98,7 @@ export async function POST(
 
     return NextResponse.json(createdDeps[0], { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/dependencies");
   }
 }
 
@@ -158,6 +159,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/dependencies");
   }
 }

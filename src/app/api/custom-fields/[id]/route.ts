@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission, assertOrgAccess } from "@/lib/tenant";
 import { customFieldUpdateSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 async function verifyFieldAccess(field: { scopeType: string; scopeId: string }, requireAdmin = false) {
   if (field.scopeType === "PROJECT") {
@@ -31,8 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     await verifyFieldAccess(field, false);
     return NextResponse.json(field);
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "custom-fields/[id]");
   }
 }
 
@@ -58,8 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json(field);
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "custom-fields/[id]");
   }
 }
 
@@ -77,7 +76,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await prisma.customField.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "custom-fields/[id]");
   }
 }

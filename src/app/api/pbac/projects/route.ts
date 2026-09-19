@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,7 +48,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ projects, count: projects.length });
   } catch (e: any) {
-    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: e.message || 'Failed to fetch projects' }, { status });
+    return handleApiError(e, "pbac/projects");
   }
 }

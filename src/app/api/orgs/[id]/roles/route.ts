@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess } from "@/lib/tenant";
 import { pbacEngine, PBAC_PERMISSION_CATEGORIES, ALL_PBAC_PERMISSION_KEYS } from "@/lib/pbac-engine";
 import { orgRoleCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: Request,
@@ -27,7 +28,7 @@ export async function GET(
     });
   } catch (error: any) {
     console.error("Fetch roles error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "orgs/[id]/roles");
   }
 }
 
@@ -66,7 +67,7 @@ export async function POST(
     return NextResponse.json({ role }, { status: 201 });
   } catch (error: any) {
     console.error("Create role error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "orgs/[id]/roles");
   }
 }
 

@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth";
 import { createAndSendOtp } from "@/lib/otp";
 import { registerSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -65,6 +66,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Registration error:", error);
-    return NextResponse.json({ error: error.message || "Registration failed" }, { status: 500 });
+    return handleApiError(error, "auth/register");
   }
 }

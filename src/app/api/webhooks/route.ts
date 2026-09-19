@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertOrgAccess, assertProjectAccess } from "@/lib/tenant";
 import { webhookCreateSchema, parseBody } from "@/lib/validation";
 import { encryptField, maskSecret } from "@/lib/encryption";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -24,8 +25,7 @@ export async function GET(request: Request) {
       await assertOrgAccess(orgId, ["OWNER", "ADMIN"]);
     }
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Forbidden" }, { status });
+    return handleApiError(error, "webhooks");
   }
 
   const where: any = {};
@@ -66,7 +66,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ...webhook, secret: maskSecret(webhook.secret) }, { status: 201 });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") ? 403 : error.message?.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "webhooks");
   }
 }

@@ -4,6 +4,7 @@ import { publicUserRelation } from "@/lib/safe-select";
 import { csvSafeCell } from "@/lib/sanitize";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -279,9 +280,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: error.message?.includes("Unauthorized") ? 401 : error.message?.includes("Forbidden") || error.message?.includes("tenant") ? 403 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/export");
   }
 }

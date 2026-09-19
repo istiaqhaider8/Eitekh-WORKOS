@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { otpRequestSchema, parseJsonBody } from "@/lib/validation";
 import { createAndSendOtp } from "@/lib/otp";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -29,6 +30,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Resend OTP error:", error);
-    return NextResponse.json({ error: error.message || "Failed to resend code" }, { status: 500 });
+    return handleApiError(error, "auth/resend-otp");
   }
 }

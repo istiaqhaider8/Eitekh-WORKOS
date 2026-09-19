@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { syncEngine } from "@/lib/sync-engine";
 import { logger } from "@/lib/logger";
 import { leaveCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -73,10 +74,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ leaves });
   } catch (error: any) {
     logger.error("GET /api/users/leave error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch leaves" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/leave");
   }
 }
 
@@ -202,9 +200,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ leave }, { status: 201 });
   } catch (error: any) {
     logger.error("POST /api/users/leave error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to create leave" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/leave");
   }
 }

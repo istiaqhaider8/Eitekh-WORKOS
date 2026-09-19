@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { getCurrentUser } from '@/lib/auth';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: Request) {
   try {
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to download documentation' }, { status: 500 });
+    return handleApiError(error, "docs/download");
   }
 }
 

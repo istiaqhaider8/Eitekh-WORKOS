@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { projectUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(project);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message?.includes("Unauthorized") ? 401 : 500 });
+    return handleApiError(error, "projects/[id]");
   }
 }
 
@@ -77,8 +78,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    const status = error.message?.includes("Unauthorized") ? 401 : (error.message?.includes("Forbidden") ? 403 : 400);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "projects/[id]");
   }
 }
 
@@ -106,6 +106,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "projects/[id]", 400);
   }
 }

@@ -4,6 +4,7 @@ import { assertProjectAccess } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { autoProcessExpiredDelegations } from "@/lib/delegation-engine";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -54,9 +55,6 @@ export async function GET(
     return NextResponse.json({ projectId, delegations });
   } catch (error: any) {
     logger.error("GET /api/projects/[id]/delegations error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch project delegations" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/delegations");
   }
 }

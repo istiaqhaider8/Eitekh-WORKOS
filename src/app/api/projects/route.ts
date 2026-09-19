@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { projectCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { PROJECT_ADMIN_PERMISSIONS } from "@/lib/project-permissions";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(projects);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "projects");
   }
 }
 
@@ -161,6 +162,6 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(project, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "projects", 400);
   }
 }

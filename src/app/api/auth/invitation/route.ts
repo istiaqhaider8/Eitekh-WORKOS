@@ -4,6 +4,7 @@ import { invitationAcceptSchema, parseJsonBody } from "@/lib/validation";
 import { hashPassword } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
+import { handleApiError } from "@/lib/api-error";
 
 // GET: Validate invitation token and return invitation details
 export async function GET(req: Request) {
@@ -161,6 +162,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Invitation acceptance error:", error);
-    return NextResponse.json({ error: error.message || "Failed to accept invitation" }, { status: 500 });
+    return handleApiError(error, "auth/invitation");
   }
 }

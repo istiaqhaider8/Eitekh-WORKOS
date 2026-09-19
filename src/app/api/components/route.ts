@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { componentCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: Request) {
   try {
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(components);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "components");
   }
 }
 
@@ -69,7 +70,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json(component, { status: 201 });
   } catch (error: any) {
-    const status = error.message?.includes("Forbidden") || error.message?.includes("Unauthorized") ? 403 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status });
+    return handleApiError(error, "components");
   }
 }

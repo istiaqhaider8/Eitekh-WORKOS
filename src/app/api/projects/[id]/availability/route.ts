@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -81,9 +82,6 @@ export async function GET(
     return NextResponse.json({ projectId, leaves });
   } catch (error: any) {
     logger.error("GET /api/projects/[id]/availability error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch project availability" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/availability");
   }
 }

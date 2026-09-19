@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess } from "@/lib/tenant";
 import { getProjectContext } from "@/lib/project-context";
+import { handleApiError } from "@/lib/api-error";
 
 /**
  * GET /api/projects/[id]/context
@@ -32,13 +33,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json(context);
   } catch (error: any) {
     const message = error?.message || "Failed to fetch project context";
-    const status = message.includes("Unauthorized")
-      ? 401
-      : message.includes("Forbidden") || message.includes("not a member")
-        ? 403
-        : message.includes("not found")
-          ? 404
-          : 500;
-    return NextResponse.json({ error: message }, { status });
+    return handleApiError(error, "projects/[id]/context");
   }
 }

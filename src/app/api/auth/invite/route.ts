@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getBaseUrl } from "@/lib/config";
 import crypto from "crypto";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request) {
   try {
@@ -119,6 +120,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Send invitation error:", error);
-    return NextResponse.json({ error: error.message || "Failed to send invitation" }, { status: 500 });
+    return handleApiError(error, "auth/invite");
   }
 }

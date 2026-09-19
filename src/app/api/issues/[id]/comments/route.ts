@@ -6,6 +6,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { getBaseUrl } from "@/lib/config";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { commentSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -155,6 +156,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ comment }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/[id]/comments");
   }
 }

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEmailTemplates, DEFAULT_TEMPLATES, renderTemplate } from "@/lib/email";
 import { superAdminEmailTemplateUpdateSchema, superAdminEmailTemplatePreviewSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
   req: NextRequest,
@@ -26,7 +27,7 @@ export async function GET(
 
     return NextResponse.json({ template });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-templates/[key]");
   }
 }
 
@@ -101,7 +102,7 @@ export async function PATCH(
 
     return NextResponse.json({ template: updated, message: "Email template updated successfully" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-templates/[key]");
   }
 }
 
@@ -162,6 +163,6 @@ export async function POST(
       variables: vars,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "super-admin/email-templates/[key]");
   }
 }

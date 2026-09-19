@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { cacheManager } from '@/lib/cache-manager';
 import { prisma } from '@/lib/prisma';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -76,6 +77,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (e: any) {
     console.error('Failed to get cache status:', e);
-    return NextResponse.json({ error: e.message || 'Failed to retrieve cache status' }, { status: 500 });
+    return handleApiError(e, "admin/cache/status");
   }
 }

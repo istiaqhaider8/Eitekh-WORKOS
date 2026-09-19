@@ -6,6 +6,7 @@ import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
 import { delegationUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function PATCH(
   req: NextRequest,
@@ -76,10 +77,7 @@ export async function PATCH(
     return NextResponse.json({ delegation: updated });
   } catch (error: any) {
     logger.error("PATCH /api/users/delegations/[id] error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to update delegation" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/delegations/[id]");
   }
 }
 
@@ -176,9 +174,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: "Delegation ended and task returned to original assignee." });
   } catch (error: any) {
     logger.error("DELETE /api/users/delegations/[id] error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to cancel delegation" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/delegations/[id]");
   }
 }

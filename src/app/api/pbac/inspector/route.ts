@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,6 +27,6 @@ export async function GET(req: NextRequest) {
       : await (pbacEngine as any).getEffectiveUserAccess(orgId, userId, projectId);
     return NextResponse.json(result);
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to inspect user access' }, { status: e.message?.includes('Forbidden') ? 403 : 500 });
+    return handleApiError(e, "pbac/inspector");
   }
 }

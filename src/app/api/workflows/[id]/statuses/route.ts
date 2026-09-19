@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectPermission } from "@/lib/tenant";
 import { workflowStatusCreateSchema, workflowStatusUpdateSchema, workflowStatusDeleteSchema, parseBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -45,8 +46,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     return NextResponse.json(status, { status: 201 });
   } catch (error: any) {
-    const code = error.message?.includes("Forbidden") ? 403 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: code });
+    return handleApiError(error, "workflows/[id]/statuses");
   }
 }
 
@@ -90,8 +90,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json(status);
   } catch (error: any) {
-    const code = error.message?.includes("Forbidden") ? 403 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: code });
+    return handleApiError(error, "workflows/[id]/statuses");
   }
 }
 
@@ -142,7 +141,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    const code = error.message?.includes("Forbidden") ? 403 : 500;
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: code });
+    return handleApiError(error, "workflows/[id]/statuses");
   }
 }

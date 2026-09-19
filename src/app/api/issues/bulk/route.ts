@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { bulkIssueUpdateSchema, bulkIssueDeleteSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function PATCH(req: Request) {
   try {
@@ -165,7 +166,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 401 });
     }
     console.error("Bulk update error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/bulk");
   }
 }
 
@@ -229,6 +230,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 401 });
     }
     console.error("Bulk delete error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return handleApiError(error, "issues/bulk");
   }
 }

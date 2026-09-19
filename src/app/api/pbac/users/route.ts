@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { assertOrgAccess } from '@/lib/tenant';
 import { pbacEngine } from '@/lib/pbac-engine';
 import { pbacBulkUserActionSchema, parseBody, parseJsonBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,8 +37,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (e: any) {
-    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: e.message || 'Failed to fetch directory users' }, { status });
+    return handleApiError(e, "pbac/users");
   }
 }
 
@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid bulk action' }, { status: 400 });
   } catch (e: any) {
-    const status = e.message?.includes('Forbidden') ? 403 : e.message?.includes('Unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: e.message || 'Failed bulk user operation' }, { status });
+    return handleApiError(e, "pbac/users");
   }
 }

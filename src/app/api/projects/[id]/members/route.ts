@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { getBaseUrl } from "@/lib/config";
 import { projectMemberSchema, memberUserIdSchema, parseBody, parseJsonBody, DEFAULT_USER_TYPE } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 import {
   ALLOWED_PROJECT_ROLES,
   DEFAULT_PROJECT_ROLE,
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(members);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: error.message.includes("Unauthorized") ? 401 : 500 });
+    return handleApiError(error, "projects/[id]/members");
   }
 }
 
@@ -213,7 +214,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ ...member, isNewUserCreated, tempPassword: isNewUserCreated ? tempPassword : undefined }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "projects/[id]/members", 400);
   }
 }
 
@@ -259,7 +260,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json(updated);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "projects/[id]/members", 400);
   }
 }
 
@@ -305,7 +306,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "projects/[id]/members", 400);
   }
 }
 

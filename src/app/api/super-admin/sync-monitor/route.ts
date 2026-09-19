@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { syncEngine } from '@/lib/sync-engine';
 import { prisma } from '@/lib/prisma';
 import { superAdminSyncMonitorActionSchema, parseBody } from '@/lib/validation';
+import { handleApiError } from "@/lib/api-error";
 
 export const dynamic = 'force-dynamic';
 
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
       eventLogs,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error, "super-admin/sync-monitor");
   }
 }
 
@@ -97,6 +98,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, event });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return handleApiError(error, "super-admin/sync-monitor");
   }
 }

@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import { autoProcessExpiredDelegations } from "@/lib/delegation-engine";
 import { formatLeaveRange } from "@/lib/leave-engine";
 import { delegationCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 export async function GET(req: NextRequest) {
   try {
@@ -81,10 +82,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ delegations });
   } catch (error: any) {
     logger.error("GET /api/users/delegations error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch delegations" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/delegations");
   }
 }
 
@@ -265,9 +263,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     logger.error("POST /api/users/delegations error", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to delegate tasks" },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
-    );
+    return handleApiError(error, "users/delegations");
   }
 }

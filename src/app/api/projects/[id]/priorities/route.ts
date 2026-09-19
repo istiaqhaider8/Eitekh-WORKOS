@@ -4,6 +4,7 @@ import { DEFAULT_PRIORITIES, resolveProjectPriorities } from "@/lib/project-cont
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { priorityCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,10 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json(await resolveProjectPriorities(projectId));
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch priorities" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/priorities");
   }
 }
 
@@ -97,9 +95,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       priorities: [...DEFAULT_PRIORITIES, ...finalCustom],
     }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to create priority" },
-      { status: error.message?.includes("Unauthorized") ? 401 : 500 }
-    );
+    return handleApiError(error, "projects/[id]/priorities");
   }
 }
