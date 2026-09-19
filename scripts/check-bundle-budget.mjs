@@ -1,0 +1,211 @@
+#!/usr/bin/env node
+/**
+ * D2 — fail the build when a page's client JavaScript exceeds its budget.
+ *
+ * WHY A BUDGET AND NOT A NOTE IN A DOC
+ *
+ * Bundle size only ever moves one way without one. Every import is small, none
+ * of them is the problem, and the page that took 250 kB last quarter takes 400
+ * kB this quarter with nobody having made a decision. It is a cost paid by the
+ * user on first load, on whatever connection they have, and it is invisible to
+ * everyone who develops on a fast laptop with a warm cache.
+ *
+ * WHY THE NUMBERS ARE COMPUTED HERE RATHER THAN READ FROM THE BUILD
+ *
+ * Next 16 with Turbopack prints a route table with NO size column — the
+ * "296 kB First Load JS" figure in IMPROVEMENT-PLAN.md came from an older
+ * build and cannot be reproduced by running the current one. So this walks the
+ * client reference manifest each route emits, resolves the chunks it names,
+ * and adds up what is actually on disk.
+ *
+ * WHAT IT MEASURES, PRECISELY
+ *
+ * The uncompressed bytes of the client chunks a route references, including
+ * the shared framework chunks it loads. That is not the same as transfer size
+ * — everything here is served compressed — but it is the number that moves
+ * when someone adds a dependency, and it needs no assumptions about the
+ * server's compression settings. The ratio is roughly 3-4x for JS.
+ *
+ * Run:  node scripts/check-bundle-budget.mjs
+ *       node scripts/check-bundle-budget.mjs --update   (rewrite the budgets)
+ * Exit: 0 within budget, 1 over, 2 nothing to measure.
+ */
+
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+const BUDGET_FILE = "bundle-budget.json";
+const APP_DIR = ".next/server/app";
+
+/**
+ * How much a route may grow before this fails.
+ *
+ * Not zero: a few kB of drift on an unrelated change should not block a merge,
+ * or the check gets disabled the first week. Large enough to absorb noise,
+ * small enough that a new charting library cannot hide in it.
+ */
+const TOLERANCE = 0.05;
+
+if (!existsSync(APP_DIR)) {
+  console.error(
+    "\nNo build found at .next/server/app.\n\nRun `npm run build` first — this measures what the build emitted.\n"
+  );
+  process.exit(2);
+}
+
+/** Every page's client-reference manifest. API routes have one but ship no UI. */
+function findManifests(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir)) {
+    const p = join(dir, entry);
+    if (statSync(p).isDirectory()) out.push(...findManifests(p));
+    else if (entry === "page_client-reference-manifest.js") out.push(p);
+  }
+  return out;
+}
+
+/** `.next/server/app/projects/[id]/page_client-reference-manifest.js` -> `/projects/[id]` */
+function routeOf(manifestPath) {
+  const rel = manifestPath
+    .replace(/\\/g, "/")
+    .replace(`${APP_DIR}/`, "")
+    .replace("/page_client-reference-manifest.js", "");
+  return "/" + (rel === "page_client-reference-manifest.js" ? "" : rel);
+}
+
+/** `/_next/static/chunks/x.js` -> `.next/static/chunks/x.js` */
+function onDisk(chunkUrl) {
+  return ".next/" + chunkUrl.replace(/^\/_next\//, "").replace(/^\//, "");
+}
+
+function measure(manifestPath) {
+  const src = readFileSync(manifestPath, "utf8");
+  const at = src.indexOf("= {", src.indexOf("__RSC_MANIFEST["));
+  if (at === -1) return null;
+
+  let manifest;
+  try {
+    manifest = JSON.parse(src.slice(at + 2).replace(/;\s*$/, ""));
+  } catch {
+    return null;
+  }
+
+  const chunks = new Set();
+  for (const mod of Object.values(manifest.clientModules ?? {})) {
+    for (const c of mod.chunks ?? []) chunks.add(c);
+  }
+  for (const list of Object.values(manifest.entryJSFiles ?? {})) {
+    for (const c of list ?? []) chunks.add(c);
+  }
+
+  let bytes = 0;
+  let missing = 0;
+  for (const c of chunks) {
+    const p = onDisk(c);
+    if (existsSync(p)) bytes += statSync(p).size;
+    else missing += 1;
+  }
+
+  return { bytes, chunkCount: chunks.size, missing };
+}
+
+const measured = new Map();
+for (const m of findManifests(APP_DIR)) {
+  const route = routeOf(m);
+  // API routes emit a manifest but ship no client bundle.
+  if (route.startsWith("/api/")) continue;
+  const result = measure(m);
+  if (result && result.chunkCount > 0) measured.set(route, result);
+}
+
+if (measured.size === 0) {
+  console.error("\nNo client bundles found to measure. Has the build changed shape?\n");
+  process.exit(2);
+}
+
+const kb = (b) => Math.round(b / 1024);
+const updating = process.argv.includes("--update");
+
+let budgets = {};
+if (existsSync(BUDGET_FILE)) {
+  budgets = JSON.parse(readFileSync(BUDGET_FILE, "utf8")).routes ?? {};
+}
+
+if (updating) {
+  const routes = Object.fromEntries(
+    [...measured.entries()].sort().map(([r, m]) => [r, kb(m.bytes)])
+  );
+  writeFileSync(
+    BUDGET_FILE,
+    JSON.stringify(
+      {
+        $comment:
+          "D2 — per-route client JS budgets in kB, UNCOMPRESSED. Generated by " +
+          "scripts/check-bundle-budget.mjs --update. Raising a number is a " +
+          "decision: say in the commit message what the page gained for it.",
+        tolerance: TOLERANCE,
+        routes,
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  console.log(`Wrote ${BUDGET_FILE} with ${Object.keys(routes).length} routes.`);
+  process.exit(0);
+}
+
+console.log("route".padEnd(34) + "actual".padStart(10) + "budget".padStart(10) + "   status");
+console.log("-".repeat(68));
+
+const over = [];
+const unbudgeted = [];
+
+for (const [route, m] of [...measured.entries()].sort()) {
+  const actual = kb(m.bytes);
+  const budget = budgets[route];
+
+  if (budget === undefined) {
+    unbudgeted.push(route);
+    console.log(route.padEnd(34) + `${actual} kB`.padStart(10) + "—".padStart(10) + "   NO BUDGET");
+    continue;
+  }
+
+  const ceiling = Math.ceil(budget * (1 + TOLERANCE));
+  const ok = actual <= ceiling;
+  if (!ok) over.push({ route, actual, budget, ceiling });
+
+  console.log(
+    route.padEnd(34) +
+      `${actual} kB`.padStart(10) +
+      `${budget} kB`.padStart(10) +
+      (ok ? `   ok${actual < budget ? ` (-${budget - actual})` : ""}` : `   OVER by ${actual - ceiling} kB`)
+  );
+}
+
+console.log("-".repeat(68));
+
+if (unbudgeted.length) {
+  console.error(
+    `\n${unbudgeted.length} route(s) have no budget. Run:\n\n` +
+      "  node scripts/check-bundle-budget.mjs --update\n\n" +
+      "and commit the result, so the next change to them is measured.\n"
+  );
+  process.exit(1);
+}
+
+if (over.length) {
+  console.error(`\n${over.length} route(s) exceed their budget:\n`);
+  for (const o of over) {
+    console.error(`  ${o.route}  ${o.actual} kB > ${o.budget} kB (+${TOLERANCE * 100}% = ${o.ceiling} kB)`);
+  }
+  console.error(
+    "\nEvery import is small and none of them is the problem — which is exactly\n" +
+      "how a page doubles without anyone deciding to. Either find what grew:\n\n" +
+      "  ANALYZE=true npm run build\n\n" +
+      "or, if the page genuinely needs it, raise the number in bundle-budget.json\n" +
+      "and say in the commit message what it bought.\n"
+  );
+  process.exit(1);
+}
+
+console.log("\nAll routes within budget.\n");

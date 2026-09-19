@@ -1,5 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,19 +52,78 @@ import {
   Trash2,
 } from "lucide-react";
 import { AnalyticsChartsView } from "@/components/views/AnalyticsChartsView";
-import { SystemSyncMonitorView } from "@/components/admin/SystemSyncMonitorView";
 import { GlobalAlertBanner } from "@/components/admin/GlobalAlertBanner";
-import { PlatformHealthView } from "@/components/admin/PlatformHealthView";
-import { AccessGovernanceView } from "@/components/admin/AccessGovernanceView";
-import { SecurityCenterView } from "@/components/admin/SecurityCenterView";
-import { SecurityThreatOperationsView } from "@/components/admin/SecurityThreatOperationsView";
-import { PlatformReportsHubView } from "@/components/admin/PlatformReportsHubView";
-import { JobAutomationMonitorView } from "@/components/admin/JobAutomationMonitorView";
-import { AuditComplianceView } from "@/components/admin/AuditComplianceView";
-import { PlatformUserDirectoryView } from "@/components/admin/PlatformUserDirectoryView";
-import { SystemRefreshCacheView } from "@/components/admin/SystemRefreshCacheView";
-import { PlatformWorkspacesProjectsView } from "@/components/admin/PlatformWorkspacesProjectsView";
-import { PlatformAnnouncementsView } from "@/components/admin/PlatformAnnouncementsView";
+
+/**
+ * D2 — the tab views are loaded on demand.
+ *
+ * All of them were static imports, so 7,171 lines across thirteen files
+ * shipped on first load for a page that renders one tab at a time. Measured
+ * before this change, /super-admin pulled 1,503 kB of client JavaScript —
+ * the heaviest route in the app once /projects/[id] was split.
+ *
+ * Each is already rendered behind `activeTab === "..."`, so the component
+ * was never mounted until its tab was selected; it was only downloaded.
+ * That is what makes this a safe change rather than a restructuring.
+ *
+ * GlobalAlertBanner stays static: it renders unconditionally at the top of
+ * the page, so deferring it would add a round trip before the first paint
+ * and buy nothing.
+ */
+const adminTabLoading = () => (
+  <div className="flex items-center justify-center py-24 text-sm text-slate-400 dark:text-slate-500">
+    Loading…
+  </div>
+);
+const SystemSyncMonitorView = dynamic(
+  () => import("@/components/admin/SystemSyncMonitorView").then((m) => m.SystemSyncMonitorView),
+  { loading: adminTabLoading, ssr: false }
+);
+const PlatformHealthView = dynamic(
+  () => import("@/components/admin/PlatformHealthView").then((m) => m.PlatformHealthView),
+  { loading: adminTabLoading, ssr: false }
+);
+const AccessGovernanceView = dynamic(
+  () => import("@/components/admin/AccessGovernanceView").then((m) => m.AccessGovernanceView),
+  { loading: adminTabLoading, ssr: false }
+);
+const SecurityCenterView = dynamic(
+  () => import("@/components/admin/SecurityCenterView").then((m) => m.SecurityCenterView),
+  { loading: adminTabLoading, ssr: false }
+);
+const SecurityThreatOperationsView = dynamic(
+  () => import("@/components/admin/SecurityThreatOperationsView").then((m) => m.SecurityThreatOperationsView),
+  { loading: adminTabLoading, ssr: false }
+);
+const PlatformReportsHubView = dynamic(
+  () => import("@/components/admin/PlatformReportsHubView").then((m) => m.PlatformReportsHubView),
+  { loading: adminTabLoading, ssr: false }
+);
+const JobAutomationMonitorView = dynamic(
+  () => import("@/components/admin/JobAutomationMonitorView").then((m) => m.JobAutomationMonitorView),
+  { loading: adminTabLoading, ssr: false }
+);
+const AuditComplianceView = dynamic(
+  () => import("@/components/admin/AuditComplianceView").then((m) => m.AuditComplianceView),
+  { loading: adminTabLoading, ssr: false }
+);
+const PlatformUserDirectoryView = dynamic(
+  () => import("@/components/admin/PlatformUserDirectoryView").then((m) => m.PlatformUserDirectoryView),
+  { loading: adminTabLoading, ssr: false }
+);
+const SystemRefreshCacheView = dynamic(
+  () => import("@/components/admin/SystemRefreshCacheView").then((m) => m.SystemRefreshCacheView),
+  { loading: adminTabLoading, ssr: false }
+);
+const PlatformWorkspacesProjectsView = dynamic(
+  () => import("@/components/admin/PlatformWorkspacesProjectsView").then((m) => m.PlatformWorkspacesProjectsView),
+  { loading: adminTabLoading, ssr: false }
+);
+const PlatformAnnouncementsView = dynamic(
+  () => import("@/components/admin/PlatformAnnouncementsView").then((m) => m.PlatformAnnouncementsView),
+  { loading: adminTabLoading, ssr: false }
+);
+
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { showSuccess, showError } from "@/lib/toast";
 

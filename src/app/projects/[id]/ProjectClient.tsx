@@ -4,14 +4,64 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import dynamic from "next/dynamic";
 import { KanbanBoardView } from "@/components/views/KanbanBoardView";
-import { ListView } from "@/components/views/ListView";
-import { ScrumBacklogView } from "@/components/views/ScrumBacklogView";
-import { TimelineGanttView } from "@/components/views/TimelineGanttView";
-import { CalendarView } from "@/components/views/CalendarView";
-import { WorkloadView } from "@/components/views/WorkloadView";
-import { DashboardView } from "@/components/views/DashboardView";
-import { AnalyticsChartsView } from "@/components/views/AnalyticsChartsView";
+
+/**
+ * D2 — the other seven views are loaded on demand.
+ *
+ * They were all static imports, so every one of them — 15,680 lines across the
+ * eight files — shipped on first load even though the page renders exactly
+ * one at a time. Measured before this change, /projects/[id] pulled 1,887 kB
+ * of client JavaScript, by far the heaviest route in the app.
+ *
+ * Each view is already rendered behind `activeView === "..."`, which is what
+ * makes this a safe change rather than a restructuring: the component was
+ * never mounted until its tab was selected, only downloaded.
+ *
+ * Kanban stays static because it is the default view. Making the first paint
+ * wait on a second round trip would trade a first-load cost the user pays once
+ * for a delay they see every time they open a project.
+ *
+ * `ssr: false` is deliberate. These views read from the DOM and from
+ * localStorage on mount, and none of them is content a crawler needs; keeping
+ * them out of the server render avoids paying for markup that is immediately
+ * replaced.
+ */
+const viewLoading = () => (
+  <div className="flex items-center justify-center py-24 text-sm text-slate-400 dark:text-slate-500">
+    Loading view…
+  </div>
+);
+
+const ListView = dynamic(
+  () => import("@/components/views/ListView").then((m) => m.ListView),
+  { loading: viewLoading, ssr: false }
+);
+const ScrumBacklogView = dynamic(
+  () => import("@/components/views/ScrumBacklogView").then((m) => m.ScrumBacklogView),
+  { loading: viewLoading, ssr: false }
+);
+const TimelineGanttView = dynamic(
+  () => import("@/components/views/TimelineGanttView").then((m) => m.TimelineGanttView),
+  { loading: viewLoading, ssr: false }
+);
+const CalendarView = dynamic(
+  () => import("@/components/views/CalendarView").then((m) => m.CalendarView),
+  { loading: viewLoading, ssr: false }
+);
+const WorkloadView = dynamic(
+  () => import("@/components/views/WorkloadView").then((m) => m.WorkloadView),
+  { loading: viewLoading, ssr: false }
+);
+const DashboardView = dynamic(
+  () => import("@/components/views/DashboardView").then((m) => m.DashboardView),
+  { loading: viewLoading, ssr: false }
+);
+const AnalyticsChartsView = dynamic(
+  () => import("@/components/views/AnalyticsChartsView").then((m) => m.AnalyticsChartsView),
+  { loading: viewLoading, ssr: false }
+);
 import { IssueDetailModal } from "@/components/issues/IssueDetailModal";
 import { TeamManagementModal } from "@/components/teams/TeamManagementModal";
 import { BulkImportModal } from "@/components/import/BulkImportModal";

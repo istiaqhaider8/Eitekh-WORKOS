@@ -168,8 +168,18 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      # D2. Bundle size only ever moves one way without a budget. Every import
+      # is small, none of them is the problem, and the page that took 250 kB
+      # last quarter takes 400 kB this quarter with nobody having decided. It
+      # is a cost the user pays on first load, on whatever connection they
+      # have, and it is invisible to everyone developing on a fast laptop.
+      #
+      # Runs AFTER the build, because it measures what the build emitted.
       - name: Next.js build
         run: npm run build
+
+      - name: Client bundle budget (D2)
+        run: node scripts/check-bundle-budget.mjs
 
       # PROD-5. Tenant-isolation integration tests, against a real server and a
       # real database.
