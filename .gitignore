@@ -61,3 +61,7 @@ scratch/
 *.sw?
 .DS_Store
 Thumbs.db
+
+# B3 — local attachment storage (STORAGE_DRIVER=local-fs). Uploaded files,
+# never source. Production uses an object store; see DEPLOYMENT.md.
+/storage/
