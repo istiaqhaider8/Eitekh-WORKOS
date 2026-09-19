@@ -18,6 +18,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
+import { ghError } from "./gh-annotate.mjs";
 
 /** Resolve Next's CLI entry so the server can be spawned without a shell. */
 function require_resolve_next() {
@@ -175,15 +176,62 @@ async function waitForReady(timeoutMs = 120_000) {
 await waitForReady();
 console.log("[integration] server ready; running tests\n");
 
+/**
+ * Captured rather than inherited, so a failure can be turned into annotations.
+ *
+ * On a public repository the Actions job log needs admin rights to read, so a
+ * failing suite here says only "exit code 1" to everyone else — the same
+ * silence that made the two drill failures take a push each to diagnose. The
+ * full output is still printed, unchanged, for anyone who can see the log.
+ */
 const jest = spawnSync(
   "npx",
   ["jest", "--config", "jest.integration.config.js", ...process.argv.slice(2)],
-  { env, stdio: "inherit", shell: true }
+  { env, encoding: "utf8", maxBuffer: 1 << 28, shell: true }
 );
+
+const jestOutput = `${jest.stdout ?? ""}${jest.stderr ?? ""}`;
+process.stdout.write(jestOutput);
 
 stop();
 
 if (jest.status !== 0) {
   console.error("\n[integration] FAILED. Last server output:\n" + serverLog.slice(-2000));
+
+  /**
+   * Jest prefixes each failing test with "●". The line after it is usually
+   * the assertion, which is the part worth carrying out of the log.
+   */
+  const lines = jestOutput.split(/\r?\n/);
+  const failures = [];
+  for (let i = 0; i < lines.length && failures.length < 10; i += 1) {
+    const line = lines[i].trim();
+    if (!line.startsWith("●")) continue;
+    if (/Console|deprecat/i.test(line)) continue;
+    const detail = lines
+      .slice(i + 1, i + 6)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("●"))
+      .slice(0, 3)
+      .join(" / ");
+    failures.push(`${line.replace(/^●\s*/, "")}${detail ? " -- " + detail : ""}`);
+  }
+
+  for (const f of failures) ghError("Integration tests", f);
+
+  if (failures.length === 0) {
+    // A crash rather than an assertion: no ● lines at all. The tail of the
+    // output is then the only thing that says anything.
+    ghError("Integration tests", `no individual failures parsed; output tail: ${jestOutput.slice(-1200)}`);
+  }
+
+  // The server's own log, which is where a 500 explains itself. Jest only
+  // reports the status code it received.
+  const serverErrors = serverLog
+    .split(/\r?\n/)
+    .filter((l) => /error|unhandled|prisma|invalid/i.test(l))
+    .slice(-6)
+    .join(" | ");
+  if (serverErrors) ghError("Integration tests (server log)", serverErrors);
 }
 process.exit(jest.status ?? 1);

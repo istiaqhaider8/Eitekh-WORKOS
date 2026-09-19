@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { counters, isTelemetryConfigured } from "@/lib/telemetry";
 import { syncEngine } from "@/lib/sync-engine";
+import { collectProcessMetrics } from "@/lib/process-metrics";
 
 /**
  * Liveness AND the numbers the alerting rules are written against (PROD-7).
@@ -57,6 +58,18 @@ export async function GET() {
     // should be able to see that observability itself is switched off.
     telemetry: { configured: isTelemetryConfigured() },
     realtime: { openConnections: syncEngine.getActiveClientsCount() },
+    /**
+     * M1 — the server's own memory and the size of what it holds.
+     *
+     * The soak harness sampled `process.memoryUsage()` in ITS process and
+     * said so in the report: "rss is THIS process, not the server". So the
+     * one claim a soak exists to make could not be made. Exposing it here
+     * rather than on an authenticated route keeps it reachable by the same
+     * unauthenticated poller that already watches db latency — and it is
+     * counts and byte totals only, which is the contract this endpoint
+     * already follows.
+     */
+    process: collectProcessMetrics(),
     counters: snapshot,
     checkDurationMs: Date.now() - startedAt,
   });

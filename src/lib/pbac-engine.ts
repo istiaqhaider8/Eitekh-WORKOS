@@ -300,6 +300,39 @@ class UnifiedPBACEngine {
   // High-throughput In-Memory Capability Cache for scale (100k+ users)
   private capabilityCache: Map<string, { permissions: Set<string>; roles: Array<{ id: string; name: string; isSystem: boolean }>; timestamp: number }> = new Map();
 
+  /**
+   * M1 — how big the in-process registries have grown.
+   *
+   * Every one of these is a Map or Set that lives for the life of the process,
+   * and "the server is using more memory than it was two hours ago" is not an
+   * actionable statement. Naming which structure grew is.
+   *
+   * `capabilityCache` is the one to watch. Its TTL is checked on READ and
+   * there is no sweep, so an entry for a user who never comes back is never
+   * removed — it is only overwritten if that exact key is requested again, or
+   * dropped wholesale when a role mutation invalidates everything. Its key is
+   * org × version × user × project × project-role, so between role changes it
+   * grows with the number of distinct combinations seen, not with the number
+   * currently in use. That is the shape of a slow leak, and it is invisible
+   * without a gauge.
+   *
+   * Sizes only. No ids, no keys — this is reported by an unauthenticated
+   * endpoint.
+   */
+  public getRegistrySizes(): Record<string, number> {
+    return {
+      roles: this.roles.size,
+      verifiedOrgIds: this.verifiedOrgIds.size,
+      userRoleAssignments: this.userRoleAssignments.size,
+      initializedOrgs: this.initializedOrgs.size,
+      capabilityCache: this.capabilityCache.size,
+      orgRoleIds: this.orgRoleIds.size,
+      loadedOrgVersions: this.loadedOrgVersions.size,
+      inFlightLoads: this.inFlightLoads.size,
+      auditLogBuffer: this.auditLogs.length,
+    };
+  }
+
   // Returns the highest role hierarchy level the actor holds in the given org.
   public getActorLevel(orgId: string, actorId: string, isSuperAdmin?: boolean): number {
     if (isSuperAdmin) return ROLE_HIERARCHY['super-admin'];

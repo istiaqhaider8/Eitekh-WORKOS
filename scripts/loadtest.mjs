@@ -269,6 +269,16 @@ async function worker(session, index) {
 
 // Memory and connection sampling, for the soak.
 const samples = [];
+
+/**
+ * Reasons this SOAK should be treated as failed, independent of latency.
+ *
+ * A soak can hold p95 perfectly while leaking — that is the whole reason for
+ * running one, so "did it stay fast" is not the question it answers. These are
+ * collected during the report and decide the exit code alongside the success
+ * ratio.
+ */
+const soakFailures = [];
 const sampler = setInterval(async () => {
   try {
     const [{ n }] = await prisma.$queryRawUnsafe(
@@ -281,6 +291,13 @@ const sampler = setInterval(async () => {
       dbLatencyMs: res?.db?.latencyMs ?? null,
       sse: res?.realtime?.openConnections ?? null,
       rss: process.memoryUsage().rss,
+      // M1. The SERVER's numbers. Everything above this line describes the
+      // harness or the database; without these the soak could not speak to
+      // the thing it exists for.
+      serverRss: res?.process?.rssBytes ?? null,
+      serverHeapUsed: res?.process?.heapUsedBytes ?? null,
+      serverUptimeS: res?.process?.uptimeSeconds ?? null,
+      registries: res?.process?.registries ?? null,
     });
   } catch { /* a sampling failure must not end the run */ }
 }, 5000);
@@ -419,9 +436,96 @@ if (samples.length > 1) {
     );
   }
   console.log(
-    `  harness rss      ${(first.rss / 1048576).toFixed(0)}MB -> ${(last.rss / 1048576).toFixed(0)}MB`
+    `  harness rss      ${(first.rss / 1048576).toFixed(0)}MB -> ${(last.rss / 1048576).toFixed(0)}MB` +
+      "   (the generator, not the server)"
   );
-  console.log("\n  (rss is THIS process, not the server — it only shows whether the harness leaked)");
+
+  // -------------------------------------------------------------- M1
+  /**
+   * The server's own memory, which is what a soak is actually about.
+   *
+   * Reported as first -> last with the peak, because a run that climbs and
+   * then settles is a different animal from one that only climbs, and the
+   * endpoints alone cannot tell them apart.
+   */
+  const mem = samples.filter((s) => s.serverRss != null);
+  if (mem.length < 2) {
+    console.log(
+      "\n  server memory    UNAVAILABLE — /api/health returned no `process` block.\n" +
+        "                   Without it this run says nothing about server memory."
+    );
+  } else {
+    const mFirst = mem[0];
+    const mLast = mem[mem.length - 1];
+
+    /**
+     * A restart invalidates the run rather than qualifying it.
+     *
+     * Memory returns to its starting value across a restart, so a run that
+     * bounced in the middle reports perfectly flat. Uptime going backwards is
+     * the only way to see it.
+     */
+    let restarted = false;
+    for (let i = 1; i < mem.length; i += 1) {
+      if ((mem[i].serverUptimeS ?? 0) < (mem[i - 1].serverUptimeS ?? 0)) restarted = true;
+    }
+
+    const peakRss = Math.max(...mem.map((s) => s.serverRss));
+    const mb = (b) => (b / 1048576).toFixed(0);
+    const growthPct = ((mLast.serverRss - mFirst.serverRss) / mFirst.serverRss) * 100;
+
+    console.log("\nserver process (M1):");
+    console.log(
+      `  rss              ${mb(mFirst.serverRss)}MB -> ${mb(mLast.serverRss)}MB ` +
+        `(peak ${mb(peakRss)}MB, ${growthPct >= 0 ? "+" : ""}${growthPct.toFixed(1)}%)`
+    );
+    console.log(
+      `  heap used        ${mb(mFirst.serverHeapUsed)}MB -> ${mb(mLast.serverHeapUsed)}MB`
+    );
+    console.log(
+      `  uptime           ${mFirst.serverUptimeS}s -> ${mLast.serverUptimeS}s` +
+        (restarted ? "   << THE SERVER RESTARTED: this run proves nothing about memory" : "")
+    );
+
+    /**
+     * Registry growth, which is the actionable half.
+     *
+     * "RSS grew 40 MB" has no next step; V8 heaps move for reasons unrelated
+     * to leaks. A named structure that grew has a key, an owner and a fix.
+     */
+    if (mFirst.registries && mLast.registries) {
+      const names = [...new Set([...Object.keys(mFirst.registries), ...Object.keys(mLast.registries)])].sort();
+      const grew = [];
+      console.log("\n  in-process registries (first -> last, peak):");
+      for (const name of names) {
+        const a = mFirst.registries[name] ?? 0;
+        const b = mLast.registries[name] ?? 0;
+        const peak = Math.max(...mem.map((s) => s.registries?.[name] ?? 0));
+        const flag = b > a * 2 && b - a > 50 ? "   << GROWING" : "";
+        if (flag) grew.push(name);
+        console.log(`    ${name.padEnd(28)} ${String(a).padStart(6)} -> ${String(b).padStart(6)}  (peak ${peak})${flag}`);
+      }
+      if (grew.length) {
+        console.log(
+          `\n  ${grew.length} registry/registries more than doubled. That is the leak to chase,\n` +
+            "  and it names itself: look at what keys that structure."
+        );
+      }
+    }
+
+    // A soak is the run that is entitled to make a claim about drift. A short
+    // run is not: growth over 30 seconds is warm-up.
+    if (SOAK) {
+      if (restarted) {
+        soakFailures.push("the server restarted mid-run, so memory drift could not be measured");
+      } else if (growthPct > 25) {
+        soakFailures.push(
+          `server RSS grew ${growthPct.toFixed(1)}% over the run ` +
+            `(${mb(mFirst.serverRss)}MB -> ${mb(mLast.serverRss)}MB)`
+        );
+      }
+    }
+  }
 }
 
 // A run where everything 429s or 500s measured nothing.
@@ -436,7 +540,17 @@ if (ratio < 0.95) {
   console.log("WARNING: under 95% success. These latency numbers describe failures, not work.");
 }
 
+if (soakFailures.length) {
+  console.log("\nSOAK FAILED:");
+  for (const reason of soakFailures) console.log(`  - ${reason}`);
+  console.log(
+    "\nA soak that gets quoted as evidence has to be able to fail. Recording the\n" +
+      "numbers and exiting 0 regardless is how a leak ships with a green run\n" +
+      "attached to it."
+  );
+}
+
 await prisma.session.deleteMany({ where: { id: { startsWith: `load_${stamp}_` } } });
 console.log("(load-test sessions removed)");
 await prisma.$disconnect();
-process.exit(ratio < 0.95 ? 1 : 0);
+process.exit(ratio < 0.95 || soakFailures.length > 0 ? 1 : 0);
