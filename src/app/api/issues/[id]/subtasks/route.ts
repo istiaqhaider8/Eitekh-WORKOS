@@ -6,6 +6,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { subtaskCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -36,6 +37,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const parsed = await parseJsonBody(req, subtaskCreateSchema);
     if (!parsed.success) return parsed.error;
     const { title, assigneeId, estimateHours, dueDate } = parsed.data;
+
+    // H2 — `Subtask.assigneeId` is a foreign key to User with no tenant column
+    // of its own, so without this any user id in the installation was accepted.
+    // The guard above established that the caller may create subtasks on this
+    // issue; it says nothing about who they may assign one to.
+    await assertIssueRelationsBelongToProject(parentIssue.projectId, { assigneeId });
 
     const subtask = await prisma.subtask.create({
       data: {

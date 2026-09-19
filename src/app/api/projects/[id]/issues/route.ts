@@ -4,6 +4,7 @@ import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { issueCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
 import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
@@ -148,6 +149,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const finalStartDate = startDate ? new Date(startDate) : new Date();
     const finalDueDate = dueDate ? new Date(dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
+    /**
+     * B2 — every foreign id in the body must belong to THIS project.
+     *
+     * `assertProjectPermission` above answers "may this user create issues
+     * here". It says nothing about the ids the body carries, and this route
+     * connected five of them — team, epic, sprint, parentIssue, component —
+     * without a single check. A member of org A could post another tenant's
+     * sprint id and the row was written, because `connect` only asks whether
+     * the id exists.
+     *
+     * The same class was already closed on PATCH /api/issues/[id] and on the
+     * bulk route; the create path was the one nothing covered, which is the
+     * worse case of the three — PATCH grafts a foreign reference onto an
+     * existing issue, whereas this creates the cross-tenant row outright.
+     *
+     * It runs BEFORE the transaction on purpose. The validator uses the
+     * request-scoped client, so calling it inside `$transaction` would hold
+     * the transaction's connection open while taking a second one from the
+     * pool — a deadlock under load, for no benefit: every id it reads names a
+     * row that was committed before this request began.
+     */
+    await assertIssueRelationsBelongToProject(projectId, {
+      statusId,
+      assigneeId,
+      teamId,
+      epicId,
+      sprintId,
+      parentIssueId,
+      componentId,
+    });
+
     // Atomic update of project issueCounter and issue creation in a single transaction
     const { issue, project } = await prisma.$transaction(async (tx) => {
       const maxIssue = await tx.issue.findFirst({
@@ -192,17 +224,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         } else {
           throw new Error("No workflow statuses defined for this project");
         }
-      } else {
-        const validStatus = await tx.workflowStatus.findFirst({
-          where: {
-            id: finalStatusId,
-            workflow: { projectId },
-          },
-        });
-        if (!validStatus) {
-          throw new Error("Invalid status: does not belong to this project");
-        }
       }
+      // A supplied statusId was checked against this project's workflow by
+      // assertIssueRelationsBelongToProject above. The branch that used to
+      // repeat that query here threw a bare Error, which handleApiError could
+      // only report as a 500 — a client mistake announced as a server fault.
+      // A defaulted statusId comes from the project's own workflow and needs
+      // no check at all.
 
       const issueData: any = {
         project: { connect: { id: projectId } },
@@ -223,21 +251,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         dueDate: finalDueDate,
       };
 
-      if (assigneeId) {
-        const projWithOrg = await tx.project.findUnique({
-          where: { id: projectId },
-          select: { workspace: { select: { orgId: true } } },
-        });
-        if (projWithOrg?.workspace?.orgId) {
-          const assigneeMember = await tx.organizationMember.findFirst({
-            where: { userId: assigneeId, orgId: projWithOrg.workspace.orgId },
-          });
-          if (!assigneeMember) {
-            throw new Error("Assignee is not a member of this organization");
-          }
-        }
-        issueData.assignee = { connect: { id: assigneeId } };
-      }
+      // Organization membership for the assignee is enforced by
+      // assertIssueRelationsBelongToProject. The copy that lived here was
+      // skipped entirely when the project's workspace had no orgId — a hole
+      // the shared validator does not have, because it asks the question the
+      // other way round: is there an OrganizationMember row for this user in
+      // an organization that owns this project.
+      if (assigneeId) issueData.assignee = { connect: { id: assigneeId } };
       if (teamId) issueData.team = { connect: { id: teamId } };
       if (epicId) issueData.epic = { connect: { id: epicId } };
       if (sprintId) issueData.sprint = { connect: { id: sprintId } };

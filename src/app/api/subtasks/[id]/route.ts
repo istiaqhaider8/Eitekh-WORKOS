@@ -5,6 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { subtaskUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -79,6 +80,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const parsed = await parseJsonBody(req, subtaskUpdateSchema);
     if (!parsed.success) return parsed.error;
     const { title, assigneeId, priority, estimateHours, dueDate, isCompleted, status } = parsed.data;
+
+    // H2 — the sibling of the hole in POST /issues/[id]/subtasks. `undefined`
+    // means the field is not being changed and `null` means unassign; neither
+    // needs checking, and the validator skips both. Only a real id does.
+    await assertIssueRelationsBelongToProject(existingSubtask.parentIssue.projectId, { assigneeId });
 
     const updateData: any = {};
     if (title !== undefined) updateData.title = title.trim();
