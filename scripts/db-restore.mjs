@@ -135,9 +135,22 @@ const result = spawnSync(
     "--dbname", url,
     "--no-owner",
     "--no-privileges",
-    // Keep going past benign ownership/extension noise, then judge the result
-    // by the verifier rather than by the exit code alone.
-    "--exit-on-error=0",
+    /**
+     * Keep going past benign ownership/extension noise, then judge the result
+     * by the verifier rather than by the exit code alone.
+     *
+     * That is pg_restore's DEFAULT — `-e, --exit-on-error` means "exit on
+     * error, default is to continue" — so the right way to ask for it is to
+     * pass nothing. This used to pass `--exit-on-error=0`, which was wrong
+     * twice over:
+     *
+     *   - the option takes no argument, so glibc's getopt_long rejects the
+     *     `=0` outright and pg_restore exits before restoring anything. On
+     *     Windows it is accepted, which is why the drill passed locally and
+     *     failed on the Linux runner with every table missing.
+     *   - had it been accepted, the flag's presence would have turned
+     *     exit-on-error ON, the opposite of the comment's intent.
+     */
     "--jobs", "4",
     dumpPath,
   ],

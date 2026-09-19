@@ -120,6 +120,32 @@ const run = (args, extra) =>
     maxBuffer: 1 << 26,
   });
 
+/**
+ * The lines from a failed run that say what went wrong.
+ *
+ * The last three lines of output were what these checks used to report, and
+ * on a restore that is the verifier's summary — which names the SYMPTOM ("a
+ * table is missing") while pg_restore's account of WHY scrolled past long
+ * before. `pg_restore --exit-on-error=0` deliberately keeps going past
+ * failures so the verifier can judge the result, so its errors are mid-stream
+ * by design.
+ *
+ * Capped, because an annotation is a message and not a log, and de-duplicated,
+ * because a parallel restore reports the same dependency failure once per
+ * worker.
+ */
+function errorLines(text, max = 8) {
+  const seen = new Set();
+  for (const line of String(text).split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t) continue;
+    if (!/(error|failed|missing|fatal|could not|does not exist)/i.test(t)) continue;
+    seen.add(t);
+    if (seen.size >= max) break;
+  }
+  return [...seen].join(" | ");
+}
+
 async function admin(sql) {
   const c = new Client({ connectionString: ADMIN });
   await c.connect();
@@ -207,7 +233,7 @@ await resetTarget();
 r = run(["scripts/db-restore.mjs", "--file", plain, "--url", TARGET, "--verify", SOURCE]);
 check("plaintext restore completed AND verified against the source", r.status === 0,
   r.status === 0 ? "row counts + PK checksums matched"
-    : String(r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
+    : errorLines(r.stdout + r.stderr));
 
 // ------------------------------------------------------------- 2. encrypted
 console.log("\n--- 2. ENCRYPTED backup -> decrypt -> restore -> verify");
@@ -230,7 +256,7 @@ r = run(["scripts/db-restore.mjs", "--file", enc, "--url", TARGET, "--verify", S
 check("encrypted restore completed AND verified",
   r.status === 0 && /decrypted and authenticated/.test(r.stdout),
   r.status === 0 ? "row counts + PK checksums matched"
-    : String(r.stdout + r.stderr).trim().split("\n").slice(-3).join(" | "));
+    : errorLines(r.stdout + r.stderr));
 check("the decrypted temporary copy was removed afterwards",
   !readdirSync(OUT).some((f) => f.endsWith(".decrypted")));
 
