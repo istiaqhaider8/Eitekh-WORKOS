@@ -1,7 +1,9 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { assertTeamAccess } from "@/lib/tenant";
 import { teamMemberSchema, memberUserIdSchema, parseBody, parseJsonBody } from "@/lib/validation";
+import { handleApiError } from "@/lib/api-error";
 
 async function checkTeamAdmin(teamId: string) {
   const user = await getCurrentUser();
@@ -39,9 +41,12 @@ async function checkTeamAdmin(teamId: string) {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const user = await getCurrentUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
+    // PROD-5: this handler used to authenticate and stop there, then return
+    // every member's id, email, name and avatar for ANY team id — so a user of
+    // one organization could enumerate another's team membership and harvest
+    // addresses. Found by the tenant-isolation suite and reproduced live.
+    await assertTeamAccess(id);
+
     const members = await prisma.teamMember.findMany({
       where: { teamId: id },
       include: {
@@ -50,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     return NextResponse.json(members);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "teams/[id]/members", 400);
   }
 }
 
@@ -96,7 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
     return NextResponse.json(member, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "teams/[id]/members", 400);
   }
 }
 
@@ -111,6 +116,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 400 });
+    return handleApiError(error, "teams/[id]/members", 400);
   }
 }

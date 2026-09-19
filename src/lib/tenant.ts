@@ -222,3 +222,73 @@ export async function assertOrgPermission(orgId: string, permissionKey: string) 
 
   return { ...access, hasPermission: true };
 }
+
+/**
+ * Tenant guard for a team, for READ access (PROD-5).
+ *
+ * This existed as a private `checkTeamAccess` inside
+ * `src/app/api/teams/[id]/route.ts` and was used by that route's GET. The
+ * members sub-route had only an admin check, used by its POST and DELETE — its
+ * GET called nothing at all, and so returned every member's id, **email**,
+ * first name, last name and avatar for any team id an authenticated caller
+ * cared to name. A user of one organization could enumerate another's team
+ * membership and harvest addresses.
+ *
+ * It was found by the PROD-5 tenant-isolation suite and reproduced live before
+ * being fixed. Moving the guard here is the actual remedy: a check that lives
+ * privately in one route file is a check the next route will forget, which is
+ * precisely what happened.
+ *
+ * Access is granted to a super admin, to a member of the team, to a project
+ * admin or manager of the team's project, to a workspace admin, or to an owner
+ * or admin of the team's organization. Everyone else is refused — including
+ * members of other organizations, which is the property under test.
+ */
+export async function assertTeamAccess(teamId: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized: Please sign in");
+  if (user.isSuperAdmin) return { user, role: "SUPER_ADMIN" as const };
+
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    include: { workspace: true },
+  });
+  if (!team) throw new Error("Team not found");
+
+  if (team.projectId) {
+    const pm = await prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId: team.projectId, userId: user.id } },
+    });
+    if (pm && (pm.role === "PROJECT_ADMIN" || pm.role === "PROJECT_MANAGER")) {
+      return { user, role: pm.role };
+    }
+  }
+
+  const teamMember = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId, userId: user.id } },
+  });
+  if (teamMember) return { user, role: teamMember.role };
+
+  const wsMember = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId: team.workspaceId, userId: user.id } },
+  });
+  if (wsMember && wsMember.role === "WORKSPACE_ADMIN") {
+    return { user, role: "WORKSPACE_ADMIN" as const };
+  }
+
+  const orgMember = await prisma.organizationMember.findUnique({
+    where: { orgId_userId: { orgId: team.workspace.orgId, userId: user.id } },
+  });
+  if (orgMember && (orgMember.role === "OWNER" || orgMember.role === "ADMIN")) {
+    return { user, role: "WORKSPACE_ADMIN" as const };
+  }
+
+  const { logger } = await import("./logger");
+  logger.security("CROSS_TENANT_ACCESS_ATTEMPT", "Cross-organization team access denied", {
+    userId: user.id,
+    email: user.email,
+    teamId,
+    targetOrgId: team.workspace.orgId,
+  });
+  throw new Error("Forbidden: Cross-organization team access denied");
+}
