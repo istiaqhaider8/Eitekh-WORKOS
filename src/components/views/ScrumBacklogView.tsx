@@ -39,6 +39,7 @@ import {
 import { showSuccess, showError } from "@/lib/toast";
 import { StartSprintModal } from "@/components/sprints/StartSprintModal";
 import { isIssueDone, getIssueKeyClass } from "@/lib/designSystem";
+import { useNow } from "@/hooks/useNow";
 
 function highlightMatch(text: string, query: string) {
   if (!text || !query.trim()) return text;
@@ -97,6 +98,9 @@ export function ScrumBacklogView({
   onUpdateStatus,
   onRefresh,
 }: ScrumBacklogViewProps) {
+  // Shared clock for the sprint "Nd left" badge; see src/hooks/useNow.ts.
+  const now = useNow();
+
   // Sprint Modals state
   const [showCreateSprintModal, setShowCreateSprintModal] = useState(false);
   const [newSprintName, setNewSprintName] = useState("");
@@ -1190,11 +1194,15 @@ export function ScrumBacklogView({
     const fmt = (v: string) =>
       new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
+    // `now` is 0 on the server and for the hydrating render, so the badge
+    // shows the dates alone until the client clock is available. Computing
+    // this from Date.now() during render made the server and the browser
+    // disagree across midnight, and the count never changed afterwards.
     let daysLeft: number | null = null;
-    if (endDate && sprint.status === "ACTIVE") {
+    if (now && endDate && sprint.status === "ACTIVE") {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      daysLeft = Math.ceil((end.getTime() - Date.now()) / 86400000);
+      daysLeft = Math.ceil((end.getTime() - now) / 86400000);
     }
 
     return (

@@ -29,6 +29,7 @@ import {
 import { Breadcrumb } from "@/components/common/Breadcrumb";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { showError } from "@/lib/toast";
+import { useNow } from "@/hooks/useNow";
 
 interface AppHeaderProps {
   currentUser: any;
@@ -54,6 +55,9 @@ export function AppHeader({
   onToggleMobileSidebar,
 }: AppHeaderProps) {
   const router = useRouter();
+  // Shared clock for the "3m ago" labels; see src/hooks/useNow.ts. 0 until the
+  // client clock is available, which is what keeps SSR and hydration in step.
+  const now = useNow();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -136,6 +140,19 @@ export function AppHeader({
         const data = await res.json();
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
+      } else if (res.status === 401) {
+        // The session is gone. This poll runs every 30s on every page, so it
+        // is usually the first thing to notice — and "Couldn't load
+        // notifications" would be a misleading way to report it. Send the user
+        // to sign in rather than leaving them in a UI that no longer works.
+        //
+        // (Until recently this branch was unreachable: the endpoint answered
+        // an expired session with 200 and an empty list, so the bell just
+        // showed zero.)
+        setNotifError(null);
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- authentication boundary; see handleLogout
+        window.location.href = "/login";
+        return;
       } else {
         setNotifError("Couldn't load notifications.");
       }
@@ -443,7 +460,15 @@ export function AppHeader({
   };
 
   const formatTimeAgo = (dateStr: string) => {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const absolute = new Date(dateStr).toLocaleDateString([], { month: "short", day: "numeric" });
+
+    // `now` is 0 on the server and for the hydrating render. Show the absolute
+    // date then: it is identical in both, where a relative time computed from
+    // Date.now() would differ between the server render and hydration and
+    // would never update afterwards.
+    if (!now) return absolute;
+
+    const diffMs = now - new Date(dateStr).getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
@@ -451,15 +476,47 @@ export function AppHeader({
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays < 7) return `${diffDays}d ago`;
-    return new Date(dateStr).toLocaleDateString([], { month: "short", day: "numeric" });
+    return absolute;
   };
 
+  /**
+   * Log out.
+   *
+   * Two things here are deliberate.
+   *
+   * 1. The app's own localStorage keys are removed. They outlive a logout
+   *    otherwise, so on a shared browser the next person to sign in inherits
+   *    the previous user's last project id and per-project workload capacities
+   *    — one tenant's identifiers visible to the next. The keys are listed
+   *    explicitly rather than calling localStorage.clear(), which would also
+   *    wipe anything else served from this origin.
+   *
+   * 2. The navigation is a full document load, not router.push(). This is an
+   *    authentication boundary: a hard load discards the React tree, the
+   *    Next.js Router Cache and every RSC payload fetched as the previous
+   *    user. A client-side navigation preserves all of it, which in a
+   *    multi-tenant app means the next session can render data belonging to
+   *    the last one. That is why the lint rule is suppressed on the next line
+   *    rather than the rule being followed.
+   */
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (e) {
       console.error("Logout error:", e);
     }
+
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith("eitekh_")) localStorage.removeItem(key);
+      }
+      sessionStorage.clear();
+    } catch {
+      // Storage can be unavailable (private mode, blocked cookies). Never let
+      // that stop the logout itself.
+    }
+
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- see above: a hard load is required to discard the previous session's client state
     window.location.href = "/login";
   };
 

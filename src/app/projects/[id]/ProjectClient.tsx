@@ -91,7 +91,20 @@ export function ProjectClient({
   const [createInitialStatusId, setCreateInitialStatusId] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<number>(Date.now());
+  /**
+   * When a realtime sync last arrived. 0 means "none yet".
+   *
+   * This was `useState(Date.now())`, which was wrong twice over. Reading the
+   * clock during render is impure — the server and the hydrating client get
+   * different values — and, more visibly, it made the value TRUTHY on mount.
+   * Both consumers (DashboardView, AnalyticsChartsView) gate their reactive
+   * refetch on `if (!lastSyncTimestamp) return`, so a truthy initial value
+   * meant every mount in 'live' mode scheduled a debounced background refetch
+   * 600ms after the initial load had already fetched the same data.
+   *
+   * 0 is what those guards were written for: nothing has synced yet.
+   */
+  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<number>(0);
 
   // Deep link support: notifications and emails link to
   // /projects/<projectId>?issue=<issueId> and expect that issue to open.

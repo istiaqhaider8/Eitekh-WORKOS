@@ -958,7 +958,15 @@ export function DashboardView({
         {/* TAB 3: SPRINT & VELOCITY PERFORMANCE REPORT */}
         {/* ============================================================ */}
         {activeTab === "sprint" && (() => {
-          const activeSp = apiData?.sprintAnalytics?.activeSprint || (activeSprint ? {
+          // NOTE: `activeSpBase` may be a sub-object of `apiData`, which comes
+          // from useState. The completion rate below used to be assigned onto
+          // it in place — `activeSp.completionRate = ...` — which mutates
+          // state during render. It survived because the value recomputes to
+          // the same number, but it writes to an object React owns, on every
+          // render, and under concurrent rendering a torn read is exactly the
+          // kind of inconsistency that is impossible to reproduce. Copy
+          // instead.
+          const activeSpBase = apiData?.sprintAnalytics?.activeSprint || (activeSprint ? {
             id: activeSprint.id,
             name: activeSprint.name,
             status: activeSprint.status,
@@ -978,11 +986,17 @@ export function DashboardView({
             burnup: apiData?.sprintAnalytics?.burnupPoints || [],
           } : null);
 
-          if (activeSp && activeSp.totalPoints > 0) {
-            activeSp.completionRate = Math.round((activeSp.completedPoints / activeSp.totalPoints) * 100);
-          } else if (activeSp && activeSp.totalIssues > 0) {
-            activeSp.completionRate = Math.round((activeSp.completedIssues / activeSp.totalIssues) * 100);
-          }
+          const activeSp = activeSpBase
+            ? {
+                ...activeSpBase,
+                completionRate:
+                  activeSpBase.totalPoints > 0
+                    ? Math.round((activeSpBase.completedPoints / activeSpBase.totalPoints) * 100)
+                    : activeSpBase.totalIssues > 0
+                      ? Math.round((activeSpBase.completedIssues / activeSpBase.totalIssues) * 100)
+                      : (activeSpBase.completionRate ?? 0),
+              }
+            : null;
 
           const allSpList: any[] = apiData?.sprintAnalytics?.allSprints || sprints.map((s: any) => {
             const sIssues = issues.filter((i: any) => i.sprintId === s.id);

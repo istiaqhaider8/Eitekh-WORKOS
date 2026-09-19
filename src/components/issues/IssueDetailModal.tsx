@@ -393,47 +393,6 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     }
   }, [applyProjectContext]);
 
-  useEffect(() => {
-    if (isCreateMode) {
-      const targetProjId = projectId || issue?.projectId || "";
-      setIssue({
-        id: "new",
-        issueKey: "NEW TASK",
-        title: "",
-        description: "",
-        projectId: targetProjId,
-        customFieldValues: [],
-      });
-      setActiveTab("details");
-      setDraftTitle("");
-      setDraftDescription("");
-      setDraftStatusId(initialStatusId || "");
-      setDraftPriority("MEDIUM");
-      setDraftIssueType("TASK");
-      setDraftAssigneeId(null);
-      setDraftTeamId(null);
-      setDraftSprintId(null);
-      setDraftEpicId(null);
-      setDraftPoints("");
-      const today = new Date().toISOString().split("T")[0];
-      const defaultDue = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-      setDraftStartDate(today);
-      setDraftDueDate(defaultDue);
-      setHasChanges(false);
-
-      if (targetProjId) {
-        loadProjectContext(targetProjId, true);
-      }
-    } else if (issueId) {
-      // Kick off project context in parallel with the issue fetch. It only needs
-      // projectId, so waiting for the issue response first would serialise ~10
-      // requests behind it for no reason.
-      if (projectId) loadProjectContext(projectId, false);
-      fetchIssueDetails();
-    } else {
-      setIssue(null);
-    }
-  }, [issueId, projectId, isCreateMode]);
 
   useEffect(() => {
     let interval: any = null;
@@ -512,6 +471,55 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
       setLoading(false);
     }
   };
+
+  // Declared AFTER fetchIssueDetails and loadProjectContext, both of which
+  // it calls. It used to sit above them, so it read bindings from further
+  // down the component body — legal at runtime, because an effect runs after
+  // the body has finished, but it hides staleness: the effect's dependency
+  // array cannot express a function it is not supposed to be able to see.
+  // Moving it changes no behaviour (the only other effect it now follows is
+  // the timer, which does nothing unless isTimerRunning).
+  useEffect(() => {
+    if (isCreateMode) {
+      const targetProjId = projectId || issue?.projectId || "";
+      setIssue({
+        id: "new",
+        issueKey: "NEW TASK",
+        title: "",
+        description: "",
+        projectId: targetProjId,
+        customFieldValues: [],
+      });
+      setActiveTab("details");
+      setDraftTitle("");
+      setDraftDescription("");
+      setDraftStatusId(initialStatusId || "");
+      setDraftPriority("MEDIUM");
+      setDraftIssueType("TASK");
+      setDraftAssigneeId(null);
+      setDraftTeamId(null);
+      setDraftSprintId(null);
+      setDraftEpicId(null);
+      setDraftPoints("");
+      const today = new Date().toISOString().split("T")[0];
+      const defaultDue = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+      setDraftStartDate(today);
+      setDraftDueDate(defaultDue);
+      setHasChanges(false);
+
+      if (targetProjId) {
+        loadProjectContext(targetProjId, true);
+      }
+    } else if (issueId) {
+      // Kick off project context in parallel with the issue fetch. It only needs
+      // projectId, so waiting for the issue response first would serialise ~10
+      // requests behind it for no reason.
+      if (projectId) loadProjectContext(projectId, false);
+      fetchIssueDetails();
+    } else {
+      setIssue(null);
+    }
+  }, [issueId, projectId, isCreateMode]);
 
   const handleToggleWatcher = async () => {
     if (!issueId) return;

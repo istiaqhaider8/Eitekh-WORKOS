@@ -46,7 +46,15 @@ export interface SyncClient {
   isSuperAdmin: boolean;
   controller: ReadableStreamDefaultController;
   connectedAt: Date;
+  /** When a heartbeat was last written to this client. Server-side activity. */
   lastPingAt: Date;
+  /**
+   * When this client's stream was last observed EMPTY — that is, the last
+   * time there was evidence the browser had actually consumed what we sent.
+   *
+   * This is separate from lastPingAt on purpose. See sendHeartbeats.
+   */
+  lastDrainedAt: Date;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -437,18 +445,35 @@ data: ${JSON.stringify(payload)}
     });
   }
 
+  /**
+   * Ping every client, and evict the ones that are no longer reading.
+   *
+   * WHY THE STALE CHECK USES lastDrainedAt AND NOT lastPingAt
+   *
+   * The eviction below used to compare `now` against `client.lastPingAt` — but
+   * lastPingAt is written in only two places: when the client registers, and
+   * at the bottom of THIS function. So the loop refreshed, every 15 seconds,
+   * the very timestamp it was about to test, and the five-minute threshold
+   * could never be reached. The stale-client safety net was unreachable code.
+   *
+   * That matters because of what it was meant to catch. A normal disconnect
+   * fires `cancel()` on the stream or `abort` on the request signal, and the
+   * SSE route unregisters the client — that path works. The case left over is
+   * the half-open connection: a laptop lid closed, a dropped mobile network,
+   * anything where no FIN arrives. There, `controller.enqueue()` keeps
+   * succeeding, so the catch below never fires either, and the client sits in
+   * the map forever with its payloads accumulating in the stream's queue.
+   *
+   * SSE is one-directional, so there is no message from the browser to use as
+   * proof of life. What there IS is backpressure: `desiredSize` is positive
+   * while the consumer is keeping up and goes negative once queued chunks stop
+   * being read. A client that is genuinely gone stops draining immediately, so
+   * "has not drained for five minutes" is the real signal, and it is the one
+   * used here.
+   */
   private sendHeartbeats() {
     const now = new Date();
     const staleThreshold = 5 * 60 * 1000;
-
-    for (const [clientId, client] of this.clients.entries()) {
-      if (now.getTime() - client.lastPingAt.getTime() > staleThreshold) {
-        try { client.controller.close(); } catch (_) {}
-        this.clients.delete(clientId);
-        logger.info('SYNC_CLIENT_STALE', `Evicted stale client ${clientId}`, { clientId, userId: client.userId });
-        continue;
-      }
-    }
 
     const pingPayload = {
       type: 'PING',
@@ -459,9 +484,26 @@ data: ${JSON.stringify(payload)}
     const encoded = staticTextEncoder.encode(ssePing);
 
     for (const [clientId, client] of this.clients.entries()) {
+      // Evict before writing, so a dead client is not handed another chunk.
+      if (now.getTime() - client.lastDrainedAt.getTime() > staleThreshold) {
+        try { client.controller.close(); } catch (_) {}
+        this.clients.delete(clientId);
+        logger.info('SYNC_CLIENT_STALE', `Evicted stale client ${clientId}: stream not drained for over ${Math.round(staleThreshold / 1000)}s`, {
+          clientId,
+          userId: client.userId,
+          projectId: client.projectId,
+          secondsSinceDrained: Math.round((now.getTime() - client.lastDrainedAt.getTime()) / 1000),
+        });
+        continue;
+      }
+
       try {
+        // Read desiredSize BEFORE enqueuing: afterwards it always reflects the
+        // chunk we just added, so a healthy client would look backed up.
+        const drained = (client.controller.desiredSize ?? 0) >= 0;
         client.controller.enqueue(encoded);
         client.lastPingAt = now;
+        if (drained) client.lastDrainedAt = now;
       } catch (err) {
         try { client.controller.close(); } catch (_) {}
         this.clients.delete(clientId);

@@ -1,5 +1,14 @@
-# Database backups
+# Database backups.
+#
+# /backups/ is the default BACKUP_DIR, but the scripts take --out and honour
+# BACKUP_DIR, so dumps can land anywhere. These patterns are the backstop: a
+# committed dump is every tenant's data in the repository, and `git rm` does
+# not remove it from history.
 /backups/
+*.dump
+*.dump.enc
+*.dump.decrypted
+*.decrypted
 
 # Dependencies
 node_modules/

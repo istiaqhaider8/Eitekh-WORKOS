@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
           controller,
           connectedAt: new Date(),
           lastPingAt: new Date(),
+          lastDrainedAt: new Date(),
           ipAddress,
           userAgent,
         };

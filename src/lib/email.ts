@@ -13,6 +13,37 @@ export interface SendEmailOptions {
 export const DEFAULT_SENDER_EMAIL = process.env.EMAIL_FROM || "noreply@eitekh.com";
 export const DEFAULT_SENDER_NAME = process.env.EMAIL_FROM_NAME || "Eitekh WorkOS";
 
+const DEFAULT_SMTP_PORT = 587;
+
+/**
+ * SMTP_PORT, or the default if it is not a usable port number.
+ *
+ * `process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587` was used in
+ * three places, and it has no NaN guard: any non-numeric value passes the
+ * truthiness test and yields NaN. One of those three call sites writes the
+ * result into SystemEmailConfig.smtpPort, an Int column, so a bad value there
+ * turned a configuration typo into a thrown Prisma error inside the function
+ * that is supposed to PROVIDE the email configuration.
+ *
+ * This was reachable: .env.example shipped `SMTP_PORT=\587\` (backslashes, not
+ * quotes — escaping damage from an earlier edit), so anyone who copied the
+ * example to .env got exactly that NaN. The example is fixed, but the guard
+ * belongs here: the environment is not something this module controls.
+ */
+function smtpPortFromEnv(): number {
+  const raw = process.env.SMTP_PORT;
+  if (!raw) return DEFAULT_SMTP_PORT;
+  const parsed = Number.parseInt(raw.trim(), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 65535) {
+    logger.warn(
+      "EMAIL_CONFIG",
+      `SMTP_PORT is not a valid port ("${raw}"); using ${DEFAULT_SMTP_PORT}.`
+    );
+    return DEFAULT_SMTP_PORT;
+  }
+  return parsed;
+}
+
 // Shared email wrapper — table-based layout for maximum client compatibility
 function wrap(content: string): string {
   return `
@@ -343,7 +374,7 @@ export async function getEmailConfig() {
           senderEmail: process.env.SMTP_USER || DEFAULT_SENDER_EMAIL,
           senderName: DEFAULT_SENDER_NAME,
           smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
-          smtpPort: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+          smtpPort: smtpPortFromEnv(),
           smtpUser: process.env.SMTP_USER || DEFAULT_SENDER_EMAIL,
           smtpPass: process.env.SMTP_PASS || null,
           isEnabled: true,
@@ -354,7 +385,7 @@ export async function getEmailConfig() {
       ...config,
       senderEmail: config.senderEmail || process.env.SMTP_USER || DEFAULT_SENDER_EMAIL,
       smtpHost: config.smtpHost || process.env.SMTP_HOST || "smtp.gmail.com",
-      smtpPort: config.smtpPort || (process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587),
+      smtpPort: config.smtpPort || smtpPortFromEnv(),
       smtpUser: config.smtpUser || process.env.SMTP_USER || config.senderEmail || DEFAULT_SENDER_EMAIL,
       smtpPass: config.smtpPass || process.env.SMTP_PASS || null,
     };
@@ -365,7 +396,7 @@ export async function getEmailConfig() {
       senderEmail: process.env.SMTP_USER || DEFAULT_SENDER_EMAIL,
       senderName: DEFAULT_SENDER_NAME,
       smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
-      smtpPort: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
+      smtpPort: smtpPortFromEnv(),
       smtpUser: process.env.SMTP_USER || DEFAULT_SENDER_EMAIL,
       smtpPass: process.env.SMTP_PASS || null,
       isSecure: false,

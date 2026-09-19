@@ -28,18 +28,39 @@ export async function POST(request: Request) {
 
     let createdCount = 0;
 
+    /**
+     * The first workflow status per project, fetched once.
+     *
+     * This was a findFirst INSIDE the loop, so a run with 200 due tasks issued
+     * 200 identical queries whenever those tasks shared projects — the classic
+     * N+1. The answer only varies per project, and the number of distinct
+     * projects in a batch is normally a small fraction of the number of tasks.
+     * The counter increment below genuinely has to stay per-task: it is the
+     * atomic allocation of the issue key.
+     */
+    const projectIds = [...new Set(dueTasks.map((t) => t.projectId))];
+    const statuses = await prisma.workflowStatus.findMany({
+      where: { workflow: { projectId: { in: projectIds } } },
+      orderBy: { position: 'asc' },
+      select: { id: true, workflow: { select: { projectId: true } } },
+    });
+    const defaultStatusByProject = new Map<string, string>();
+    for (const s of statuses) {
+      // findMany returns them ordered by position, so the first one seen for a
+      // project is the same row the old findFirst would have returned.
+      if (!defaultStatusByProject.has(s.workflow.projectId)) {
+        defaultStatusByProject.set(s.workflow.projectId, s.id);
+      }
+    }
+
     for (const task of dueTasks) {
       let templateData: any = {};
       try {
         templateData = JSON.parse(task.templateData);
       } catch (e) {}
-      
-      const defaultStatus = await prisma.workflowStatus.findFirst({
-        where: { workflow: { projectId: task.projectId } },
-        orderBy: { position: 'asc' }
-      });
 
-      if (!defaultStatus) continue;
+      const defaultStatusId = defaultStatusByProject.get(task.projectId);
+      if (!defaultStatusId) continue;
 
       const project = await prisma.project.update({
         where: { id: task.projectId },
@@ -59,7 +80,7 @@ export async function POST(request: Request) {
           priority: templateData.priority || "MEDIUM",
           assigneeId: templateData.assigneeId || null,
           reporterId: user.id,
-          statusId: defaultStatus.id
+          statusId: defaultStatusId
         }
       });
 

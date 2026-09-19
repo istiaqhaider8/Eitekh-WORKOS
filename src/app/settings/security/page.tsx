@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, Shield, Smartphone, Key, Monitor, Trash2, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 
@@ -30,13 +30,10 @@ export default function SecuritySettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  useEffect(() => {
-    fetchSessions();
-    // Assuming we don't have an endpoint just for user's MFA status on this page mount right now.
-    // If the user was passed in via props or context, we could set mfaEnabled initially.
-  }, []);
-
-  const fetchSessions = async () => {
+  // Declared before the effect that calls it, and memoised, so the effect can
+  // depend on it honestly. It was declared after, leaving the effect reading a
+  // binding from outside its own dependency array.
+  const fetchSessions = useCallback(async () => {
     setLoadingSessions(true);
     try {
       const res = await fetch("/api/auth/sessions");
@@ -49,7 +46,13 @@ export default function SecuritySettingsPage() {
     } finally {
       setLoadingSessions(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+    // Assuming we don't have an endpoint just for user's MFA status on this page mount right now.
+    // If the user was passed in via props or context, we could set mfaEnabled initially.
+  }, [fetchSessions]);
 
   const checkPasswordStrength = (password: string) => {
     if (!password) return { text: "", color: "bg-transparent", score: 0 };

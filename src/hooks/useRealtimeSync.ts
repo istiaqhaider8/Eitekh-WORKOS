@@ -55,6 +55,14 @@ export function useRealtimeSync({
     onReconnectRef.current = onReconnect;
   }, [onReconnect]);
 
+  /**
+   * The current `connect`, for callbacks that outlive the render that created
+   * them. The retry timeout scheduled inside `es.onerror` is the case that
+   * matters: it fires up to 15 seconds later, by which time projectId may have
+   * changed and the `connect` its closure captured is stale.
+   */
+  const connectRef = useRef<() => void>(() => {});
+
   const connect = useCallback(() => {
     if (!projectId || !enabled || typeof window === 'undefined') return;
 
@@ -144,7 +152,18 @@ export function useRealtimeSync({
 
         if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = setTimeout(() => {
-          connect();
+          // Through the ref, NOT the `connect` binding this closure captured.
+          //
+          // `connect` is a new function on every render whose identity depends
+          // on [projectId, enabled]. This handler was attached to an
+          // EventSource created by one particular render, so calling `connect`
+          // directly would reconnect using THAT render's projectId. With the
+          // backoff reaching 15s, a user switching projects while a stream is
+          // down had a real window in which the retry reopened the stream for
+          // the project they had just left — and, because the effect had
+          // already opened a stream for the new one, ended up subscribed to
+          // both. The ref always holds the current one.
+          connectRef.current();
         }, nextRetry);
       };
     } catch (err) {
@@ -153,6 +172,12 @@ export function useRealtimeSync({
       }
     }
   }, [projectId, enabled]);
+
+  // Kept in sync in its own effect so the retry closure above always reaches
+  // the latest `connect` without that closure having to depend on it.
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     isMountedRef.current = true;

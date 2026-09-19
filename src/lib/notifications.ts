@@ -8,6 +8,7 @@ import { prisma } from './prisma';
 import { sendEmail } from './email';
 import { syncEngine } from './sync-engine';
 import { getBaseUrl } from './config';
+import { logger } from './logger';
 
 export type NotificationType =
   | 'MENTION'
@@ -58,6 +59,9 @@ export interface EmailQueueItem {
 }
 
 class NotificationEngine {
+  /** Hard ceiling on the in-memory email queue; see enqueueEmail. */
+  private static readonly MAX_EMAIL_QUEUE = 5000;
+
   private emailQueue: EmailQueueItem[] = [];
   private isWorkerRunning = false;
   private processedEventIds = new Set<string>();
@@ -289,6 +293,23 @@ class NotificationEngine {
       nextAttemptAt: Date.now(),
     };
 
+    // A ceiling, so that a burst — an import notifying a large project, or SMTP
+    // being down while traffic continues — cannot grow this array until the
+    // process runs out of memory. Dropping the OLDEST is deliberate: the items
+    // at the front are the ones that have been failing longest, and a queue
+    // that refuses new mail because it is full of undeliverable mail is the
+    // worse failure. This is loud because losing a notification silently is
+    // exactly the complaint that is impossible to investigate afterwards.
+    if (this.emailQueue.length >= NotificationEngine.MAX_EMAIL_QUEUE) {
+      const dropped = this.emailQueue.shift();
+      logger.error(
+        'EMAIL_QUEUE_OVERFLOW',
+        `Email queue hit ${NotificationEngine.MAX_EMAIL_QUEUE} items; dropped the oldest without sending.`,
+        undefined,
+        { droppedTo: dropped?.to, droppedTemplate: dropped?.templateKey, queueDepth: this.emailQueue.length }
+      );
+    }
+
     this.emailQueue.push(queueItem);
   }
 
@@ -346,6 +367,19 @@ class NotificationEngine {
                 },
               });
             } catch {}
+
+            // Drop it. SENT and MOCKED items were already removed above, but
+            // FAILED ones were not, so every permanently-undeliverable email
+            // stayed in this array for the lifetime of the process — holding
+            // its `variables` and its fully rendered `customHtml`, which is
+            // tens of KB of user data per item. An unbounded array that only
+            // ever grows, re-scanned by the filter at the top of this method
+            // every three seconds.
+            //
+            // The EmailLog row written just above is the durable record, which
+            // is what makes dropping it safe: the failure is still auditable
+            // through /api/super-admin/email-logs.
+            this.emailQueue = this.emailQueue.filter((q) => q.id !== item.id);
           } else {
             item.status = 'QUEUED';
             // Exponential backoff: 2s, 6s, 18s

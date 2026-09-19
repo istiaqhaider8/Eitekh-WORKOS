@@ -9,13 +9,21 @@ export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({
-        notifications: [],
-        unreadCount: 0,
-        total: 0,
-        page: 1,
-        totalPages: 0,
-      });
+      /**
+       * 401, not an empty list.
+       *
+       * This handler used to answer an unauthenticated request with
+       * `{notifications: [], unreadCount: 0, ...}` and a 200. No data leaked —
+       * but it is indistinguishable from "you are signed in and have nothing",
+       * and the PATCH, DELETE and POST handlers in this same file all return
+       * 401, so it was an oversight rather than a decision.
+       *
+       * The symptom was in the header. AppHeader polls this endpoint every 30
+       * seconds; when a session expired it kept receiving 200 with an empty
+       * list, so the bell quietly showed zero and the user stayed in a
+       * half-signed-out UI until they clicked something that did return 401.
+       */
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);

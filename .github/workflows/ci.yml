@@ -100,19 +100,41 @@ jobs:
       #
       # It runs here rather than only in a runbook because a drill that depends
       # on someone remembering to do it is a drill that stops happening.
-      - name: Backup and restore drill (A1)
+      #
+      # THE DRILL NOW COVERS THE ENCRYPTED PATH. It previously did not: it took
+      # a plaintext dump and restored it, while production sets
+      # BACKUP_ENCRYPTION_KEY and therefore takes a `.dump.enc` that has to be
+      # decrypted and GCM-authenticated before pg_restore ever sees it. Those
+      # branches had been exercised exactly once, by hand. Rehearsing a path
+      # production does not use is how a drill passes on the day a restore
+      # fails, so scripts/backup-drill.mjs runs both and also asserts the
+      # negatives — wrong key, tampered byte, malformed key.
+      - name: Backup and restore drill, plaintext and encrypted (A1)
         run: |
           set -e
           pg_dump --version
-          echo 'CREATE DATABASE eitekh_restore_drill;' | npx prisma db execute \
-            --url "postgresql://postgres:postgres@localhost:5432/postgres" --stdin
-          node scripts/db-backup.mjs \
-            --url "$DATABASE_URL" --out /tmp/ci-backups --label ci
-          DUMP=$(ls -t /tmp/ci-backups/*.dump | head -1)
-          node scripts/db-restore.mjs \
-            --file "$DUMP" \
-            --url "postgresql://postgres:postgres@localhost:5432/eitekh_restore_drill" \
-            --verify "$DATABASE_URL"
+          node scripts/backup-drill.mjs \
+            --source "$DATABASE_URL" \
+            --admin "postgresql://postgres:postgres@localhost:5432/postgres"
+
+      # A5. Rehearse a FIELD_ENCRYPTION_KEY rotation.
+      #
+      # rotate-encryption-key.mjs has a self-test, but it only proves the
+      # script agrees with itself. The failure it cannot see is drift from
+      # src/lib/encryption.ts — the envelope the application actually writes.
+      # An earlier draft detected encrypted values by counting colons and would
+      # have skipped every row while reporting a clean rotation.
+      #
+      # This drill seeds rows with the APPLICATION's encryption module, rotates
+      # them with the script, and reads them back with the application's module
+      # again. If the two diverge, this fails here rather than during a real
+      # rotation, where the cost is every webhook and MFA secret in the
+      # database.
+      - name: Key rotation drill (A5)
+        run: |
+          set -e
+          node scripts/rotate-drill.mjs \
+            --admin "postgresql://postgres:postgres@localhost:5432/postgres"
 
       # S4/F7. A mutating route must not read a request body without a schema.
       # Eight did. One of them, auth/invite, took `role` from the body with no

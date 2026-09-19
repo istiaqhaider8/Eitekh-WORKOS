@@ -28,6 +28,13 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
+      // A full document load, not router.push(). Signing in changes who the
+      // server renders for, and the Next.js Router Cache may already hold RSC
+      // payloads fetched while unauthenticated. A hard load starts the new
+      // session from a clean document; a client-side navigation would carry
+      // the pre-login cache into it. Same reasoning as the logout in
+      // AppHeader.tsx, which is the other side of this boundary.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- authentication boundary: see above
       window.location.href = "/";
     } catch (err: any) {
       setError(err.message);

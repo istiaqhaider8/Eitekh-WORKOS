@@ -63,6 +63,32 @@ const SOAK = argv.includes("--soak");
  */
 const THINK_MS = Number(argOf("--think", 1000));
 
+/**
+ * How many real SSE streams to hold open, and how often to churn them.
+ *
+ * WHY THIS EXISTS
+ *
+ * The sampler below has always recorded `realtime.openConnections` from
+ * /api/health, and the report has always printed "sse connections 0 -> 0".
+ * That looked like a clean result. It was not a result at all: nothing in this
+ * script ever opened an SSE connection, so the number could only be zero.
+ * A soak whose headline leak metric is structurally incapable of moving is
+ * worse than no soak, because it is quoted as evidence.
+ *
+ * With --sse N, N workers hold a real /api/sync/events stream, and every
+ * --sse-churn seconds a slice of them disconnect and reconnect. That exercises
+ * register/unregister under load, which is where a registry leak shows up as
+ * openConnections drifting upward across the run.
+ *
+ * What it still cannot reproduce locally is a HALF-OPEN connection — a client
+ * that vanishes without the socket closing. That is the case the stale-client
+ * eviction in sync-engine.ts exists for, and simulating it needs network-level
+ * interference rather than a client that simply calls abort(). It is covered
+ * by unit tests instead (src/lib/__tests__/sync-engine-stale.test.ts).
+ */
+const SSE_CLIENTS = Number(argOf("--sse", 0));
+const SSE_CHURN_S = Number(argOf("--sse-churn", 30));
+
 if (!DB) {
   console.error("Pass --db with the volume database URL.");
   process.exit(2);
@@ -259,12 +285,88 @@ const sampler = setInterval(async () => {
   } catch { /* a sampling failure must not end the run */ }
 }, 5000);
 
+/**
+ * Hold `SSE_CLIENTS` real event streams open, recycling a slice of them every
+ * SSE_CHURN_S seconds. Each connection is a genuine authenticated request to
+ * /api/sync/events, so the server registers and unregisters a client exactly
+ * as it does for a browser.
+ */
+const sseOpen = new Map(); // index -> AbortController
+let sseOpened = 0;
+let sseClosed = 0;
+let sseFailed = 0;
+
+function openSseClient(i) {
+  const s = sessions[i % sessions.length];
+  const ac = new AbortController();
+  sseOpen.set(i, ac);
+  sseOpened += 1;
+
+  fetch(`${BASE}/api/sync/events?projectId=${encodeURIComponent(s.projectId)}`, {
+    headers: {
+      Cookie: `eitekh_session_token=${s.token}`,
+      "x-forwarded-for": s.ip,
+      Accept: "text/event-stream",
+    },
+    signal: ac.signal,
+  })
+    .then(async (res) => {
+      if (!res.ok || !res.body) {
+        sseFailed += 1;
+        return;
+      }
+      // Actually consume the stream. A reader that never reads would create
+      // backpressure and be indistinguishable from a dead client — which is a
+      // different scenario from the one being measured here.
+      const reader = res.body.getReader();
+      try {
+        for (;;) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+      } catch {
+        /* aborted, which is the normal way these end */
+      }
+    })
+    .catch(() => {
+      if (!ac.signal.aborted) sseFailed += 1;
+    });
+}
+
+function closeSseClient(i) {
+  const ac = sseOpen.get(i);
+  if (!ac) return;
+  ac.abort();
+  sseOpen.delete(i);
+  sseClosed += 1;
+}
+
+let sseChurnTimer = null;
+if (SSE_CLIENTS > 0) {
+  for (let i = 0; i < SSE_CLIENTS; i += 1) openSseClient(i);
+  console.log(`[load] holding ${SSE_CLIENTS} SSE stream(s), recycling a quarter every ${SSE_CHURN_S}s`);
+
+  let cursor = 0;
+  sseChurnTimer = setInterval(() => {
+    const slice = Math.max(1, Math.floor(SSE_CLIENTS / 4));
+    for (let k = 0; k < slice; k += 1) {
+      const i = (cursor + k) % SSE_CLIENTS;
+      closeSseClient(i);
+      openSseClient(i);
+    }
+    cursor = (cursor + slice) % SSE_CLIENTS;
+  }, SSE_CHURN_S * 1000);
+}
+
 const started = Date.now();
 const workers = sessions.map((s, i) => worker(s, i));
 await new Promise((r) => setTimeout(r, DURATION_S * 1000));
 stop = true;
 await Promise.all(workers);
 clearInterval(sampler);
+
+if (sseChurnTimer) clearInterval(sseChurnTimer);
+for (const i of [...sseOpen.keys()]) closeSseClient(i);
 const elapsed = (Date.now() - started) / 1000;
 
 // ---------------------------------------------------------------------------
@@ -296,7 +398,26 @@ if (samples.length > 1) {
   console.log("resource drift over the run:");
   console.log(`  db connections   ${first.dbConnections} -> ${last.dbConnections} (peak ${maxConn})`);
   console.log(`  db latency       ${first.dbLatencyMs}ms -> ${last.dbLatencyMs}ms`);
-  console.log(`  sse connections  ${first.sse} -> ${last.sse}`);
+  const maxSse = Math.max(...samples.map((s) => s.sse ?? 0));
+  console.log(
+    `  sse connections  ${first.sse} -> ${last.sse} (peak ${maxSse})` +
+      (SSE_CLIENTS === 0
+        ? "   << no SSE opened: pass --sse N or this number means nothing"
+        : `   [${SSE_CLIENTS} held, ${sseOpened} opened, ${sseClosed} recycled, ${sseFailed} failed]`)
+  );
+
+  // The leak signal. With churn, opens and closes balance, so a registry that
+  // releases clients correctly ends the run near where it started. Drift here
+  // is the whole reason the soak exists.
+  if (SSE_CLIENTS > 0) {
+    const drift = (last.sse ?? 0) - SSE_CLIENTS;
+    console.log(
+      `  sse drift        ${drift >= 0 ? "+" : ""}${drift} vs the ${SSE_CLIENTS} expected to be held` +
+        (Math.abs(drift) > Math.max(2, SSE_CLIENTS * 0.1)
+          ? "   << LEAK SUSPECTED: connections are not being released"
+          : "")
+    );
+  }
   console.log(
     `  harness rss      ${(first.rss / 1048576).toFixed(0)}MB -> ${(last.rss / 1048576).toFixed(0)}MB`
   );

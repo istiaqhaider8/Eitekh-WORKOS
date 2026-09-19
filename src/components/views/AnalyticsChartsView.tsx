@@ -531,13 +531,25 @@ export function AnalyticsChartsView({
 
   // Donut Conic Gradient
   const statusConicGradient = useMemo(() => {
-    let cumulative = 0;
-    const segments = statusDistribution.map((s: any) => {
-      const pct = s.percentage || 0;
-      const seg = `${s.color} ${cumulative}% ${cumulative + pct}%`;
-      cumulative += pct;
-      return seg;
+    // Each segment starts where the previous ones ended. This used to
+    // accumulate into a `let` captured by the map callback, which reassigns a
+    // render-scoped variable from inside a closure — correct only because the
+    // callback happens to run synchronously. Deriving each segment's offset
+    // from the slice before it keeps the computation a pure function of
+    // statusDistribution. The list is one entry per workflow status, so the
+    // extra passes are not worth avoiding.
+    const offsets: number[] = [];
+    let running = 0;
+    for (const s of statusDistribution as any[]) {
+      offsets.push(running);
+      running += s.percentage || 0;
+    }
+
+    const segments = (statusDistribution as any[]).map((s: any, i: number) => {
+      const start = offsets[i];
+      return `${s.color} ${start}% ${start + (s.percentage || 0)}%`;
     });
+
     return segments.length > 0 ? segments.join(', ') : '#e2e8f0 0% 100%';
   }, [statusDistribution]);
 
