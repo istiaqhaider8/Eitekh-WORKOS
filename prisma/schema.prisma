@@ -428,6 +428,11 @@ model Issue {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  /// B1 — optimistic locking. Incremented on every update. A client that
+  /// sends a stale value is told so, rather than silently overwriting an edit
+  /// it never saw. Default 0 so existing rows are immediately usable.
+  version        Int       @default(0)
+
   project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   status            WorkflowStatus      @relation(fields: [statusId], references: [id])
   reporter          User                @relation("IssueReporter", fields: [reporterId], references: [id])

@@ -36,6 +36,7 @@ import {
   Image as ImageIcon,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
   Zap,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
@@ -107,6 +108,13 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  /**
+   * B1 — set when the server refuses a save because someone else edited the
+   * issue first. Holds the server's current state so the dialog can show what
+   * would have been overwritten rather than only saying that something was.
+   */
+  const [conflict, setConflict] = useState<{ serverIssue: any; currentVersion: number } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Subtask creation and details state
@@ -1003,7 +1011,16 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
     }
   };
 
-  const handleSaveAndClose = async () => {
+  /**
+   * Save the form.
+   *
+   *  is passed only from the conflict dialog, when the user
+   * has looked at what changed and chosen to overwrite it anyway. Passing the
+   * server version makes the retry succeed; passing nothing re-reads the
+   * version the form was loaded with, which is what detects the conflict in
+   * the first place.
+   */
+  const handleSaveAndClose = async (overrideVersion?: number) => {
     if (!issueId) return;
 
     const finalTitle = draftTitle?.trim();
@@ -1093,10 +1110,28 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         dueDate: draftDueDate ? new Date(draftDueDate).toISOString() : null,
       };
 
+      /**
+       * B1 — send the version this form was loaded from.
+       *
+       * Only on this full save, not on the inline field edits in
+       * handleUpdateField. The distinction is intent: an inline edit is "set
+       * the status to X now", where last-write-wins is what the user means.
+       * This is a body of work typed over minutes, and it is the one that
+       * silently destroyed someone else's edit before the server started
+       * comparing versions.
+       *
+       * `overrideVersion` is set when the user has seen the conflict and
+       * chosen to overwrite anyway.
+       */
+      const payloadWithVersion = {
+        ...payload,
+        version: overrideVersion ?? issue?.version,
+      };
+
       const res = await fetch(`/api/issues/${issueId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payloadWithVersion),
       });
 
       if (res.ok) {
@@ -1104,6 +1139,17 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         setHasChanges(false);
         onIssueUpdated();
         onClose(); // Automatically close window on save
+      } else if (res.status === 409) {
+        const d = await res.json();
+        if (d?.code === "VERSION_CONFLICT") {
+          // Do NOT close, and do NOT discard the draft — the whole point is
+          // that the user's work survives long enough for them to decide.
+          setConflict({ serverIssue: d.issue, currentVersion: d.currentVersion });
+        } else {
+          // The other 409 from this route is a refused workflow transition,
+          // which already carries a message naming the allowed statuses.
+          showError(d.error || "That change conflicts with the current state of the issue.");
+        }
       } else {
         const d = await res.json();
         showError(d.error || "Failed to update issue");
@@ -1563,7 +1609,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
               <button
                 type="button"
                 disabled={isSaving}
-                onClick={handleSaveAndClose}
+                onClick={() => handleSaveAndClose()}
                 className="btn-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl disabled:opacity-50 cursor-pointer shadow-xs shadow-blue-500/20 shrink-0"
                 title="Save changes and close window"
               >
@@ -3615,7 +3661,7 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
                   <button
                     type="button"
                     disabled={isSaving}
-                    onClick={handleSaveAndClose}
+                    onClick={() => handleSaveAndClose()}
                     className="px-5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/25 disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
@@ -4449,6 +4495,119 @@ export function IssueDetailModal({ issueId, projectId, currentUser: propCurrentU
         )}
 
         {/* Delete Issue Confirmation Modal */}
+        {/*
+          B1 — the conflict dialog.
+
+          Shown instead of losing the edit. It lists the fields where the
+          server now differs from what this form was loaded with, so the user
+          can see what they would be overwriting — "someone else changed this"
+          on its own leaves them with a form full of work and no way to judge.
+
+          The draft is deliberately left intact behind this dialog. Either
+          choice keeps it recoverable: discard reloads, overwrite submits.
+        */}
+        {conflict && (
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[80] p-4 animate-in fade-in duration-150"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-amber-200 dark:border-amber-900/60 p-6 space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-900/50">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Someone else edited this issue
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    {issue?.issueKey} changed while you had it open. Your edits have not been saved
+                    and are still here.
+                  </p>
+                </div>
+              </div>
+
+              {(() => {
+                const fields: { label: string; mine: string; theirs: string }[] = [];
+                const add = (label: string, mine: any, theirs: any) => {
+                  const m = mine === null || mine === undefined || mine === "" ? "—" : String(mine);
+                  const t = theirs === null || theirs === undefined || theirs === "" ? "—" : String(theirs);
+                  if (m !== t) fields.push({ label, mine: m, theirs: t });
+                };
+                const s = conflict.serverIssue || {};
+                add("Title", draftTitle, s.title);
+                add("Status", issue?.status?.name, s.status?.name);
+                add("Priority", draftPriority, s.priority);
+                add("Assignee", issue?.assignee?.email, s.assignee?.email);
+                add("Description", draftDescription ? "your version" : "—", s.description ? "their version" : "—");
+
+                if (fields.length === 0) {
+                  return (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300">
+                      The visible fields match — the change was to something this dialog does not
+                      show. Reloading is safe.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                    <div className="grid grid-cols-3 gap-px bg-slate-200 dark:bg-slate-700 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="bg-slate-50 dark:bg-slate-800 px-3 py-2">Field</div>
+                      <div className="bg-slate-50 dark:bg-slate-800 px-3 py-2">Yours</div>
+                      <div className="bg-slate-50 dark:bg-slate-800 px-3 py-2">On the server now</div>
+                    </div>
+                    {fields.map((f) => (
+                      <div
+                        key={f.label}
+                        className="grid grid-cols-3 gap-px bg-slate-200 dark:bg-slate-700 text-[11px]"
+                      >
+                        <div className="bg-white dark:bg-slate-900 px-3 py-2 font-medium text-slate-700 dark:text-slate-300">
+                          {f.label}
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 px-3 py-2 text-slate-600 dark:text-slate-400 truncate" title={f.mine}>
+                          {f.mine}
+                        </div>
+                        <div className="bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-amber-800 dark:text-amber-300 truncate" title={f.theirs}>
+                          {f.theirs}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConflict(null);
+                    fetchIssueDetails();
+                  }}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Discard mine &amp; reload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = conflict.currentVersion;
+                    setConflict(null);
+                    // Retry against the version we were just shown. If a THIRD
+                    // edit lands in between, this conflicts again rather than
+                    // overwriting blindly.
+                    handleSaveAndClose(v);
+                  }}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Overwrite with mine
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showDeleteConfirm && (
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[80] p-4 animate-in fade-in duration-150" role="dialog" aria-modal="true"

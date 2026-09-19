@@ -47,7 +47,22 @@ export interface TenantFixture {
   teamId: string;
   /** An organization member who is NOT a project member — an assignment target. */
   spareUserId: string;
-  sprintId?: string;
+  /** The workflow owning this tenant's statuses. */
+  workflowId: string;
+  /** The issue's starting status ("To Do"). */
+  statusId: string;
+  /**
+   * A second status ("In Progress") with a transition FROM statusId, and a
+   * third ("Done") with NO transition into it.
+   *
+   * Both are needed to test transition enforcement at all: with one status
+   * there is no move to make, and with no forbidden target there is nothing to
+   * refuse. The third is the one a bypass would reach.
+   */
+  statusInProgressId: string;
+  statusDoneId: string;
+  sprintId: string;
+  epicId: string;
   users: Record<string, TestUser>;
 }
 

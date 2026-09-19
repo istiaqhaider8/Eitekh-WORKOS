@@ -64,6 +64,21 @@ export class NotFoundError extends ApiError {
 }
 
 /**
+ * 409 — the request was well formed and permitted, but the current state of
+ * the resource does not allow it.
+ *
+ * Distinct from 400 on purpose. A 400 says "fix your request"; a 409 says
+ * "look at the resource again". Optimistic-locking conflicts (B1) and refused
+ * workflow transitions (B2) are both this: retrying the identical request
+ * after reading the current state is the correct response.
+ */
+export class ConflictError extends ApiError {
+  constructor(message = "Conflict", code = "CONFLICT") {
+    super(409, message, code);
+  }
+}
+
+/**
  * Derive a status from a legacy error message.
  *
  * Returns null when the message says nothing recognisable, so the caller can

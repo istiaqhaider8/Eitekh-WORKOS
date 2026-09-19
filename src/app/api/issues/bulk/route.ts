@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { bulkIssueUpdateSchema, bulkIssueDeleteSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
+import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
 
 export async function PATCH(req: Request) {
   try {
@@ -20,6 +21,7 @@ export async function PATCH(req: Request) {
       select: {
         id: true,
         projectId: true,
+        statusId: true,
         assigneeId: true,
         dueDate: true,
         assignee: {
@@ -39,6 +41,36 @@ export async function PATCH(req: Request) {
         await assertProjectPermission(projectId, "issues:bulk_edit");
       } catch (err: any) {
         return NextResponse.json({ error: err.message || "Forbidden: Cannot perform bulk edit on project" }, { status: 403 });
+      }
+    }
+
+    /**
+     * Validate the ids in the BODY against every project involved.
+     *
+     * None of these were checked. The permission loop above authorises the
+     * caller for the projects the ISSUES belong to, and then the update wrote
+     * whatever `updates` contained — so an authorised user of project A could
+     * set another tenant's statusId, sprintId, epicId or teamId, or assign the
+     * issue to a user outside the project entirely. Verified against the
+     * running app before this was added.
+     *
+     * A bulk edit may span projects, so each one is checked: an id that is
+     * legitimate for the first project is not thereby legitimate for the rest.
+     */
+    for (const projectId of projectIds) {
+      await assertIssueRelationsBelongToProject(projectId, updates);
+    }
+
+    /**
+     * And the workflow. PATCH /api/issues/[id] has always consulted
+     * WorkflowTransition; this route did not, so a project's configured
+     * process was enforced one issue at a time and skipped for two. Each issue
+     * transitions from its OWN current status, so the check is per issue
+     * rather than per request.
+     */
+    if (updates.statusId !== undefined && updates.statusId) {
+      for (const issue of issues) {
+        await assertTransitionAllowed(issue.projectId, issue.statusId, updates.statusId);
       }
     }
 

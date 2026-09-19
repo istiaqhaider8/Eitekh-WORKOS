@@ -154,6 +154,36 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
     data: { id: statusId, workflowId, name: "To Do", category: "TODO", color: "#888888", position: 1 },
   });
 
+  /**
+   * Two more statuses, and exactly one transition between them.
+   *
+   * A workflow with a single status cannot express a forbidden move, so a
+   * fixture with one status makes transition enforcement untestable — the
+   * suite would pass whether the rule worked or not. Here:
+   *
+   *   To Do --(transition exists)--> In Progress     allowed
+   *   To Do --(no transition)------> Done            must be refused
+   *
+   * "Done" is the status a bypass reaches, which is the realistic shape: the
+   * gate someone skips is the one that closes work.
+   */
+  const statusInProgressId = `${RUN}_stip${tag}`;
+  await prisma.workflowStatus.create({
+    data: { id: statusInProgressId, workflowId, name: "In Progress", category: "IN_PROGRESS", color: "#3b82f6", position: 2 },
+  });
+  const statusDoneId = `${RUN}_stdone${tag}`;
+  await prisma.workflowStatus.create({
+    data: { id: statusDoneId, workflowId, name: "Done", category: "DONE", color: "#22c55e", position: 3 },
+  });
+  await prisma.workflowTransition.create({
+    data: {
+      id: `${RUN}_tr${tag}`,
+      workflowId,
+      fromStatusId: statusId,
+      toStatusId: statusInProgressId,
+    },
+  });
+
   // A team with members. Needed because several routes are reachable by team
   // id alone, and a fixture that creates no teams cannot detect a leak through
   // them — the collection would be empty whether the guard worked or not.
@@ -181,6 +211,23 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
   await persistUser(prisma, spare);
   await prisma.organizationMember.create({ data: { orgId, userId: spare.id, role: "MEMBER" } });
 
+  /**
+   * A sprint and an epic per tenant.
+   *
+   * These exist so the "foreign id in the request body" tests have something
+   * real to point at. Without them the only outcome would be a 404 for a
+   * non-existent id, which proves nothing about whether the route checks
+   * OWNERSHIP of an id that does exist.
+   */
+  const sprintId = `${RUN}_sprint${tag}`;
+  await prisma.sprint.create({
+    data: { id: sprintId, projectId, name: `Sprint of tenant ${tag}`, status: "ACTIVE" },
+  });
+  const epicId = `${RUN}_epic${tag}`;
+  await prisma.epic.create({
+    data: { id: epicId, projectId, name: `Epic of tenant ${tag}`, status: "ACTIVE" },
+  });
+
   const issueId = `${RUN}_issue${tag}`;
   const issueKey = `${projectKey}-1`;
   await prisma.issue.create({
@@ -197,7 +244,12 @@ async function buildTenant(prisma: PrismaClient, tag: string): Promise<TenantFix
     },
   });
 
-  return { orgId, workspaceId, projectId, projectKey, issueId, issueKey, teamId, spareUserId: spare.id, users };
+  return {
+    orgId, workspaceId, projectId, projectKey, issueId, issueKey, teamId,
+    spareUserId: spare.id,
+    workflowId, statusId, statusInProgressId, statusDoneId, sprintId, epicId,
+    users,
+  };
 }
 
 export async function createFixture(prisma: PrismaClient): Promise<Fixture> {
@@ -227,6 +279,10 @@ export async function destroyFixture(prisma: PrismaClient): Promise<void> {
 
   await prisma.syncEventOutbox.deleteMany({ where: { OR: [{ projectId: like }, { userId: like }] } });
   await prisma.issue.deleteMany({ where: { projectId: like } });
+  // Sprints and epics are referenced BY issues, so they go after them.
+  await prisma.sprint.deleteMany({ where: { projectId: like } });
+  await prisma.epic.deleteMany({ where: { projectId: like } });
+  await prisma.workflowTransition.deleteMany({ where: { workflow: { projectId: like } } });
   await prisma.workflowStatus.deleteMany({ where: { workflow: { projectId: like } } });
   await prisma.workflow.deleteMany({ where: { projectId: like } });
   await prisma.teamMember.deleteMany({ where: { teamId: like } });

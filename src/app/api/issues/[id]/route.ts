@@ -7,7 +7,8 @@ import { issueUpdateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
-import { handleApiError } from "@/lib/api-error";
+import { handleApiError, ConflictError } from "@/lib/api-error";
+import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
 
 /**
  * A4 — how much history a single issue fetch carries.
@@ -17,6 +18,25 @@ import { handleApiError } from "@/lib/api-error";
  * end of each list, and every row beyond that is latency nobody asked for.
  */
 const HISTORY_PAGE_SIZE = 50;
+
+/**
+ * B1 — thrown inside the update transaction when the client's `version` no
+ * longer matches the row.
+ *
+ * A sentinel rather than a direct response because it has to abort the
+ * transaction: the activity-log rows written alongside the update must not
+ * survive an edit that did not happen. It is converted to a 409 below, with
+ * the current server state attached so the client can show what changed
+ * instead of just refusing.
+ */
+class IssueVersionConflictError extends ConflictError {
+  constructor() {
+    super(
+      "This issue was changed by someone else while you were editing it.",
+      "VERSION_CONFLICT"
+    );
+  }
+}
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -178,6 +198,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
 
+    /**
+     * Every foreign key in the body must belong to THIS project.
+     *
+     * The permission check above authorises the caller for this issue, and
+     * nothing in it looks at the body — so `{"sprintId": "<another tenant's
+     * sprint>"}` on your own issue was written straight through. Confirmed
+     * against the running app for sprintId and epicId; statusId was already
+     * checked below, and assigneeId already required organization membership.
+     * The point of routing them all through one helper is that the next field
+     * added cannot be forgotten, and that `issues/bulk` enforces the same
+     * rule — it previously enforced none of it.
+     */
+    await assertIssueRelationsBelongToProject(currentIssue.projectId, body);
+
     if (body.statusId !== undefined && (!body.statusId || !String(body.statusId).trim())) {
       return NextResponse.json({ error: "Status is a mandatory field" }, { status: 400 });
     }
@@ -273,17 +307,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ error: "Status does not belong to this project's workflow" }, { status: 400 });
       }
       
-      const workflow = await prisma.workflow.findFirst({
-        where: { projectId: currentIssue.projectId, statuses: { some: { id: currentIssue.statusId } } },
-        include: { transitions: true }
-      });
-      
-      if (workflow && workflow.transitions.length > 0) {
-        const validTransition = workflow.transitions.find(t => t.fromStatusId === currentIssue.statusId && t.toStatusId === body.statusId);
-        if (!validTransition) {
-          return NextResponse.json({ error: "Invalid status transition" }, { status: 400 });
-        }
-      }
+      // Shared with issues/bulk, which enforced no transitions at all. The
+      // rejection is a 409 naming the statuses that ARE reachable from here —
+      // the old "Invalid status transition" told the user nothing about how to
+      // proceed and told a client author nothing about how to build a picker
+      // that only offers legal moves.
+      await assertTransitionAllowed(currentIssue.projectId, currentIssue.statusId, body.statusId);
 
       activityLogs.push({
         issueId: id,
@@ -530,10 +559,46 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.securityLevel = body.securityLevel || null;
     }
 
+    /**
+     * B1 — optimistic locking.
+     *
+     * Two people editing the same issue is the normal case on a busy team, and
+     * until now the second write simply won. No error, no warning, no trace:
+     * the first person's change was gone and neither of them knew. That is the
+     * kind of defect users never report, because they cannot tell it happened.
+     *
+     * The guard is a version column compared inside the same statement that
+     * writes. `updateMany` rather than `update` because it reports a COUNT
+     * instead of throwing, and zero rows is exactly the signal we want:
+     * somebody else wrote first.
+     *
+     * Doing the compare as a separate SELECT would reintroduce the race it
+     * exists to close — two requests could both read version 3 and both
+     * proceed. `where: { id, version }` is atomic.
+     */
+    const expectedVersion = body.version;
+
     const updatedIssue = await prisma.$transaction(async (tx) => {
-      const issue = await tx.issue.update({
+      if (expectedVersion !== undefined) {
+        const { count } = await tx.issue.updateMany({
+          where: { id, version: expectedVersion },
+          data: { ...updateData, version: { increment: 1 } },
+        });
+        if (count === 0) {
+          throw new IssueVersionConflictError();
+        }
+      } else {
+        // No version sent: the caller has not opted into conflict detection.
+        // Still bump the counter, so a client that IS sending versions is not
+        // fooled into thinking nothing changed.
+        await tx.issue.update({
+          where: { id },
+          data: { ...updateData, version: { increment: 1 } },
+        });
+      }
+
+      const issue = await tx.issue.findUniqueOrThrow({
         where: { id },
-        data: updateData,
         include: {
           status: true,
           assignee: {
@@ -638,6 +703,39 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json({ issue: updatedIssue });
   } catch (error: any) {
+    /**
+     * B1 — a conflict is answered with the CURRENT state, not just a refusal.
+     *
+     * "Someone else changed this" and nothing else leaves the user with a form
+     * full of edits and no way to tell what they would be overwriting. The
+     * body carries the server's version of the issue so the client can show
+     * the difference and let them decide; the shape matches GET, so a client
+     * can reuse whatever it already renders.
+     */
+    if (error?.code === "VERSION_CONFLICT") {
+      const { id } = await params;
+      const current = await prisma.issue.findUnique({
+        where: { id },
+        include: {
+          status: true,
+          assignee: publicUserRelation,
+          reporter: publicUserRelation,
+          team: true,
+          sprint: true,
+          epic: true,
+          component: true,
+        },
+      });
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: "VERSION_CONFLICT",
+          currentVersion: current?.version ?? null,
+          issue: current,
+        },
+        { status: 409 }
+      );
+    }
     console.error("Update issue error:", error);
     return handleApiError(error, "issues/[id]");
   }

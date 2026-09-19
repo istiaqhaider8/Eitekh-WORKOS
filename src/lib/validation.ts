@@ -179,6 +179,16 @@ export const issueUpdateSchema = z.object({
   dueDate: z.string().max(50).nullable().optional(),
   position: z.coerce.number().int().min(0).optional(),
   securityLevel: z.string().max(50).nullable().optional(),
+  /**
+   * B1 — the version the client last read.
+   *
+   * Optional, deliberately. Making it required would break every existing
+   * client and every script the moment this shipped, and a 400 for a missing
+   * field is a worse failure than the one being fixed. When it IS sent, a
+   * mismatch is a 409 rather than a silent overwrite — so a client opts into
+   * conflict detection by sending what it read.
+   */
+  version: z.coerce.number().int().min(0).optional(),
 }).passthrough();
 
 export const projectUpdateSchema = z.object({
