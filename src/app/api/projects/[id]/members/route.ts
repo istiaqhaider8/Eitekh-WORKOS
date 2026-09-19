@@ -12,7 +12,48 @@ import {
   ALLOWED_PROJECT_ROLES,
   DEFAULT_PROJECT_ROLE,
   projectRoleFromPbacSlug,
+  projectRoleAuthority,
+  ORG_ROLE_AUTHORITY,
 } from "@/lib/project-roles";
+
+/**
+ * Refuse to grant a role at or above the actor's own level (PROD-6).
+ *
+ * Holding `projects:manage_members` says you may manage members. It does not
+ * say you may create someone with more authority than you have. The PBAC
+ * engine draws that distinction in `enforceHierarchy`, but that only runs on
+ * the PBAC role-assignment paths — these handlers write ProjectMember.role
+ * directly, so the check has to happen here too.
+ *
+ * Without it a PROJECT_MANAGER (level 30) could set another member to
+ * PROJECT_ADMIN (level 40), which is escalation by the codebase's own
+ * definition. Found by the PROD-6 authorization suite.
+ *
+ * A super admin, and an organization OWNER or ADMIN, act at their
+ * organization level rather than their project level — an org admin who is not
+ * a project member still outranks every project role.
+ */
+function assertCanGrantProjectRole(
+  actor: { isSuperAdmin?: boolean },
+  actorProjectRole: string | undefined,
+  actorOrgRole: string | undefined,
+  targetRole: string
+): void {
+  if (actor?.isSuperAdmin) return;
+
+  const actorLevel = Math.max(
+    projectRoleAuthority(actorProjectRole),
+    ORG_ROLE_AUTHORITY[String(actorOrgRole || "").toUpperCase()] ?? 0
+  );
+  const targetLevel = projectRoleAuthority(targetRole);
+
+  if (targetLevel >= actorLevel) {
+    throw new Error(
+      `Forbidden: privilege escalation denied — you cannot assign the '${targetRole}' role, ` +
+        "which is at or above your own level."
+    );
+  }
+}
 
 // The whitelist lives in lib/project-roles.ts, shared with the UI that builds
 // the dropdowns. It blocks privilege escalation via an injected org-scoped PBAC
@@ -60,6 +101,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const parsed = await parseJsonBody(req, projectMemberSchema);
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
+
+    // Same hierarchy rule as PATCH, and checked BEFORE any user is created or
+    // invited: adding a member at a role above your own is the same escalation
+    // as promoting one, and this path can create an account as a side effect.
+    {
+      const actorOrgMembership = await prisma.organizationMember.findUnique({
+        where: { orgId_userId: { orgId: project.workspace.orgId, userId: currentUser.id } },
+        select: { role: true },
+      });
+      assertCanGrantProjectRole(
+        currentUser,
+        role,
+        actorOrgMembership?.role,
+        normalizeProjectRole(body.role)
+      );
+    }
+
     let targetUserId = body.userId;
     let isNewUserCreated = false;
     let tempPassword = body.password || (Math.random().toString(36).slice(-8) + "Aa1!");
@@ -226,6 +284,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!parsed.success) return parsed.error;
     const body = parsed.data;
     const safeRole = normalizeProjectRole((body as any).role);
+
+    const actorOrgMembership = await prisma.organizationMember.findUnique({
+      where: { orgId_userId: { orgId: project.workspace.orgId, userId: currentUser.id } },
+      select: { role: true },
+    });
+    assertCanGrantProjectRole(currentUser, role, actorOrgMembership?.role, safeRole);
     const updated = await prisma.projectMember.update({
       where: { projectId_userId: { projectId: id, userId: body.userId } },
       data: { role: safeRole }
