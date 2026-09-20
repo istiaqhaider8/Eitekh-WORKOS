@@ -10,6 +10,7 @@ import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
 import { handleApiError } from "@/lib/api-error";
+import { allocateIssueKey, defaultStatusIdFor } from "@/lib/issue-keys";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -213,48 +214,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Atomic update of project issueCounter and issue creation in a single transaction
     const { issue, project } = await prisma.$transaction(async (tx) => {
-      const maxIssue = await tx.issue.findFirst({
-        where: { projectId },
-        orderBy: { keyNumber: "desc" },
-        select: { keyNumber: true },
-      });
-      const maxExistingKey = maxIssue?.keyNumber || 0;
-
-      let prj = await tx.project.update({
-        where: { id: projectId },
-        data: {
-          issueCounter: { increment: 1 },
-        },
-        include: {
-          workflows: {
-            include: { statuses: { orderBy: { position: "asc" } } },
-          },
-        },
-      });
-
-      let keyNumber = prj.issueCounter;
-      if (keyNumber <= maxExistingKey) {
-        keyNumber = maxExistingKey + 1;
-        prj = await tx.project.update({
-          where: { id: projectId },
-          data: { issueCounter: keyNumber },
-          include: {
-            workflows: {
-              include: { statuses: { orderBy: { position: "asc" } } },
-            },
-          },
-        });
-      }
-      const issueKey = `${prj.key}-${keyNumber}`;
+      // Counter allocation and its reconciliation against the highest key
+      // that actually exists now live in `issue-keys.ts`, because the Activate
+      // accelerator route creates issues too and a second copy of this rule is
+      // how duplicate keys get shipped. Behaviour is unchanged.
+      const { keyNumber, issueKey, project: prj } = await allocateIssueKey(tx, projectId);
 
       let finalStatusId = statusId;
       if (!finalStatusId) {
-        const defaultWorkflow = prj.workflows[0];
-        if (defaultWorkflow && defaultWorkflow.statuses.length > 0) {
-          finalStatusId = defaultWorkflow.statuses[0].id;
-        } else {
-          throw new Error("No workflow statuses defined for this project");
-        }
+        finalStatusId = defaultStatusIdFor(prj);
       }
       // A supplied statusId was checked against this project's workflow by
       // assertIssueRelationsBelongToProject above. The branch that used to

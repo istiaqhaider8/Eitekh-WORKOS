@@ -1276,3 +1276,15 @@ export const activateGateApprovalSchema = z.object({
   decision: z.enum(["APPROVED", "REJECTED"]),
   comment: safeStringSchema.trim().max(2000).nullable().optional(),
 });
+
+/**
+ * Applying an accelerator.
+ *
+ * Only the key: the title, description, phase, workstream and whether it is
+ * mandatory all come from the catalogue file. Accepting them from the body
+ * would let a caller invent an "accelerator" that matches nothing SAP
+ * published, which is the opposite of what a catalogue is for.
+ */
+export const activateAcceleratorApplySchema = z.object({
+  key: z.string().min(3).max(64),
+});

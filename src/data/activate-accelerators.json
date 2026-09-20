@@ -1,0 +1,162 @@
+[
+  {
+    "key": "DISCOVER_VALUE_CASE",
+    "phaseKey": "DISCOVER",
+    "workstreamKey": "PROJECT_MANAGEMENT",
+    "title": "Draft the value case",
+    "description": "Record the business outcomes this project is funded to deliver, with the measures that will show whether it did.",
+    "isMandatory": true
+  },
+  {
+    "key": "DISCOVER_SCOPE_OUTLINE",
+    "phaseKey": "DISCOVER",
+    "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION",
+    "title": "Outline the solution scope",
+    "description": "List the processes in scope and, as importantly, the ones deliberately out of it.",
+    "isMandatory": true
+  },
+  {
+    "key": "PREPARE_PROJECT_PLAN",
+    "phaseKey": "PREPARE",
+    "workstreamKey": "PROJECT_MANAGEMENT",
+    "title": "Baseline the project plan",
+    "description": "Agree the schedule, milestones and the dates the gates are expected to be reached.",
+    "isMandatory": true
+  },
+  {
+    "key": "PREPARE_TEAM_ONBOARDING",
+    "phaseKey": "PREPARE",
+    "workstreamKey": "CUSTOMER_TEAM_ENABLEMENT",
+    "title": "Onboard the team and assign roles",
+    "description": "Name who is accountable for each workstream before the work starts rather than after.",
+    "isMandatory": true
+  },
+  {
+    "key": "PREPARE_ENVIRONMENTS",
+    "phaseKey": "PREPARE",
+    "workstreamKey": "TECHNICAL_ARCHITECTURE_INFRASTRUCTURE",
+    "title": "Provision the environments",
+    "description": "Stand up the systems the project needs, and confirm access actually works for the people who need it.",
+    "isMandatory": true
+  },
+  {
+    "key": "EXPLORE_FIT_TO_STANDARD",
+    "phaseKey": "EXPLORE",
+    "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION",
+    "title": "Run the fit-to-standard workshops",
+    "description": "Walk the standard process with the business and classify each requirement as fit, gap or accepted gap.",
+    "isMandatory": true
+  },
+  {
+    "key": "EXPLORE_BACKLOG_CONFIRMATION",
+    "phaseKey": "EXPLORE",
+    "workstreamKey": "PROJECT_MANAGEMENT",
+    "title": "Confirm the backlog",
+    "description": "Turn the workshop outcomes into a backlog everyone agrees is the work.",
+    "isMandatory": true
+  },
+  {
+    "key": "EXPLORE_DATA_SCOPE",
+    "phaseKey": "EXPLORE",
+    "workstreamKey": "DATA_MANAGEMENT",
+    "title": "Agree the data migration scope",
+    "description": "Decide which objects move, how far back history goes, and who owns the cleansing.",
+    "isMandatory": false
+  },
+  {
+    "key": "EXPLORE_INTEGRATION_INVENTORY",
+    "phaseKey": "EXPLORE",
+    "workstreamKey": "INTEGRATION",
+    "title": "Inventory the integrations",
+    "description": "List every interface, its direction and its owner, including the ones nobody has mentioned yet.",
+    "isMandatory": false
+  },
+  {
+    "key": "REALIZE_CONFIGURATION",
+    "phaseKey": "REALIZE",
+    "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION",
+    "title": "Configure and build the solution",
+    "description": "Deliver the agreed backlog in sprints, keeping configuration decisions traceable to the workshops.",
+    "isMandatory": true
+  },
+  {
+    "key": "REALIZE_TEST_CYCLES",
+    "phaseKey": "REALIZE",
+    "workstreamKey": "TESTING",
+    "title": "Run the test cycles",
+    "description": "Unit, string, integration and user acceptance, each with an entry and exit condition agreed in advance.",
+    "isMandatory": true
+  },
+  {
+    "key": "REALIZE_DATA_REHEARSAL",
+    "phaseKey": "REALIZE",
+    "workstreamKey": "DATA_MANAGEMENT",
+    "title": "Rehearse the data migration",
+    "description": "A full load against production volumes, timed, so cutover is not the first attempt.",
+    "isMandatory": true
+  },
+  {
+    "key": "REALIZE_EXTENSIBILITY_REVIEW",
+    "phaseKey": "REALIZE",
+    "workstreamKey": "EXTENSIBILITY",
+    "title": "Review the extensions",
+    "description": "Confirm every extension is still needed and built on supported extension points.",
+    "isMandatory": false
+  },
+  {
+    "key": "DEPLOY_CUTOVER_PLAN",
+    "phaseKey": "DEPLOY",
+    "workstreamKey": "PROJECT_MANAGEMENT",
+    "title": "Approve the cutover plan",
+    "description": "The hour-by-hour sequence, who does each step, and the point past which rollback stops being an option.",
+    "isMandatory": true
+  },
+  {
+    "key": "DEPLOY_PRODUCTION_READINESS",
+    "phaseKey": "DEPLOY",
+    "workstreamKey": "TECHNICAL_ARCHITECTURE_INFRASTRUCTURE",
+    "title": "Confirm production readiness",
+    "description": "Performance, security and operational monitoring verified on the system that will actually run.",
+    "isMandatory": true
+  },
+  {
+    "key": "DEPLOY_SUPPORT_MODEL",
+    "phaseKey": "DEPLOY",
+    "workstreamKey": "OPERATIONS_SUPPORT",
+    "title": "Put the support model in place",
+    "description": "Who answers the phone in week one, and what they are allowed to change.",
+    "isMandatory": true
+  },
+  {
+    "key": "DEPLOY_ADOPTION_READINESS",
+    "phaseKey": "DEPLOY",
+    "workstreamKey": "SOLUTION_ADOPTION",
+    "title": "Confirm the business is ready",
+    "description": "Training delivered, roles assigned, and the people doing the work know what changes on Monday.",
+    "isMandatory": false
+  },
+  {
+    "key": "RUN_HYPERCARE",
+    "phaseKey": "RUN",
+    "workstreamKey": "OPERATIONS_SUPPORT",
+    "title": "Run hypercare",
+    "description": "Elevated support immediately after go-live, with an agreed threshold for exiting it.",
+    "isMandatory": true
+  },
+  {
+    "key": "RUN_OPERATIONS_HANDOVER",
+    "phaseKey": "RUN",
+    "workstreamKey": "OPERATIONS_SUPPORT",
+    "title": "Hand over to operations",
+    "description": "Documentation, runbooks and on-call transferred, and accepted by the team taking them.",
+    "isMandatory": true
+  },
+  {
+    "key": "RUN_CONTINUOUS_IMPROVEMENT",
+    "phaseKey": "RUN",
+    "workstreamKey": "SOLUTION_ADOPTION",
+    "title": "Establish continuous improvement",
+    "description": "A standing cycle for release adoption and process improvement. This lives inside Run rather than after it, which is why there is no seventh phase.",
+    "isMandatory": false
+  }
+]
