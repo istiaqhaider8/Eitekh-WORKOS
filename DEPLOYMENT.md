@@ -1294,6 +1294,76 @@ growth. **Run this for two hours before treating SSE memory as settled.**
 
 ---
 
+## Security soak (Phase 7)
+
+```bash
+JWT_SECRET=… node scripts/security-soak.mjs --url http://127.0.0.1:3100 \
+  --db "postgresql://…/eitekh_volume" --duration 900 --concurrency 8
+```
+
+The integration suite already answers *"is this control present and correct
+right now?"* — tenant isolation, authz and leaf-resource suites, plus two build
+ratchets that refuse a route with no isolation test or no body validation. This
+answers a different question: **does it still hold under sustained pressure?**
+Limiters that drift across windows, counter tables that grow because their
+sweep is probabilistic, races that only open under concurrency — none of those
+are visible to a test that makes one request.
+
+### First run — 120 s at concurrency 6, 5/5
+
+| Check | Result |
+|---|---|
+| Altered token signature | refused, 401 |
+| Token signed with the wrong secret | refused, 401 |
+| Token naming a deleted session | refused, 401 |
+| Expired token | refused, 401 |
+| **Cross-tenant reads** | **10,715 attempts, 0 returned 200** |
+
+Nothing grew unexpectedly: `rateLimitCounter` 115 → 126 keys, sessions flat,
+audit rows +40 for 40 induced failures.
+
+### The finding: the per-IP login limit is fully bypassable
+
+Measured rather than asserted. Forty login attempts, each from a different
+`X-Forwarded-For` address:
+
+> **40 allowed, 0 refused.** The per-IP ceiling of 10/60 s stopped nothing.
+
+This is not a new fault — it is the documented consequence of
+`TRUSTED_PROXY_HOPS >= 1`, which tells the app to believe the header. What was
+prose is now a number, and the number is 100%.
+
+**What still holds, and what does not:**
+
+- The per-**account** ceiling (8 per 15 minutes) is unaffected, because it is
+  keyed on the email being attacked rather than the source. It is what stops
+  someone working through one account's password list.
+- It does **not** help against spraying *many* accounts from rotating
+  addresses. Both IP-keyed controls — the login limit and the 600/min
+  middleware backstop — are keyed on a value the caller chose.
+- **Detection survives where prevention does not.** All 40 attempts were
+  counted: `action.AUTH_LOGIN_FAILED = 40` against the `auth-failure-spike`
+  threshold of 25, so the alert fires. Prevention is bypassed; visibility is
+  not.
+
+**So the control that actually protects you is the proxy.** This is only safe
+if whatever sits in front of the application **overwrites** `X-Forwarded-For`
+rather than appending to it, and if the app port is unreachable except through
+it. Both are deployment properties, not code properties, and §6 covers the
+Nginx configuration for the first. **Verify them before launch** — and note
+that on this host the app port *is* reachable directly, which is the residual
+Phase 3 recorded.
+
+### What this does NOT establish
+
+- **It is not a penetration test.** It drives controls this project already
+  knows about. Finding nothing is not evidence that nothing is there.
+- **A quiet run is weak evidence.** The strongest security-relevant findings
+  this year came from someone using the product, not from a drill.
+- **One host, local database, no network, no TLS, no real adversary.**
+
+---
+
 ## Secrets (A5)
 
 ### Where they must live
