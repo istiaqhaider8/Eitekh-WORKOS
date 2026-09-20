@@ -871,6 +871,54 @@ statement that backups are missing — it usually means they are correctly store
 **Prefer PITR.** A nightly dump means a bad afternoon costs a day of everyone's work. Use the
 dump as a *second* line, not the only one.
 
+### What PITR actually requires (A1 / Phase 5)
+
+That recommendation stood for several releases without anyone in this project having performed
+a point-in-time recovery. Recommending a recovery mechanism nobody here has exercised is the
+same category of claim as an alert rule that had never fired — it reads as covered, and the
+first time anyone finds out is during an incident. So the procedure is written down, with the
+parts that are easy to get wrong called out.
+
+On a managed Postgres this is a provider feature and most of the below is done for you; read it
+anyway, because the **retention window** and the **restore path** are yours to know before you
+need them.
+
+| Setting | Why it decides whether PITR exists |
+|---|---|
+| `wal_level = replica` | Below this, the WAL does not contain enough to replay. |
+| `archive_mode = on` | Off means WAL is recycled in place and there is nothing to recover *from*. |
+| `archive_command` | The line that does the work. On Linux: `test ! -f /archive/%f && cp %p /archive/%f`. **The `test !` half matters** — a command that silently overwrites an existing segment can destroy the archive it is writing to. |
+| `archive_timeout` | **This is your RPO.** Without it a quiet database sits on a partly filled 16MB segment for hours and everything in it is lost in a total-loss scenario. 60s is a reasonable production value; the cost is one mostly-empty segment per minute. |
+
+Recovery then needs three things in the restored cluster, and leaving out the third is the
+classic mistake:
+
+1. `restore_command`, pointing at the archive.
+2. `recovery_target_time`, with `recovery_target_inclusive = off` — stop *just before* the
+   target, erring towards losing a moment rather than replaying the thing you are recovering
+   from.
+3. **A `recovery.signal` file in the data directory.** Without it an otherwise correct
+   configuration simply starts as a normal server on the old data, and you conclude that PITR
+   failed.
+
+`scripts/pitr-drill.mjs` performs the whole cycle against a throwaway cluster on its own port:
+archive the WAL, take a base backup from a *running* server, write two batches either side of a
+recovery target, kill the primary with `-m immediate`, recover to the target, and check that the
+first batch survived and the second is gone. That last check is the only one a
+restore-from-dump drill cannot also make, and it is the whole difference between the two:
+recovering everything is useless when what you are recovering *from* is in the data.
+
+> **Status: written, not yet run.** The drill exists and parses; it has not been executed, so
+> there are no RTO or RPO numbers from it in this document and none should be quoted. It does
+> not touch the application's database — it initialises its own cluster on ports 54330/54331
+> under a temporary directory — but until someone runs it, the procedure above is documented
+> rather than demonstrated. Treat it accordingly.
+
+It takes the base backup through the low-level API (`pg_backup_start` → copy → `pg_backup_stop`)
+rather than `pg_basebackup`, because the embedded PostgreSQL distribution used for local
+verification ships only `initdb`, `pg_ctl` and `postgres`. That is worth knowing independently:
+it is the fallback when the client binaries are missing on the host that has to recover.
+
 ### Taking a dump
 
 ```bash
@@ -948,8 +996,16 @@ it as `RECORD THIS:` — put it in the table.
 - **The `pg_dump` path has not been rehearsed on a developer machine**, because no PostgreSQL
   client binaries are installed there. It is exercised in CI on every run. Rehearse it on the
   host that will actually run it before relying on it.
-- **Dumps are not encrypted at rest by this script.** If your storage does not encrypt by
-  default, encrypt before upload — the dump contains every tenant's data.
+- ~~**Dumps are not encrypted at rest by this script.**~~ **No longer true.** Set
+  `BACKUP_ENCRYPTION_KEY` to 64 hex characters and the dump is encrypted with AES-256-GCM as it
+  is written, streamed, with the plaintext removed afterwards. `db-restore.mjs` decrypts a
+  `.enc` file automatically given the same key. Encrypting at the point of creation is the only
+  place it is unconditionally true: the file also exists on whatever host took it and travels
+  over whatever copies it off.
+
+  **The key is not `FIELD_ENCRYPTION_KEY`.** A backup that an attacker who took the application
+  key can also read has not moved the risk anywhere. Store it somewhere the dumps are not —
+  a key kept beside the backups protects against nothing that actually happens.
 - **`prisma/dev.db` still holds pre-migration data** (CP-525–529 exist only there) and is not
   covered by any of this.
 

@@ -21,10 +21,9 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, statSync, createReadStream, createWriteStream, rmSync } from "node:fs";
-import { pipeline } from "node:stream/promises";
-import crypto from "node:crypto";
+import { existsSync, statSync, rmSync } from "node:fs";
 import { libpqUrlFor } from "./pg-url.mjs";
+import { decryptFile } from "./backup-crypto.mjs";
 import { createRequire } from "node:module";
 
 const require_ = createRequire(import.meta.url);
@@ -103,22 +102,17 @@ if (file.endsWith(".enc")) {
   if (!keyHex || !/^[0-9a-f]{64}$/i.test(keyHex)) {
     die("This dump is encrypted. Set BACKUP_ENCRYPTION_KEY (64 hex characters) to restore it.", 2);
   }
-  const header = Buffer.alloc(28);
-  const { open } = await import("node:fs/promises");
-  const h = await open(file, "r");
-  await h.read(header, 0, 28, 0);
-  await h.close();
-
-  const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(keyHex, "hex"), header.subarray(0, 12));
-  decipher.setAuthTag(header.subarray(12, 28));
   tempPlaintext = file.replace(/\.enc$/, ".decrypted");
   try {
-    await pipeline(createReadStream(file, { start: 28 }), decipher, createWriteStream(tempPlaintext));
-  } catch {
+    // Same module db-backup.mjs writes with. The byte layout used to be
+    // written out independently in both files, which meant a change to one
+    // would be discovered during a restore and nowhere earlier.
+    await decryptFile(file, tempPlaintext, keyHex);
+  } catch (err) {
     // GCM authentication failed: wrong key, or the file was altered in
-    // transit. Either way it must not be fed to pg_restore.
-    try { if (existsSync(tempPlaintext)) rmSync(tempPlaintext); } catch {}
-    die("Decryption FAILED — wrong key, or the dump was corrupted or tampered with.", 1);
+    // transit. Either way it must not be fed to pg_restore. decryptFile has
+    // already removed the partial output.
+    die(err.message, 1);
   }
   dumpPath = tempPlaintext;
   console.log("[restore] decrypted and authenticated");

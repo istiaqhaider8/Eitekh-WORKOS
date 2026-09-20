@@ -49,11 +49,10 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, rmSync, createReadStream, createWriteStream } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { pipeline } from "node:stream/promises";
-import crypto from "node:crypto";
 import { libpqUrlFor } from "./pg-url.mjs";
+import { encryptFile } from "./backup-crypto.mjs";
 
 const argv = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -148,22 +147,13 @@ if (encKeyHex) {
     die("BACKUP_ENCRYPTION_KEY must be 64 hex characters. The dump was deleted rather than left unencrypted.");
   }
 
-  const key = Buffer.from(encKeyHex, "hex");
-  const iv = crypto.randomBytes(12);
+  // The envelope lives in backup-crypto.mjs, which db-restore.mjs also uses.
+  // It used to be spelled out here and again there — two implementations of
+  // one byte layout, with nothing comparing them. A drift between them would
+  // not fail a build or a backup; it would fail a restore, which is the one
+  // moment there is no second option.
   const encPath = `${file}.enc`;
-  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-
-  // Envelope: [12-byte iv][16-byte tag][ciphertext]. The tag is only known
-  // once the stream ends, so it is written in a second pass over the header.
-  const out = createWriteStream(encPath);
-  out.write(Buffer.alloc(28)); // reserve iv + tag
-  await pipeline(createReadStream(file), cipher, out);
-
-  const tag = cipher.getAuthTag();
-  const { open } = await import("node:fs/promises");
-  const handle = await open(encPath, "r+");
-  await handle.write(Buffer.concat([iv, tag]), 0, 28, 0);
-  await handle.close();
+  await encryptFile(file, encPath, encKeyHex);
 
   rmSync(file);
   finalFile = encPath;
