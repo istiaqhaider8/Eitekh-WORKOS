@@ -16,7 +16,7 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -116,10 +116,64 @@ const migrate = spawnSync("npx", ["prisma", "migrate", "deploy"], {
 });
 if (migrate.status !== 0) fail("prisma migrate deploy failed");
 
-if (!existsSync(".next/BUILD_ID")) {
-  console.log("[integration] no build found; building...");
+/**
+ * Rebuild when the build is MISSING **or** OLDER THAN THE SOURCE.
+ *
+ * This used to check only `existsSync(".next/BUILD_ID")`, and the difference
+ * cost a diagnosis. Increment 3 of the Activate work added three route files
+ * and 24 tests; every one of them came back 404 while the other 13 suites
+ * passed, because the runner happily served the build from the previous
+ * increment. Nothing was wrong with the routes — they did not exist in the
+ * bundle being tested.
+ *
+ * The 404 direction is the embarrassing one, because it is loud. The
+ * dangerous direction is the opposite: delete an authorization guard, run the
+ * suite against a build that still contains it, and every isolation test
+ * passes while the guard is gone from the source. A test suite that can
+ * report on code that is not the code in front of you is worse than no suite,
+ * and "no build found" was never the same question as "is this build current".
+ *
+ * Deliberately a timestamp comparison and not a content hash. It is cheap, it
+ * has no cache to invalidate, and its failure mode is an unnecessary rebuild
+ * rather than a stale one.
+ */
+const BUILD_INPUTS = ["src", "prisma/schema.prisma", "next.config.mjs", "package.json"];
+
+function newestMtime(path) {
+  let newest = 0;
+  const visit = (p) => {
+    let st;
+    try {
+      st = statSync(p);
+    } catch {
+      return; // an optional input that is not present
+    }
+    if (st.isDirectory()) {
+      for (const entry of readdirSync(p)) visit(join(p, entry));
+      return;
+    }
+    if (st.mtimeMs > newest) newest = st.mtimeMs;
+  };
+  visit(path);
+  return newest;
+}
+
+function buildIsStale() {
+  if (!existsSync(".next/BUILD_ID")) return "no build found";
+  const builtAt = statSync(".next/BUILD_ID").mtimeMs;
+  for (const input of BUILD_INPUTS) {
+    if (newestMtime(input) > builtAt) return `${input} is newer than the build`;
+  }
+  return null;
+}
+
+const staleReason = buildIsStale();
+if (staleReason) {
+  console.log(`[integration] ${staleReason}; building...`);
   const build = spawnSync("npm", ["run", "build"], { env, stdio: "inherit", shell: true });
   if (build.status !== 0) fail("build failed");
+} else {
+  console.log("[integration] build is current; reusing it");
 }
 
 // Refuse to start if something already holds the port.

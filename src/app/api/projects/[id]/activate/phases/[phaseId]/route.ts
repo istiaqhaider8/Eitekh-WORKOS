@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activatePhaseUpdateSchema } from "@/lib/validation";
+import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
 
 /**
  * Update a phase: owner, dates, status.
@@ -57,6 +58,18 @@ export async function PATCH(
       );
     }
 
+    /**
+     * Every foreign key the BODY carries must belong to this project.
+     *
+     * This was an inline `ProjectMember` lookup when the route was written. It
+     * moved into `activate-refs.ts` when the deliverable routes needed the
+     * same rule for `phaseId`, `workstreamId` and `issueId` — the third write
+     * path to need it, which is the point at which `issue-relations.ts` says
+     * to share the rule rather than grow a third opinion. The refusal message
+     * is unchanged.
+     */
+    await assertActivateRefsBelongToProject(projectId, { ownerId: body.ownerId });
+
     const data: Record<string, unknown> = { version: { increment: 1 } };
     if (body.name !== undefined) data.name = body.name;
     if (body.status !== undefined) {
@@ -68,26 +81,6 @@ export async function PATCH(
     if (body.ownerId !== undefined) data.ownerId = body.ownerId;
     if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
     if (body.targetDate !== undefined) data.targetDate = body.targetDate ? new Date(body.targetDate) : null;
-
-    /**
-     * An owner must be a member of THIS project.
-     *
-     * Without this a phase could name any user in the system as its owner,
-     * which is a cross-tenant reference dressed up as an assignment — the same
-     * shape as the assignee bug the bulk importer had to guard against.
-     */
-    if (body.ownerId) {
-      const member = await prisma.projectMember.findFirst({
-        where: { projectId, userId: body.ownerId },
-        select: { id: true },
-      });
-      if (!member) {
-        return NextResponse.json(
-          { error: "The owner must be a member of this project." },
-          { status: 400 }
-        );
-      }
-    }
 
     if (body.startDate !== undefined || body.targetDate !== undefined) {
       const existing = await prisma.activatePhase.findUnique({

@@ -1196,3 +1196,39 @@ export const activatePhaseUpdateSchema = z.object({
   // Optimistic locking is opt-in; see the route.
   version: z.coerce.number().int().min(0).optional(),
 });
+
+/**
+ * Workstream status.
+ *
+ * A workstream is never deleted — it spans phases and its deliverables are
+ * history — so "we are not running this one" is a status, not a removal.
+ */
+export const ACTIVATE_WORKSTREAM_STATUSES = ["ACTIVE", "INACTIVE"] as const;
+
+export const activateWorkstreamUpdateSchema = z.object({
+  name: safeStringSchema.trim().min(1).max(120).optional(),
+  status: z.enum(ACTIVATE_WORKSTREAM_STATUSES).optional(),
+  ownerId: optionalCuidSchema,
+});
+
+/**
+ * Linking an issue to a phase as a deliverable.
+ *
+ * `issueId` and `phaseId` are required: a deliverable that names no issue is
+ * nothing, and one that names no phase has nowhere to appear. `workstreamId`
+ * is optional because not every deliverable belongs to a workstream.
+ */
+export const activateDeliverableCreateSchema = z.object({
+  issueId: cuidSchema,
+  phaseId: cuidSchema,
+  workstreamId: optionalCuidSchema,
+  isMandatory: z.boolean().optional(),
+  acceleratorKey: safeStringSchema.trim().max(120).nullable().optional(),
+});
+
+export const activateDeliverableUpdateSchema = z.object({
+  phaseId: cuidSchema.optional(),
+  workstreamId: optionalCuidSchema,
+  isMandatory: z.boolean().optional(),
+  acceleratorKey: safeStringSchema.trim().max(120).nullable().optional(),
+});
