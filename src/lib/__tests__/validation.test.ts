@@ -3,7 +3,7 @@
  * These are pure schema tests — no I/O required.
  */
 
-import { loginSchema, registerSchema, parseBody, paginationSchema, pbacRoleCreateSchema } from "../validation";
+import { loginSchema, registerSchema, parseBody, paginationSchema, pbacRoleCreateSchema, otpVerifySchema } from "../validation";
 
 describe("loginSchema", () => {
   it("accepts valid credentials", () => {
@@ -148,5 +148,84 @@ describe("pbacRoleCreateSchema", () => {
 
   it("rejects an invalid scope", () => {
     expect(pbacRoleCreateSchema.safeParse({ name: "R", scope: "GALAXY", permissions: [] }).success).toBe(false);
+  });
+});
+
+/**
+ * The OTP code field.
+ *
+ * WHAT THIS IS GUARDING
+ *
+ * The pattern was `/^d{6}$/` — a bare `d` instead of `\d`, so it matched the
+ * literal string "dddddd" and nothing else. Every one-time code the
+ * application had ever issued was rejected by this schema before `verifyOtp`
+ * was reached, which meant registration and password reset could not be
+ * completed by anybody, ever.
+ *
+ * It was invisible from every angle that normally catches things. The code was
+ * generated correctly, hashed correctly, stored correctly, emailed correctly
+ * and compared correctly; the OTP logic had no defect at all. The request
+ * never got that far. And the message shown to the user — "Code must be 6
+ * digits" — described a rule the input already satisfied, so the error blamed
+ * the person typing.
+ *
+ * The first test below is the one that matters: a real code must PASS. A test
+ * that only checks rejections would have passed against the broken pattern,
+ * because the broken pattern rejected everything.
+ */
+describe("otpVerifySchema — the code field", () => {
+  const valid = { email: "user@example.com", code: "281799", purpose: "PASSWORD_RESET" as const };
+
+  it("accepts a real six-digit code", () => {
+    const result = otpVerifySchema.safeParse(valid);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a code with leading zeros", () => {
+    // generateOtp() pads to six characters, so "000123" is a code it can
+    // legitimately produce. A regex written as a number range would drop it.
+    expect(otpVerifySchema.safeParse({ ...valid, code: "000123" }).success).toBe(true);
+  });
+
+  it("accepts every digit", () => {
+    expect(otpVerifySchema.safeParse({ ...valid, code: "012345" }).success).toBe(true);
+    expect(otpVerifySchema.safeParse({ ...valid, code: "6789" + "01" }).success).toBe(true);
+  });
+
+  it('rejects the literal string the broken pattern used to accept', () => {
+    // `/^d{6}$/` matched exactly this and nothing else.
+    expect(otpVerifySchema.safeParse({ ...valid, code: "dddddd" }).success).toBe(false);
+  });
+
+  it("rejects the wrong length", () => {
+    expect(otpVerifySchema.safeParse({ ...valid, code: "12345" }).success).toBe(false);
+    expect(otpVerifySchema.safeParse({ ...valid, code: "1234567" }).success).toBe(false);
+    expect(otpVerifySchema.safeParse({ ...valid, code: "" }).success).toBe(false);
+  });
+
+  it("rejects non-digits, including a huge string", () => {
+    expect(otpVerifySchema.safeParse({ ...valid, code: "12a456" }).success).toBe(false);
+    expect(otpVerifySchema.safeParse({ ...valid, code: " 12345" }).success).toBe(false);
+    // The length bound exists so an attacker cannot feed something enormous
+    // into the hash comparison.
+    expect(otpVerifySchema.safeParse({ ...valid, code: "1".repeat(100_000) }).success).toBe(false);
+  });
+
+  it("states a rule the input can actually satisfy", () => {
+    /**
+     * The error text is part of the contract.
+     *
+     * While the pattern was broken this message was actively misleading: it
+     * told the user their six-digit code was not six digits, which sends
+     * people to re-read the email rather than report a bug.
+     */
+    const rejected = otpVerifySchema.safeParse({ ...valid, code: "12345" });
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      const message = rejected.error.issues[0].message;
+      expect(message).toBe("Code must be 6 digits");
+      // And the thing it describes must be accepted.
+      expect(otpVerifySchema.safeParse({ ...valid, code: "123456" }).success).toBe(true);
+    }
   });
 });

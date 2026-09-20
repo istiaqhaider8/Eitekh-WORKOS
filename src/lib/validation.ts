@@ -367,9 +367,21 @@ export const otpRequestSchema = z.object({
 
 export const otpVerifySchema = z.object({
   email: emailSchema,
-  // Six digits. Bounding the length also stops a caller submitting a huge
-  // string to the hash comparison.
-  code: z.string().regex(/^d{6}$/, "Code must be 6 digits"),
+  /**
+   * Six digits. Bounding the length also stops a caller submitting a huge
+   * string to the hash comparison.
+   *
+   * This was `/^d{6}$/` — `d` rather than `\d`, so it matched the literal
+   * string "dddddd" and nothing else. Every OTP the application has ever
+   * issued was rejected here before `verifyOtp` was reached, which made
+   * registration and password reset structurally impossible to complete. The
+   * user-visible symptom was "Code must be 6 digits" shown against a code
+   * that was six digits.
+   *
+   * One character, and no test covered it. `validation.test.ts` now asserts a
+   * real code passes and that the message is not a lie.
+   */
+  code: z.string().regex(/^\d{6}$/, "Code must be 6 digits"),
   purpose: otpPurposeSchema,
 });
 
