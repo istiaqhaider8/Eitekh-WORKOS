@@ -62,6 +62,17 @@ const AnalyticsChartsView = dynamic(
   () => import("@/components/views/AnalyticsChartsView").then((m) => m.AnalyticsChartsView),
   { loading: viewLoading, ssr: false }
 );
+/**
+ * Activate is loaded on demand for the same reason as the views above, and
+ * with more at stake: this route measures 772 kB against a 760 kB budget and
+ * passes only on the ±5% tolerance, so roughly 26 kB is all the headroom that
+ * exists for every future feature combined. A methodology most projects do not
+ * run must not spend any of it on first load.
+ */
+const ActivateWorkspace = dynamic(
+  () => import("@/components/activate/ActivateWorkspace").then((m) => m.ActivateWorkspace),
+  { loading: viewLoading, ssr: false }
+);
 import { IssueDetailModal } from "@/components/issues/IssueDetailModal";
 import { TeamManagementModal } from "@/components/teams/TeamManagementModal";
 import { BulkImportModal } from "@/components/import/BulkImportModal";
@@ -99,6 +110,7 @@ import {
   Layers,
   Clock,
   BarChart3,
+  Target,
   PieChart,
   ChevronDown,
   SlidersHorizontal,
@@ -251,6 +263,15 @@ export function ProjectClient({
       workload: "workload:view",
       charts: "analytics:view",
       dashboard: "reports:view",
+      /**
+       * No PROJECT-scoped system role grants any activate:* permission today,
+       * so in practice this tab is visible to organization owners and admins,
+       * who derive the org-admin role and with it every key. That is a
+       * deliberate conservative default for a governance feature rather than
+       * an oversight — see the increment 4 notes. Widening it is a PBAC
+       * decision, not a UI one.
+       */
+      activate: "activate:view",
     };
     const perm = permMap[viewId];
     return perm ? currentUser.capabilities.includes(perm) : true;
@@ -1521,6 +1542,17 @@ export function ProjectClient({
               { id: "workload", label: "Workload", icon: Users },
               { id: "charts", label: "Analytics", icon: PieChart },
               { id: "dashboard", label: "Reports", icon: BarChart3 },
+              /**
+               * Shown whenever the user holds `activate:view`, WITHOUT first
+               * asking the server whether this project has Activate enabled.
+               * That check would be an extra request on every project load,
+               * including the majority that will never use the methodology —
+               * and the API was deliberately built to return
+               * `{ enabled: false }` rather than 404 so a client can render
+               * the enable affordance without a failed request being the
+               * normal path. The workspace itself decides what to show.
+               */
+              { id: "activate", label: "Activate", icon: Target },
             ].filter((v) => canAccessView(v.id)).map((v) => {
               const Icon = v.icon;
               const isSelected = activeView === v.id;
@@ -1728,6 +1760,19 @@ export function ProjectClient({
                   onRefresh={refreshIssues}
                   lastSyncTimestamp={lastSyncTimestamp}
                   syncStatus={syncStatus}
+                />
+              )}
+
+              {activeView === "activate" && (
+                <ActivateWorkspace
+                  projectId={currentProject.id}
+                  capabilities={
+                    Array.isArray(currentUser?.capabilities) ? currentUser.capabilities : []
+                  }
+                  // A deliverable is an issue, so it opens in the same modal
+                  // everything else does rather than in a parallel detail view
+                  // that would drift from it.
+                  onOpenIssue={(issueId) => setSelectedIssueId(issueId)}
                 />
               )}
             </>

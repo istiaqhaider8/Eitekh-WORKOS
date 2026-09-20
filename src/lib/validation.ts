@@ -1226,11 +1226,27 @@ export const activateDeliverableCreateSchema = z.object({
   acceleratorKey: safeStringSchema.trim().max(120).nullable().optional(),
 });
 
+/**
+ * Fit-to-standard outcomes.
+ *
+ * FIT — the standard solution covers it. GAP — it does not, and something has
+ * to be built or changed. ACCEPTED_GAP — it does not, and the business has
+ * decided to live with that. The third is the one that matters at a gate: an
+ * accepted gap is a decision with somebody's name on it, not an outstanding
+ * task, and a gate review that cannot tell those apart is not a review.
+ *
+ * Nullable is a real state, not a missing value: most of a backlog has not
+ * been through a workshop yet, and that must stay distinguishable from "we
+ * looked at it and it fits".
+ */
+export const ACTIVATE_FIT_GAP_STATUSES = ["FIT", "GAP", "ACCEPTED_GAP"] as const;
+
 export const activateDeliverableUpdateSchema = z.object({
   phaseId: cuidSchema.optional(),
   workstreamId: optionalCuidSchema,
   isMandatory: z.boolean().optional(),
   acceleratorKey: safeStringSchema.trim().max(120).nullable().optional(),
+  fitGapStatus: z.enum(ACTIVATE_FIT_GAP_STATUSES).nullable().optional(),
 });
 
 // ── SAP Activate: quality gates ──────────────────────────────────

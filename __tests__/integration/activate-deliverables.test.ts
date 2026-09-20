@@ -408,6 +408,77 @@ describe("Deliverable links", () => {
     expect(res.status).toBe(400);
   });
 
+  // --- fit-to-standard classification (increment 5) -------------------------
+
+  it("records a fit-to-standard outcome", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
+      { method: "PATCH", body: { fitGapStatus: "ACCEPTED_GAP" } }
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.deliverable.fitGapStatus).toBe("ACCEPTED_GAP");
+
+    const row = await prisma.activateDeliverableLink.findUnique({
+      where: { id: linkId },
+      select: { fitGapStatus: true },
+    });
+    expect(row?.fitGapStatus).toBe("ACCEPTED_GAP");
+  });
+
+  it("withdraws a classification back to unassessed, which is not FIT", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
+      { method: "PATCH", body: { fitGapStatus: null } }
+    );
+    expect(res.status).toBe(200);
+    // Null is a real state — "no workshop has happened" — and must stay
+    // distinguishable from "we looked at it and the standard fits".
+    expect(res.body.deliverable.fitGapStatus).toBeNull();
+  });
+
+  it("surfaces the classification in the list payload", async () => {
+    await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
+      { method: "PATCH", body: { fitGapStatus: "GAP" } }
+    );
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/deliverables`
+    );
+    expect(res.status).toBe(200);
+    const found = res.body.deliverables.find((d: any) => d.id === linkId);
+    expect(found.fitGapStatus).toBe("GAP");
+  });
+
+  it("rejects a classification outside the allowed set with 400, not 500", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
+      { method: "PATCH", body: { fitGapStatus: "PROBABLY_FINE" } }
+    );
+    // The column is TEXT so the database would accept anything; the Zod schema
+    // at the API edge is the only thing standing between it and the vocabulary.
+    expect(res.status).toBe(400);
+
+    const row = await prisma.activateDeliverableLink.findUnique({
+      where: { id: linkId },
+      select: { fitGapStatus: true },
+    });
+    expect(row?.fitGapStatus).toBe("GAP");
+  });
+
+  it("refuses a VIEWER classifying a deliverable", async () => {
+    const res = await api(
+      fx.orgA.users.VIEWER,
+      `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
+      { method: "PATCH", body: { fitGapStatus: "FIT" } }
+    );
+    expectDenied(res, "a VIEWER classifying a deliverable");
+  });
+
   it("unlinks without deleting the issue", async () => {
     const res = await api(
       fx.orgA.users.OWNER,

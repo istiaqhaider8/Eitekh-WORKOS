@@ -1352,6 +1352,12 @@ model ActivateDeliverableLink {
   isMandatory    Boolean  @default(false)
   /// Identifies the SAP accelerator this deliverable was created from.
   acceleratorKey String?
+  /// FIT | GAP | ACCEPTED_GAP — the outcome of a fit-to-standard workshop.
+  /// Null means the item has not been through one yet, which is a real and
+  /// common state during Explore, so it is not defaulted to FIT: recording
+  /// "we looked at this and it fits" is a decision somebody made, and it must
+  /// not be indistinguishable from nobody having looked.
+  fitGapStatus   String?
   createdAt      DateTime @default(now())
 
   issue      Issue               @relation(fields: [issueId], references: [id], onDelete: Cascade)

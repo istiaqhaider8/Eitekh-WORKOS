@@ -57,6 +57,9 @@ export async function PATCH(
     if (body.workstreamId !== undefined) data.workstreamId = body.workstreamId;
     if (body.isMandatory !== undefined) data.isMandatory = body.isMandatory;
     if (body.acceleratorKey !== undefined) data.acceleratorKey = body.acceleratorKey;
+    // Nullable on purpose: a classification can be withdrawn back to "not yet
+    // assessed", which is different from classifying it as FIT.
+    if (body.fitGapStatus !== undefined) data.fitGapStatus = body.fitGapStatus;
 
     const updated = await prisma.activateDeliverableLink.update({
       where: { id: linkId },
@@ -68,6 +71,7 @@ export async function PATCH(
         workstreamId: true,
         isMandatory: true,
         acceleratorKey: true,
+        fitGapStatus: true,
       },
     });
 

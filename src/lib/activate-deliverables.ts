@@ -90,6 +90,7 @@ export async function listDeliverables(
         id: true,
         isMandatory: true,
         acceleratorKey: true,
+        fitGapStatus: true,
         createdAt: true,
         phase: { select: { id: true, key: true, name: true, position: true } },
         workstream: { select: { id: true, key: true, name: true } },
