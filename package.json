@@ -26,7 +26,9 @@
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "check:a11y": "node scripts/check-a11y.mjs",
     "test:a11y": "node scripts/run-axe.mjs",
-    "test:a11y:update": "node scripts/run-axe.mjs --update"
+    "test:a11y:update": "node scripts/run-axe.mjs --update",
+    "start:local": "node scripts/start-local.mjs",
+    "start:local:mail": "node scripts/start-local.mjs --mail"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",

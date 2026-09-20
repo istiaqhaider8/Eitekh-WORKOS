@@ -188,19 +188,44 @@ console.log(`[load] ${CONCURRENCY} concurrent workers for ${DURATION_S}s${SOAK ?
 // authenticated traffic per user, so sharing one identity across ten workers
 // would measure the limiter refusing us rather than the application serving us.
 // ---------------------------------------------------------------------------
+/**
+ * SSE clients need their OWN identities, for the same reason the workers do.
+ *
+ * They used to reuse the workers' sessions (`sessions[i % sessions.length]`),
+ * so with 25 streams over 15 workers, ten users each held two streams AND
+ * their full API journey load on one user and one source address. That is the
+ * exact mistake the comment above warns about, made one function further
+ * down — and it measured the rate limiter refusing us.
+ *
+ * The consequence was a failed run that looked like an application fault:
+ * 3,236 of 38,617 requests came back 429 at an average load of ~57 reads/min
+ * against a 100/min per-user ceiling. The average did not predict it because
+ * the ceiling was not being charged to the identity the arithmetic assumed.
+ *
+ * So SSE clients are drawn from identities BEYOND the worker pool. In
+ * production a user watching a board is a different person from the user
+ * hammering the API, and the harness should model that rather than
+ * accidentally stacking both onto one budget.
+ */
+const IDENTITIES_NEEDED = CONCURRENCY + SSE_CLIENTS;
+
 const members = await prisma.projectMember.findMany({
-  take: CONCURRENCY,
+  take: IDENTITIES_NEEDED,
   distinct: ["userId"],
   include: { user: { select: { id: true, email: true } }, project: { select: { id: true } } },
 });
 
-if (members.length < CONCURRENCY) {
-  console.error(`Only ${members.length} project members in the dataset; need ${CONCURRENCY}.`);
+if (members.length < IDENTITIES_NEEDED) {
+  console.error(
+    `Only ${members.length} project members in the dataset; need ${IDENTITIES_NEEDED} ` +
+      `(${CONCURRENCY} worker(s) + ${SSE_CLIENTS} SSE client(s), each requiring its own user ` +
+      `so the rate limiter is not what gets measured).`
+  );
   process.exit(2);
 }
 
 const stamp = Date.now().toString(36);
-const sessions = [];
+const allIdentities = [];
 for (let i = 0; i < members.length; i += 1) {
   const m = members[i];
   const sessionId = `load_${stamp}_${i}`;
@@ -217,7 +242,7 @@ for (let i = 0; i < members.length; i += 1) {
   // reads/min), which fired on 40% of a run and made the latencies describe
   // refusals. In production those users arrive from 40 addresses; this models
   // that. Anyone re-running from several hosts can drop it.
-  sessions.push({
+  allIdentities.push({
     token,
     sessionId,
     projectId: m.project.id,
@@ -225,6 +250,13 @@ for (let i = 0; i < members.length; i += 1) {
     ip: `10.${40 + Math.floor(i / 250)}.${Math.floor(i / 250) % 250}.${(i % 250) + 1}`,
   });
 }
+
+/**
+ * The first CONCURRENCY identities drive the API journeys; the rest hold SSE
+ * streams. Disjoint on purpose — see the note above.
+ */
+const sessions = allIdentities.slice(0, CONCURRENCY);
+const sseSessions = allIdentities.slice(CONCURRENCY);
 
 // A pool of issues to open and update, drawn from the projects the workers can
 // actually see.
@@ -376,7 +408,8 @@ let sseClosed = 0;
 let sseFailed = 0;
 
 function openSseClient(i) {
-  const s = sessions[i % sessions.length];
+  // Its own identity, disjoint from the API workers'.
+  const s = sseSessions[i % sseSessions.length];
   const ac = new AbortController();
   sseOpen.set(i, ac);
   sseOpened += 1;

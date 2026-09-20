@@ -1188,14 +1188,103 @@ Both cost a run, and both are the kind of thing that makes a load test report co
 The harness fails the run when success drops below 95%, so a repeat of either mistake is loud
 rather than silent.
 
+### The full two-hour soak (2026-09-20)
+
+The 6-minute run above was evidence against a *fast* leak and said nothing about a slow one. This
+is the real thing: **7,201 seconds, 86,315 requests, 98.3% success, exit 0.**
+
+| Journey | p50 | p95 | p99 |
+|---|---|---|---|
+| Board load | 64 ms | 110 ms | 142 ms |
+| Issue open | 68 ms | 114 ms | 147 ms |
+| Issue update | 82 ms | 143 ms | 189 ms |
+| Search | 35 ms | 64 ms | 102 ms |
+
+**Nothing leaked, and that is the only question a soak answers.** Raw RSS moved 273 → 290 MB, but
+the settled drift — median of the first and last tenth, after a 20% warm-up — was **305 → 291 MB,
+−4.8%**. It went *down*. Every in-process registry stayed flat: `capabilityCache` pinned at 40,
+`inFlightLoads` and `auditLogBuffer` drained to 0, `sync.openConnections` at 0. Database latency
+held at 1 ms end to end.
+
+**It also ran 13× past the point where earlier attempts died.** Three previous runs at concurrency
+40 failed near 9 minutes with Postgres unable to fork backends. Step tests then showed concurrency
+40 surviving 75 seconds at 96.4% success, so that failure was never a load ceiling — it was
+time-and-resource dependent, and it did not recur.
+
+#### Read these caveats before quoting the numbers
+
+- **Concurrency 15, not the 40 used for the baselines above.** Chosen deliberately as a level this
+  host sustains for two hours. The p95s are therefore not comparable with the 40-user table.
+- **A 124-second maximum** appears on board load and issue open, against a p99 of ~145 ms. It is
+  **not attributed to the application**: `tsc`, the full Jest suite and other Node processes were
+  running on the same machine during the soak. It needs a clean run on an idle host before it means
+  anything, and until then it is an open question rather than a finding.
+- **Database connections drifted 24 → 35, peak 36.** It stabilised, so it is not a leak — but it
+  does not match the ~25 pool default described above, and nobody has reconciled the two. The run
+  was made *before* `connection_limit` was set explicitly.
+
+#### It also found a real bug — since fixed
+
+**1,441 of 21,579 issue updates returned HTTP 400** — 6.7%, and not the harness's fault. The
+journey sends only `{description}`, but the date check computes *effective* values, falling back to
+the issue's stored dates when the body omits them. So any issue whose stored `dueDate` precedes its
+`startDate` rejects **every** update, including ones touching no dates at all, with "Due Date cannot
+be earlier than Start Date".
+
+Confirmed in the data: **1,371 of 20,000 issues (6.9%) have inverted dates**, which matches the
+failure count. Any issue that ever acquired bad dates is permanently uneditable, and the error
+blames fields the user never sent. The validation is right to exist; applying it to unchanged
+stored values is the defect.
+
+**Fixed** in `src/lib/issue-dates.ts`: the order is validated only when the request supplies at
+least one of the two dates. Confirmed by the SSE run above — **zero 400s** on issue update where
+there had been 1,441.
+
+### Real-time fan-out under load (2026-09-20)
+
+The runs above opened **no** SSE streams, so `openConnections` sat at 0 and the harness printed
+its own warning that the number meant nothing. `realtime-degraded` is a live alert rule watching
+a feature that had never been under load. This run closes that.
+
+45 minutes, concurrency 15, **25 SSE streams with a quarter recycled every 30 seconds** — roughly
+90 disconnect/reconnect cycles. 37,737 requests, **100.0% success**, every response a 200.
+
+| Journey | p50 | p95 | p99 | max |
+|---|---|---|---|---|
+| Board load | 57 ms | 134 ms | 221 ms | 589 ms |
+| Issue open | 61 ms | 145 ms | 265 ms | 706 ms |
+| Issue update | 75 ms | 187 ms | 328 ms | 980 ms |
+| Search | 32 ms | 75 ms | 163 ms | 358 ms |
+
+**No connection leak, and this is the definitive part.** `565 opened, 565 recycled, 0 failed`,
+and `sse drift +0 vs the 25 expected to be held`. Every disconnect was reclaimed across ~90
+cycles; `sync.openConnections` returned to exactly 25.
+
+**Memory is inconclusive, and saying otherwise would be overclaiming.** Settled drift was
+**+11.0%** (284 → 315 MB), against **−4.8%** for the two-hour run without SSE. Raw RSS actually
+*fell* over the run (333 → 316 MB), so the two measures disagree. Part of the rise is explained
+and bounded: the extra SSE identities belong to a second organisation, so PBAC loaded a second
+tenant's state mid-run — `roles` 6 → 12, `initializedOrgs` 1 → 2, and the other org-keyed
+registries likewise doubled. That is a one-time load, not growth. Twenty-five held connections
+also legitimately cost memory. What 45 minutes cannot distinguish is a higher plateau from slow
+growth. **Run this for two hours before treating SSE memory as settled.**
+
+#### Two mistakes this run cost, both worth not repeating
+
+- **`TRUSTED_PROXY_HOPS=0` makes a load test measure the rate limiter.** At 0,
+  `clientIpFromForwarded` ignores `X-Forwarded-For` entirely — correct for a directly exposed
+  server — so every synthetic per-worker address collapses into one apparent client and the
+  600 reads/min IP backstop starts refusing traffic the per-user ceiling would have allowed.
+  A launcher script hardcoded it, and a soak came back at **91.7% with ~8% 429s** looking exactly
+  like an application capacity limit. It was configuration. `scripts/start-local.mjs` now
+  inherits the value and says why.
+- **SSE clients need their own identities.** `openSseClient` reused the workers' sessions, so 25
+  streams over 15 workers put two streams plus a full journey load on single users — the precise
+  mistake the "each worker gets its OWN user" comment warns about, made one function further down.
+  Fixed; it was not the cause of the 429s, but it would have become one.
+
 ### What this does NOT establish
 
-- **The soak was 6 minutes, not the 2 hours the plan called for.** Nothing drifted in that window,
-  which is evidence against a fast leak and says nothing about a slow one. Run the full soak on the
-  target host.
-- **No SSE leak was proven.** No journey opens a real-time stream, so `openConnections` stayed at 0
-  throughout. The check is wired and reported; it has not been exercised. Add a streaming journey
-  before trusting it.
 - **This is a single Node process driving load**, not a real generator. It becomes the bottleneck
   before k6 would, so treat the p95s as a floor on latency rather than a ceiling on capacity, and
   re-measure with k6 or Artillery before quoting a number to anyone.
