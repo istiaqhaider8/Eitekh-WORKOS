@@ -149,10 +149,19 @@ export const ALERT_RULES: AlertRule[] = [
   },
 ];
 
+/** A rule that crossed its threshold but was muted by its cooldown. */
+export interface SuppressedAlert {
+  id: string;
+  value: number;
+  threshold: number;
+  cooldownEndsAt: string;
+}
+
 const COOLDOWN_MS = 15 * 60_000;
 
 let previous: Record<string, number> = {};
 let lastFiredAt: Record<string, number> = {};
+let lastSuppressed: SuppressedAlert[] = [];
 
 function sum(snapshot: Record<string, number>, keys: string[]): number {
   return keys.reduce((acc, k) => acc + (snapshot[k] ?? 0), 0);
@@ -167,6 +176,7 @@ function sum(snapshot: Record<string, number>, keys: string[]): number {
 export function evaluateAlerts(now = Date.now()): AlertFiring[] {
   const snapshot = counters.snapshot() as unknown as Record<string, number>;
   const firings: AlertFiring[] = [];
+  const suppressed: SuppressedAlert[] = [];
 
   for (const rule of ALERT_RULES) {
     const current = sum(snapshot, rule.keys);
@@ -175,6 +185,25 @@ export function evaluateAlerts(now = Date.now()): AlertFiring[] {
 
     if (delta > rule.threshold) {
       const cooling = (lastFiredAt[rule.id] ?? 0) + COOLDOWN_MS > now;
+      if (cooling) {
+        /**
+         * A rule that crossed its threshold and was muted used to leave no
+         * trace at all, which makes two very different situations look
+         * identical from outside: a rule that is working and cooling, and a
+         * rule that cannot fire. Phase 7's soak reported the credential-
+         * stuffing rule as broken on exactly this basis — it had fired
+         * minutes earlier during unrelated testing.
+         *
+         * It also answers the question an on-call engineer actually asks
+         * after an incident: "why did this not page me?"
+         */
+        suppressed.push({
+          id: rule.id,
+          value: delta,
+          threshold: rule.threshold,
+          cooldownEndsAt: new Date((lastFiredAt[rule.id] ?? 0) + COOLDOWN_MS).toISOString(),
+        });
+      }
       if (!cooling) {
         lastFiredAt[rule.id] = now;
         firings.push({
@@ -191,7 +220,20 @@ export function evaluateAlerts(now = Date.now()): AlertFiring[] {
   }
 
   previous = snapshot;
+  lastSuppressed = suppressed;
   return firings;
+}
+
+/**
+ * Rules that crossed their threshold at the last evaluation but were muted by
+ * their cooldown.
+ *
+ * Exposed separately rather than folded into the return value, because
+ * `evaluateAlerts()` returning an array is relied on by every caller and its
+ * tests; widening it would be a breaking change for no gain.
+ */
+export function getSuppressedAlerts(): SuppressedAlert[] {
+  return lastSuppressed;
 }
 
 /**
@@ -207,6 +249,7 @@ export function evaluateAlerts(now = Date.now()): AlertFiring[] {
 export function __resetAlertStateForTests(opts?: { keepBaseline?: boolean }): void {
   if (!opts?.keepBaseline) previous = {};
   lastFiredAt = {};
+  lastSuppressed = [];
 }
 
 export function isAlertingConfigured(): boolean {

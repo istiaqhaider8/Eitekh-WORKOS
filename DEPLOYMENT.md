@@ -272,6 +272,31 @@ X-Forwarded-For: 203.0.113.10   ->  remaining 99, 98, 97
 X-Forwarded-For: 198.51.100.77  ->  remaining 99, 98, 97   <- a new budget
 ```
 
+#### At `0`, a credential-stuffing run silences the alert that would detect it
+
+Found by the Phase 7 soak, and measured both ways rather than reasoned about:
+
+```
+TRUSTED_PROXY_HOPS=0   120 failed logins  ->  POST /api/internal/alerts/check  429
+TRUSTED_PROXY_HOPS=1   120 failed logins  ->  POST /api/internal/alerts/check  200
+```
+
+At `0` no client address can be established, so **every unauthenticated request
+shares one bucket** — including the alerting cron. The attacker's traffic and
+the evaluation that would notice it draw from the same allowance, so filling it
+mutes the detector. `auth-failure-spike` is precisely the rule aimed at that
+attack, and it cannot run if the endpoint that evaluates it is refused.
+
+At `1` the buckets are per client address, the cron has its own, and the same
+burst leaves it untouched.
+
+This does not make `0` unsafe on its own — it is the correct setting for a
+directly exposed server, and the per-account ceiling still holds. But the boot
+warning calls it "safe but blunt", and blunt undersells this: the consequence
+is a specific, reproducible loss of detection. **If the app is behind anything,
+set the real hop count.** If it genuinely is not, give the alerting cron a
+route that does not share the public bucket.
+
 The per-IP ceiling is what stands in front of the unauthenticated routes, so
 that was a bypass of login throttling. The chain is now read from the right,
 by the configured hop count.

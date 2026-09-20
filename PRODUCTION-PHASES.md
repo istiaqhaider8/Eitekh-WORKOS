@@ -19,7 +19,7 @@
 | 4 | Alerting and scheduler | Done | `scripts/alert-drill.mjs` 11/11, real payload delivered; units in `deploy/` |
 | 5 | Durability | Done | `scripts/pitr-drill.mjs` 9/9; RTO 3.2 s / 4.2 s measured |
 | 6 | Capacity and soak | Done | 2 h at 98.3%; 45 min with 25 SSE streams at 100.0% |
-| 7 | **Security soak** | **In progress** | `scripts/security-soak.mjs` |
+| 7 | Security soak | Done | `scripts/security-soak.mjs` 14/14; 111,830 cross-tenant and 178,928 escalation probes, 0 leaks |
 
 Each phase's detail, numbers and — importantly — what it does **not**
 establish, live in `DEPLOYMENT.md`. Nothing here supersedes those caveats.
@@ -74,6 +74,69 @@ results that are uncomfortable.
 | Session lifecycle | Are expired and deleted sessions refused? | Partly |
 | Audit integrity | Does every security event actually produce a row? | Yes |
 | Unbounded growth | Do `RateLimitCounter`, `Session` or audit tables grow without limit? | Yes |
+
+### The run
+
+900 s at concurrency 8, against the standalone build on the volume database
+(121 users, 3 orgs, 50 projects, 20,000 issues), `TRUSTED_PROXY_HOPS=1`.
+
+```
+14 passed, 0 failed
+
+cross-tenant attempts    111,830 (22,366 rounds)   leaks 0
+privilege escalation     178,928 attempts          reached an admin route 0
+rateLimitCounter keys    244 -> 14 over 30 samples (peak 244)
+sessions                 3 -> 3
+account ceiling          17/25 refused, 17 audit rows written (1:1)
+limiter across windows   6/6 passes reached the ceiling
+auth-failure-spike       FIRED, then suppressed by its own cooldown
+alerts/check during a burst  200 -> 200
+```
+
+The rate-limit table is the one worth looking at twice: 244 keys down to 14
+across the run, peaking at 244. The probabilistic sweep (1 in 500 requests)
+drains it, so it holds a plateau rather than climbing — which is what the
+"unbounded growth" question was asked to settle.
+
+Two numbers are reported rather than asserted, and both are residuals that
+were already understood: rotating `X-Forwarded-For` still gets 40/40 logins
+past the per-IP ceiling at `hops >= 1` (the per-account ceiling is what holds
+there, and it did), and `ALERT_WEBHOOK_URL` is unset on this target, so a
+firing evaluates correctly and then goes nowhere.
+
+### What it found
+
+**A credential-stuffing run can silence the alert that detects it — at
+`TRUSTED_PROXY_HOPS=0`.** `/api/internal/alerts/check` sits behind the same
+generic read backstop as public traffic, and with no trusted proxy every
+unauthenticated request shares one bucket. Measured both ways:
+
+```
+hops=0   120 failed logins -> alerts/check 429   (detector starved)
+hops=1   120 failed logins -> alerts/check 200   (unaffected)
+```
+
+Mitigated by the production proxy setting, so it is a configuration hazard
+rather than a defect — but the boot warning described `0` as "safe but blunt",
+which undersells a reproducible loss of detection. Written up in
+`DEPLOYMENT.md` under *Trusting the client address*, and now asserted by the
+soak whenever it runs against a target with `hops >= 1`.
+
+**A muted alert was indistinguishable from a broken one.** The soak reported
+`auth-failure-spike` as failing to fire. It was not broken: it had fired
+legitimately minutes earlier during unrelated testing and was inside its
+15-minute cooldown, and a suppressed rule left no trace anywhere. That is a
+false alarm on a critical control, which is the kind of result that teaches
+people to ignore a drill.
+
+`evaluateAlerts()` now records rules that crossed their threshold while
+cooling, `/api/internal/alerts/check` returns them as `suppressed`, and the
+soak reports that case as **inconclusive** rather than failed — an unexercised
+control is not a passing one. The same field answers the question asked after
+an incident: why did this not page anyone?
+
+Verified on a clean process afterwards: 30 failed logins →
+`fired: auth-failure-spike, value 30, threshold 25`.
 
 ### What this phase will NOT claim
 

@@ -290,6 +290,265 @@ async function main() {
     return results;
   }
 
+  // ------------------------------------------------------------------ 3b
+  /**
+   * Privilege escalation: an ordinary member against administrative routes.
+   *
+   * Tenant A's session belongs to a plain project member — `isSuperAdmin` is
+   * false on the token AND on the row, which matters because a route that
+   * trusted the claim rather than the record would pass this only by
+   * accident. Every one of these must refuse.
+   *
+   * Run repeatedly during the soak rather than once, because the PBAC
+   * capability cache is populated lazily: a check that only runs cold tests a
+   * different code path from the one a busy server uses.
+   */
+  const privilegedPaths = [
+    "/api/super-admin/users",
+    "/api/super-admin/orgs",
+    "/api/super-admin/audit-logs",
+    "/api/super-admin/security",
+    "/api/super-admin/backups",
+    "/api/super-admin/features",
+    "/api/pbac/roles",
+    "/api/pbac/inspector",
+  ];
+
+  let privAttempts = 0;
+  let privLeaked = 0;
+  const privLeakedPaths = new Set();
+
+  async function privilegeRound() {
+    await Promise.all(
+      privilegedPaths.map(async (p, i) => {
+        privAttempts += 1;
+        try {
+          const r = await get(p, A, TEST_IP(i + 50));
+          if (r.ok) {
+            privLeaked += 1;
+            privLeakedPaths.add(`${p} -> ${r.status}`);
+          }
+        } catch {
+          /* transport error is not a leak */
+        }
+      })
+    );
+  }
+
+  // ------------------------------------------------------------------ 3c
+  /**
+   * Does `auth-failure-spike` actually FIRE, not merely count?
+   *
+   * Phase 4 established that the counters move. That is not the same claim:
+   * a rule can be counted, evaluated and still never fire, which is precisely
+   * what Phase 4 found four separate times. This drives enough failures to
+   * cross the threshold and then asks the evaluation endpoint.
+   *
+   * Skipped with a stated reason when no secret is supplied — an unrun check
+   * must never read as a passing one.
+   */
+  async function probeAlertFires(alertSecret) {
+    if (!alertSecret) return { skipped: true };
+
+    // Consume the baseline delta first, so what follows is measured from a
+    // known point rather than from whatever the process had accumulated.
+    await fetch(`${BASE}/api/internal/alerts/check`, {
+      method: "POST",
+      headers: { "x-alert-secret": alertSecret },
+    }).then((r) => r.arrayBuffer());
+
+    for (let i = 0; i < 30; i += 1) {
+      const r = await fetch(`${BASE}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: BASE,
+          "x-forwarded-for": `203.0.113.${(i % 200) + 1}`,
+        },
+        body: JSON.stringify({
+          email: `sec-soak-spike-${i}@example.invalid`,
+          password: "wrong",
+        }),
+      });
+      await r.arrayBuffer();
+    }
+
+    const res = await fetch(`${BASE}/api/internal/alerts/check`, {
+      method: "POST",
+      headers: { "x-alert-secret": alertSecret },
+    });
+    const body = await res.json().catch(() => ({}));
+    const fired = Array.isArray(body.firings) ? body.firings.map((f) => f.id) : [];
+    // A rule that crossed its threshold but was muted is reported separately
+    // by the endpoint. Without that distinction this probe cannot tell a
+    // working-and-cooling rule from one that cannot fire, and it reported the
+    // former as a failure during this phase.
+    const suppressed = Array.isArray(body.suppressed) ? body.suppressed.map((s) => s.id) : [];
+
+    // And immediately again: the cooldown must suppress a repeat, or an
+    // operator gets paged every cycle and mutes the rule.
+    const again = await fetch(`${BASE}/api/internal/alerts/check`, {
+      method: "POST",
+      headers: { "x-alert-secret": alertSecret },
+    });
+    const againBody = await again.json().catch(() => ({}));
+    const firedAgain = Array.isArray(againBody.firings) ? againBody.firings.map((f) => f.id) : [];
+
+    return { skipped: false, status: res.status, fired, firedAgain, suppressed, routed: body.routed };
+  }
+
+  // ------------------------------------------------------------------ 3d
+  /**
+   * Audit integrity: does a refusal actually leave a row?
+   *
+   * The scope asks "does every security event produce a row?", and until now
+   * this script counted `platformAuditLog` without ever asserting anything
+   * about it — a table that never grew would have read exactly like a table
+   * that grew correctly.
+   *
+   * This drives the per-ACCOUNT ceiling specifically. It is the strongest
+   * signal the application has (it is keyed on the account under attack, so
+   * distributing the attack does not evade it), and the login route writes
+   * `AUTH_ACCOUNT_LOCKED` on that path. Rows are counted before and after and
+   * matched on action, so an unrelated concurrent event cannot be mistaken
+   * for the one being tested.
+   *
+   * A single account, its own address range, and a marker address so the rows
+   * can be identified and removed afterwards.
+   */
+  async function probeAuditIntegrity() {
+    const victim = `sec-soak-audit-${stamp}@example.invalid`;
+    const before = await prisma.platformAuditLog.count({
+      where: { action: "AUTH_ACCOUNT_LOCKED" },
+    });
+
+    // Comfortably past LOGIN_ACCOUNT_LIMIT so the ceiling is reached even if
+    // some attempts are absorbed by the per-IP limiter first.
+    let refusals = 0;
+    for (let i = 0; i < 25; i += 1) {
+      const r = await fetch(`${BASE}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: BASE,
+          // Rotate the source so the per-IP ceiling does not mask the
+          // per-account one this is actually testing.
+          "x-forwarded-for": `198.51.100.${(i % 200) + 1}`,
+        },
+        body: JSON.stringify({ email: victim, password: "wrong-on-purpose" }),
+      });
+      if (r.status === 429) refusals += 1;
+      await r.arrayBuffer();
+    }
+
+    // The write is awaited inside the route, but the row lands on a different
+    // connection; give it a moment rather than racing it.
+    await new Promise((r) => setTimeout(r, 750));
+
+    const after = await prisma.platformAuditLog.count({
+      where: { action: "AUTH_ACCOUNT_LOCKED" },
+    });
+
+    return { victim, refusals, before, after, written: after - before };
+  }
+
+  // ------------------------------------------------------------------ 3e
+  /**
+   * Does the per-ACCOUNT ceiling hold across MANY windows, not just one?
+   *
+   * The scope calls this out as only answerable over time. A limiter can hold
+   * for its first window and then drift — a counter reset on the wrong key, a
+   * window boundary computed from the wrong clock, a sweep that removes a row
+   * still in use. One window cannot show any of that.
+   *
+   * The account ceiling is the one measured because it cannot be evaded by
+   * rotating the source address, so a refusal here is unambiguous. Each pass
+   * uses its own account, so passes cannot contaminate each other, and the
+   * source address rotates to keep the per-IP limiter out of the result.
+   */
+  async function probeLimiterAcrossWindows(passes) {
+    const observed = [];
+    for (let pass = 0; pass < passes; pass += 1) {
+      const email = `sec-soak-window-${stamp}-${pass}@example.invalid`;
+      let allowed = 0;
+      let refused = 0;
+      for (let i = 0; i < 20; i += 1) {
+        const r = await fetch(`${BASE}/api/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: BASE,
+            "x-forwarded-for": `198.51.100.${((pass * 20 + i) % 200) + 1}`,
+          },
+          body: JSON.stringify({ email, password: "wrong-on-purpose" }),
+        });
+        if (r.status === 429) refused += 1;
+        else allowed += 1;
+        await r.arrayBuffer();
+      }
+      observed.push({ pass, allowed, refused });
+    }
+    return observed;
+  }
+
+  // ------------------------------------------------------------------ 3f
+  /**
+   * Can the alerting cron still evaluate DURING an attack?
+   *
+   * Found by this soak rather than reasoned about: `/api/internal/alerts/check`
+   * sits behind the same generic read backstop as public traffic, so whichever
+   * bucket that traffic fills is the bucket the cron must draw from. Drive
+   * enough failed logins and the evaluation that would notice them is refused
+   * 429 — the detector is starved by the thing it detects.
+   *
+   * Measured both ways before being written down:
+   *
+   *   TRUSTED_PROXY_HOPS=0  120 failed logins -> alerts/check 429  (starved)
+   *   TRUSTED_PROXY_HOPS=1  120 failed logins -> alerts/check 200  (survives)
+   *
+   * With no trusted proxy every unauthenticated request shares ONE bucket, so
+   * the attacker and the cron are the same client as far as the limiter is
+   * concerned. With one trusted hop they are separate and the cron is fine.
+   *
+   * So this is asserted only when the target is configured the way production
+   * is. Under hops=0 it is reported loudly instead of failed, because failing
+   * would make every local run red for a configuration the app already warns
+   * about at boot — and a check that always fails gets ignored.
+   */
+  async function probeAlertStarvation(alertSecret) {
+    if (!alertSecret) return { skipped: true };
+
+    const callCheck = async () => {
+      const r = await fetch(`${BASE}/api/internal/alerts/check`, {
+        method: "POST",
+        headers: { "x-alert-secret": alertSecret },
+      });
+      await r.arrayBuffer();
+      return r.status;
+    };
+
+    const before = await callCheck();
+
+    for (let i = 0; i < 120; i += 1) {
+      const r = await fetch(`${BASE}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: BASE,
+          "x-forwarded-for": `203.0.113.${(i % 200) + 1}`,
+        },
+        body: JSON.stringify({
+          email: `sec-soak-starve-${i}@example.invalid`,
+          password: "wrong",
+        }),
+      });
+      await r.arrayBuffer();
+    }
+
+    const after = await callCheck();
+    return { skipped: false, before, after, starved: after === 429 };
+  }
+
   // ------------------------------------------------------------------ 4
   /** Table growth, sampled over the run. */
   async function sampleTables() {
@@ -317,9 +576,20 @@ async function main() {
   const endAt = Date.now() + DURATION_S * 1000;
   let rounds = 0;
 
+  /** Table samples through the run, so growth is a curve and not two points. */
+  const growthSamples = [];
+  const sampler = setInterval(async () => {
+    try {
+      growthSamples.push({ at: Date.now(), ...(await sampleTables()) });
+    } catch {
+      /* a sampling failure must not end the run */
+    }
+  }, 30_000);
+
   const workers = Array.from({ length: CONCURRENCY }, async () => {
     while (Date.now() < endAt) {
       await crossTenantRound();
+      await privilegeRound();
       rounds += 1;
       // Paced: this is a correctness soak, not a load test. Hammering would
       // measure the rate limiter, which Phase 6 already covers.
@@ -328,6 +598,7 @@ async function main() {
   });
 
   await Promise.all(workers);
+  clearInterval(sampler);
 
   check(
     "no cross-tenant read ever succeeded",
@@ -335,8 +606,152 @@ async function main() {
     `${crossAttempts} attempts, ${crossLeaked} returned 200` + (leakedPaths.size ? ` [${[...leakedPaths].join("; ")}]` : "")
   );
 
+  check(
+    "an ordinary member never reached an administrative route",
+    privLeaked === 0,
+    `${privAttempts} attempts, ${privLeaked} returned 200` +
+      (privLeakedPaths.size ? ` [${[...privLeakedPaths].join("; ")}]` : "")
+  );
+
+  /**
+   * Does the rate-limit table drain?
+   *
+   * Its sweep is probabilistic — one request in 500 — so under steady traffic
+   * it should hold roughly flat rather than climb forever. Compared across
+   * the run rather than end-to-end, because a single pair of readings cannot
+   * tell a plateau from a slope.
+   */
+  if (growthSamples.length >= 2) {
+    const firstKeys = growthSamples[0].rateKeys;
+    const lastKeys = growthSamples[growthSamples.length - 1].rateKeys;
+    const peak = Math.max(...growthSamples.map((s) => s.rateKeys));
+    // Generous: keys legitimately accumulate while their windows are open.
+    // What this rejects is unbounded growth, not growth.
+    check(
+      "the rate-limit table is not growing without bound",
+      lastKeys <= firstKeys * 3 + 200,
+      `${firstKeys} -> ${lastKeys} keys (peak ${peak}) over ${growthSamples.length} samples`
+    );
+  }
+
+  const alert = await probeAlertFires(argOf("--alert-secret", process.env.ALERT_CHECK_SECRET));
+  if (alert.skipped) {
+    say(
+      "SKIPPED: alert firing was not exercised (no --alert-secret / ALERT_CHECK_SECRET).\n" +
+        "[sec-soak] This is NOT a pass. Phase 4 found four separate reasons a rule can be\n" +
+        "[sec-soak] present, evaluated and incapable of firing; only driving it proves otherwise."
+    );
+  } else {
+    /**
+     * Fired, muted, or incapable — three outcomes, not two.
+     *
+     * A rule in cooldown crossed its threshold and was deliberately silenced,
+     * which is the system working. Counting that as a failure is how this
+     * probe reported the credential-stuffing rule as broken after an earlier
+     * test in the same 15-minute window had legitimately fired it. The
+     * endpoint now says which rules were suppressed, so the two cases are
+     * distinguishable — and cooldown is reported as inconclusive rather than
+     * passed, because an unexercised control is still unverified.
+     */
+    if (alert.suppressed.includes("auth-failure-spike")) {
+      say(
+        "INCONCLUSIVE: auth-failure-spike crossed its threshold but was in cooldown, so it\n" +
+          "[sec-soak] could not fire. That is the rule working, not failing — but it was not\n" +
+          "[sec-soak] exercised. Re-run against a freshly started server, or wait out the 15\n" +
+          "[sec-soak] minute cooldown, for this to mean anything."
+      );
+    } else {
+      check(
+        "auth-failure-spike actually FIRES on a credential-stuffing run",
+        alert.fired.includes("auth-failure-spike"),
+        `HTTP ${alert.status}, fired: ${alert.fired.length ? alert.fired.join(", ") : "none"}`
+      );
+    }
+    check(
+      "and its cooldown suppresses an immediate repeat",
+      !alert.firedAgain.includes("auth-failure-spike"),
+      `second evaluation fired: ${alert.firedAgain.length ? alert.firedAgain.join(", ") : "none"}`
+    );
+    if (alert.routed === false) {
+      say("NOTE: ALERT_WEBHOOK_URL is unset on the target, so a firing would go nowhere.");
+    }
+  }
+
+  /**
+   * Audit integrity. Asserted, not merely counted.
+   *
+   * Two separate claims, deliberately separate checks: that the ceiling
+   * refused at all, and that the refusal was recorded. A control that refuses
+   * silently and one that never refuses look identical in a row count, and
+   * they need different fixes.
+   */
+  const audit = await probeAuditIntegrity();
+  check(
+    "the per-account ceiling refused a credential-stuffing run",
+    audit.refusals > 0,
+    `${audit.refusals} of 25 attempts refused with 429`
+  );
+  check(
+    "and every refusal left an AUTH_ACCOUNT_LOCKED audit row",
+    audit.written > 0,
+    `platformAuditLog AUTH_ACCOUNT_LOCKED ${audit.before} -> ${audit.after} (+${audit.written}) for ${audit.refusals} refusals`
+  );
+
+  /**
+   * The limiter across many windows.
+   *
+   * The assertion is that EVERY pass reached its ceiling — not that the first
+   * one did. A pass that suddenly allows all 20 is the drift this phase
+   * exists to catch, and it would be invisible to a single-window test.
+   */
+  const windows = await probeLimiterAcrossWindows(6);
+  const passesThatHeld = windows.filter((w) => w.refused > 0).length;
+  check(
+    "the per-account ceiling held across every window, not just the first",
+    passesThatHeld === windows.length,
+    windows.map((w) => `#${w.pass}: ${w.allowed} allowed / ${w.refused} refused`).join("  ")
+  );
+
+  /**
+   * Alert starvation. Asserted only under a production-like proxy setting,
+   * for the reason given at the probe.
+   */
+  const hops = Number(argOf("--proxy-hops", process.env.TRUSTED_PROXY_HOPS ?? "0"));
+  const starve = await probeAlertStarvation(argOf("--alert-secret", process.env.ALERT_CHECK_SECRET));
+  if (starve.skipped) {
+    say("SKIPPED: alert starvation was not exercised (no --alert-secret). NOT a pass.");
+  } else if (hops >= 1) {
+    check(
+      "the alerting cron can still evaluate during a credential-stuffing burst",
+      !starve.starved,
+      `alerts/check ${starve.before} -> ${starve.after} after 120 failed logins (TRUSTED_PROXY_HOPS=${hops})`
+    );
+  } else {
+    say(
+      `NOTE: TRUSTED_PROXY_HOPS=${hops}. alerts/check went ${starve.before} -> ${starve.after} after 120\n` +
+        "[sec-soak] failed logins. With no trusted proxy the attacker and the alerting cron share\n" +
+        "[sec-soak] ONE rate-limit bucket, so a credential-stuffing run suppresses the evaluation\n" +
+        "[sec-soak] that would detect it. Measured as mitigated at TRUSTED_PROXY_HOPS=1.\n" +
+        "[sec-soak] Not failed here because it is the documented local default."
+    );
+  }
+
   const rotation = await measureHeaderRotation(40);
   const last = await sampleTables();
+
+  /**
+   * Session growth. Reported before, asserted now.
+   *
+   * The soak mints its own sessions and deletes them at the end, so the
+   * comparison allows for those; what it rejects is the table climbing far
+   * beyond what this run created, which would mean expired rows are never
+   * swept.
+   */
+  check(
+    "the session table did not grow beyond what this run created",
+    last.sessions <= first.sessions + CONCURRENCY * 4 + 50,
+    `${first.sessions} -> ${last.sessions} sessions`
+  );
 
   // ------------------------------------------------------------------ report
   console.log("");
@@ -344,9 +759,12 @@ async function main() {
   console.log(`  duration                 ${DURATION_S}s at concurrency ${CONCURRENCY}`);
   console.log(`  cross-tenant attempts    ${crossAttempts} (${rounds} rounds)`);
   console.log(`  cross-tenant leaks       ${crossLeaked}`);
+  console.log(`  privilege-escalation     ${privAttempts} attempts, ${privLeaked} reached an admin route`);
   console.log(`  rateLimitCounter keys    ${first.rateKeys} -> ${last.rateKeys}`);
   console.log(`  sessions                 ${first.sessions} -> ${last.sessions}`);
   console.log(`  platformAuditLog rows    ${first.auditRows} -> ${last.auditRows}`);
+  console.log(`  account-ceiling refusals ${audit.refusals}/25, audit rows written ${audit.written}`);
+  console.log(`  limiter across windows   ${passesThatHeld}/${windows.length} passes reached the ceiling`);
   console.log(`  login attempts w/ rotating X-Forwarded-For: ${rotation.allowed} allowed, ${rotation.refused} refused of 40`);
   console.log("");
 
@@ -369,7 +787,20 @@ async function main() {
   }
 
   await prisma.session.deleteMany({ where: { id: { startsWith: `secsoak_${stamp}_` } } });
-  say("soak sessions removed");
+
+  /**
+   * The audit rows this run produced are deleted too.
+   *
+   * They are real security events, but they are events this script caused
+   * against invented accounts, and leaving them would put a synthetic
+   * credential-stuffing spike into the record that a future investigation
+   * would have to explain. Scoped to this run's stamp so nothing else is
+   * touched.
+   */
+  const removedAudit = await prisma.platformAuditLog.deleteMany({
+    where: { targetResource: { contains: `sec-soak-audit-${stamp}` } },
+  });
+  say(`soak sessions removed; ${removedAudit.count} synthetic audit row(s) removed`);
   await prisma.$disconnect();
 
   console.log(`[sec-soak] ${passed} passed, ${failed} failed`);

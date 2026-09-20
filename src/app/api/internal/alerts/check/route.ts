@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runAlertCycle, isAlertingConfigured, ALERT_RULES } from "@/lib/alerts";
+import { runAlertCycle, isAlertingConfigured, getSuppressedAlerts, ALERT_RULES } from "@/lib/alerts";
 import { handleApiError } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 
@@ -57,6 +57,16 @@ export async function POST(req: NextRequest) {
       evaluated: ALERT_RULES.length,
       fired: firings.length,
       firings,
+      /**
+       * Rules that crossed their threshold but were muted by their cooldown.
+       *
+       * Without this, a rule that is working-and-cooling is indistinguishable
+       * from one that cannot fire — which is exactly how Phase 7's soak came
+       * to report the credential-stuffing rule as broken when it was not. It
+       * is also the answer to the question asked after an incident: why did
+       * this not page anyone?
+       */
+      suppressed: getSuppressedAlerts(),
       // So an operator can tell whether firings are actually going anywhere.
       routed: isAlertingConfigured(),
       timestamp: new Date().toISOString(),
