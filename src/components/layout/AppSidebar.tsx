@@ -11,6 +11,7 @@ import {
   Layers,
   Clock,
   BarChart3,
+  Target,
   Users,
   PieChart,
   Plus,
@@ -77,6 +78,15 @@ export function AppSidebar({
     { id: "board", label: "Kanban Board", icon: Kanban, permission: "kanban:view" },
     { id: "list", label: "List View", icon: ListTodo, permission: "list:view" },
     { id: "scrum", label: "Scrum & Backlog", icon: Layers, permission: "backlog:view" },
+    /**
+     * Directly after Backlog, matching the horizontal tab switcher in
+     * ProjectClient: that is where the planning views end, and Activate
+     * governs what gets planned, while everything below is a way of looking
+     * at the same work. The two lists drive the same `activeView`, so an
+     * entry in one and not the other would be a view reachable by only half
+     * the navigation.
+     */
+    { id: "activate", label: "SAP Activate", icon: Target, permission: "activate:view" },
     { id: "timeline", label: "Timeline (Gantt)", icon: Clock, permission: "timeline:view" },
     { id: "calendar", label: "Calendar", icon: Calendar, permission: "calendar:view" },
     { id: "workload", label: "Team Workload", icon: Users, permission: "workload:view" },
