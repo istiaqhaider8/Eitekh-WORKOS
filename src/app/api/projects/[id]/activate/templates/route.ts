@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api-error";
 import { ensureBuiltInTemplate, listTemplatesFor } from "@/lib/activate-templates";
+import { ensureContentPacks } from "@/lib/activate-content-packs";
 
 /**
  * The methodology templates this project may be seeded from.
@@ -36,10 +37,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const access = await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:view");
 
-    // The built-in template is created on first sight rather than by a
-    // migration, so a fresh database answers this correctly without anyone
-    // having had to enable Activate anywhere first.
+    // The built-in template and every shipped content pack are created on
+    // first sight rather than by a migration, so a fresh database answers
+    // this correctly without anyone having had to enable Activate anywhere
+    // first. Both are idempotent, so this converges rather than duplicating.
     await ensureBuiltInTemplate();
+    await ensureContentPacks();
 
     const orgId = access.project.workspace.orgId;
     const templates = await listTemplatesFor(orgId);

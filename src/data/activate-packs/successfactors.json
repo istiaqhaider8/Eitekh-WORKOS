@@ -1,0 +1,145 @@
+{
+  "key": "SAP_ACTIVATE_SF",
+  "variant": "SuccessFactors",
+  "name": "SAP Activate — SuccessFactors",
+  "description": "The six Activate phases with a human capital management scope catalogue. Aligned with the published SAP Activate methodology; not certified by or affiliated with SAP.",
+  "modules": [
+    {
+      "key": "SUITE_FOUNDATION",
+      "name": "Suite foundation",
+      "description": "Decisions that apply to every module. Settle these first; almost everything else depends on them.",
+      "scopeItems": [
+        { "code": "SF-FN-01", "name": "Instance strategy and provisioning", "workstreamKey": "TECHNICAL_ARCHITECTURE_INFRASTRUCTURE" },
+        { "code": "SF-FN-02", "name": "Corporate data model and field configuration", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-FN-03", "name": "Person and employment data model", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-FN-04", "name": "Picklist and reference data governance", "workstreamKey": "DATA_MANAGEMENT" },
+        { "code": "SF-FN-05", "name": "Foundation objects and company structure", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-FN-06", "name": "Role-based permissions and permission groups", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-FN-07", "name": "Proxy and delegation handling", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-FN-08", "name": "Workflow and approval framework", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-FN-09", "name": "Notifications and alerts", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-FN-10", "name": "Home page and navigation", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" },
+        { "code": "SF-FN-11", "name": "Employee and manager self-service", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" },
+        { "code": "SF-FN-12", "name": "Mobile access and device policy", "workstreamKey": "TECHNICAL_ARCHITECTURE_INFRASTRUCTURE", "tags": "ux" },
+        { "code": "SF-FN-13", "name": "Single sign-on and identity", "workstreamKey": "INTEGRATION" },
+        { "code": "SF-FN-14", "name": "Extension and custom object policy", "workstreamKey": "EXTENSIBILITY" },
+        { "code": "SF-FN-15", "name": "Integration approach and middleware", "workstreamKey": "INTEGRATION" },
+        { "code": "SF-FN-16", "name": "Reporting, dashboards and data access", "workstreamKey": "ANALYTICS" },
+        { "code": "SF-FN-17", "name": "Data privacy, retention and purge", "workstreamKey": "DATA_MANAGEMENT" },
+        { "code": "SF-FN-18", "name": "Localisation, translation and languages", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-FN-19", "name": "Audit, change tracking and evidence", "workstreamKey": "OPERATIONS_SUPPORT" },
+        { "code": "SF-FN-20", "name": "Document generation and letters", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" }
+      ]
+    },
+    {
+      "key": "CORE_HR",
+      "name": "Core HR",
+      "description": "The employee record and the events that change it.",
+      "scopeItems": [
+        { "code": "SF-CH-01", "name": "Organisational and position structure", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-CH-02", "name": "Employee lifecycle events", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-CH-03", "name": "Employee master data and country fields", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-CH-04", "name": "Absence and leave handling", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-CH-05", "name": "Downstream handoff to payroll", "workstreamKey": "INTEGRATION" }
+      ]
+    },
+    {
+      "key": "TIME",
+      "name": "Time management",
+      "description": "Recording, valuing and approving time.",
+      "scopeItems": [
+        { "code": "SF-TM-01", "name": "Time recording approach", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-TM-02", "name": "Time valuation and premiums", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-TM-03", "name": "Approval and exception handling", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-TM-04", "name": "Time handoff to payroll", "workstreamKey": "INTEGRATION" }
+      ]
+    },
+    {
+      "key": "PAYROLL",
+      "name": "Payroll",
+      "description": "Paying people correctly, and proving it before go-live.",
+      "scopeItems": [
+        { "code": "SF-PY-01", "name": "Payroll deployment model", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-PY-02", "name": "Pay elements and wage types", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-PY-03", "name": "Statutory reporting and compliance", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-PY-04", "name": "Parallel run approach and variance tolerance", "workstreamKey": "TESTING" },
+        { "code": "SF-PY-05", "name": "Payment and finance posting interfaces", "workstreamKey": "INTEGRATION" }
+      ]
+    },
+    {
+      "key": "RECRUITING",
+      "name": "Recruiting",
+      "description": "From an approved vacancy to an accepted offer.",
+      "scopeItems": [
+        { "code": "SF-RC-01", "name": "Requisition and approval process", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-RC-02", "name": "Candidate experience and career site", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" },
+        { "code": "SF-RC-03", "name": "Selection, interview and offer", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-RC-04", "name": "Job board and assessment integrations", "workstreamKey": "INTEGRATION" }
+      ]
+    },
+    {
+      "key": "ONBOARDING",
+      "name": "Onboarding",
+      "description": "The first impression, and the data that has to arrive with it.",
+      "scopeItems": [
+        { "code": "SF-ON-01", "name": "Pre-boarding and new hire experience", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" },
+        { "code": "SF-ON-02", "name": "Onboarding tasks and responsibilities", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-ON-03", "name": "Handover from recruiting to core", "workstreamKey": "INTEGRATION" },
+        { "code": "SF-ON-04", "name": "Offboarding and internal moves", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" }
+      ]
+    },
+    {
+      "key": "PERFORMANCE",
+      "name": "Performance and goals",
+      "description": "Setting expectations and reviewing against them.",
+      "scopeItems": [
+        { "code": "SF-PG-01", "name": "Goal setting and cascading", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-PG-02", "name": "Review form and rating approach", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-PG-03", "name": "Calibration process", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-PG-04", "name": "Continuous feedback and check-ins", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" }
+      ]
+    },
+    {
+      "key": "COMPENSATION",
+      "name": "Compensation",
+      "description": "Planning and communicating pay.",
+      "scopeItems": [
+        { "code": "SF-CM-01", "name": "Planning cycle and eligibility rules", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-CM-02", "name": "Budgeting and guidelines", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-CM-03", "name": "Variable pay and bonus plans", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-CM-04", "name": "Statement generation and communication", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" }
+      ]
+    },
+    {
+      "key": "SUCCESSION",
+      "name": "Succession and development",
+      "description": "Who is ready for what, and how they get there.",
+      "scopeItems": [
+        { "code": "SF-SD-01", "name": "Talent review and succession pools", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-SD-02", "name": "Career and development planning", "workstreamKey": "SOLUTION_ADOPTION", "tags": "ux" },
+        { "code": "SF-SD-03", "name": "Competency framework", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" }
+      ]
+    },
+    {
+      "key": "LEARNING",
+      "name": "Learning",
+      "description": "Assigning, delivering and evidencing training.",
+      "scopeItems": [
+        { "code": "SF-LN-01", "name": "Course and curriculum structure", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION" },
+        { "code": "SF-LN-02", "name": "Assignment and compliance training rules", "workstreamKey": "APPLICATION_DESIGN_CONFIGURATION", "tags": "ux" },
+        { "code": "SF-LN-03", "name": "Content and external provider integration", "workstreamKey": "INTEGRATION" },
+        { "code": "SF-LN-04", "name": "Learning records and reporting", "workstreamKey": "ANALYTICS" }
+      ]
+    },
+    {
+      "key": "PEOPLE_ANALYTICS",
+      "name": "People analytics",
+      "description": "What the organisation measures about itself, and who may see it.",
+      "scopeItems": [
+        { "code": "SF-PA-01", "name": "Report and dashboard inventory", "workstreamKey": "ANALYTICS" },
+        { "code": "SF-PA-02", "name": "Metric definitions and ownership", "workstreamKey": "ANALYTICS" },
+        { "code": "SF-PA-03", "name": "Data access and row-level security", "workstreamKey": "ANALYTICS" }
+      ]
+    }
+  ]
+}

@@ -370,3 +370,94 @@ describe("A running project outlives its template", () => {
     await prisma.project.delete({ where: { id: project.id } });
   });
 });
+
+// ---------------------------------------------------------------------------
+
+describe("Content packs ship as selectable variants", () => {
+  it("offers the SuccessFactors variant alongside the built-in methodology", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/templates`
+    );
+    expect(res.status).toBe(200);
+
+    const pack = res.body.templates.find((t: any) => t.variant === "SuccessFactors");
+    expect(pack).toBeDefined();
+    expect(pack.builtIn).toBe(true);
+    // A pack supplies modules and scope items, not phases. It carries the
+    // methodology's own six phases, exactly like the base template.
+    expect(pack.phaseCount).toBe(ACTIVATE_PHASES.length);
+    expect(pack.workstreamCount).toBe(ACTIVATE_WORKSTREAMS.length);
+  });
+
+  it("seeds a project from it, and the catalogue is reachable", async () => {
+    const list = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/templates`
+    );
+    const pack = list.body.templates.find((t: any) => t.variant === "SuccessFactors");
+
+    const project = await prisma.project.create({
+      data: {
+        id: `${fx.orgA.projectId}_pack`,
+        name: "Runs the SF variant",
+        key: "SFV",
+        workspaceId: fx.orgA.workspaceId,
+        ownerId: fx.orgA.users.OWNER.id,
+      },
+      select: { id: true },
+    });
+    await prisma.projectMember.create({
+      data: { projectId: project.id, userId: fx.orgA.users.OWNER.id, role: "PROJECT_ADMIN" },
+    });
+
+    const enabled = await api(fx.orgA.users.OWNER, `/api/projects/${project.id}/activate`, {
+      method: "POST",
+      body: { enabled: true, templateId: pack.id },
+    });
+    expect(enabled.status).toBe(201);
+
+    const scope = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${project.id}/activate/scope-items`
+    );
+    expect(scope.status).toBe(200);
+    expect(scope.body.modules.length).toBeGreaterThanOrEqual(8);
+    expect(scope.body.scopeItems.length).toBeGreaterThanOrEqual(40);
+    // Every module is in scope until somebody says otherwise.
+    expect(scope.body.total).toBe(scope.body.scopeItems.length);
+
+    await prisma.projectMember.deleteMany({ where: { projectId: project.id } });
+    await prisma.project.delete({ where: { id: project.id } });
+  });
+
+  it("does not add the pack's modules to the base methodology", async () => {
+    // orgA's own project was seeded from the BUILT-IN template earlier in
+    // this suite. A pack that leaked its catalogue into the base would give
+    // every project a scope list it never asked for.
+    const scope = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    expect(scope.status).toBe(200);
+    expect(scope.body.modules).toEqual([]);
+  });
+
+  it("is idempotent — listing twice creates one copy", async () => {
+    await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/templates`);
+    await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/templates`);
+
+    const count = await prisma.methodTemplate.count({
+      where: { orgId: null, variant: "SuccessFactors" },
+    });
+    expect(count).toBe(1);
+
+    const modules = await prisma.templateModule.count({
+      where: { template: { orgId: null, variant: "SuccessFactors" } },
+    });
+    // Re-running converges rather than duplicating: the upserts are keyed on
+    // (templateId, key), not appended.
+    expect(modules).toBeGreaterThanOrEqual(8);
+    expect(modules).toBeLessThan(30);
+  });
+});
