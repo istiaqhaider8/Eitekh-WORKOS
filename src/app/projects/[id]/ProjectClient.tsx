@@ -1537,11 +1537,6 @@ export function ProjectClient({
               { id: "board", label: "Board", icon: Kanban, count: issues.length },
               { id: "list", label: "List", icon: ListTodo },
               { id: "scrum", label: "Backlog", icon: Layers, count: sprints.length > 0 ? sprints.length : undefined },
-              { id: "timeline", label: "Timeline", icon: Clock },
-              { id: "calendar", label: "Calendar", icon: Calendar },
-              { id: "workload", label: "Workload", icon: Users },
-              { id: "charts", label: "Analytics", icon: PieChart },
-              { id: "dashboard", label: "Reports", icon: BarChart3 },
               /**
                * Shown whenever the user holds `activate:view`, WITHOUT first
                * asking the server whether this project has Activate enabled.
@@ -1551,8 +1546,17 @@ export function ProjectClient({
                * `{ enabled: false }` rather than 404 so a client can render
                * the enable affordance without a failed request being the
                * normal path. The workspace itself decides what to show.
+               *
+               * Placed directly after Backlog because that is where the
+               * planning views end and Activate governs what is planned;
+               * the views after it are ways of LOOKING at the same work.
                */
               { id: "activate", label: "Activate", icon: Target },
+              { id: "timeline", label: "Timeline", icon: Clock },
+              { id: "calendar", label: "Calendar", icon: Calendar },
+              { id: "workload", label: "Workload", icon: Users },
+              { id: "charts", label: "Analytics", icon: PieChart },
+              { id: "dashboard", label: "Reports", icon: BarChart3 },
             ].filter((v) => canAccessView(v.id)).map((v) => {
               const Icon = v.icon;
               const isSelected = activeView === v.id;
