@@ -104,6 +104,14 @@
     "isMandatory": false
   },
   {
+    "key": "REALIZE_REPORTING_BUILD",
+    "phaseKey": "REALIZE",
+    "workstreamKey": "ANALYTICS",
+    "title": "Build the operational reports",
+    "description": "The reports the business will actually run on day one, built and validated against migrated data rather than samples.",
+    "isMandatory": false
+  },
+  {
     "key": "DEPLOY_CUTOVER_PLAN",
     "phaseKey": "DEPLOY",
     "workstreamKey": "PROJECT_MANAGEMENT",
