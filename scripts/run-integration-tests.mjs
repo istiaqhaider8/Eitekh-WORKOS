@@ -16,7 +16,7 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -198,16 +198,56 @@ if (await portIsBusy()) {
   );
 }
 
-console.log(`[integration] starting server on ${BASE_URL} ...`);
+/**
+ * Start the server the way THIS build is meant to be started.
+ *
+ * next.config.mjs sets `output: "standalone"`, and every build here printed
+ *
+ *   ⚠ "next start" does not work with "output: standalone" configuration.
+ *     Use "node .next/standalone/server.js" instead.
+ *
+ * The runner used `next start` anyway. It appeared to work — the suite passed
+ * for months — so the warning got read as noise. It is not noise: it says the
+ * tests were exercising a server started in a way Next does not support, which
+ * makes every result from this harness weaker than it looked, and makes
+ * unexplained behaviour under load impossible to attribute.
+ *
+ * A standalone build expects its static assets beside it; `next build` does
+ * not copy them, which is the one manual step the deployment docs call out. So
+ * they are copied here before boot, otherwise every page request 404s on its
+ * own JS and the failure looks like the app rather than the harness.
+ */
+const STANDALONE = join(".next", "standalone", "server.js");
+const useStandalone = existsSync(STANDALONE);
+
+if (useStandalone) {
+  cpSync(join(".next", "static"), join(".next", "standalone", ".next", "static"), {
+    recursive: true,
+  });
+  if (existsSync("public")) {
+    cpSync("public", join(".next", "standalone", "public"), { recursive: true });
+  }
+}
+
+console.log(
+  `[integration] starting server on ${BASE_URL} ` +
+    `(${useStandalone ? "standalone server.js" : "next start"}) ...`
+);
 // `shell: false` and `detached` so the whole process group can be signalled.
 // With `shell: true` the shell is the child and `next start` is a grandchild,
 // so killing the child orphans the server — which is exactly how a previous
 // interrupted run left port 3141 held and broke the next one.
-const server = spawn(process.execPath, [require_resolve_next(), "start", "-p", String(PORT)], {
-  env,
-  stdio: ["ignore", "pipe", "pipe"],
-  detached: process.platform !== "win32",
-});
+const server = spawn(
+  process.execPath,
+  useStandalone ? [STANDALONE] : [require_resolve_next(), "start", "-p", String(PORT)],
+  {
+    // The standalone server takes its port from the environment rather than
+    // from a flag.
+    env: { ...env, PORT: String(PORT), HOSTNAME: "127.0.0.1" },
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: process.platform !== "win32",
+  }
+);
 let serverLog = "";
 server.stdout.on("data", (d) => (serverLog += d));
 server.stderr.on("data", (d) => (serverLog += d));

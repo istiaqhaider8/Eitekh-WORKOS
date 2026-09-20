@@ -68,6 +68,7 @@ model User {
   activatePhasesOwned      ActivatePhase[]        @relation("ActivatePhaseOwner")
   activateWorkstreamsOwned ActivateWorkstream[]   @relation("ActivateWorkstreamOwner")
   activateGateApprovals    ActivateGateApproval[] @relation("ActivateGateApprover")
+  activateGatesRaised      ActivateGate[]         @relation("ActivateGateRaiser")
 
   @@index([userType])
 }
@@ -1368,15 +1369,28 @@ model ActivateGate {
   description String?
   isMandatory Boolean  @default(true)
   position    Int      @default(0)
-  status      String   @default("OPEN") // OPEN, APPROVED, REJECTED
+  /// OPEN, RAISED, APPROVED, REJECTED. A CACHE of the approval ledger — see
+  /// deriveGateStatus in src/lib/activate-gates.ts. Never written on its own.
+  status      String   @default("OPEN")
+  /// SEPARATION OF DUTIES. Who submitted this gate for sign-off, and when.
+  /// The rule "whoever raises a gate cannot approve it" needs a stored answer
+  /// to "who raised it"; deriving it from the audit log would make an
+  /// authorization control depend on log retention. Nullable because a gate
+  /// starts OPEN and unraised. Re-raising a rejected gate overwrites both,
+  /// which is correct — the question is who is asking for THIS sign-off, and
+  /// the previous attempt survives in the approval ledger.
+  raisedById  String?
+  raisedAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   phase      ActivatePhase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  raisedBy   User?                   @relation("ActivateGateRaiser", fields: [raisedById], references: [id], onDelete: SetNull)
   criteria   ActivateGateCriterion[]
   approvals  ActivateGateApproval[]
 
   @@index([phaseId])
+  @@index([raisedById])
 }
 
 model ActivateGateCriterion {

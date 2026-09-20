@@ -1232,3 +1232,31 @@ export const activateDeliverableUpdateSchema = z.object({
   isMandatory: z.boolean().optional(),
   acceleratorKey: safeStringSchema.trim().max(120).nullable().optional(),
 });
+
+// ── SAP Activate: quality gates ──────────────────────────────────
+
+/**
+ * Criterion states. WAIVED is not a synonym for MET — it records that a human
+ * decided the criterion does not apply, which reads differently to an auditor.
+ */
+export const ACTIVATE_CRITERION_STATUSES = ["PENDING", "MET", "NOT_MET", "WAIVED"] as const;
+
+export const activateCriterionUpdateSchema = z.object({
+  status: z.enum(ACTIVATE_CRITERION_STATUSES).optional(),
+  evidenceRef: safeStringSchema.trim().max(500).nullable().optional(),
+  evidenceIssueId: optionalCuidSchema,
+});
+
+/**
+ * Raising a gate carries no required input — the act is the message. A schema
+ * is defined anyway so the route validates whatever body a client does send,
+ * rather than accepting arbitrary JSON because it happens to ignore it.
+ */
+export const activateGateRaiseSchema = z.object({
+  comment: safeStringSchema.trim().max(2000).nullable().optional(),
+});
+
+export const activateGateApprovalSchema = z.object({
+  decision: z.enum(["APPROVED", "REJECTED"]),
+  comment: safeStringSchema.trim().max(2000).nullable().optional(),
+});
