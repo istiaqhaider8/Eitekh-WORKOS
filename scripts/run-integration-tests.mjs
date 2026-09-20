@@ -16,7 +16,7 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, openSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -229,9 +229,44 @@ if (useStandalone) {
   }
 }
 
+/**
+ * THE SERVER'S OUTPUT GOES TO A FILE, NOT TO A PIPE.
+ *
+ * This line is the whole of a bug that took an afternoon to find, and the
+ * mechanism is worth stating because it will look like an application fault
+ * every time it recurs.
+ *
+ * The server used to be spawned with `stdio: ["ignore", "pipe", "pipe"]`, and
+ * this process drained those pipes with `server.stdout.on("data", …)`. Draining
+ * needs the event loop. Jest is launched below with `spawnSync`, which BLOCKS
+ * the event loop for the entire test run — so those handlers never ran once a
+ * single test had started. The OS pipe buffer filled, and the server's next
+ * `console.log` blocked on a write nobody would ever consume.
+ *
+ * The result looked nothing like a logging problem. The server stopped
+ * answering every request, including /api/health; CPU sat flat at 22.59s over
+ * 25 seconds with threads, handles and memory frozen; the database was idle
+ * with no blocked queries; and there was no error output at all — because the
+ * process was blocked INSIDE a logging call. Whichever suites happened to run
+ * after the buffer filled failed with 30-second timeouts, a different set each
+ * run, which is what made it look like a flaky test rather than a wedged
+ * process. The suite that logs most (Activate gates: a security warning per
+ * denial, plus event dispatch and audit writes) was blamed for months of
+ * behaviour it merely triggered sooner.
+ *
+ * A file descriptor removes the Node event loop from the path entirely: the
+ * kernel writes, and nothing in userspace has to be awake for it. That is
+ * strictly better than the old arrangement even ignoring the hang — the full
+ * log is now on disk instead of truncated in memory, so the server's account
+ * of a failing run survives it.
+ */
+const SERVER_LOG_PATH = join(tmpdir(), `eitekh-integration-server-${process.pid}.log`);
+const serverLogFd = openSync(SERVER_LOG_PATH, "w");
+
 console.log(
   `[integration] starting server on ${BASE_URL} ` +
-    `(${useStandalone ? "standalone server.js" : "next start"}) ...`
+    `(${useStandalone ? "standalone server.js" : "next start"}); ` +
+    `server log: ${SERVER_LOG_PATH}`
 );
 // `shell: false` and `detached` so the whole process group can be signalled.
 // With `shell: true` the shell is the child and `next start` is a grandchild,
@@ -244,13 +279,25 @@ const server = spawn(
     // The standalone server takes its port from the environment rather than
     // from a flag.
     env: { ...env, PORT: String(PORT), HOSTNAME: "127.0.0.1" },
-    stdio: ["ignore", "pipe", "pipe"],
+    // A FILE DESCRIPTOR, NOT A PIPE. See SERVER_LOG_PATH above.
+    stdio: ["ignore", serverLogFd, serverLogFd],
     detached: process.platform !== "win32",
   }
 );
-let serverLog = "";
-server.stdout.on("data", (d) => (serverLog += d));
-server.stderr.on("data", (d) => (serverLog += d));
+/**
+ * The server's output, read back from the file on demand.
+ *
+ * Previously this was a string accumulated by `server.stdout.on("data", …)`.
+ * Reading it here instead of accumulating it is the whole point: nothing about
+ * the server's logging now depends on this process being responsive.
+ */
+function readServerLog() {
+  try {
+    return readFileSync(SERVER_LOG_PATH, "utf8");
+  } catch {
+    return "";
+  }
+}
 
 let stopped = false;
 const stop = () => {
@@ -290,7 +337,7 @@ process.on("uncaughtException", (e) => {
  * annotation instead.
  */
 function serverTail(max = 6) {
-  const lines = serverLog
+  const lines = readServerLog()
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l && /error|fatal|refus|invalid|must|cannot|fail|listen|EADDR/i.test(l));
@@ -302,7 +349,7 @@ async function waitForReady(timeoutMs = 120_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (server.exitCode !== null) {
-      console.error(serverLog.slice(-3000));
+      console.error(readServerLog().slice(-3000));
       fail(
         `server exited with code ${server.exitCode} before becoming ready. ` +
           `Server said: ${serverTail()}`
@@ -314,7 +361,7 @@ async function waitForReady(timeoutMs = 120_000) {
     } catch { /* not up yet */ }
     await new Promise((r) => setTimeout(r, 500));
   }
-  console.error(serverLog.slice(-3000));
+  console.error(readServerLog().slice(-3000));
   fail(`server did not become ready in time. Server said: ${serverTail()}`);
 }
 
@@ -341,7 +388,10 @@ process.stdout.write(jestOutput);
 stop();
 
 if (jest.status !== 0) {
-  console.error("\n[integration] FAILED. Last server output:\n" + serverLog.slice(-2000));
+  console.error(
+    `\n[integration] FAILED. Server log (${SERVER_LOG_PATH}), last 2000 chars:\n` +
+      readServerLog().slice(-2000)
+  );
 
   /**
    * Jest prefixes each failing test with "●". The line after it is usually
@@ -372,7 +422,7 @@ if (jest.status !== 0) {
 
   // The server's own log, which is where a 500 explains itself. Jest only
   // reports the status code it received.
-  const serverErrors = serverLog
+  const serverErrors = readServerLog()
     .split(/\r?\n/)
     .filter((l) => /error|unhandled|prisma|invalid/i.test(l))
     .slice(-6)
