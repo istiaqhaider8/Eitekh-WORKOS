@@ -75,6 +75,34 @@ interface Phase {
   _count?: { deliverables: number };
 }
 
+interface PhaseReadiness {
+  phaseId: string;
+  key: string;
+  total: number;
+  mandatory: number;
+  done: number;
+  mandatoryDone: number;
+  gaps: number;
+  unassessed: number;
+  readyToRaise: boolean;
+  gate: { criteriaTotal: number; criteriaSettled: number; outstanding: string[] } | null;
+}
+
+interface Blocker {
+  linkId: string;
+  issueId: string;
+  issueKey: string;
+  title: string;
+  statusName: string | null;
+}
+
+interface Readiness {
+  enabled: boolean;
+  phases: PhaseReadiness[];
+  deployBlockers: Blocker[];
+  deployBlockerTotal: number;
+}
+
 interface Deliverable {
   id: string;
   isMandatory: boolean;
@@ -126,6 +154,7 @@ export function ActivateWorkspace({
   const [selectedKey, setSelectedKey] = useState<string>("EXPLORE");
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loadedPhaseId, setLoadedPhaseId] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,13 +165,29 @@ export function ActivateWorkspace({
     [capabilities]
   );
 
+  /**
+   * Profile and readiness are fetched together.
+   *
+   * Readiness is derived entirely from the phases, gates and deliverables the
+   * profile already describes, so fetching it separately would let the two
+   * disagree on screen — a gate showing every criterion met beside a readiness
+   * panel still counting one outstanding, because they were read a second
+   * apart. One round of fetching, one refresh after every mutation.
+   */
   const loadProfile = useCallback(async () => {
     try {
-      const res = await fetch(`/api/projects/${projectId}/activate`);
-      if (!res.ok) throw new Error("Could not load the Activate profile.");
-      const data = await res.json();
+      const [profileRes, readinessRes] = await Promise.all([
+        fetch(`/api/projects/${projectId}/activate`),
+        fetch(`/api/projects/${projectId}/activate/readiness`),
+      ]);
+      if (!profileRes.ok) throw new Error("Could not load the Activate profile.");
+      const data = await profileRes.json();
       setEnabled(Boolean(data.enabled));
       setPhases(Array.isArray(data.phases) ? data.phases : []);
+      // Readiness is reporting, not governance: if it fails, the gates and
+      // criteria are still usable, so it degrades to absent rather than
+      // taking the screen down with it.
+      setReadiness(readinessRes.ok ? await readinessRes.json() : null);
       setError(null);
     } catch (e: any) {
       setError(e?.message || "Could not load the Activate profile.");
@@ -307,6 +352,8 @@ export function ActivateWorkspace({
   }
 
   const gate = selected?.gates?.[0];
+  /** The readiness row for whichever phase is on screen, if it was fetched. */
+  const phaseReadiness = readiness?.phases.find((p) => p.key === selected?.key) ?? null;
   const outstanding = gate
     ? gate.criteria.filter((c) => c.status !== "MET" && c.status !== "WAIVED")
     : [];
@@ -399,6 +446,92 @@ export function ActivateWorkspace({
               )}
             </div>
           </section>
+
+          {/* Deploy readiness / Run hypercare ----------------------------- */}
+          {(selected.key === "DEPLOY" || selected.key === "RUN") && phaseReadiness && (
+            <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                {selected.key === "DEPLOY" ? "Go-live readiness" : "Hypercare"}
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {selected.key === "DEPLOY"
+                  ? "What has to be true before go-live. This reports; it does not approve — the gate below is where a person signs."
+                  : "Continuous improvement runs inside this phase rather than after it, so these are the items still open in Run."}
+              </p>
+
+              <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { label: "Deliverables done", value: `${phaseReadiness.done} / ${phaseReadiness.total}` },
+                  {
+                    label: "Mandatory done",
+                    value: `${phaseReadiness.mandatoryDone} / ${phaseReadiness.mandatory}`,
+                  },
+                  {
+                    label: "Criteria settled",
+                    value: phaseReadiness.gate
+                      ? `${phaseReadiness.gate.criteriaSettled} / ${phaseReadiness.gate.criteriaTotal}`
+                      : "—",
+                  },
+                  { label: "Open gaps", value: String(phaseReadiness.gaps) },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-2"
+                  >
+                    <dt className="text-[10px] uppercase tracking-wide text-slate-400">{s.label}</dt>
+                    <dd className="text-sm font-bold text-slate-900 dark:text-white font-mono">
+                      {s.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+
+              <p
+                className={`text-xs font-semibold ${
+                  phaseReadiness.readyToRaise
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-amber-600 dark:text-amber-400"
+                }`}
+              >
+                {phaseReadiness.readyToRaise
+                  ? "Ready to raise for sign-off."
+                  : "Not ready to raise yet."}
+              </p>
+
+              {selected.key === "DEPLOY" && readiness && readiness.deployBlockerTotal > 0 && (
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Mandatory deliverables still open ({readiness.deployBlockerTotal})
+                  </h4>
+                  <ul className="space-y-1">
+                    {readiness.deployBlockers.map((b) => (
+                      <li key={b.linkId} className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onOpenIssue?.(b.issueId)}
+                          className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {b.issueKey}
+                        </button>
+                        <span className="text-xs text-slate-700 dark:text-slate-300 flex-1 min-w-[10rem] truncate">
+                          {b.title}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                          {b.statusName || "no status"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {readiness.deployBlockerTotal > readiness.deployBlockers.length && (
+                    <p className="text-[11px] text-slate-400">
+                      Showing the first {readiness.deployBlockers.length}. The count above is the
+                      whole set.
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Quality gate ------------------------------------------------- */}
           {gate && (
