@@ -65,6 +65,9 @@ model User {
   receivedDelegations    TaskDelegation[]     @relation("DelegationDelegateUser")
   createdDelegations     TaskDelegation[]     @relation("DelegationCreator")
   delegationHistories    DelegationHistory[]
+  activatePhasesOwned      ActivatePhase[]        @relation("ActivatePhaseOwner")
+  activateWorkstreamsOwned ActivateWorkstream[]   @relation("ActivateWorkstreamOwner")
+  activateGateApprovals    ActivateGateApproval[] @relation("ActivateGateApprover")
 
   @@index([userType])
 }
@@ -268,6 +271,9 @@ model Project {
   members         ProjectMember[]
   components      Component[]
   epics           Epic[]
+  activateProfile   ActivateProfile?
+  activatePhases    ActivatePhase[]
+  activateWorkstreams ActivateWorkstream[]
   sprints         Sprint[]
   workflows       Workflow[]
   issues          Issue[]
@@ -489,6 +495,8 @@ model Issue {
   labels            IssueLabel[]
   activityLogs      ActivityLog[]
   customFieldValues CustomFieldValue[]
+  activateDeliverable ActivateDeliverableLink?
+  activateCriterionEvidence ActivateGateCriterion[] @relation("ActivateCriterionEvidence")
   outgoingDeps      IssueDependency[]  @relation("SourceDep")
   incomingDeps      IssueDependency[]  @relation("TargetDep")
   delegations       TaskDelegation[]
@@ -1250,4 +1258,162 @@ model SyncEventOutbox {
 
   @@index([createdAt])
   @@index([projectId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAP Activate
+//
+// Seven additive tables. NO column changes to Issue or Project, deliberately:
+// an Activate deliverable IS an Issue, and a phase link is a row beside it
+// rather than a field on it. That keeps every non-Activate project byte
+// identical, and makes disabling the feature inert rather than a migration.
+//
+// Workstreams are DATA, not an enum. SAP has renamed them at least once —
+// Organisational Change Management is now absorbed into Solution Adoption —
+// and an enum would make a vocabulary change a schema change.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One per project. Absent means the project is not running Activate at all,
+/// which is the state every existing project is in.
+model ActivateProfile {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  enabled           Boolean  @default(false)
+  methodologyVersion String  @default("2024")
+  /// Phase key the project currently sits in. Null until phases are seeded.
+  currentPhaseKey   String?
+  /// Reserved for per-project tailoring (skipped phases, renamed workstreams).
+  configJson        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  version           Int      @default(0)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ActivatePhase {
+  id          String    @id @default(cuid())
+  projectId   String
+  /// DISCOVER | PREPARE | EXPLORE | REALIZE | DEPLOY | RUN
+  key         String
+  name        String
+  position    Int       @default(0)
+  status      String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED, SKIPPED
+  ownerId     String?
+  startDate   DateTime?
+  targetDate  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  /// Optimistic locking. A gate sign-off must not race a phase edit.
+  version     Int       @default(0)
+
+  project     Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner       User?                     @relation("ActivatePhaseOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  gates       ActivateGate[]
+  deliverables ActivateDeliverableLink[]
+
+  @@unique([projectId, key])
+  @@index([projectId])
+  @@index([projectId, position])
+}
+
+/// Spans phases — a workstream is not owned by one. Seeded per project so a
+/// customer can rename or drop one without affecting anybody else.
+model ActivateWorkstream {
+  id        String   @id @default(cuid())
+  projectId String
+  key       String
+  name      String
+  ownerId   String?
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project      Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User?                     @relation("ActivateWorkstreamOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  deliverables ActivateDeliverableLink[]
+
+  @@unique([projectId, key])
+  @@index([projectId])
+}
+
+/// Makes an existing Issue a deliverable of a phase.
+///
+/// Unique on issueId: an issue is a deliverable of at most one phase. Without
+/// that constraint the readiness aggregations would double-count.
+model ActivateDeliverableLink {
+  id             String   @id @default(cuid())
+  issueId        String   @unique
+  phaseId        String
+  workstreamId   String?
+  isMandatory    Boolean  @default(false)
+  /// Identifies the SAP accelerator this deliverable was created from.
+  acceleratorKey String?
+  createdAt      DateTime @default(now())
+
+  issue      Issue               @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  phase      ActivatePhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  workstream ActivateWorkstream? @relation(fields: [workstreamId], references: [id], onDelete: SetNull)
+
+  @@index([phaseId])
+  @@index([workstreamId])
+}
+
+model ActivateGate {
+  id          String   @id @default(cuid())
+  phaseId     String
+  name        String
+  description String?
+  isMandatory Boolean  @default(true)
+  position    Int      @default(0)
+  status      String   @default("OPEN") // OPEN, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  phase      ActivatePhase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  criteria   ActivateGateCriterion[]
+  approvals  ActivateGateApproval[]
+
+  @@index([phaseId])
+}
+
+model ActivateGateCriterion {
+  id              String   @id @default(cuid())
+  gateId          String
+  criterion       String
+  status          String   @default("PENDING") // PENDING, MET, NOT_MET, WAIVED
+  /// Free-text pointer to evidence (a drill name, a document, a run id).
+  evidenceRef     String?
+  /// Or a hard link to the Issue carrying the evidence.
+  evidenceIssueId String?
+  position        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  gate          ActivateGate @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  evidenceIssue Issue?       @relation("ActivateCriterionEvidence", fields: [evidenceIssueId], references: [id], onDelete: SetNull)
+
+  @@index([gateId])
+}
+
+/// APPEND ONLY.
+///
+/// There is no update or delete path in the schema's intent and none in the
+/// routing layer: a sign-off history that can be edited is not a sign-off
+/// history. A reversal is a new row with decision REJECTED, not an edit.
+model ActivateGateApproval {
+  id         String   @id @default(cuid())
+  gateId     String
+  approverId String
+  decision   String // APPROVED, REJECTED
+  comment    String?
+  decidedAt  DateTime @default(now())
+
+  gate     ActivateGate @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  approver User         @relation("ActivateGateApprover", fields: [approverId], references: [id], onDelete: Cascade)
+
+  @@index([gateId])
+  @@index([approverId])
 }

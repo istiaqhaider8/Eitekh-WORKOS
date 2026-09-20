@@ -205,6 +205,25 @@ export const PBAC_PERMISSION_CATEGORIES: PermissionCategory[] = [
       { key: 'export:import_data', label: 'Import External Data', description: 'Import issues from CSV or external tools', riskLevel: 'HIGH' },
     ],
   },
+  {
+    id: 'activate',
+    name: '19. ACTIVATE (Methodology Governance)',
+    description: 'SAP Activate phases, workstreams, deliverables and quality-gate sign-off.',
+    permissions: [
+      { key: 'activate:view', label: 'View Activate', description: 'Read phases, workstreams, deliverables and gate status', riskLevel: 'LOW' },
+      { key: 'activate:manage_phases', label: 'Manage Phases', description: 'Enable Activate and edit phase dates, owners and status', riskLevel: 'MEDIUM' },
+      { key: 'activate:manage_deliverables', label: 'Manage Deliverables', description: 'Link issues to a phase and workstream', riskLevel: 'MEDIUM' },
+      /**
+       * Separated from sign-off on purpose.
+       *
+       * Whoever defines what a gate requires should not also be the person who
+       * declares it satisfied — that is the whole value of a gate. The two keys
+       * are distinct so a role can hold one without the other.
+       */
+      { key: 'activate:manage_gates', label: 'Manage Gates', description: 'Define gates and their criteria, and mark criteria met', riskLevel: 'HIGH' },
+      { key: 'activate:sign_off_gate', label: 'Sign Off Gate', description: 'Approve or reject a phase quality gate', riskLevel: 'CRITICAL' },
+    ],
+  },
 ];
 
 export const ALL_PBAC_PERMISSION_KEYS = PBAC_PERMISSION_CATEGORIES.flatMap((c) =>
