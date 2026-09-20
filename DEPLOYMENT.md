@@ -53,8 +53,39 @@ nano .env
 | Variable | Description |
 |---|---|
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP relay for email (password resets, invites) |
+| `EMAIL_DISABLED` | Set to `1` on any non-production machine. **Unsetting the `SMTP_*` variables does not stop this application sending mail** — see below |
 | `EMAIL_FROM` | Sender address (default: `noreply@eitekh.com`) |
 | `FORCE_HTTPS` | Set to `true` if TLS is terminated by a reverse proxy |
+
+#### Stopping a development machine from emailing real people
+
+Removing `SMTP_HOST` and `SMTP_PASS` from your shell does **not** stop this
+application sending mail. Two mechanisms defeat it, and they stack:
+
+1. [`getEmailConfig`](src/lib/email.ts) reads credentials from the
+   `systemEmailConfig` **table** first, and treats the environment only as a
+   fallback. A row written once — by an admin screen, or by the auto-create in
+   `getEmailConfig` itself — leaves every later process able to reach real
+   inboxes.
+2. Next.js loads `.env` automatically, so unsetting a variable in the shell
+   before starting the server has no effect at all.
+
+This is not hypothetical: a real password-reset code was delivered to a real
+address from a development machine, minutes after every SMTP variable had been
+deliberately removed and the sending path declared impossible.
+
+So set `EMAIL_DISABLED=1` on anything that is not production. It is read from
+the environment **only** and checked before the config is loaded, so the
+database cannot override it. Blocked sends are logged loudly and named, and no
+`EmailLog` row is written — nothing was attempted, so recording `SENT` would
+be a lie and `FAILED` would make a safety measure look like an incident.
+
+Unrecognised values mean **enabled**, on purpose. A typo that silently stopped
+all mail in production would break password resets, OTP codes and invitations
+at once, and every one of those presents as a user error rather than a
+configuration one — nobody would find out until somebody could not get into
+their account. `instrumentation.ts` warns at boot when the switch is set, and
+warns differently in production, where it is probably a mistake.
 
 ---
 
