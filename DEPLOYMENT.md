@@ -908,11 +908,46 @@ first batch survived and the second is gone. That last check is the only one a
 restore-from-dump drill cannot also make, and it is the whole difference between the two:
 recovering everything is useless when what you are recovering *from* is in the data.
 
-> **Status: written, not yet run.** The drill exists and parses; it has not been executed, so
-> there are no RTO or RPO numbers from it in this document and none should be quoted. It does
-> not touch the application's database — it initialises its own cluster on ports 54330/54331
-> under a temporary directory — but until someone runs it, the procedure above is documented
-> rather than demonstrated. Treat it accordingly.
+**Result: 9/9, run on this machine.** Point-in-time recovery has now actually been performed
+here, against PostgreSQL 18.4:
+
+| | 2,000 rows/batch | 200,000 rows/batch |
+|---|---|---|
+| Base backup | 975 files, 23.8 MB | 975 files, 23.8 MB |
+| WAL archived | 5 segments, 64 MB | 8 segments, 112 MB |
+| **RTO — start to writable** | **3.2 s** | **4.2 s** |
+
+Batch A survived in full and batch B was gone in both runs, which is the check that matters.
+
+Four things about those numbers, because a recovery time quoted without them is misleading:
+
+- **The RTO runs to *writable*, not to first response.** A cluster replaying WAL answers
+  `SELECT`s while still in recovery — it is a read-only standby at that moment. The first
+  version of this drill stopped the clock there and reported 2.6s with the cluster still
+  read-only. The service is not restored until writes work.
+- **It excludes fetching the base backup** from wherever it is stored, which in a real recovery
+  dominates everything else. Measure that against your own storage and add it.
+- **It is a 24 MB cluster.** Replay time scales with the WAL between the base backup and the
+  target, not with `--rows` directly, which is why a hundredfold more data moved the number by
+  one second. Your base backup will be larger and your archive deeper.
+- **On a managed Postgres none of this is your restore path.** RDS, Cloud SQL, Neon and Supabase
+  each have their own, with their own retention window. What transfers is the procedure and
+  knowing the failure modes below.
+
+The drill found four of those failure modes the hard way, each of which would have surfaced
+mid-recovery with the primary already gone:
+
+1. **PostgreSQL processes backslash escapes inside single-quoted config values.** A literal
+   Windows path in `archive_command` arrives as `C:UsersASUS...` and every segment fails to
+   archive. Double them.
+2. **`pg_backup_stop(true)` waits for archiving with no timeout**, so a broken `archive_command`
+   presents as an indefinite hang rather than an error. The drill now proves archiving works
+   *before* anything depends on it.
+3. **`recovery_target_time` is a `timestamptz` literal, not ISO 8601** — it rejects the `T`
+   separator and the `Z` suffix, and it rejects them at start-up of the restored cluster.
+4. **The scratch directories must exist, empty.** `pg_notify`, `pg_serial`, `pg_subtrans` and
+   friends are not recreated on start-up; a base backup that omits them entirely dies with
+   `FATAL: could not open directory "pg_notify"`.
 
 It takes the base backup through the low-level API (`pg_backup_start` → copy → `pg_backup_stop`)
 rather than `pg_basebackup`, because the embedded PostgreSQL distribution used for local
@@ -1020,10 +1055,12 @@ real data, run the drill against a production-sized copy and record the timing.
 | Fact | Value |
 |---|---|
 | Mechanism (PITR / dump / both) | _decide and record_ |
-| Where dumps are stored off-host | _record_ |
+| Where dumps are stored off-host | _record — `BACKUP_S3_BUCKET`, and it must not be the app's bucket_ |
+| `archive_timeout`, if using PITR | _seconds — **this is your RPO**_ |
 | Retention, and its monthly cost | _record_ |
 | Last rehearsed restore | _date_ |
-| **How long a full restore took** | _seconds — this is your RTO_ |
+| **How long a full restore took** | _seconds to WRITABLE, not to first response — this is your RTO_ |
+| Time to fetch the backup from storage | _seconds — add it to the above; in a real recovery it dominates_ |
 | Who to call if it fails | _record_ |
 
 The restore duration is the number people guess at and get badly wrong. `db-restore.mjs` prints

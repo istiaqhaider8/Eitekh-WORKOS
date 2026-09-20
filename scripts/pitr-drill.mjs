@@ -58,6 +58,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -92,8 +93,16 @@ const ROOT = resolve(
 const PRIMARY = join(ROOT, "primary");
 const ARCHIVE = join(ROOT, "archive");
 const RESTORED = join(ROOT, "restored");
-const PRIMARY_PORT = 54330;
-const RESTORE_PORT = 54331;
+/**
+ * Configurable, because a fixed port is a trap after a failed run.
+ *
+ * If a previous attempt was killed rather than stopped, its postmaster keeps
+ * the port and keeps the data directory open, and the next run cannot start
+ * or clean up. Being able to move to a free pair is the difference between
+ * carrying on and being stuck behind a process you have to hunt down.
+ */
+const PRIMARY_PORT = Number(process.env.PITR_PORT || 54330);
+const RESTORE_PORT = Number(process.env.PITR_RESTORE_PORT || PRIMARY_PORT + 1);
 
 let passed = 0;
 let failed = 0;
@@ -118,6 +127,31 @@ function mustRun(exe, args, what) {
     );
   }
   return r;
+}
+
+/**
+ * Start a server WITHOUT capturing its output, and why that is not optional.
+ *
+ * `spawnSync` with piped stdio does not return when the child exits — it
+ * returns when the pipes close. `pg_ctl start` exits immediately, but the
+ * `postgres` server it launched inherits the same stdout handle and holds it
+ * open for as long as it runs. So the pipe never reaches EOF and the drill
+ * blocks forever on a command that succeeded in under a second.
+ *
+ * That cost two ten-minute runs to find, both looking exactly like a hang in
+ * the database rather than in the way it was invoked. The server's output is
+ * already going to the `-l` logfile, so nothing is lost by ignoring the
+ * handles here; on failure the caller is pointed at that file.
+ */
+function startServer(dataDir, logFile, what) {
+  const r = spawnSync(PG_CTL, ["-D", dataDir, "-l", logFile, "-w", "start"], { stdio: "ignore" });
+  if (r.error) throw new Error(`${what} failed to start: ${r.error.message}`);
+  if (r.status !== 0) {
+    const tail = existsSync(logFile)
+      ? readFileSync(logFile, "utf8").split(/\r?\n/).slice(-15).join("\n  ")
+      : "(no log written)";
+    throw new Error(`${what} failed (exit ${r.status}). Last lines of ${logFile}:\n  ${tail}`);
+  }
 }
 
 async function connect(port, database = "postgres") {
@@ -169,10 +203,23 @@ async function waitFor(label, fn, timeoutMs = 60_000) {
  * postmaster.pid would make a restored cluster believe another postmaster
  * owns its directory.
  */
-const BACKUP_EXCLUDE = new Set([
+const EXCLUDED_FILES = new Set(["postmaster.pid", "postmaster.opts", "current_logfiles"]);
+
+/**
+ * Directories whose CONTENTS are skipped but which must still EXIST.
+ *
+ * This distinction is the whole thing, and getting it wrong fails at exactly
+ * the wrong moment. These hold per-run scratch state that the server rebuilds,
+ * so copying the contents is pointless — but Postgres does not create them on
+ * start-up, it expects them, and the restored cluster dies with
+ *
+ *   FATAL: could not open directory "pg_notify": No such file or directory
+ *
+ * which happens after the primary is already gone. `pg_basebackup` creates
+ * them empty for this reason; so does the copy below.
+ */
+const EXCLUDED_DIR_CONTENTS = new Set([
   "pg_wal",
-  "postmaster.pid",
-  "postmaster.opts",
   "pg_replslot",
   "pg_dynshmem",
   "pg_notify",
@@ -180,7 +227,6 @@ const BACKUP_EXCLUDE = new Set([
   "pg_snapshots",
   "pg_stat_tmp",
   "pg_subtrans",
-  "current_logfiles",
   "log",
 ]);
 
@@ -189,7 +235,12 @@ function copyDataDir(from, to) {
   let files = 0;
   let bytes = 0;
   for (const entry of readdirSync(from)) {
-    if (BACKUP_EXCLUDE.has(entry)) continue;
+    if (EXCLUDED_FILES.has(entry)) continue;
+    if (EXCLUDED_DIR_CONTENTS.has(entry)) {
+      // Present but empty, which is what the server expects.
+      mkdirSync(join(to, entry), { recursive: true });
+      continue;
+    }
     const src = join(from, entry);
     const dst = join(to, entry);
     const st = statSync(src);
@@ -229,7 +280,34 @@ async function main() {
     return;
   }
 
-  say(`root: ${ROOT}`);
+  say(`root: ${ROOT}  ports: ${PRIMARY_PORT}/${RESTORE_PORT}`);
+
+  /**
+   * Never delete a data directory with a live postmaster in it.
+   *
+   * Doing so leaves a running server whose files are half gone: it keeps the
+   * port, keeps its open handles, and `pg_ctl stop` can no longer identify the
+   * directory as a cluster, so the only way out is hunting the PID. I did
+   * exactly this by hand while developing the drill, and the stray process
+   * outlived several attempts to clean up after it.
+   *
+   * Stop it properly first, and if that fails, refuse and say what to do
+   * rather than making the mess worse.
+   */
+  for (const dir of [PRIMARY, RESTORED]) {
+    if (!existsSync(join(dir, "postmaster.pid"))) continue;
+    say(`a previous run left a cluster at ${dir} — stopping it first`);
+    const r = run(PG_CTL, ["-D", dir, "-m", "immediate", "-w", "-t", "30", "stop"]);
+    if (r.status !== 0 && existsSync(join(dir, "postmaster.pid"))) {
+      throw new Error(
+        `A postmaster is still running in ${dir} and would not stop.\n` +
+          "  Refusing to delete a live cluster's files — that leaves a server holding the\n" +
+          "  port with its directory half removed, which is harder to recover from.\n" +
+          `  Stop it, or re-run against free ports:  PITR_PORT=54340 PITR_ROOT=<new dir> node scripts/pitr-drill.mjs`,
+      );
+    }
+  }
+
   rmSync(ROOT, { recursive: true, force: true });
   mkdirSync(ARCHIVE, { recursive: true });
 
@@ -251,7 +329,23 @@ async function main() {
    * in a total-loss scenario. 10s here is for the drill; 60s is a reasonable
    * production value, and the cost is one mostly-empty segment per minute.
    */
-  const archiveForConf = ARCHIVE.replace(/\//g, "\\");
+  /**
+   * Every backslash DOUBLED, and this is not cosmetic.
+   *
+   * PostgreSQL processes backslash escapes inside single-quoted configuration
+   * values. A Windows path written literally therefore arrives mangled:
+   *
+   *   written : 'copy "%p" "C:\Users\ASUS\AppData\Local\Temp\...\archive\%f"'
+   *   used    : 'copy "%p" "C:UsersASUSAppDataLocalTemp...archive\%f"'
+   *
+   * The first run of this drill did exactly that. The archiver failed every
+   * segment with "The system cannot find the path specified", and because
+   * pg_backup_stop(true) waits for the backup's WAL to be archived, the drill
+   * then hung indefinitely instead of failing — ten minutes of silence for a
+   * quoting bug. Both halves of that are fixed: the escaping here, and the
+   * fail-fast check below so a broken archive_command is reported in seconds.
+   */
+  const archiveForConf = ARCHIVE.replace(/\//g, "\\").replace(/\\/g, "\\\\");
   appendFileSync(
     join(PRIMARY, "postgresql.conf"),
     [
@@ -269,9 +363,49 @@ async function main() {
   );
 
   say("starting the primary...");
-  mustRun(PG_CTL, ["-D", PRIMARY, "-l", join(ROOT, "primary.log"), "-w", "start"], "pg_ctl start");
+  startServer(PRIMARY, join(ROOT, "primary.log"), "pg_ctl start (primary)");
 
   let client = await connect(PRIMARY_PORT);
+
+  /**
+   * Prove archiving works BEFORE anything depends on it.
+   *
+   * pg_backup_stop(true) blocks until the backup's WAL has been archived, with
+   * no timeout. If archive_command is broken, the drill hangs there forever
+   * rather than failing — which is what happened on the first run, and ten
+   * minutes of silence is a far worse diagnostic than one clear line.
+   *
+   * So: force a segment out now, and if it does not land, stop and print the
+   * archiver's own error. A broken archive_command is also the single most
+   * common way real PITR setups are silently not PITR setups at all, which
+   * makes this worth checking first in a drill whose job is to catch that.
+   */
+  await client.query("SELECT pg_switch_wal()");
+  try {
+    await waitFor(
+      "the first WAL segment to reach the archive",
+      async () => {
+        const r = await client.query("SELECT archived_count, failed_count FROM pg_stat_archiver");
+        if (Number(r.rows[0].failed_count) > 0) {
+          throw new Error("archiver reported a failure");
+        }
+        return Number(r.rows[0].archived_count) > 0;
+      },
+      20_000,
+    );
+  } catch {
+    const state = await client.query(
+      "SELECT archived_count, failed_count, last_failed_wal FROM pg_stat_archiver",
+    );
+    const log = existsSync(join(ROOT, "primary.log"))
+      ? readFileSync(join(ROOT, "primary.log"), "utf8").split(/\r?\n/).filter((l) => /archive command failed|DETAIL/.test(l)).slice(-4).join("\n  ")
+      : "(no log)";
+    check("WAL archiving works", false, `archived=${state.rows[0].archived_count} failed=${state.rows[0].failed_count}`);
+    throw new Error(
+      "archive_command is not working, so there is nothing to recover from.\n  " + log,
+    );
+  }
+  check("WAL archiving is working before anything depends on it", true, `${readdirSync(ARCHIVE).length} segment(s)`);
 
   await client.query(`
     CREATE TABLE drill (
@@ -334,7 +468,22 @@ async function main() {
   // rather than resting on sub-second ordering.
   await new Promise((r) => setTimeout(r, 1500));
   const targetRow = await client.query("SELECT now() AS t");
-  const TARGET = targetRow.rows[0].t.toISOString();
+  /**
+   * PostgreSQL timestamp syntax, not ISO 8601.
+   *
+   * `recovery_target_time` is parsed as a `timestamptz` literal, which does
+   * not accept the `T` separator or a `Z` suffix. Passing toISOString()
+   * straight through gives:
+   *
+   *   LOG: invalid value for parameter "recovery_target_time"
+   *   FATAL: configuration file ... contains errors
+   *
+   * — at START-UP of the restored cluster, which is to say in the middle of a
+   * recovery, after the primary is already gone. Worth getting right here so
+   * nobody meets it there. `+00` keeps it explicitly UTC rather than depending
+   * on the restored server's timezone.
+   */
+  const TARGET = targetRow.rows[0].t.toISOString().replace("T", " ").replace("Z", "+00");
   say(`recovery target: ${TARGET}`);
   await new Promise((r) => setTimeout(r, 1500));
 
@@ -437,7 +586,7 @@ async function main() {
    * your backup size — measure that separately against your own storage.
    */
   const t0 = Date.now();
-  mustRun(PG_CTL, ["-D", RESTORED, "-l", join(ROOT, "restored.log"), "-w", "start"], "pg_ctl start (restored)");
+  startServer(RESTORED, join(ROOT, "restored.log"), "pg_ctl start (restored)");
 
   let restored;
   await waitFor("the restored cluster to accept queries", async () => {
@@ -456,6 +605,22 @@ async function main() {
       }
       return false;
     }
+  });
+  /**
+   * Accepting queries is NOT the same as recovered.
+   *
+   * A cluster replaying WAL answers SELECTs while still in recovery — it is a
+   * read-only standby at that moment. The first version of this drill stopped
+   * the clock there and then asserted promotion, which failed: the data was
+   * already correct and the cluster was still read-only.
+   *
+   * The service is not restored until writes are possible, so the RTO runs to
+   * promotion, not to first response. Stopping the clock early is how a
+   * recovery time gets quoted optimistically.
+   */
+  await waitFor("the restored cluster to finish recovery and promote", async () => {
+    const r = await restored.query("SELECT pg_is_in_recovery() AS r");
+    return r.rows[0].r === false;
   });
   const rtoMs = Date.now() - t0;
 
@@ -511,7 +676,7 @@ async function main() {
   console.log(`  rows per batch           ${ROWS}`);
   console.log(`  base backup              ${copied.files} files, ${(copied.bytes / 1024 / 1024).toFixed(1)}MB`);
   console.log(`  WAL archived             ${archiveFiles.length} segments, ${(archiveBytes / 1024 / 1024).toFixed(1)}MB`);
-  console.log(`  RTO (start -> queryable) ${(rtoMs / 1000).toFixed(1)}s`);
+  console.log(`  RTO (start -> writable)  ${(rtoMs / 1000).toFixed(1)}s`);
   console.log(`  RPO bound                archive_timeout, set to 10s for this drill`);
   console.log("");
   console.log(
