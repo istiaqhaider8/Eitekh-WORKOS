@@ -157,59 +157,83 @@ export const ACTIVATE_PHASE_KEYS = ACTIVATE_PHASES.map((p) => p.key);
  * Runs in a single transaction. A project left with phases but no profile —
  * or half its workstreams — would be a state no screen knows how to render.
  */
-export async function enableActivate(projectId: string): Promise<void> {
+export async function enableActivate(projectId: string, templateId?: string): Promise<void> {
+  /**
+   * Seeded FROM A TEMPLATE since increment 8.
+   *
+   * Called without a `templateId` this behaves exactly as it always did,
+   * because the built-in template is the constants above loaded into template
+   * rows — same keys, same names, same gates, same criteria, same order. The
+   * integration suite asserts that equivalence directly rather than trusting
+   * this sentence.
+   *
+   * The template is resolved OUTSIDE the transaction. Resolving it inside
+   * would hold this transaction's connection open while `ensureBuiltInTemplate`
+   * takes a second one for its own transaction — a deadlock under load, for no
+   * benefit: the template is committed before this project is touched.
+   */
+  const { ensureBuiltInTemplate, loadTemplate } = await import("./activate-templates");
+  const resolvedId = templateId ?? (await ensureBuiltInTemplate());
+  const template = await loadTemplate(resolvedId);
+  if (!template) throw new Error(`Methodology template ${resolvedId} not found`);
+
   await prisma.$transaction(async (tx) => {
     await tx.activateProfile.upsert({
       where: { projectId },
-      update: { enabled: true },
+      update: {
+        enabled: true,
+        // Re-enabling restamps: it is the same act as enabling, and leaving a
+        // stale stamp would claim the project came from a template it did not.
+        templateId: template.id,
+        templateVersion: template.version,
+      },
       create: {
         projectId,
         enabled: true,
         methodologyVersion: ACTIVATE_METHODOLOGY_VERSION,
-        currentPhaseKey: ACTIVATE_PHASES[0].key,
+        currentPhaseKey: template.phases[0]?.key ?? ACTIVATE_PHASES[0].key,
+        templateId: template.id,
+        templateVersion: template.version,
       },
     });
 
-    for (let i = 0; i < ACTIVATE_PHASES.length; i += 1) {
-      const seed = ACTIVATE_PHASES[i];
+    for (let i = 0; i < template.phases.length; i += 1) {
+      const seed = template.phases[i];
       const phase = await tx.activatePhase.upsert({
         where: { projectId_key: { projectId, key: seed.key } },
-        update: { name: seed.name, position: i },
-        create: { projectId, key: seed.key, name: seed.name, position: i },
+        update: { name: seed.name, position: seed.position },
+        create: { projectId, key: seed.key, name: seed.name, position: seed.position },
         select: { id: true },
       });
 
       // One gate per phase. Seeded only when absent, so re-enabling never
       // discards criteria an operator has already marked met.
-      const existingGate = await tx.activateGate.findFirst({
-        where: { phaseId: phase.id, name: seed.gate.name },
-        select: { id: true },
-      });
-      if (!existingGate) {
+      for (const g of seed.gates) {
+        const existingGate = await tx.activateGate.findFirst({
+          where: { phaseId: phase.id, name: g.name },
+          select: { id: true },
+        });
+        if (existingGate) continue;
         await tx.activateGate.create({
           data: {
             phaseId: phase.id,
-            name: seed.gate.name,
-            description: seed.gate.description,
-            isMandatory: true,
-            position: 0,
+            name: g.name,
+            description: g.description,
+            isMandatory: g.isMandatory,
+            position: g.position,
             criteria: {
-              create: seed.gate.criteria.map((criterion, idx) => ({
-                criterion,
-                position: idx,
-              })),
+              create: g.criteria.map((c) => ({ criterion: c.criterion, position: c.position })),
             },
           },
         });
       }
     }
 
-    for (let i = 0; i < ACTIVATE_WORKSTREAMS.length; i += 1) {
-      const ws = ACTIVATE_WORKSTREAMS[i];
+    for (const ws of template.workstreams) {
       await tx.activateWorkstream.upsert({
         where: { projectId_key: { projectId, key: ws.key } },
-        update: { name: ws.name, position: i },
-        create: { projectId, key: ws.key, name: ws.name, position: i },
+        update: { name: ws.name, position: ws.position },
+        create: { projectId, key: ws.key, name: ws.name, position: ws.position },
       });
     }
   });

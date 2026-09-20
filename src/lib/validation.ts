@@ -1175,6 +1175,13 @@ export async function parseJsonBody<T extends z.ZodTypeAny>(
 
 export const activateEnableSchema = z.object({
   enabled: z.boolean(),
+  /**
+   * Which methodology template to seed from. Omitted means the built-in one,
+   * which is what every caller sent before templates existed — so the field is
+   * optional rather than required, and the old request shape still means
+   * exactly what it used to.
+   */
+  templateId: optionalCuidSchema,
 });
 
 /**

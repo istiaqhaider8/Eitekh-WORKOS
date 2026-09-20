@@ -6,6 +6,7 @@ import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activateEnableSchema } from "@/lib/validation";
 import { enableActivate, disableActivate, ACTIVATE_METHODOLOGY_VERSION } from "@/lib/activate";
 import { logAuditEvent } from "@/lib/audit-logger";
+import { templateUsableBy } from "@/lib/activate-templates";
 
 /**
  * SAP Activate profile for a project.
@@ -113,15 +114,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await assertProjectAccess(projectId);
+    // Access before permission, so a caller outside the tenant is refused
+    // before a permission error can confirm the project exists. The returned
+    // context carries the organization, which the template guard below needs.
+    const access = await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_phases");
 
     const parsed = await parseJsonBody(req, activateEnableSchema);
     if (!parsed.success) return parsed.error;
-    const { enabled } = parsed.data;
+    const { enabled, templateId } = parsed.data;
 
     if (enabled) {
-      await enableActivate(projectId);
+      /**
+       * A named template must belong to this organization or be built-in.
+       *
+       * `templateId` arrives in the BODY, and the path guard above authorised
+       * the project, not the template — the same shape as every other foreign
+       * id in this feature. Without this check a caller could seed their
+       * project from another tenant's methodology, which is both a leak of
+       * that tenant's phase and gate wording and a plan nobody agreed to.
+       *
+       * A 400 rather than a 404: the caller is authorised here, and an id that
+       * belongs to someone else answers identically to one that never existed.
+       */
+      if (templateId) {
+        const orgId = access.project.workspace.orgId;
+        const usable = await templateUsableBy(templateId, orgId);
+        if (!usable) {
+          return NextResponse.json(
+            { error: "That methodology template is not available to this project." },
+            { status: 400 }
+          );
+        }
+      }
+      await enableActivate(projectId, templateId ?? undefined);
     } else {
       await disableActivate(projectId);
     }

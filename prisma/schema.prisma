@@ -147,6 +147,9 @@ model Organization {
   webhooks    Webhook[]
   leaves      Leave[]
   invitations Invitation[]
+  /// Methodology templates this organization authored. Built-in templates
+  /// have a null orgId and belong to nobody.
+  methodTemplates MethodTemplate[]
 }
 
 model OrganizationMember {
@@ -1285,11 +1288,123 @@ model ActivateProfile {
   currentPhaseKey   String?
   /// Reserved for per-project tailoring (skipped phases, renamed workstreams).
   configJson        String?
+  /// THE STAMP. Which template this project was seeded from, and at which
+  /// version. Null means the built-in methodology as it stood before templates
+  /// existed, which is why it is nullable rather than backfilled: a project
+  /// seeded in 2026 was not stamped, and inventing a stamp for it would be a
+  /// claim nobody made.
+  ///
+  /// Kept as a plain id with NO relation, so deleting a template can never
+  /// cascade into a running project's profile. A project's plan must survive
+  /// the template it came from.
+  templateId        String?
+  templateVersion   Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   version           Int      @default(0)
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+/// A named, versioned methodology: the phases, workstreams, gates and criteria
+/// a project is seeded FROM.
+///
+/// WHY orgId IS NULLABLE
+///
+/// Null means built-in — shipped with the product, identical for everyone,
+/// and read-only. Set means an organization's own, which is how a customer
+/// tailors the methodology without waiting for us. One table covers both
+/// rather than forcing a choice between "we ship templates" and "customers
+/// author them"; both are true.
+///
+/// WHY A PUBLISHED TEMPLATE IS IMMUTABLE
+///
+/// A project stamps `templateId` + `templateVersion` and keeps them. Editing a
+/// published template would rewrite the plan of every project already running
+/// against it, retroactively and silently. Improvement is a NEW version, which
+/// a project adopts only by asking.
+model MethodTemplate {
+  id          String   @id @default(cuid())
+  /// Null = built-in and read-only. Set = this organization's own.
+  orgId       String?
+  /// Stable across versions. `SAP_ACTIVATE` is the built-in one.
+  key         String
+  name        String
+  /// A product line or delivery flavour — "SuccessFactors", "S/4HANA".
+  variant     String?
+  version     Int      @default(1)
+  /// DRAFT | PUBLISHED | RETIRED. Only PUBLISHED may be stamped onto a project.
+  status      String   @default("PUBLISHED")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  phases       TemplatePhase[]
+  workstreams  TemplateWorkstream[]
+
+  @@unique([orgId, key, version])
+  @@index([orgId])
+  @@index([status])
+}
+
+model TemplatePhase {
+  id          String   @id @default(cuid())
+  templateId  String
+  key         String
+  name        String
+  position    Int      @default(0)
+  purpose     String?
+  createdAt   DateTime @default(now())
+
+  template MethodTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  gates    TemplateGate[]
+
+  @@unique([templateId, key])
+  @@index([templateId])
+}
+
+model TemplateWorkstream {
+  id         String   @id @default(cuid())
+  templateId String
+  key        String
+  name       String
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  template MethodTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, key])
+  @@index([templateId])
+}
+
+model TemplateGate {
+  id          String   @id @default(cuid())
+  phaseId     String
+  name        String
+  description String?
+  isMandatory Boolean  @default(true)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  phase    TemplatePhase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  criteria TemplateGateCriterion[]
+
+  @@index([phaseId])
+}
+
+model TemplateGateCriterion {
+  id        String   @id @default(cuid())
+  gateId    String
+  criterion String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  gate TemplateGate @relation(fields: [gateId], references: [id], onDelete: Cascade)
+
+  @@index([gateId])
 }
 
 model ActivatePhase {
