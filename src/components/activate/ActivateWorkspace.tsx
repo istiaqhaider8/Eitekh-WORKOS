@@ -10,6 +10,8 @@ import {
   SlashIcon,
   TriangleAlert,
 } from "lucide-react";
+import { ActivateWorkshop } from "./ActivateWorkshop";
+import { ActivateBacklog } from "./ActivateBacklog";
 
 /**
  * SAP Activate — the phase workspace, including the Explore fit-to-standard view.
@@ -40,11 +42,20 @@ import {
 
 const PHASE_ORDER = ["DISCOVER", "PREPARE", "EXPLORE", "REALIZE", "DEPLOY", "RUN"] as const;
 
+/**
+ * The six fit-to-standard outcomes, the same vocabulary the decision model
+ * uses. It was three values until increment 10 — GAP collapsed tailoring,
+ * building custom and integrating, which are the three cases that produce
+ * completely different downstream work.
+ */
 const FIT_GAP_CHOICES = [
   { value: "", label: "Not assessed" },
-  { value: "FIT", label: "Fit — standard covers it" },
-  { value: "GAP", label: "Gap — needs work" },
-  { value: "ACCEPTED_GAP", label: "Accepted gap — living with it" },
+  { value: "ADOPT", label: "Adopt — standard covers it" },
+  { value: "CONFIGURE", label: "Configure — tailored by config" },
+  { value: "EXTEND", label: "Extend — custom build needed" },
+  { value: "INTEGRATE", label: "Integrate — needs an interface" },
+  { value: "DEFER", label: "Defer — agreed, not this release" },
+  { value: "OUT_OF_SCOPE", label: "Out of scope — excluded" },
 ] as const;
 
 interface Criterion {
@@ -101,6 +112,16 @@ interface Readiness {
   phases: PhaseReadiness[];
   deployBlockers: Blocker[];
   deployBlockerTotal: number;
+}
+
+interface TemplateOption {
+  id: string;
+  name: string;
+  variant: string | null;
+  version: number;
+  description: string | null;
+  builtIn: boolean;
+  phaseCount: number;
 }
 
 interface AcceleratorItem {
@@ -164,6 +185,9 @@ export function ActivateWorkspace({
   const [loadedPhaseId, setLoadedPhaseId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [accelerators, setAccelerators] = useState<AcceleratorItem[]>([]);
+  const [section, setSection] = useState<"phases" | "workshop" | "backlog">("phases");
+  const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [chosenTemplate, setChosenTemplate] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +221,22 @@ export function ActivateWorkspace({
       // criteria are still usable, so it degrades to absent rather than
       // taking the screen down with it.
       setReadiness(readinessRes.ok ? await readinessRes.json() : null);
+
+      /**
+       * The template list is only needed on the enable screen, so it is
+       * fetched only when Activate is off. Asking for it on every load of an
+       * already-running project would be a request whose answer nobody looks
+       * at.
+       */
+      if (!data.enabled) {
+        const tplRes = await fetch(`/api/projects/${projectId}/activate/templates`);
+        if (tplRes.ok) {
+          const tpl = await tplRes.json();
+          const list: TemplateOption[] = Array.isArray(tpl.templates) ? tpl.templates : [];
+          setTemplates(list);
+          setChosenTemplate((c) => c || list[0]?.id || "");
+        }
+      }
       setError(null);
     } catch (e: any) {
       setError(e?.message || "Could not load the Activate profile.");
@@ -355,21 +395,65 @@ export function ActivateWorkspace({
             </p>
           )}
           {can("activate:manage_phases") ? (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() =>
-                send(
-                  "Enable Activate",
-                  `/api/projects/${projectId}/activate`,
-                  { method: "POST", body: JSON.stringify({ enabled: true }) },
-                  loadProfile
-                )
-              }
-              className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {busy ? "Enabling…" : "Enable Activate"}
-            </button>
+            <div className="space-y-3">
+              {/**
+               * The template picker only appears when there is a choice.
+               *
+               * Most projects will have exactly one — the built-in
+               * methodology — and offering a dropdown with a single option
+               * asks a question whose answer nobody can get wrong, which is
+               * a question not worth asking.
+               */}
+              {templates.length > 1 && (
+                <div className="text-left">
+                  <label
+                    htmlFor="activate-template"
+                    className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+                  >
+                    Methodology
+                  </label>
+                  <select
+                    id="activate-template"
+                    value={chosenTemplate}
+                    onChange={(e) => setChosenTemplate(e.target.value)}
+                    className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+                  >
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                        {t.variant ? ` — ${t.variant}` : ""} (v{t.version}
+                        {t.builtIn ? ", built in" : ""})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    A project keeps the version it was started on. Improving a
+                    methodology later never rewrites a running plan.
+                  </p>
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() =>
+                  send(
+                    "Enable Activate",
+                    `/api/projects/${projectId}/activate`,
+                    {
+                      method: "POST",
+                      body: JSON.stringify({
+                        enabled: true,
+                        ...(chosenTemplate ? { templateId: chosenTemplate } : {}),
+                      }),
+                    },
+                    loadProfile
+                  )
+                }
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {busy ? "Enabling…" : "Enable Activate"}
+              </button>
+            </div>
           ) : (
             <p className="text-xs text-slate-500">
               Ask a project administrator to enable it.
@@ -389,6 +473,64 @@ export function ActivateWorkspace({
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+      {/**
+       * Three sections, not three routes.
+       *
+       * Phases, the workshop and the backlog are one feature seen from three
+       * angles, and switching between them must not cost a page load in the
+       * middle of a workshop. They are also all inside the lazily-loaded
+       * Activate chunk, so a project that never opens the tab downloads none
+       * of it.
+       */}
+      <div
+        role="tablist"
+        aria-label="Activate sections"
+        className="flex gap-1 border-b border-slate-200 dark:border-slate-800"
+      >
+        {(
+          [
+            ["phases", "Phases and gates"],
+            ["workshop", "Fit-to-standard"],
+            ["backlog", "Backlog"],
+          ] as const
+        ).map(([key, text]) => (
+          <button
+            key={key}
+            role="tab"
+            type="button"
+            aria-selected={section === key}
+            onClick={() => setSection(key)}
+            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors ${
+              section === key
+                ? "border-blue-500 text-slate-900 dark:text-white"
+                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+
+      {section === "workshop" && (
+        <ActivateWorkshop
+          projectId={projectId}
+          canManageModules={can("activate:manage_phases")}
+          canDecide={can("activate:manage_deliverables")}
+          onChanged={loadProfile}
+        />
+      )}
+
+      {section === "backlog" && (
+        <ActivateBacklog
+          projectId={projectId}
+          canGenerate={can("activate:manage_deliverables")}
+          onOpenIssue={onOpenIssue}
+          onGenerated={loadProfile}
+        />
+      )}
+
+      {section !== "phases" ? null : (
+      <>
       {/* Phase rail ------------------------------------------------------- */}
       <div
         role="tablist"
@@ -848,6 +990,8 @@ export function ActivateWorkspace({
             </p>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   );
