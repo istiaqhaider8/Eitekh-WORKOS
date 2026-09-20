@@ -1170,3 +1170,29 @@ export async function parseJsonBody<T extends z.ZodTypeAny>(
   }
   return parseBody(schema, raw);
 }
+
+// ── SAP Activate ─────────────────────────────────────────────────
+
+export const activateEnableSchema = z.object({
+  enabled: z.boolean(),
+});
+
+/**
+ * Phase status values.
+ *
+ * A closed set, unlike issue types: these are the methodology's own states,
+ * not a project's vocabulary, so there is nothing for a customer to extend
+ * and an enum is the honest representation.
+ */
+export const ACTIVATE_PHASE_STATUSES = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "SKIPPED"] as const;
+
+export const activatePhaseUpdateSchema = z.object({
+  name: safeStringSchema.trim().min(1).max(120).optional(),
+  status: z.enum(ACTIVATE_PHASE_STATUSES).optional(),
+  ownerId: optionalCuidSchema,
+  // Nullable so a date can be cleared, not only set.
+  startDate: z.string().max(50).optional().nullable(),
+  targetDate: z.string().max(50).optional().nullable(),
+  // Optimistic locking is opt-in; see the route.
+  version: z.coerce.number().int().min(0).optional(),
+});
