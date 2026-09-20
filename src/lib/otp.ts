@@ -57,7 +57,48 @@ export async function createAndSendOtp(
     customSubject: subject,
   });
 
+  /**
+   * When the code cannot be delivered, put it where a LOCAL operator can see
+   * it — and only a local operator.
+   *
+   * Two separate mechanisms make OTP flows impossible to complete off a real
+   * mail server, and between them they block registration and password reset
+   * entirely on a development machine:
+   *
+   *   - with no SMTP configured, `sendEmail` returns MOCKED, and the check
+   *     below treats anything other than SENT as a failure;
+   *   - with EMAIL_DISABLED set, nothing is dispatched at all, and because no
+   *     EmailLog row is written either, the code exists ONLY as a one-way
+   *     hash in OtpCode. Nobody — including the person running the server —
+   *     can recover it.
+   *
+   * So the flow was unusable locally, and the fix for the second problem made
+   * the first one worse. Printing the code to the server's own stdout is the
+   * only thing that makes the flow completable without a mail server.
+   *
+   * THE GUARD MATTERS MORE THAN THE FEATURE. A one-time code in a log file is
+   * a credential in a log file: it defeats the point of sending it out of
+   * band, and log aggregation would spread it further. So this requires an
+   * explicit, deliberate signal that this is not a real deployment —
+   * ALLOW_LOCAL_BASE_URL, which instrumentation.ts already describes as
+   * something that "must never be set in a real deployment" — or a
+   * non-production NODE_ENV. A production server with neither never reaches
+   * this branch.
+   */
+  const isLocalRun =
+    process.env.NODE_ENV !== "production" || process.env.ALLOW_LOCAL_BASE_URL === "1";
+
   if (result.status !== "SENT") {
+    if (isLocalRun) {
+      console.warn(
+        `\n[otp] Email was not delivered (${result.status ?? result.reason ?? "unknown"}), so the code is printed here.\n` +
+          `[otp] ${purpose} code for ${normalizedEmail}: ${otp}\n` +
+          `[otp] Valid for ${OTP_EXPIRY_MINUTES} minutes. This only happens on a local run.\n`
+      );
+      // The code IS available, so reporting failure would be a lie that
+      // stops the caller dead. The row is written; the operator can read it.
+      return { success: true };
+    }
     return { success: false, error: "Failed to send verification email. Please try again." };
   }
 
