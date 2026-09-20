@@ -1,0 +1,23 @@
+# Nightly encrypted backup with offsite copy.
+#
+#   sudo cp deploy/systemd/eitekh-backup.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now eitekh-backup.timer
+#
+# Then verify it by RESTORING one, not by seeing the unit succeed. A backup
+# that has never been restored is a file, not a recovery plan.
+
+[Unit]
+Description=Nightly Eitekh WorkOS backup
+
+[Timer]
+# 02:17 rather than 02:00. Round times are when every cron job on every host
+# runs at once, and the resulting IO spike is its own small incident.
+OnCalendar=*-*-* 02:17:00
+RandomizedDelaySec=600
+# Catch up after downtime, so a host that was off overnight still takes a
+# backup rather than silently skipping a day.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

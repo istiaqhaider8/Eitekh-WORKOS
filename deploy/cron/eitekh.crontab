@@ -27,6 +27,13 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Generate due recurring tasks.
 7 * * * * eitekh set -a; . /etc/eitekh/alerts.env; set +a; curl --fail --silent --show-error --max-time 60 -X POST -H "x-recurring-secret: $RECURRING_TASKS_SECRET" "$APP_URL/api/recurring-tasks/trigger" >/dev/null
 
-# Nightly encrypted database backup. BACKUP_ENCRYPTION_KEY must be set in the
-# env file: a dump holds every tenant's data in the clear.
-17 2 * * * eitekh set -a; . /etc/eitekh/alerts.env; set +a; cd /opt/eitekh && node scripts/db-backup.mjs
+# Nightly encrypted backup AND the offsite copy, as one job with one exit code.
+#
+# BACKUP_ENCRYPTION_KEY must be set in the env file: a dump holds every
+# tenant's data in the clear. It must NOT be the application's
+# FIELD_ENCRYPTION_KEY — a backup readable by whoever took the application key
+# has not moved the risk anywhere.
+#
+# 02:17 rather than 02:00, because round times are when every cron job on
+# every host fires at once and the IO spike is its own small incident.
+17 2 * * * eitekh set -a; . /etc/eitekh/alerts.env; set +a; cd /opt/eitekh && node scripts/backup-nightly.mjs --label nightly --prune 14

@@ -1,0 +1,43 @@
+# Nightly encrypted database backup, then the offsite copy.
+#
+# The two are ONE unit on purpose. A backup that stays on the host is not a
+# backup — it does not survive disk loss, host loss, ransomware walking the
+# filesystem, or a cloud account action that takes the instance and its
+# volumes together. Splitting them into two timers means the second can fail
+# silently for a month while the first keeps reporting success.
+#
+# scripts/backup-nightly.mjs does both and returns ONE exit code. The two
+# steps are joined by the filename, which db-backup.mjs timestamps, so a
+# scheduler entry cannot name it in advance — writing ExecStartPost with a
+# guessed "latest.dump.enc" path looks reasonable and refers to a file that
+# does not exist, reporting success every night until someone needs the copy.
+
+[Unit]
+Description=Eitekh WorkOS encrypted database backup and offsite copy
+Documentation=file:///opt/eitekh/DEPLOYMENT.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/eitekh
+
+# Holds DATABASE_URL, BACKUP_ENCRYPTION_KEY and the BACKUP_S3_* credentials.
+# Mode 0600, owned by root. BACKUP_ENCRYPTION_KEY must NOT be the application's
+# FIELD_ENCRYPTION_KEY: a backup an attacker who took the application key can
+# also read has not moved the risk anywhere.
+EnvironmentFile=/etc/eitekh/alerts.env
+
+User=eitekh
+Group=eitekh
+
+ExecStart=/usr/bin/node scripts/backup-nightly.mjs --label nightly --prune 14
+
+# A dump of a large database is IO-heavy. Without this it competes with the
+# application it is backing up, and the backup window becomes a latency
+# incident.
+IOSchedulingClass=idle
+Nice=10
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true

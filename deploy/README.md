@@ -26,7 +26,7 @@ sudo $EDITOR /etc/eitekh/alerts.env      # see "Environment file" below
 
 sudo cp deploy/systemd/eitekh-*.service deploy/systemd/eitekh-*.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now eitekh-alerts.timer eitekh-recurring-tasks.timer
+sudo systemctl enable --now eitekh-alerts.timer eitekh-recurring-tasks.timer eitekh-backup.timer
 ```
 
 Then **confirm it is actually scheduled** — the failure mode this whole phase
@@ -51,6 +51,18 @@ jobs. Read the header — it is an `/etc/cron.d` file, so it has a user field an
 `crontab -e` will reject it, and `MAILTO` is the only way cron reports a
 failure.
 
+## A note on the backup timer
+
+`eitekh-backup.service` runs `scripts/backup-nightly.mjs`, which takes the dump
+**and** ships it off-host, returning one exit code. That is on purpose. Two
+separate timers would let the offsite copy fail silently for a month while the
+backup kept reporting success — and "local backups, no offsite copy" is exactly
+the state in which the next incident is unrecoverable.
+
+The unit succeeding is not the thing to check. **Restore one.** A backup that
+has never been restored is a file, not a recovery plan; see the restore drill
+in `DEPLOYMENT.md`.
+
 ## Environment file
 
 `/etc/eitekh/alerts.env`, mode 0600, owned by root:
@@ -61,6 +73,16 @@ ALERT_CHECK_SECRET=<same value as the application's ALERT_CHECK_SECRET>
 RECURRING_TASKS_SECRET=<same value as the application's RECURRING_TASKS_SECRET>
 DATABASE_URL=<postgres url for the backup job>
 BACKUP_ENCRYPTION_KEY=<64 hex chars, NOT the field encryption key>
+
+# Offsite copy. Deliberately a different bucket and different credentials from
+# the application's S3_*; backup-offsite.mjs refuses to run if the bucket is
+# the same one, because a single compromised application key would then reach
+# the data and the backups together.
+BACKUP_S3_BUCKET=<separate bucket, ideally with object lock or versioning>
+BACKUP_S3_REGION=<region>
+BACKUP_S3_ACCESS_KEY_ID=<write-only key if your provider supports it>
+BACKUP_S3_SECRET_ACCESS_KEY=<...>
+#BACKUP_S3_ENDPOINT=https://...   # MinIO, R2, B2 — anything not AWS
 ```
 
 Secrets are here and not in the unit files because unit files are

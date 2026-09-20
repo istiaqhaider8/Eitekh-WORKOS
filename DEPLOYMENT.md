@@ -931,7 +931,55 @@ can work selectively and in parallel — which matters when the restore is what 
 and being down.
 
 **Copy it off-host.** A backup on the same disk as the database does not survive the failure it
-exists for. `BACKUP_RETAIN` only controls local pruning.
+exists for — disk loss, host loss, ransomware walking the filesystem, or a cloud account action
+that takes the instance and its volumes together. `BACKUP_RETAIN` only controls local pruning.
+
+### The offsite copy (A1 / Phase 5)
+
+Every previous version of this section ended with that instruction and nothing performed it. An
+instruction in a document that nobody has automated is a plan, and a plan that has never run is
+a guess.
+
+```bash
+# Both halves as one job with one exit code — this is what the scheduler runs:
+node scripts/backup-nightly.mjs --label nightly --prune 14
+
+# Or the copy on its own:
+node scripts/backup-offsite.mjs --file backups/<dump>.enc --prune 14
+node scripts/backup-offsite.mjs --list
+```
+
+`BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY`,
+optionally `BACKUP_S3_ENDPOINT` (MinIO, R2, B2) and `BACKUP_S3_PREFIX`.
+
+Three decisions in there are deliberate:
+
+- **These are not the application's `S3_*` variables, and the script refuses to run if
+  `BACKUP_S3_BUCKET` equals `S3_BUCKET`.** Reusing the app's bucket is the shortcut everyone
+  takes because the credentials are to hand, and it makes the offsite copy worthless in the
+  scenario it exists for: one compromised application credential then reaches the data *and* the
+  copy you would recover from. Ransomware is the case that matters, because it goes looking.
+  Use a separate bucket with its own credentials, and object lock or versioning so a key that
+  can write cannot erase history.
+- **It reads the object back after uploading** and compares the size. A `PUT` that returns
+  without throwing is not evidence the object exists at the right length — a truncated stream, a
+  buffering proxy that gave up, or a bucket policy that quietly discards all produce a
+  clean-looking success. Without the read-back the first time you learn is during a restore.
+- **Backup and ship are one job, not two timers.** Two timers means the copy can fail silently
+  for a month while the backup keeps reporting success, and "local backups, no offsite copy" is
+  exactly the state where the next incident is unrecoverable. The filename also joins them, and
+  it is timestamped, so a scheduler entry cannot name it in advance.
+
+> **Status: the guards are verified, the upload is not.** The refusals — missing configuration,
+> and the same-bucket-as-the-app check — were exercised and both exit 2, and
+> `backup-nightly.mjs` was confirmed to exit 1 and ship nothing when the dump fails. The upload,
+> read-back and prune paths have **not** been run against any S3 endpoint, because there is no
+> S3-compatible server on this machine and `pg_dump` is absent so no real dump can be produced
+> here either. Run it against your own bucket once before relying on it, and then restore what
+> it uploaded.
+
+**Stored is not restorable.** The only check that means anything is a restore of the file that
+actually came back down — see below.
 
 ### Restoring — the part to rehearse
 
