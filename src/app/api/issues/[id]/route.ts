@@ -11,6 +11,7 @@ import { handleApiError } from "@/lib/api-error";
 import { getIssueSubscribers } from "@/lib/issue-subscribers";
 import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
 import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
+import { violatesDateOrder, DATE_ORDER_ERROR } from "@/lib/issue-dates";
 
 /**
  * A4 — how much history a single issue fetch carries.
@@ -230,10 +231,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    const effectiveStartDate = body.startDate !== undefined ? (body.startDate ? new Date(body.startDate) : null) : (currentIssue.startDate ? new Date(currentIssue.startDate) : null);
-    const effectiveDueDate = body.dueDate !== undefined ? (body.dueDate ? new Date(body.dueDate) : null) : (currentIssue.dueDate ? new Date(currentIssue.dueDate) : null);
-    if (effectiveStartDate && effectiveDueDate && effectiveDueDate < effectiveStartDate) {
-      return NextResponse.json({ error: "Due Date cannot be earlier than Start Date" }, { status: 400 });
+    /**
+     * Order the dates, but only when this request is actually changing one.
+     *
+     * The rule and the reasoning live in `src/lib/issue-dates.ts`, because the
+     * subtlety did not survive being four inline lines: it must constrain what
+     * the request CHANGES, not what the row already holds. Comparing effective
+     * values unconditionally made every issue with legacy inverted dates
+     * permanently uneditable — 1,441 of 21,579 updates in the A2 soak, from a
+     * journey that submitted nothing but `{description}`.
+     */
+    if (violatesDateOrder(body, currentIssue)) {
+      return NextResponse.json({ error: DATE_ORDER_ERROR }, { status: 400 });
     }
 
     const updateData: any = {};
