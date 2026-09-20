@@ -219,12 +219,22 @@ describe("Readiness authorization", () => {
     expect(res.status).toBe(401);
   });
 
-  it("refuses a VIEWER, who holds no activate permission", async () => {
+  it("ALLOWS a VIEWER to read it, since readiness reports and never decides", async () => {
+    /**
+     * This asserted a denial until the permission matrix was fixed.
+     *
+     * At the time, no PROJECT-scoped role held any activate key, so a VIEWER
+     * was refused by accident rather than by intent — the test recorded the
+     * gap. `activate:view` is now part of the read-only baseline, and a
+     * report of whether go-live is realistic is exactly the thing the people
+     * who cannot approve it most need to see.
+     */
     const res = await api(
       fx.orgA.users.VIEWER,
       `/api/projects/${fx.orgA.projectId}/activate/readiness`
     );
-    expectDenied(res, "a VIEWER reading readiness");
+    expectAllowed(res, "a VIEWER reading readiness");
+    expect(res.body.enabled).toBe(true);
   });
 
   it("reports the other organization's own project independently", async () => {

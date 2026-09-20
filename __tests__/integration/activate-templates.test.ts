@@ -211,12 +211,26 @@ describe("Listing the templates a project may use", () => {
     for (const t of res.body.templates) expect(t.orgId).toBeUndefined();
   });
 
-  it("refuses a cross-tenant caller, an outsider, a VIEWER and an anonymous one", async () => {
+  it("refuses a cross-tenant caller, an outsider and an anonymous one", async () => {
     const path = `/api/projects/${fx.orgA.projectId}/activate/templates`;
     expectDenied(await api(fx.orgB.users.OWNER, path), "org B listing org A's templates");
     expectDenied(await api(fx.outsider, path), "an outsider listing templates");
-    expectDenied(await api(fx.orgA.users.VIEWER, path), "a VIEWER listing templates");
     expect((await api(null, path)).status).toBe(401);
+  });
+
+  it("allows a VIEWER to list them but not to enable one", async () => {
+    // This test asserted a VIEWER denial until the permission matrix was
+    // fixed: no project-scoped role held any activate key, so the refusal
+    // was accidental. Reading which methodologies exist is `activate:view`;
+    // stamping one onto the project is `activate:manage_phases`.
+    const path = `/api/projects/${fx.orgA.projectId}/activate/templates`;
+    expectAllowed(await api(fx.orgA.users.VIEWER, path), "a VIEWER listing templates");
+
+    const enable = await api(fx.orgA.users.VIEWER, `/api/projects/${fx.orgA.projectId}/activate`, {
+      method: "POST",
+      body: { enabled: true },
+    });
+    expectDenied(enable, "a VIEWER enabling Activate");
   });
 });
 

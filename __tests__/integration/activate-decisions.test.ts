@@ -155,12 +155,27 @@ describe("The scope-item catalogue", () => {
     expect(res.body.scopeItems.map((i: any) => i.id)).not.toContain(foreignScopeItemId);
   });
 
-  it("refuses a cross-tenant caller, an outsider, a VIEWER and an anonymous one", async () => {
+  it("refuses a cross-tenant caller, an outsider and an anonymous one", async () => {
     const path = `/api/projects/${fx.orgA.projectId}/activate/scope-items`;
     expectDenied(await api(fx.orgB.users.OWNER, path), "org B reading org A's catalogue");
     expectDenied(await api(fx.outsider, path), "an outsider reading the catalogue");
-    expectDenied(await api(fx.orgA.users.VIEWER, path), "a VIEWER reading the catalogue");
     expect((await api(null, path)).status).toBe(401);
+  });
+
+  it("allows a VIEWER to read the catalogue but not to decide against it", async () => {
+    // Asserted a denial until the permission matrix was fixed, when no
+    // project-scoped role held any activate key. Reading what a workshop
+    // will walk through is `activate:view`; recording its outcome is
+    // `activate:manage_deliverables`.
+    const path = `/api/projects/${fx.orgA.projectId}/activate/scope-items`;
+    expectAllowed(await api(fx.orgA.users.VIEWER, path), "a VIEWER reading the catalogue");
+
+    const decide = await api(
+      fx.orgA.users.VIEWER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "ADOPT" } }
+    );
+    expectDenied(decide, "a VIEWER recording a decision");
   });
 });
 

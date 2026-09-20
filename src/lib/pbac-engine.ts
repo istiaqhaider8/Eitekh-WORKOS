@@ -251,6 +251,10 @@ export const VIEWER_PERMISSION_KEYS = [
   'workload:view',
   'reports:view',
   'analytics:view',
+  // Matches the VIEWER role. A read-only baseline that could see every
+  // other view but not the methodology would be an odd gap, and every
+  // Activate read route is guarded by this one key.
+  'activate:view',
 ];
 
 // Role hierarchy: higher number = more privilege. Used to prevent escalation.
@@ -628,7 +632,23 @@ class UnifiedPBACEngine {
           'users:view',
           'settings:view', 'settings:workflows', 'settings:custom_fields', 'settings:automations',
           'audit:view', 'audit:inspect_access',
-          'export:csv', 'export:excel', 'export:pdf', 'export:import_data'
+          'export:csv', 'export:excel', 'export:pdf', 'export:import_data',
+          /**
+           * SAP Activate. A Project Admin holds all five, including
+           * `activate:sign_off_gate` — the only PROJECT-scoped role that
+           * does.
+           *
+           * That is what makes the separation of duties a role-level
+           * property and not only a user-level one. A Project Manager can
+           * raise a gate but can never approve it, so a project that has one
+           * PM and one Project Admin cannot pass a gate without two people
+           * being involved even before the same-person check applies.
+           *
+           * The same-person check still applies on top: a Project Admin who
+           * raised a gate cannot sign that gate off either.
+           */
+          'activate:view', 'activate:manage_phases', 'activate:manage_deliverables',
+          'activate:manage_gates', 'activate:sign_off_gate'
         ],
       },
       {
@@ -664,7 +684,23 @@ class UnifiedPBACEngine {
           'analytics:view',
           'teams:view', 'teams:manage',
           'users:view',
-          'export:csv', 'export:excel', 'export:pdf', 'export:import_data'
+          'export:csv', 'export:excel', 'export:pdf', 'export:import_data',
+          /**
+           * SAP Activate, WITHOUT `activate:sign_off_gate`.
+           *
+           * A Project Manager runs the methodology: enables it, owns the
+           * phase plan, records fit-to-standard decisions, marks gate
+           * criteria met and raises a gate for sign-off. They deliberately
+           * cannot approve one.
+           *
+           * The person running the plan should not be the person who accepts
+           * that the plan is done. Granting sign-off here would make it
+           * possible for a single role — and on a small project a single
+           * person holding it twice over — to carry a gate end to end, which
+           * is the control the gate exists to provide.
+           */
+          'activate:view', 'activate:manage_phases', 'activate:manage_deliverables',
+          'activate:manage_gates'
         ],
       },
       {
@@ -692,7 +728,11 @@ class UnifiedPBACEngine {
           'reports:view',
           'analytics:view',
           'teams:view',
-          'export:csv'
+          'export:csv',
+          // Read-only on the methodology: a member does the work a gate is
+          // about and should be able to see the plan and where it stands,
+          // but recording a fit-to-standard decision is a governance act.
+          'activate:view'
         ],
       },
       {
@@ -718,7 +758,8 @@ class UnifiedPBACEngine {
           'timeline:view',
           'workload:view',
           'reports:view',
-          'analytics:view'
+          'analytics:view',
+          'activate:view'
         ],
       },
     ];
