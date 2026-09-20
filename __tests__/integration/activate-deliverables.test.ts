@@ -414,16 +414,16 @@ describe("Deliverable links", () => {
     const res = await api(
       fx.orgA.users.OWNER,
       `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
-      { method: "PATCH", body: { fitGapStatus: "ACCEPTED_GAP" } }
+      { method: "PATCH", body: { fitGapStatus: "OUT_OF_SCOPE" } }
     );
     expect(res.status).toBe(200);
-    expect(res.body.deliverable.fitGapStatus).toBe("ACCEPTED_GAP");
+    expect(res.body.deliverable.fitGapStatus).toBe("OUT_OF_SCOPE");
 
     const row = await prisma.activateDeliverableLink.findUnique({
       where: { id: linkId },
       select: { fitGapStatus: true },
     });
-    expect(row?.fitGapStatus).toBe("ACCEPTED_GAP");
+    expect(row?.fitGapStatus).toBe("OUT_OF_SCOPE");
   });
 
   it("withdraws a classification back to unassessed, which is not FIT", async () => {
@@ -442,7 +442,7 @@ describe("Deliverable links", () => {
     await api(
       fx.orgA.users.OWNER,
       `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
-      { method: "PATCH", body: { fitGapStatus: "GAP" } }
+      { method: "PATCH", body: { fitGapStatus: "CONFIGURE" } }
     );
     const res = await api(
       fx.orgA.users.OWNER,
@@ -450,7 +450,7 @@ describe("Deliverable links", () => {
     );
     expect(res.status).toBe(200);
     const found = res.body.deliverables.find((d: any) => d.id === linkId);
-    expect(found.fitGapStatus).toBe("GAP");
+    expect(found.fitGapStatus).toBe("CONFIGURE");
   });
 
   it("rejects a classification outside the allowed set with 400, not 500", async () => {
@@ -467,14 +467,14 @@ describe("Deliverable links", () => {
       where: { id: linkId },
       select: { fitGapStatus: true },
     });
-    expect(row?.fitGapStatus).toBe("GAP");
+    expect(row?.fitGapStatus).toBe("CONFIGURE");
   });
 
   it("refuses a VIEWER classifying a deliverable", async () => {
     const res = await api(
       fx.orgA.users.VIEWER,
       `/api/projects/${fx.orgA.projectId}/activate/deliverables/${linkId}`,
-      { method: "PATCH", body: { fitGapStatus: "FIT" } }
+      { method: "PATCH", body: { fitGapStatus: "ADOPT" } }
     );
     expectDenied(res, "a VIEWER classifying a deliverable");
   });

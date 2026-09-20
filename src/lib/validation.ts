@@ -1253,7 +1253,22 @@ export const activateDeliverableCreateSchema = z.object({
  * been through a workshop yet, and that must stay distinguishable from "we
  * looked at it and it fits".
  */
-export const ACTIVATE_FIT_GAP_STATUSES = ["FIT", "GAP", "ACCEPTED_GAP"] as const;
+/**
+ * The SAME six values `ActivateDecision.decision` uses, not a second list.
+ *
+ * This shipped as ["FIT", "GAP", "ACCEPTED_GAP"] in increment 5 and was left
+ * behind in increment 10, which widened the vocabulary everywhere else: the
+ * data was migrated, the schema comment was rewritten and the UI dropdown was
+ * changed to offer six options — but this, the thing that actually validates
+ * the request, still accepted only the old three. The classifier in the
+ * workspace sent ADOPT and got a 400.
+ *
+ * Nothing caught it, because the deliverable tests still asserted the old
+ * values and so agreed with the stale schema. It took exercising the running
+ * system to see it. Aliasing the decision vocabulary rather than restating it
+ * is what stops the two drifting apart again.
+ */
+export const ACTIVATE_FIT_GAP_STATUSES = ACTIVATE_DECISIONS;
 
 export const activateDeliverableUpdateSchema = z.object({
   phaseId: cuidSchema.optional(),
