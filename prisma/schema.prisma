@@ -69,6 +69,10 @@ model User {
   activateWorkstreamsOwned ActivateWorkstream[]   @relation("ActivateWorkstreamOwner")
   activateGateApprovals    ActivateGateApproval[] @relation("ActivateGateApprover")
   activateGatesRaised      ActivateGate[]         @relation("ActivateGateRaiser")
+  activateModulesOwned     ActivateProjectModule[] @relation("ActivateModuleOwner")
+  activateDecisionsMade    ActivateDecision[]      @relation("ActivateDecisionDecider")
+  activateQuestionsOwned   ActivateDecision[]      @relation("ActivateQuestionOwner")
+  activateDeltasOwned      ActivateDelta[]         @relation("ActivateDeltaOwner")
 
   @@index([userType])
 }
@@ -293,6 +297,8 @@ model Project {
   @@index([ownerId])
   @@index([teamId])
   @@index([searchVector], type: Gin)
+  activateModules   ActivateProjectModule[]
+  activateDecisions ActivateDecision[]
 }
 
 model ProjectMember {
@@ -1344,6 +1350,7 @@ model MethodTemplate {
   organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
   phases       TemplatePhase[]
   workstreams  TemplateWorkstream[]
+  modules      TemplateModule[]
 
   @@unique([orgId, key, version])
   @@index([orgId])
@@ -1467,7 +1474,18 @@ model ActivateDeliverableLink {
   isMandatory    Boolean  @default(false)
   /// Identifies the SAP accelerator this deliverable was created from.
   acceleratorKey String?
-  /// FIT | GAP | ACCEPTED_GAP — the outcome of a fit-to-standard workshop.
+  /// What GENERATED this deliverable, if anything did: `delta:<id>` for an
+  /// authored delta, `rule:<decisionId>:<rule>` for one a generation rule
+  /// added. Unique, which is what makes re-running generation converge
+  /// instead of duplicating — no bookkeeping table required.
+  ///
+  /// Deliberately not positional. A backlog numbered by iteration order
+  /// renumbers itself whenever a decision is added, which breaks the moment
+  /// anyone cites an item in a meeting.
+  originKey      String?  @unique
+  /// ADOPT | CONFIGURE | EXTEND | INTEGRATE | DEFER | OUT_OF_SCOPE — the
+  /// outcome of a fit-to-standard workshop, using the same vocabulary as
+  /// ActivateDecision so there is one set of words rather than two.
   /// Null means the item has not been through one yet, which is a real and
   /// common state during Explore, so it is not defaulted to FIT: recording
   /// "we looked at this and it fits" is a decision somebody made, and it must
@@ -1551,4 +1569,131 @@ model ActivateGateApproval {
 
   @@index([gateId])
   @@index([approverId])
+}
+
+/// A module within a methodology template — a grouping of scope items that a
+/// project can switch in or out as a whole.
+///
+/// Modules are the layer that makes one template reusable. A suite template
+/// plus module content beats a template per module combination: the common
+/// material is written once, and a project says which modules it is doing.
+model TemplateModule {
+  id          String   @id @default(cuid())
+  templateId  String
+  key         String
+  name        String
+  description String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  template   MethodTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  scopeItems TemplateScopeItem[]
+
+  @@unique([templateId, key])
+  @@index([templateId])
+}
+
+/// One thing a fit-to-standard workshop decides about.
+///
+/// A scope item is the unit of the CONVERSATION; a decision is the unit of the
+/// RECORD; a delta is the unit of WORK. Keeping them separate is what lets a
+/// decision of "adopt standard" be a real, reportable outcome rather than an
+/// absence of data.
+model TemplateScopeItem {
+  id            String   @id @default(cuid())
+  moduleId      String
+  code          String
+  name          String
+  /// Which workstream owns it, by key — matched against the template's own
+  /// workstreams rather than a foreign key, so a module can be authored
+  /// independently of the workstream list it references.
+  workstreamKey String
+  /// Comma-separated flags that let a generation rule fire without any rule
+  /// hard-coding a scope item code. `ux` means employees or managers see it.
+  tags          String?
+  position      Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  module TemplateModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, code])
+  @@index([moduleId])
+}
+
+/// Whether a project is doing a module, and in which wave.
+///
+/// A wave number as well as a flag, because "not doing it" and "not doing it
+/// yet" are different answers and a steering committee asks the difference
+/// every month. A boolean alone forces one to stand for both.
+model ActivateProjectModule {
+  id         String   @id @default(cuid())
+  projectId  String
+  /// TemplateModule id. No foreign key, for the same reason the profile's
+  /// template stamp has none: a running project must outlive its template.
+  moduleId   String
+  inScope    Boolean  @default(true)
+  waveNumber Int?
+  ownerId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   User?   @relation("ActivateModuleOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, moduleId])
+  @@index([projectId])
+}
+
+/// What a project decided about one scope item.
+model ActivateDecision {
+  id              String    @id @default(cuid())
+  projectId       String
+  /// TemplateScopeItem id — again unlinked, so the decision survives the
+  /// catalogue it was made against.
+  scopeItemId     String
+  /// ADOPT | CONFIGURE | EXTEND | INTEGRATE | DEFER | OUT_OF_SCOPE
+  decision        String
+  /// DRAFT | AGREED. Only AGREED counts as signed at a gate.
+  status          String    @default("DRAFT")
+  rationale       String?
+  openQuestion    String?
+  questionOwnerId String?
+  decidedById     String?
+  decidedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  /// Optimistic locking: a workshop has several people editing at once.
+  version         Int       @default(0)
+
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  decidedBy     User?           @relation("ActivateDecisionDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  questionOwner User?           @relation("ActivateQuestionOwner", fields: [questionOwnerId], references: [id], onDelete: SetNull)
+  deltas        ActivateDelta[]
+
+  @@unique([projectId, scopeItemId])
+  @@index([projectId])
+  @@index([projectId, decision])
+}
+
+/// One difference from the standard, sized and owned. The unit of work.
+model ActivateDelta {
+  id             String   @id @default(cuid())
+  decisionId     String
+  title          String
+  /// CONFIGURATION | BUSINESS_RULE | WORKFLOW | REPORT | INTERFACE | CONVERSION | ENHANCEMENT | FORM
+  buildType      String   @default("CONFIGURATION")
+  priority       String   @default("SHOULD")
+  size           String   @default("M")
+  ownerId        String?
+  /// Which phase this should land in, by key.
+  targetPhaseKey String?
+  note           String?
+  position       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  decision ActivateDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  owner    User?            @relation("ActivateDeltaOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([decisionId])
 }

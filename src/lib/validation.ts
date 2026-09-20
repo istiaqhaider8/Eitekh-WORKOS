@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { RECURRENCE_VALUES } from "./recurrence";
+import {
+  ACTIVATE_DECISIONS,
+  ACTIVATE_BUILD_TYPES,
+  ACTIVATE_PRIORITIES,
+  ACTIVATE_SIZES,
+  ACTIVATE_DECISION_STATUSES,
+} from "./activate-generation";
 
 // ── Reusable field schemas ──────────────────────────────────────────
 
@@ -1294,4 +1301,44 @@ export const activateGateApprovalSchema = z.object({
  */
 export const activateAcceleratorApplySchema = z.object({
   key: z.string().min(3).max(64),
+});
+
+// ── SAP Activate: modules, decisions and deltas ──────────────────
+
+export const activateModuleScopeSchema = z.object({
+  moduleId: cuidSchema,
+  inScope: z.boolean().optional(),
+  /** Which release wave. Null clears it, which is not the same as wave 0. */
+  waveNumber: z.coerce.number().int().min(0).max(99).nullable().optional(),
+  ownerId: optionalCuidSchema,
+});
+
+export const activateDeltaInputSchema = z.object({
+  /** Present when editing an existing delta, absent when adding one. */
+  id: cuidSchema.optional(),
+  title: safeStringSchema.trim().min(1).max(300),
+  buildType: z.enum(ACTIVATE_BUILD_TYPES).optional(),
+  priority: z.enum(ACTIVATE_PRIORITIES).optional(),
+  size: z.enum(ACTIVATE_SIZES).optional(),
+  ownerId: optionalCuidSchema,
+  targetPhaseKey: safeStringSchema.trim().max(40).nullable().optional(),
+  note: safeStringSchema.trim().max(2000).nullable().optional(),
+});
+
+/**
+ * A decision and its deltas are recorded in ONE request.
+ *
+ * A fit-to-standard workshop settles a scope item as a unit — the outcome, why,
+ * and what therefore has to be built. Splitting that across three calls would
+ * let a decision exist for a while with deltas that contradict it, on screen,
+ * in front of the people who just agreed something else.
+ */
+export const activateDecisionSchema = z.object({
+  decision: z.enum(ACTIVATE_DECISIONS),
+  status: z.enum(ACTIVATE_DECISION_STATUSES).optional(),
+  rationale: safeStringSchema.trim().max(4000).nullable().optional(),
+  openQuestion: safeStringSchema.trim().max(500).nullable().optional(),
+  questionOwnerId: optionalCuidSchema,
+  deltas: z.array(activateDeltaInputSchema).max(50).optional(),
+  version: z.coerce.number().int().min(0).optional(),
 });

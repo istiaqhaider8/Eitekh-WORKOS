@@ -1,0 +1,491 @@
+/**
+ * SAP Activate increments 9 and 10 — modules, scope items, decisions, deltas
+ * and generated work.
+ *
+ * The generation RULES are unit-tested in __tests__/activate-generation.test.ts,
+ * where they belong: they are a pure function and deserve to be tested without
+ * a server. This suite covers what only a running system can show — that the
+ * catalogue is reachable only through the template a project was stamped with,
+ * that a decision cannot be recorded against another tenant's scope item, and
+ * that generating twice does not double the backlog.
+ *
+ * The accept case is asserted first in every block.
+ */
+
+import { PrismaClient } from "@prisma/client";
+import { api, expectDenied, expectAllowed, waitForServer, type Fixture } from "./harness";
+import { createFixture, destroyFixture } from "./fixture";
+
+const prisma = new PrismaClient();
+let fx: Fixture;
+
+/** Ids from org A's template, read back after Activate is enabled. */
+let moduleCoreId: string;
+let moduleOptionalId: string;
+let siPermissionsId: string; // tagged ux
+let siReportingId: string; // in the optional module
+/** A scope item belonging to a template org A cannot see. */
+let foreignScopeItemId: string;
+
+async function templateIdOf(projectId: string) {
+  const p = await prisma.activateProfile.findUnique({
+    where: { projectId },
+    select: { templateId: true },
+  });
+  return p!.templateId!;
+}
+
+beforeAll(async () => {
+  await waitForServer();
+  fx = await createFixture(prisma);
+
+  for (const side of ["orgA", "orgB"] as const) {
+    await api(fx[side].users.OWNER, `/api/projects/${fx[side].projectId}/activate`, {
+      method: "POST",
+      body: { enabled: true },
+    });
+  }
+
+  /**
+   * Modules and scope items are authored onto the BUILT-IN template, which
+   * both projects share. That is deliberate: it makes the isolation tests
+   * below meaningful, because the catalogue is genuinely common and the only
+   * thing separating the tenants is their decisions.
+   */
+  const templateId = await templateIdOf(fx.orgA.projectId);
+
+  const core = await prisma.templateModule.create({
+    data: {
+      templateId,
+      key: "TEST_CORE",
+      name: "Core",
+      position: 90,
+      scopeItems: {
+        create: [
+          {
+            code: "SI-T-01",
+            name: "Role-based permissions",
+            workstreamKey: "APPLICATION_DESIGN_CONFIGURATION",
+            tags: "ux",
+            position: 0,
+          },
+        ],
+      },
+    },
+    select: { id: true, scopeItems: { select: { id: true, code: true } } },
+  });
+  moduleCoreId = core.id;
+  siPermissionsId = core.scopeItems[0].id;
+
+  const optional = await prisma.templateModule.create({
+    data: {
+      templateId,
+      key: "TEST_OPTIONAL",
+      name: "Optional",
+      position: 91,
+      scopeItems: {
+        create: [
+          { code: "SI-T-09", name: "Reporting", workstreamKey: "ANALYTICS", position: 0 },
+        ],
+      },
+    },
+    select: { id: true, scopeItems: { select: { id: true } } },
+  });
+  moduleOptionalId = optional.id;
+  siReportingId = optional.scopeItems[0].id;
+
+  // A scope item on a template neither project is stamped with.
+  const foreignTemplate = await prisma.methodTemplate.create({
+    data: {
+      orgId: fx.orgB.orgId,
+      key: "FOREIGN_ONLY",
+      name: "Unreachable",
+      version: 1,
+      status: "PUBLISHED",
+      modules: {
+        create: [
+          {
+            key: "F",
+            name: "Foreign",
+            scopeItems: { create: [{ code: "SI-F-01", name: "Secret item", workstreamKey: "TESTING" }] },
+          },
+        ],
+      },
+    },
+    select: { modules: { select: { scopeItems: { select: { id: true } } } } },
+  });
+  foreignScopeItemId = foreignTemplate.modules[0].scopeItems[0].id;
+}, 240_000);
+
+afterAll(async () => {
+  await prisma.templateModule.deleteMany({
+    where: { id: { in: [moduleCoreId, moduleOptionalId].filter(Boolean) } },
+  });
+  await prisma.methodTemplate.deleteMany({ where: { key: "FOREIGN_ONLY" } });
+  await destroyFixture(prisma);
+  await prisma.$disconnect();
+});
+
+// ---------------------------------------------------------------------------
+
+describe("The scope-item catalogue", () => {
+  it("shows the modules and items of the template this project was stamped with", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    expectAllowed(res, "the owner reading the catalogue");
+    expect(res.body.enabled).toBe(true);
+
+    const codes = res.body.scopeItems.map((i: any) => i.code);
+    expect(codes).toContain("SI-T-01");
+    expect(codes).toContain("SI-T-09");
+    // Tags arrive parsed, so a client need not know the storage format.
+    const perms = res.body.scopeItems.find((i: any) => i.code === "SI-T-01");
+    expect(perms.tags).toEqual(["ux"]);
+    expect(perms.decision).toBeNull();
+  });
+
+  it("never shows an item from a template this project is not stamped with", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    expect(JSON.stringify(res.body)).not.toContain("Secret item");
+    expect(res.body.scopeItems.map((i: any) => i.id)).not.toContain(foreignScopeItemId);
+  });
+
+  it("refuses a cross-tenant caller, an outsider, a VIEWER and an anonymous one", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/scope-items`;
+    expectDenied(await api(fx.orgB.users.OWNER, path), "org B reading org A's catalogue");
+    expectDenied(await api(fx.outsider, path), "an outsider reading the catalogue");
+    expectDenied(await api(fx.orgA.users.VIEWER, path), "a VIEWER reading the catalogue");
+    expect((await api(null, path)).status).toBe(401);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("Modules and waves", () => {
+  it("defaults every module to in scope", async () => {
+    const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/modules`);
+    expectAllowed(res, "the owner listing modules");
+    const core = res.body.modules.find((m: any) => m.key === "TEST_CORE");
+    // Defaulting the other way would make enabling Activate produce an empty
+    // workshop, and the first act of every project would be to switch them on.
+    expect(core.inScope).toBe(true);
+    expect(core.waveNumber).toBeNull();
+  });
+
+  it("switches a module out and records its wave", async () => {
+    const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/modules`, {
+      method: "PATCH",
+      body: { moduleId: moduleOptionalId, inScope: false, waveNumber: 2 },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.module.inScope).toBe(false);
+    // "Not doing it" and "not doing it yet" are different answers.
+    expect(res.body.module.waveNumber).toBe(2);
+  });
+
+  it("drops an out-of-scope module from the denominator", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    const reporting = res.body.scopeItems.find((i: any) => i.code === "SI-T-09");
+    expect(reporting.inScope).toBe(false);
+    // A project measured against scope it is not doing reads as behind when
+    // it is not.
+    const inScopeCodes = res.body.scopeItems.filter((i: any) => i.inScope).map((i: any) => i.code);
+    expect(inScopeCodes).not.toContain("SI-T-09");
+    expect(res.body.total).toBe(inScopeCodes.length);
+  });
+
+  it("refuses a module that is not part of this project's methodology", async () => {
+    const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/modules`, {
+      method: "PATCH",
+      body: { moduleId: "clnotarealmoduleid", inScope: false },
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a VIEWER and a cross-tenant caller", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/modules`;
+    expectDenied(
+      await api(fx.orgA.users.VIEWER, path, { method: "PATCH", body: { moduleId: moduleCoreId } }),
+      "a VIEWER changing module scope"
+    );
+    expectDenied(
+      await api(fx.orgB.users.OWNER, path, { method: "PATCH", body: { moduleId: moduleCoreId } }),
+      "org B changing org A's module scope"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("Recording a decision", () => {
+  it("records the decision and its deltas in one request", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      {
+        method: "PUT",
+        body: {
+          decision: "CONFIGURE",
+          status: "AGREED",
+          rationale: "Standard model accepted; groups need tailoring.",
+          deltas: [
+            { title: "Permission group structure", priority: "MUST", size: "L" },
+            { title: "Matrix manager rule", buildType: "BUSINESS_RULE", priority: "SHOULD" },
+          ],
+        },
+      }
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.decision.decision).toBe("CONFIGURE");
+    expect(res.body.decision.deltas).toHaveLength(2);
+    // AGREED stamps who and when; DRAFT must not.
+    expect(res.body.decision.decidedById).toBe(fx.orgA.users.OWNER.id);
+    expect(res.body.decision.decidedAt).not.toBeNull();
+  });
+
+  it("clears the sign-off stamp when it goes back to draft", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "CONFIGURE", status: "DRAFT" } }
+    );
+    expect(res.status).toBe(200);
+    // The field must never claim a sign-off that was undone.
+    expect(res.body.decision.decidedById).toBeNull();
+    expect(res.body.decision.decidedAt).toBeNull();
+  });
+
+  it("keeps a delta's id across an edit, so generated work stays linked", async () => {
+    const first = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "CONFIGURE", deltas: [{ title: "Keep me" }] } }
+    );
+    const deltaId = first.body.decision.deltas[0].id;
+
+    const second = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      {
+        method: "PUT",
+        body: {
+          decision: "CONFIGURE",
+          deltas: [{ id: deltaId, title: "Keep me, renamed" }, { title: "And a new one" }],
+        },
+      }
+    );
+    expect(second.status).toBe(200);
+    const ids = second.body.decision.deltas.map((d: any) => d.id);
+    // Rebuilding the list would have destroyed the link to anything already
+    // generated from this delta, and nobody would notice until the backlog
+    // doubled.
+    expect(ids).toContain(deltaId);
+    expect(second.body.decision.deltas).toHaveLength(2);
+  });
+
+  it("deletes a delta that is absent from the payload", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "CONFIGURE", deltas: [{ title: "Only one now" }] } }
+    );
+    expect(res.body.decision.deltas).toHaveLength(1);
+  });
+
+  it("refuses a stale version with 409", async () => {
+    const current = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    const version = current.body.scopeItems.find((i: any) => i.id === siPermissionsId).decision
+      .version;
+
+    const ok = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "CONFIGURE", version } }
+    );
+    expect(ok.status).toBe(200);
+
+    const stale = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "EXTEND", version } }
+    );
+    expect(stale.status).toBe(409);
+  });
+
+  it("refuses a scope item from a template this project is not stamped with", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${foreignScopeItemId}`,
+      { method: "PUT", body: { decision: "ADOPT" } }
+    );
+    // 404, indistinguishable from a scope item that does not exist.
+    expect(res.status).toBe(404);
+    expect(
+      await prisma.activateDecision.count({ where: { scopeItemId: foreignScopeItemId } })
+    ).toBe(0);
+  });
+
+  it("refuses an unknown decision value with 400, not 500", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "PROBABLY_FINE" } }
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a delta owner who is not a member of this project", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`,
+      {
+        method: "PUT",
+        body: {
+          decision: "CONFIGURE",
+          deltas: [{ title: "Owned by an outsider", ownerId: fx.orgB.users.OWNER.id }],
+        },
+      }
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a VIEWER and a cross-tenant caller", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/decisions/${siPermissionsId}`;
+    expectDenied(
+      await api(fx.orgA.users.VIEWER, path, { method: "PUT", body: { decision: "ADOPT" } }),
+      "a VIEWER recording a decision"
+    );
+    expectDenied(
+      await api(fx.orgB.users.OWNER, path, { method: "PUT", body: { decision: "ADOPT" } }),
+      "org B recording a decision on org A's project"
+    );
+  });
+
+  it("keeps the two tenants' decisions apart on the same shared scope item", async () => {
+    const b = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/decisions/${siPermissionsId}`,
+      { method: "PUT", body: { decision: "ADOPT" } }
+    );
+    expect(b.status).toBe(201);
+
+    const aView = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    const aDecision = aView.body.scopeItems.find((i: any) => i.id === siPermissionsId).decision;
+    // The catalogue is shared; the decisions are not.
+    expect(aDecision.decision).toBe("CONFIGURE");
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("Generating the backlog", () => {
+  it("previews without creating anything", async () => {
+    const before = await prisma.issue.count({ where: { projectId: fx.orgA.projectId } });
+
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`
+    );
+    expectAllowed(res, "the owner previewing the backlog");
+    expect(res.body.items.length).toBeGreaterThan(0);
+    expect(res.body.pending).toBeGreaterThan(0);
+
+    // A workshop is where people change their minds mid-sentence, so nothing
+    // is created until somebody says so.
+    expect(await prisma.issue.count({ where: { projectId: fx.orgA.projectId } })).toBe(before);
+  });
+
+  it("creates the issues and links them as deliverables", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`,
+      { method: "POST", body: {} }
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.created).toBeGreaterThan(0);
+
+    const link = await prisma.activateDeliverableLink.findFirst({
+      where: { phase: { projectId: fx.orgA.projectId }, originKey: { not: null } },
+      select: {
+        originKey: true,
+        fitGapStatus: true,
+        issue: { select: { issueKey: true, projectId: true } },
+      },
+    });
+    expect(link?.issue.projectId).toBe(fx.orgA.projectId);
+    // The generated issue is an ordinary issue on the board, not a parallel
+    // world with its own numbering.
+    expect(link?.issue.issueKey).toMatch(/^[A-Z0-9]+-\d+$/);
+  });
+
+  it("is idempotent: generating twice creates nothing the second time", async () => {
+    const countAfterFirst = await prisma.issue.count({ where: { projectId: fx.orgA.projectId } });
+
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`,
+      { method: "POST", body: {} }
+    );
+    // 200, not 201: nothing was created, and a run that creates nothing has
+    // not created anything. The first run returned 201 because it did.
+    expect(res.status).toBe(200);
+    expect(res.body.created).toBe(0);
+    // The unique originKey is what makes this true without any bookkeeping
+    // table remembering what was already made.
+    expect(await prisma.issue.count({ where: { projectId: fx.orgA.projectId } })).toBe(
+      countAfterFirst
+    );
+  });
+
+  it("generates nothing for a module that is out of scope", async () => {
+    await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${siReportingId}`,
+      { method: "PUT", body: { decision: "EXTEND", deltas: [{ title: "Out of scope work" }] } }
+    );
+
+    const preview = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`
+    );
+    // The optional module was switched out earlier in this suite.
+    expect(preview.body.items.map((i: any) => i.scopeItemId)).not.toContain(siReportingId);
+  });
+
+  it("includes it again once the module is switched back in", async () => {
+    await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/modules`, {
+      method: "PATCH",
+      body: { moduleId: moduleOptionalId, inScope: true },
+    });
+    const preview = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`
+    );
+    // The accept case, so the previous test cannot pass because of a typo.
+    expect(preview.body.items.map((i: any) => i.scopeItemId)).toContain(siReportingId);
+  });
+
+  it("refuses a VIEWER, a cross-tenant caller and an anonymous one", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/backlog`;
+    expectDenied(
+      await api(fx.orgA.users.VIEWER, path, { method: "POST", body: {} }),
+      "a VIEWER generating a backlog"
+    );
+    expectDenied(await api(fx.orgB.users.OWNER, path), "org B reading org A's backlog");
+    expect((await api(null, path)).status).toBe(401);
+  });
+});
