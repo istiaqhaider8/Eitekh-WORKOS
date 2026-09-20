@@ -459,6 +459,31 @@ export function renderTemplate(text: string, variables: Record<string, any> = {}
  * Centralized email sending function.
  * Every email is dispatched using the configured sender email (default: cocofbd@gmail.com).
  */
+/**
+ * Is outbound email switched off for this process?
+ *
+ * WHY THIS EXISTS, AND WHY IT IS CHECKED FIRST
+ *
+ * Unsetting SMTP_HOST and SMTP_PASS does NOT stop this application sending
+ * mail. `getEmailConfig` reads `systemEmailConfig` from the DATABASE and only
+ * falls back to the environment, so a row written once — by a `next dev` run,
+ * by an admin screen, by the auto-create in getEmailConfig itself — leaves
+ * every future process able to reach real inboxes no matter how its
+ * environment is set.
+ *
+ * That is how a password-reset code was sent to a real address from this
+ * machine while the operator believed SMTP was unconfigured, having removed
+ * exactly the variables that looked like they controlled it.
+ *
+ * So this is read from the environment ONLY, and consulted before the config
+ * is loaded. A kill switch that can be overridden by the thing it is killing
+ * is not a kill switch.
+ */
+export function isEmailDisabled(): boolean {
+  const raw = (process.env.EMAIL_DISABLED ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
 export async function sendEmail({
   to,
   templateKey,
@@ -466,6 +491,29 @@ export async function sendEmail({
   customSubject,
   customHtml,
 }: SendEmailOptions) {
+  if (isEmailDisabled()) {
+    /**
+     * Blocked, and said so loudly.
+     *
+     * Deliberately NOT silent: a developer who cannot work out why no mail is
+     * arriving will eventually remove the guard, and then it protects nobody.
+     * The recipient is named so it is obvious what WOULD have been sent.
+     *
+     * No EmailLog row is written. That table records dispatch attempts, and
+     * nothing was attempted — writing "SENT" here would be a lie and writing
+     * "FAILED" would make a deliberate safety measure look like an incident.
+     */
+    console.warn(
+      `[Email] BLOCKED by EMAIL_DISABLED: nothing was sent to ${to}. ` +
+        `Unset EMAIL_DISABLED to allow outbound mail from this process.`
+    );
+    logger.warn("EMAIL_BLOCKED_BY_KILL_SWITCH", `Outbound email suppressed for ${to}`, {
+      to,
+      templateKey: templateKey || null,
+    });
+    return { success: false, reason: "EMAIL_DISABLED", status: "BLOCKED" as const };
+  }
+
   const config = await getEmailConfig();
 
   if (!config.isEnabled) {

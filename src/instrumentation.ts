@@ -16,6 +16,7 @@ import { assertProductionRateLimitStore } from "./lib/rate-limit-store";
 import { parseTrustedProxyHops } from "@/lib/client-ip";
 import { resolveStorage } from "@/lib/storage/factory";
 import { telemetryStartupWarnings } from "./lib/telemetry";
+import { isEmailDisabled } from "./lib/email";
 
 const HEX_64 = /^[0-9a-f]{64}$/i;
 
@@ -186,6 +187,32 @@ function validateProductionConfig(): string[] {
   // gap into an outage. Loud, because the failure mode is learning about
   // incidents from customers.
   warnings.push(...telemetryStartupWarnings());
+
+  /**
+   * The email kill switch, announced at both ends.
+   *
+   * EMAIL_DISABLED exists because unsetting SMTP_* does NOT stop this
+   * application sending mail — the credentials live in the systemEmailConfig
+   * TABLE and the environment is only a fallback, so a local run can reach
+   * real inboxes while its operator believes SMTP is unconfigured.
+   *
+   * The mirror-image risk is worse, which is why this is loudest in
+   * production: set it there and password resets, OTP codes and invitations
+   * all stop silently, and every one of those failures looks like a user
+   * problem rather than a configuration one. Nobody discovers it until
+   * somebody cannot get into their account.
+   */
+  if (isEmailDisabled()) {
+    warnings.push(
+      process.env.NODE_ENV === "production"
+        ? "EMAIL_DISABLED is set IN PRODUCTION. No mail will be sent at all — password " +
+            "resets, OTP codes and invitations will silently fail, and each one will look " +
+            "like a user error. Unset it unless outbound mail is genuinely meant to be off."
+        : "EMAIL_DISABLED is set: no outbound mail will be sent from this process. This is " +
+            "the safe setting for local work, because SMTP credentials are stored in the " +
+            "database and unsetting SMTP_* does not prevent sending."
+    );
+  }
 
   for (const w of warnings) {
     console.warn(`[config] WARNING: ${w}`);
