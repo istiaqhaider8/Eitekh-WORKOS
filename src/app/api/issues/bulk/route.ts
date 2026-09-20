@@ -5,6 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { bulkIssueUpdateSchema, bulkIssueDeleteSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
+import { allowedPriorityValues } from "@/lib/project-context";
 
 export async function PATCH(req: Request) {
   try {
@@ -59,6 +60,27 @@ export async function PATCH(req: Request) {
      */
     for (const projectId of projectIds) {
       await assertIssueRelationsBelongToProject(projectId, updates);
+    }
+
+    /**
+     * And the priority, per project.
+     *
+     * Priorities are per-project configurable — `/api/projects/[id]/priorities`
+     * writes a `PROJECT_PRIORITIES` custom field — so the schema can only
+     * validate the shape and membership has to be asked of each project. A
+     * value legitimate for the first project is not thereby legitimate for
+     * the rest, which is the same reason the relation check above loops.
+     */
+    if (updates.priority !== undefined) {
+      for (const projectId of projectIds) {
+        const allowed = await allowedPriorityValues(projectId);
+        if (!allowed.has(updates.priority)) {
+          return NextResponse.json(
+            { error: `Unknown priority "${updates.priority}" for one of the selected projects.` },
+            { status: 400 },
+          );
+        }
+      }
     }
 
     /**

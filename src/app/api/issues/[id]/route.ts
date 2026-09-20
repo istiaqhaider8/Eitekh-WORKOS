@@ -12,6 +12,7 @@ import { getIssueSubscribers } from "@/lib/issue-subscribers";
 import { assertIssueRelationsBelongToProject, assertTransitionAllowed } from "@/lib/issue-relations";
 import { applyVersionedUpdate, versionConflictResponse } from "@/lib/optimistic-lock";
 import { violatesDateOrder, DATE_ORDER_ERROR } from "@/lib/issue-dates";
+import { allowedIssueTypeValues, allowedPriorityValues } from "@/lib/project-context";
 
 /**
  * A4 — how much history a single issue fetch carries.
@@ -243,6 +244,36 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
      */
     if (violatesDateOrder(body, currentIssue)) {
       return NextResponse.json({ error: DATE_ORDER_ERROR }, { status: 400 });
+    }
+
+    /**
+     * A new type or priority must be one THIS project accepts.
+     *
+     * Only checked when the field is present, so an update that does not touch
+     * them is unaffected — the same principle as the date rule above: validate
+     * what the request CHANGES, not what the row already holds. An issue
+     * carrying a type that was later removed from the project's list stays
+     * editable.
+     */
+    if (body.issueType !== undefined || body.priority !== undefined) {
+      if (body.issueType !== undefined) {
+        const allowedTypes = await allowedIssueTypeValues(currentIssue.projectId);
+        if (!allowedTypes.has(body.issueType)) {
+          return NextResponse.json(
+            { error: `Unknown issue type "${body.issueType}" for this project.` },
+            { status: 400 },
+          );
+        }
+      }
+      if (body.priority !== undefined) {
+        const allowedPriorities = await allowedPriorityValues(currentIssue.projectId);
+        if (!allowedPriorities.has(body.priority)) {
+          return NextResponse.json(
+            { error: `Unknown priority "${body.priority}" for this project.` },
+            { status: 400 },
+          );
+        }
+      }
     }
 
     const updateData: any = {};

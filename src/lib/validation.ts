@@ -20,6 +20,45 @@ export const passwordSchema = z
   .regex(/[0-9]/, "Password must contain at least one number")
   .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
 
+/**
+ * The SHAPE of an issue type or priority value. Membership is checked in the
+ * route, against the project.
+ *
+ * These were `z.enum([...])` with the five built-in types and five built-in
+ * priorities hard-coded. Both are per-project configurable — `PROJECT_ISSUE_TYPES`
+ * and `PROJECT_PRIORITIES` custom fields, written by
+ * `/api/projects/[id]/types` and `/api/projects/[id]/priorities` — so a value
+ * could be defined, offered in the UI, and then rejected on first use:
+ *
+ *     POST /api/projects/{id}/issues  {"issueType":"REQUIREMENT"}
+ *     -> 400  issueType: Invalid option: expected one of "BUG"|"TASK"|...
+ *
+ * A static schema cannot know what a project has configured. So it validates
+ * what it CAN — that the value is an upper-case token of the shape the types
+ * route produces (`.toUpperCase().replace(/[^A-Z0-9_]/g, "_")`) and is
+ * bounded — and the route asks the project whether it is allowed.
+ *
+ * This is the same split the codebase already uses for `statusId`: zod checks
+ * it is a cuid, the route checks it belongs to this project's workflow. Shape
+ * here, membership there. Loosening the schema WITHOUT the route check would
+ * make this worse than the bug it fixes, so the two must land together.
+ */
+export const issueTypeTokenSchema = z
+  .string()
+  .trim()
+  .min(1, "Issue type is required")
+  .max(50, "Issue type is too long")
+  .transform((v) => v.toUpperCase())
+  .refine((v) => /^[A-Z0-9_]+$/.test(v), "Issue type must be letters, digits or underscores");
+
+export const priorityTokenSchema = z
+  .string()
+  .trim()
+  .min(1, "Priority is required")
+  .max(50, "Priority is too long")
+  .transform((v) => v.toUpperCase())
+  .refine((v) => /^[A-Z0-9_]+$/.test(v), "Priority must be letters, digits or underscores");
+
 export const cuidSchema = z.string().min(1).max(50);
 export const optionalCuidSchema = z.string().max(50).nullable().optional();
 
@@ -190,8 +229,8 @@ export const optimisticVersionField = z.preprocess(
 export const issueUpdateSchema = z.object({
   title: safeStringSchema.min(1).optional(),
   description: safeLongStringSchema.optional().nullable(),
-  priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).optional(),
-  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK"]).optional(),
+  priority: priorityTokenSchema.optional(),
+  issueType: issueTypeTokenSchema.optional(),
   statusId: cuidSchema.optional(),
   assigneeId: optionalCuidSchema,
   teamId: optionalCuidSchema,
@@ -254,8 +293,8 @@ export const projectCreateSchema = z.object({
 export const issueCreateSchema = z.object({
   title: safeStringSchema.min(1, "Title is required").trim(),
   description: safeLongStringSchema.optional().nullable(),
-  issueType: z.enum(["BUG", "TASK", "STORY", "EPIC", "SUBTASK"]).default("TASK"),
-  priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).default("MEDIUM"),
+  issueType: issueTypeTokenSchema.default("TASK"),
+  priority: priorityTokenSchema.default("MEDIUM"),
   statusId: cuidSchema.optional(),
   assigneeId: optionalCuidSchema,
   teamId: optionalCuidSchema,
@@ -405,7 +444,7 @@ export const bulkIssueUpdateSchema = z.object({
   issueIds: z.array(cuidSchema).min(1).max(500),
   updates: z.object({
     statusId: cuidSchema.optional(),
-    priority: z.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"]).optional(),
+    priority: priorityTokenSchema.optional(),
     assigneeId: z.string().max(50).nullable().optional(),
     teamId: z.string().max(50).nullable().optional(),
     sprintId: z.string().max(50).nullable().optional(),

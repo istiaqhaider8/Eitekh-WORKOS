@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { issueCreateSchema, parseBody, parseJsonBody } from "@/lib/validation";
 import { assertIssueRelationsBelongToProject } from "@/lib/issue-relations";
+import { allowedIssueTypeValues, allowedPriorityValues } from "@/lib/project-context";
 import { getBaseUrl } from "@/lib/config";
 import { deliverIssueWebhook } from "@/lib/webhooks";
 import { runAutomations } from "@/lib/automation-engine";
@@ -144,6 +145,36 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     if (startDate && dueDate && new Date(dueDate) < new Date(startDate)) {
       return NextResponse.json({ error: "Due Date cannot be earlier than Start Date" }, { status: 400 });
+    }
+
+    /**
+     * The type and priority must be ones THIS project accepts.
+     *
+     * The schema validates only the shape, because a static schema cannot know
+     * what a project has configured — see `issueTypeTokenSchema`. Membership
+     * is the route's job, exactly as it already is for `statusId`.
+     *
+     * Both lists are per-project: `/api/projects/[id]/types` and
+     * `/api/projects/[id]/priorities` write them. Before this, a custom value
+     * could be created, offered in the UI, and rejected on first use.
+     */
+    const [allowedTypes, allowedPriorities] = await Promise.all([
+      allowedIssueTypeValues(projectId),
+      allowedPriorityValues(projectId),
+    ]);
+
+    if (!allowedTypes.has(issueType)) {
+      return NextResponse.json(
+        { error: `Unknown issue type "${issueType}" for this project.` },
+        { status: 400 },
+      );
+    }
+
+    if (!allowedPriorities.has(priority)) {
+      return NextResponse.json(
+        { error: `Unknown priority "${priority}" for this project.` },
+        { status: 400 },
+      );
     }
 
     const finalStartDate = startDate ? new Date(startDate) : new Date();

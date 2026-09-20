@@ -68,6 +68,55 @@ export async function resolveProjectIssueTypes(projectId: string) {
   return { defaults: DEFAULT_ISSUE_TYPES, custom, types };
 }
 
+/**
+ * Accepted on an issue, but never offered in a dropdown.
+ *
+ * `SUBTASK` is written by the CSV importer (`bulk-import.ts`) and listed in
+ * the import template, but it is not a type anyone should pick by hand — the
+ * platform has a separate `Subtask` model for that. It therefore belongs in
+ * the ALLOWED set without appearing in `DEFAULT_ISSUE_TYPES`.
+ *
+ * Keeping it here rather than in the defaults is what lets the membership
+ * check below be strict without breaking imports.
+ */
+export const SYSTEM_ISSUE_TYPES = ["SUBTASK"] as const;
+
+/**
+ * Every issue type this project will accept, upper-cased.
+ *
+ * WHY THIS EXISTS
+ *
+ * `POST /api/projects/[id]/types` lets a project define its own work-item
+ * types, stored as a `PROJECT_ISSUE_TYPES` custom field. The create and update
+ * schemas hard-coded `z.enum(["BUG","TASK","STORY","EPIC","SUBTASK"])`, so a
+ * type could be defined, offered in the UI, and then rejected the moment
+ * anyone tried to use it:
+ *
+ *     POST /api/projects/{id}/issues  {"issueType":"REQUIREMENT"}
+ *     -> 400  issueType: Invalid option: expected one of "BUG"|"TASK"|...
+ *
+ * The feature was reachable, configurable and structurally incapable of
+ * working. FIVE places defined the vocabulary and disagreed: DEFAULT_ISSUE_TYPES
+ * (4 values), the zod enum (5), the Prisma column comment (7, including
+ * FEATURE and INCIDENT that nothing accepted), `ALLOWED_ISSUE_TYPES` in
+ * bulk-import (5), and the per-project custom field (unbounded). The comment
+ * at the top of this file already warned that this data "has a history of
+ * being defined in several places and disagreeing".
+ *
+ * The schema now validates the SHAPE of the value and the route validates its
+ * MEMBERSHIP here — the same split already used for `statusId`, which zod
+ * checks is a cuid and the route checks belongs to the project's workflow.
+ * A static schema cannot know a project's types; only a query can.
+ */
+export async function allowedIssueTypeValues(projectId: string): Promise<Set<string>> {
+  const { types } = await resolveProjectIssueTypes(projectId);
+  const allowed = new Set<string>(SYSTEM_ISSUE_TYPES);
+  for (const t of types) {
+    if (t?.value) allowed.add(String(t.value).toUpperCase());
+  }
+  return allowed;
+}
+
 export type PriorityOption = { name: string; value: string; color: string };
 
 /** A project's priorities: the defaults followed by any custom additions. */
@@ -78,6 +127,36 @@ export async function resolveProjectPriorities(projectId: string) {
     (cp) => !existingValues.has(cp.value?.toUpperCase() || cp.name.toUpperCase())
   );
   return { defaults: DEFAULT_PRIORITIES, custom, priorities: [...DEFAULT_PRIORITIES, ...custom] };
+}
+
+/**
+ * Accepted as a priority, but never offered.
+ *
+ * `NONE` is in the request schemas and nowhere else — not in
+ * `DEFAULT_PRIORITIES`, not in any code path, and not on a single row in the
+ * volume dataset. It is kept accepted so that any caller already sending it
+ * does not break, and kept out of the defaults so it is not presented as a
+ * choice.
+ */
+export const SYSTEM_PRIORITIES = ["NONE"] as const;
+
+/**
+ * Every priority this project will accept, upper-cased.
+ *
+ * Priorities carry the exact same defect as issue types, one file over:
+ * `POST /api/projects/[id]/priorities` writes custom priorities to a
+ * `PROJECT_PRIORITIES` custom field, and the request schemas hard-coded
+ * `z.enum(["CRITICAL","HIGH","MEDIUM","LOW","NONE"])`, so a custom priority
+ * could be created and never used. Fixing issue types alone would have left
+ * its twin in place.
+ */
+export async function allowedPriorityValues(projectId: string): Promise<Set<string>> {
+  const { priorities } = await resolveProjectPriorities(projectId);
+  const allowed = new Set<string>(SYSTEM_PRIORITIES);
+  for (const p of priorities) {
+    if (p?.value) allowed.add(String(p.value).toUpperCase());
+  }
+  return allowed;
 }
 
 /**
