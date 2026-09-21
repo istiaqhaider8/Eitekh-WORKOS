@@ -1,6 +1,11 @@
 /**
- * The Discover worksheet, seeded: seven deliverables, twenty-five tasks and
- * the G0 quality gate.
+ * A phase worksheet, seeded: its deliverables, their tasks and its gate.
+ *
+ * Discover and Prepare are both here, chosen with --phase. One script,
+ * because the worksheet has never been phase-specific — one screen, one API,
+ * one code allocator, addressed by phase key — and only the content differs.
+ * A second script would have meant a second copy of the login, the rate-limit
+ * pacing and the gate reconciliation, which is three chances to drift.
  *
  * WHY A SEEDER AND NOT THE METHODOLOGY TEMPLATE
  *
@@ -25,10 +30,11 @@
  * accumulates a second set of questions on every run is not the gate
  * anybody agreed. Deliverables and tasks are never deleted.
  *
- *   node scripts/seed-activate-discover.mjs [--project HELIOS]
- *                                           [--base http://127.0.0.1:3100]
- *                                           [--email alex@acme.com]
- *                                           [--password 'Password123!']
+ *   node scripts/seed-activate-worksheet.mjs --phase PREPARE
+ *                                            [--project HELIOS]
+ *                                            [--base http://127.0.0.1:3100]
+ *                                            [--email alex@acme.com]
+ *                                            [--password 'Password123!']
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -41,6 +47,7 @@ const argOf = (name, fallback) => {
 
 const BASE = argOf("--base", "http://127.0.0.1:3100");
 const PROJECT_KEY = argOf("--project", "HELIOS");
+const PHASE_KEY = argOf("--phase", "DISCOVER").toUpperCase();
 const EMAIL = argOf("--email", "alex@acme.com");
 const PASSWORD = argOf("--password", "Password123!");
 
@@ -70,7 +77,7 @@ const WORKSTREAM_BY_LABEL = {
   "Support and release management": "OPERATIONS_SUPPORT",
 };
 
-const DELIVERABLES = [
+const DISCOVER_DELIVERABLES = [
   {
     name: "Business case and target outcomes",
     workstream: "Project management and governance",
@@ -149,16 +156,202 @@ const DELIVERABLES = [
   },
 ];
 
-const GATE_NAME = "Discovery complete";
-const GATE_CRITERIA = [
+
+/**
+ * Prepare: project initiation, governance, planning and the strategies the
+ * later phases execute against.
+ *
+ * The fit-to-standard entry here (P-10) is the PLAN for those workshops —
+ * scheduling them, confirming who decides, publishing the decision log
+ * format. Running them belongs to Explore, and putting the analysis in
+ * Prepare would have a phase claiming work it has not done.
+ */
+const PREPARE_DELIVERABLES = [
+  {
+    name: "Project charter and governance",
+    workstream: "Project management and governance",
+    tasks: [
+      "Write and approve the project charter",
+      "Stand up the steering committee and its terms of reference",
+      "Publish the RACI and decision rights",
+      "Define the escalation path and decision turnaround times",
+      "Set the meeting and reporting cadence",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Plan, RAID and reporting",
+    workstream: "Project management and governance",
+    tasks: [
+      "Baseline the schedule",
+      "Establish the RAID log and its review rhythm",
+      "Build the status reporting pack",
+      "Create the cross-workstream dependency register",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Instance provisioning and landscape",
+    workstream: "Integration and technology",
+    tasks: [
+      "Provision the required instances",
+      "Agree the instance strategy and refresh policy",
+      "Establish provisioning access and who holds it",
+      "Define how configuration moves between instances",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Configuration standards and governance",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Agree data model governance and who approves changes",
+      "Agree picklist and custom object governance",
+      "Publish naming and configuration standards",
+      "Decide the extension policy and its approval route",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Integration architecture and strategy",
+    workstream: "Integration and technology",
+    tasks: [
+      "Build the integration inventory",
+      "Decide the middleware approach and its ownership",
+      "Plan authentication, certificates and renewal ownership",
+      "Agree monitoring and failure alerting standards",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Data migration strategy",
+    workstream: "Data migration",
+    tasks: [
+      "Inventory source systems and extract owners",
+      "Decide data scope, history depth and retention",
+      "Choose the migration approach per object",
+      "Baseline data quality and agree the cleansing plan",
+      "Plan the load cycles and the reconciliation method",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Test strategy",
+    workstream: "Testing and quality",
+    tasks: [
+      "Define test levels with entry and exit criteria",
+      "Define the end-to-end scenarios that cross modules",
+      "Agree the defect severity model and triage process",
+      "Decide test tooling and the test data approach",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Change and communications strategy",
+    workstream: "Change management and adoption",
+    tasks: [
+      "Build the stakeholder map and change impact heatmap",
+      "Publish the communications plan",
+      "Define the training strategy and delivery channels",
+      "Recruit and brief the change network",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Permission and privacy strategy",
+    workstream: "Security and permissions",
+    tasks: [
+      "Draft the role-based permission concept",
+      "Set segregation of duties principles",
+      "Complete the privacy, residency and retention assessment",
+      "Agree who owns permission changes after go-live",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Fit-to-standard workshop plan",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Confirm the scope item catalogue to be worked through",
+      "Schedule workshops and confirm decision-makers per session",
+      "Prepare pre-reads and standard process demonstrations",
+      "Publish the decision log format and the decision rules",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Reporting and analytics strategy",
+    workstream: "Reporting and analytics",
+    tasks: [
+      "Inventory current reports and their real users",
+      "Decide what is rebuilt, replaced or retired",
+      "Agree the reporting tool approach",
+      "Agree data access and privacy rules for reporting",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Team onboarding and enablement",
+    workstream: "Project management and governance",
+    tasks: [
+      "Onboard the team to roles and ways of working",
+      "Induct the team into the method and tooling",
+      "Deliver enablement for customer team members",
+    ],
+    complete: 0,
+  },
+];
+
+const DISCOVER_GATE = {
+  name: "Discovery complete",
+  criteria: [
   "Modules in scope for this release confirmed and signed by the sponsor",
   "Populations, countries and legal entities fixed",
   "Target outcomes baselined with measurable before-state figures",
   "Indicative effort and budget envelope accepted",
   "Appetite for adopting standard process tested and recorded per module",
   "Executive sponsor named and actively engaged",
-  "Top ten risks logged with named owners",
-];
+    "Top ten risks logged with named owners",
+  ],
+};
+
+/**
+ * Prepare's gate.
+ *
+ * Two of these read differently from the plain-text list that accompanied
+ * the screenshots — "RACI signed" rather than "RAID signed", and "naming
+ * standards" rather than "standards". The screenshots and the reference
+ * build agree with each other, and both were described as authoritative, so
+ * that is what is seeded. RACI is also the right word here: the criterion
+ * beside it is about decision rights, and RAID has a criterion of its own.
+ */
+const PREPARE_GATE = {
+  name: "Project readiness",
+  criteria: [
+    "Charter, governance model and RACI signed",
+    "Named business decision-maker confirmed for every module in scope",
+    "Instances provisioned and access granted to the team",
+    "Configuration, extension and naming standards agreed",
+    "Test, data migration and reporting strategies approved",
+    "Permission strategy approved including the privacy assessment",
+    "Fit-to-standard workshop schedule published with attendees confirmed",
+    "Baseline schedule and RAID log established",
+  ],
+};
+
+const PHASES = {
+  DISCOVER: { deliverables: DISCOVER_DELIVERABLES, gate: DISCOVER_GATE },
+  PREPARE: { deliverables: PREPARE_DELIVERABLES, gate: PREPARE_GATE },
+};
+
+const chosen = PHASES[PHASE_KEY];
+if (!chosen) {
+  console.error(`\nNo seed data for phase ${PHASE_KEY}. Known: ${Object.keys(PHASES).join(", ")}\n`);
+  process.exit(2);
+}
+const DELIVERABLES = chosen.deliverables;
+const GATE_NAME = chosen.gate.name;
+const GATE_CRITERIA = chosen.gate.criteria;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -226,7 +419,7 @@ async function api(path, init = {}, attempt = 0) {
 }
 
 async function main() {
-  console.log(`\nSeeding the Discover worksheet of ${PROJECT_KEY} against ${BASE}\n`);
+  console.log(`\nSeeding the ${PHASE_KEY} worksheet of ${PROJECT_KEY} against ${BASE}\n`);
 
   const res = await fetch(`${BASE}/api/auth/login`, {
     method: "POST",
@@ -243,10 +436,10 @@ async function main() {
   if (!project) throw new Error(`No project with key ${PROJECT_KEY}`);
 
   const phase = await prisma.activatePhase.findUnique({
-    where: { projectId_key: { projectId: project.id, key: "DISCOVER" } },
+    where: { projectId_key: { projectId: project.id, key: PHASE_KEY } },
     select: { id: true },
   });
-  if (!phase) throw new Error(`${PROJECT_KEY} has no Discover phase — is Activate enabled?`);
+  if (!phase) throw new Error(`${PROJECT_KEY} has no ${PHASE_KEY} phase — is Activate enabled?`);
 
   /**
    * The two workstreams added for this worksheet exist in the methodology but
@@ -274,7 +467,7 @@ async function main() {
   });
   const wsIdByKey = new Map(workstreams.map((w) => [w.key, w.id]));
 
-  const sheetPath = `/api/projects/${project.id}/activate/phases/DISCOVER/worksheet`;
+  const sheetPath = `/api/projects/${project.id}/activate/phases/${PHASE_KEY}/worksheet`;
   const before = await api(sheetPath);
   const existingNames = new Set(before.worksheet.deliverables.map((d) => d.name));
 

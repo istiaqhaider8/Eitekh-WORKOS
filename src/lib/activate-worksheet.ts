@@ -25,6 +25,42 @@ import { allocateIssueKey, issueStatusIdFor } from "./issue-keys";
 import { allowedIssueTypeValues } from "./project-context";
 
 /**
+ * The letter each phase's deliverable codes carry: D-01, P-01, E-01.
+ *
+ * WHY A MAP AND NOT THE FIRST LETTER OF THE KEY
+ *
+ * Two pairs collide. Discover and Deploy both begin with D, Realize and Run
+ * both with R, so first-letter derivation would give a Deploy deliverable
+ * the same code as a Discover one. Codes are unique per phase, so nothing
+ * would break in the database — it would break in a status report, where
+ * "D-03" would name two different pieces of work and nobody reading it
+ * could tell which.
+ *
+ * The four unambiguous phases keep one letter and the two colliding ones
+ * take two, which is what the reference build settled on as well.
+ */
+export const PHASE_CODE_PREFIX: Record<string, string> = {
+  DISCOVER: "D",
+  PREPARE: "P",
+  EXPLORE: "E",
+  REALIZE: "R",
+  DEPLOY: "DP",
+  RUN: "RN",
+};
+
+/**
+ * The prefix for a phase key, falling back to its first two letters.
+ *
+ * A project on a custom methodology can have a phase this map has never
+ * heard of. Two letters from its key is unlikely to collide and is at least
+ * recognisable; throwing would mean a custom phase could not have a
+ * worksheet at all.
+ */
+export function codePrefixFor(phaseKey: string): string {
+  return PHASE_CODE_PREFIX[phaseKey] ?? phaseKey.slice(0, 2).toUpperCase();
+}
+
+/**
  * The next code for a phase, allocated inside a transaction.
  *
  * MUST RUN IN A TRANSACTION: the read of the highest existing code and the
@@ -52,7 +88,7 @@ export async function allocatePhaseCode(
   const phase = await tx.activatePhase.update({
     where: { id: phaseId },
     data: { deliverableCounter: { increment: 1 } },
-    select: { deliverableCounter: true },
+    select: { deliverableCounter: true, key: true },
   });
 
   let next = phase.deliverableCounter;
@@ -64,7 +100,7 @@ export async function allocatePhaseCode(
     });
   }
 
-  return `D-${String(next).padStart(2, "0")}`;
+  return `${codePrefixFor(phase.key)}-${String(next).padStart(2, "0")}`;
 }
 
 export interface CreatedDeliverable {

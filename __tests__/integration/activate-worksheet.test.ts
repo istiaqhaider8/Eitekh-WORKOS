@@ -424,3 +424,71 @@ describe("Gate criteria", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+
+/**
+ * A second phase, because the first one hid a bug.
+ *
+ * Everything above runs against Discover, and the code allocator was written
+ * with "D-" as a literal. That was invisibly correct for as long as Discover
+ * was the only phase with a worksheet, and produced D-01 on the Prepare
+ * phase the moment a second one existed. A feature that is per-phase needs a
+ * test on more than one phase.
+ */
+describe("A second phase's worksheet", () => {
+  it("numbers Prepare deliverables P-01, independently of Discover", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/phases/PREPARE/worksheet`;
+
+    const before = await api(fx.orgA.users.ADMIN, path);
+    expectAllowed(before, "reading the Prepare worksheet");
+    expect(before.body.worksheet.phaseKey).toBe("PREPARE");
+    // Its own gate, its own number: G1, from the phase's position.
+    expect(before.body.worksheet.gate.code).toBe("G1");
+    expect(before.body.worksheet.deliverableCount).toBe(0);
+
+    const first = await api(fx.orgA.users.ADMIN, path, {
+      method: "POST",
+      body: { name: "Project charter and governance" },
+    });
+    expect(first.status).toBe(201);
+    expect(first.body.deliverable.phaseCode).toBe("P-01");
+
+    const second = await api(fx.orgA.users.ADMIN, path, {
+      method: "POST",
+      body: { name: "Plan, RAID and reporting" },
+    });
+    expect(second.body.deliverable.phaseCode).toBe("P-02");
+  });
+
+  it("keeps the two phases' sequences and contents apart", async () => {
+    const discover = (await api(fx.orgA.users.ADMIN, sheet(fx.orgA.projectId))).body.worksheet;
+    const prepare = (
+      await api(
+        fx.orgA.users.ADMIN,
+        `/api/projects/${fx.orgA.projectId}/activate/phases/PREPARE/worksheet`
+      )
+    ).body.worksheet;
+
+    // Discover's codes are untouched by anything Prepare did, and neither
+    // phase's deliverables appear in the other's worksheet.
+    expect(discover.deliverables.every((d: any) => (d.phaseCode ?? "").startsWith("D-"))).toBe(
+      true
+    );
+    expect(prepare.deliverables.every((d: any) => (d.phaseCode ?? "").startsWith("P-"))).toBe(true);
+    const discoverIds = new Set(discover.deliverables.map((d: any) => d.linkId));
+    expect(prepare.deliverables.some((d: any) => discoverIds.has(d.linkId))).toBe(false);
+  });
+
+  it("refuses a cross-tenant caller on the second phase too", async () => {
+    // Asserted per phase rather than once: the guard is on the route, but a
+    // path that resolves a phase by key has one more place to get the
+    // project scoping wrong.
+    const path = `/api/projects/${fx.orgA.projectId}/activate/phases/PREPARE/worksheet`;
+    expectDenied(await api(fx.orgB.users.OWNER, path), "org B reading org A's Prepare worksheet");
+    expectDenied(
+      await api(fx.orgB.users.OWNER, path, { method: "POST", body: { name: "Theirs" } }),
+      "org B adding to org A's Prepare worksheet"
+    );
+  });
+});
