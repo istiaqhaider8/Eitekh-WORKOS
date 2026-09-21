@@ -1664,6 +1664,7 @@ export function ProjectClient({
                   isProjectAdmin={isProjectAdmin}
                   canCreateIssue={canCreateIssue}
                   onSelectIssue={(issue) => setSelectedIssueId(typeof issue === "string" ? issue : (issue?.id || "new"))}
+                  onUpdateStatus={handleUpdateIssueStatus}
                   onRefresh={refreshIssues}
                 />
               )}
