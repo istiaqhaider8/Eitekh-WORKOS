@@ -122,13 +122,6 @@ interface TemplateOption {
   phaseCount: number;
 }
 
-interface AcceleratorItem {
-  key: string;
-  title: string;
-  description: string;
-  isMandatory: boolean;
-  applied: { id: string; issueKey: string; title: string } | null;
-}
 
 interface Deliverable {
   id: string;
@@ -184,7 +177,6 @@ export function ActivateWorkspace({
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loadedPhaseId, setLoadedPhaseId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
-  const [accelerators, setAccelerators] = useState<AcceleratorItem[]>([]);
   const [section, setSection] = useState<"phases" | "worksheet" | "workshop" | "backlog">(
     "phases"
   );
@@ -254,35 +246,16 @@ export function ActivateWorkspace({
   const selected = phases.find((p) => p.key === selectedKey) || phases[0];
 
   const loadDeliverables = useCallback(
-    async (
-      targetPhaseId: string,
-      isCurrent: () => boolean = () => true,
-      targetPhaseKey?: string
-    ) => {
+    async (targetPhaseId: string, isCurrent: () => boolean = () => true) => {
       try {
-        // Deliverables and the accelerator catalogue are one round trip, not
-        // two sequential ones: they are shown side by side and a stale half
-        // would be visible.
-        const [delRes, accRes] = await Promise.all([
-          fetch(
-            `/api/projects/${projectId}/activate/deliverables?phaseId=${encodeURIComponent(targetPhaseId)}&limit=200`
-          ),
-          targetPhaseKey
-            ? fetch(
-                `/api/projects/${projectId}/activate/accelerators?phaseKey=${encodeURIComponent(targetPhaseKey)}`
-              )
-            : Promise.resolve(null),
-        ]);
+        const delRes = await fetch(
+          `/api/projects/${projectId}/activate/deliverables?phaseId=${encodeURIComponent(targetPhaseId)}&limit=200`
+        );
         const data = await delRes.json();
-        const accData = accRes && accRes.ok ? await accRes.json() : null;
         if (!isCurrent()) return;
         setDeliverables(delRes.ok && Array.isArray(data.deliverables) ? data.deliverables : []);
-        setAccelerators(Array.isArray(accData?.accelerators) ? accData.accelerators : []);
       } catch {
-        if (isCurrent()) {
-          setDeliverables([]);
-          setAccelerators([]);
-        }
+        if (isCurrent()) setDeliverables([]);
       } finally {
         // Recording WHICH phase the rows belong to, rather than flipping a
         // separate loading boolean, means "is this list stale" is derived from
@@ -308,7 +281,7 @@ export function ActivateWorkspace({
   useEffect(() => {
     if (!enabled || !phaseId) return;
     let cancelled = false;
-    void loadDeliverables(phaseId, () => !cancelled, phaseKey);
+    void loadDeliverables(phaseId, () => !cancelled);
     return () => {
       cancelled = true;
     };
@@ -817,67 +790,6 @@ export function ActivateWorkspace({
             </section>
           )}
 
-          {/* Accelerators ------------------------------------------------- */}
-          {accelerators.length > 0 && (
-            <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Accelerators</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Ready-made starting points for this phase. Adding one creates the
-                issue and links it as a deliverable, so the work shows up on the
-                board like everything else.
-              </p>
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {accelerators.map((a) => (
-                  <li key={a.key} className="py-2 flex flex-wrap items-start gap-2">
-                    <div className="flex-1 min-w-[14rem]">
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                        {a.title}
-                        {a.isMandatory && (
-                          <span className="ml-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                            required
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {a.description}
-                      </p>
-                    </div>
-                    {a.applied ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenIssue?.(a.applied!.id)}
-                        className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
-                      >
-                        {a.applied.issueKey}
-                      </button>
-                    ) : (
-                      can("activate:manage_deliverables") && (
-                        <button
-                          type="button"
-                          disabled={busy !== null}
-                          aria-label={`Add "${a.title}" to this phase`}
-                          onClick={() =>
-                            send(
-                              "Add accelerator",
-                              `/api/projects/${projectId}/activate/accelerators`,
-                              { method: "POST", body: JSON.stringify({ key: a.key }) },
-                              async () => {
-                                await loadProfile();
-                                if (phaseId) await loadDeliverables(phaseId, () => true, phaseKey);
-                              }
-                            )
-                          }
-                          className="shrink-0 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
-                        >
-                          Add
-                        </button>
-                      )
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
 
           {/* The phase worksheet ------------------------------------------
               The same component the Worksheet tab renders, with its own gate
