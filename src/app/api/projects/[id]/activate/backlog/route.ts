@@ -5,7 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { planBacklog, type PlannedItem } from "@/lib/activate-generation";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
-import { allocateIssueKey, backlogStatusIdFor } from "@/lib/issue-keys";
+import { allocateIssueKey, issueStatusIdFor } from "@/lib/issue-keys";
 import { allowedIssueTypeValues } from "@/lib/project-context";
 import { logAuditEvent } from "@/lib/audit-logger";
 
@@ -40,6 +40,10 @@ async function planFor(projectId: string): Promise<{ enabled: boolean; planned: 
       decision: d.decision,
       openQuestion: d.openQuestion,
       questionOwnerId: d.questionOwnerId,
+      // Carried so the scope-item task's description says why, in the words
+      // the workshop used, to somebody reading the card on the board months
+      // later with none of that context.
+      rationale: d.rationale,
       deltas: d.deltas,
     })),
     scopeItems: new Map(items.map((i) => [i.id, i])),
@@ -154,23 +158,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             issueType,
             priority: item.priority === "WONT" ? "LOW" : item.priority === "MUST" ? "HIGH" : "MEDIUM",
             /**
-             * Generated work starts in the Backlog, every time.
+             * The column comes from the plan, not from the workflow's shape.
              *
-             * Including work from a DEFER, whose scope item is settled: the
+             * Build work is created in the Backlog whatever produced it —
+             * including work from a DEFER, whose scope item is settled: the
              * decision being finished does not mean the thing agreed has been
-             * built. Creating it as Done would count work nobody has started
-             * towards completion on the phase readiness figures and the Run
-             * dashboard, which is the one number a steering committee reads
-             * without checking.
+             * built, and creating it Done would count work nobody has started
+             * towards phase readiness and the Run dashboard.
+             *
+             * The scope-item task (R6) is the exception, and the only one: an
+             * Adopt or an exclusion is finished the moment it is agreed, so
+             * it is created in Done rather than sitting on the board forever
+             * as a card nobody can act on.
              *
              * This used to be `defaultStatusIdFor`, the first status by
              * position. For the Scrum template that happened to BE Backlog,
              * so the behaviour is unchanged there — but it was true by
-             * coincidence of ordering rather than by intent, and a team that
-             * reordered their columns would have silently changed where
-             * generated work lands.
+             * coincidence of ordering rather than by intent.
              */
-            statusId: backlogStatusIdFor(project),
+            statusId: issueStatusIdFor(project, item.issueStatus),
             reporterId: user.id,
             assigneeId: item.ownerId ?? null,
           },

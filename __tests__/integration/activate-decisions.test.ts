@@ -948,8 +948,21 @@ describe("Fit-to-standard task status", () => {
     );
     expectAllowed(preview, "previewing the backlog");
 
-    const deferred = preview.body.items.filter((i: any) => i.scopeItemCode === "SI-ST-DEFER");
-    const configured = preview.body.items.filter((i: any) => i.scopeItemCode === "SI-ST-CONF");
+    // The card that stands for the decision is excluded here: it is filed in
+    // Explore and created finished, while the WORK a deferred decision
+    // implies goes to Run and is not. Both are asserted, separately.
+    const isCard = (i: any) => i.originKey.startsWith("decision:");
+    const deferred = preview.body.items.filter(
+      (i: any) => i.scopeItemCode === "SI-ST-DEFER" && !isCard(i)
+    );
+    const configured = preview.body.items.filter(
+      (i: any) => i.scopeItemCode === "SI-ST-CONF" && !isCard(i)
+    );
+    const deferredCard = preview.body.items.find(
+      (i: any) => i.scopeItemCode === "SI-ST-DEFER" && isCard(i)
+    );
+    expect(deferredCard.targetPhaseKey).toBe("EXPLORE");
+    expect(deferredCard.issueStatus).toBe("DONE");
 
     // Deferred work still reaches the backlog -- that is the whole point of
     // separating "the decision is settled" from "there is work to do".
@@ -994,6 +1007,9 @@ describe("Fit-to-standard task status", () => {
         phase: { projectId: fx.orgA.projectId },
         originKey: { not: null },
         fitGapStatus: { in: ["DEFER", "CONFIGURE", "EXTEND", "INTEGRATE"] },
+        // Work only. A decision card is not work: it records an outcome, and
+        // a settled one is created in Done on purpose.
+        NOT: { originKey: { startsWith: "decision:" } },
       },
       select: {
         fitGapStatus: true,
@@ -1069,13 +1085,284 @@ describe("Fit-to-standard task status", () => {
     expect(newest?.status.name).toBe("Backlog");
   });
 
-  it("still generates nothing at all from an adopted decision", async () => {
-    // The regression that matters in the other direction: the status work
-    // must not have turned ADOPT into something that produces items.
+  it("still generates no BUILD work from an adopted decision", async () => {
+    // The regression that matters in the other direction: adopting the
+    // standard must never produce something for somebody to build. It does
+    // now produce one card recording the decision, created finished, and
+    // that is the whole of what it produces.
     const preview = await api(
       fx.orgA.users.OWNER,
       `/api/projects/${fx.orgA.projectId}/activate/backlog`
     );
-    expect(preview.body.items.some((i: any) => i.scopeItemCode === "SI-ST-ADOPT")).toBe(false);
+    const adopted = preview.body.items.filter((i: any) => i.scopeItemCode === "SI-ST-ADOPT");
+    expect(adopted).toHaveLength(1);
+    expect(adopted[0].originKey).toBe(`decision:${adopted[0].decisionId}`);
+    expect(adopted[0].issueStatus).toBe("DONE");
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * One board task per decided scope item.
+ *
+ * Run against ORG B, whose workflow is the Kanban shape — To Do, In Progress,
+ * Done, with no Backlog column and exactly one transition. That is deliberate
+ * on two counts: it exercises the fallback for the Backlog column, and its
+ * single To Do -> In Progress transition is what lets the "behaves like any
+ * other task" assertions move a card the way a person dragging it would.
+ */
+describe("A board task for every decided scope item", () => {
+  /** code -> scope item id, for the six the status cases created. */
+  let bItems: Record<string, string> = {};
+  const B_CASES: Array<[string, string, "DONE" | "OPEN"]> = [
+    ["SI-ST-ADOPT", "ADOPT", "DONE"],
+    ["SI-ST-DEFER", "DEFER", "DONE"],
+    ["SI-ST-OOS", "OUT_OF_SCOPE", "DONE"],
+    ["SI-ST-CONF", "CONFIGURE", "OPEN"],
+    ["SI-ST-EXT", "EXTEND", "OPEN"],
+    ["SI-ST-INT", "INTEGRATE", "OPEN"],
+  ];
+
+  beforeAll(async () => {
+    const rows = await prisma.templateScopeItem.findMany({
+      where: { code: { startsWith: "SI-ST-" } },
+      select: { id: true, code: true },
+    });
+    bItems = Object.fromEntries(rows.map((r) => [r.code, r.id]));
+
+    for (const [code, decision] of B_CASES) {
+      await api(
+        fx.orgB.users.OWNER,
+        `/api/projects/${fx.orgB.projectId}/activate/decisions/${bItems[code]}`,
+        {
+          method: "PUT",
+          body: {
+            decision,
+            status: "AGREED",
+            rationale: `Agreed in org B's workshop: ${decision.toLowerCase()}.`,
+          },
+        }
+      );
+    }
+  }, 180_000);
+
+  it("plans exactly one card per decided item, in the right column", async () => {
+    const res = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/backlog`
+    );
+    expectAllowed(res, "org B previewing the backlog");
+
+    const cards = res.body.items.filter(
+      (i: any) => i.originKey.startsWith("decision:") && i.scopeItemCode.startsWith("SI-ST-")
+    );
+    expect(cards).toHaveLength(6);
+    for (const [code, decision, column] of B_CASES) {
+      const c = cards.find((i: any) => i.scopeItemCode === code);
+      expect(c).toBeDefined();
+      expect(c.decision).toBe(decision);
+      expect(c.issueStatus).toBe(column === "DONE" ? "DONE" : "BACKLOG");
+      expect(c.targetPhaseKey).toBe("EXPLORE");
+    }
+  });
+
+  it("creates them as ordinary issues on the board", async () => {
+    const res = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/backlog`,
+      { method: "POST", body: {} }
+    );
+    expect(res.status).toBe(201);
+
+    const links = await prisma.activateDeliverableLink.findMany({
+      where: {
+        phase: { projectId: fx.orgB.projectId },
+        originKey: { startsWith: "decision:" },
+        // This project also carries a decision from the tenant-isolation
+        // test earlier in the file. Six is what THIS block decided.
+        issue: { title: { startsWith: "SI-ST-" } },
+      },
+      select: {
+        originKey: true,
+        fitGapStatus: true,
+        issue: {
+          select: {
+            id: true,
+            issueKey: true,
+            title: true,
+            description: true,
+            issueType: true,
+            projectId: true,
+            status: { select: { name: true, category: true } },
+          },
+        },
+      },
+    });
+    expect(links).toHaveLength(6);
+
+    for (const l of links) {
+      // Nothing about these is special. A real key, an ordinary type, in the
+      // project the board is showing — which is what makes them appear at
+      // all, and what makes every other issue feature work on them.
+      expect(l.issue.projectId).toBe(fx.orgB.projectId);
+      expect(l.issue.issueKey).toMatch(/^[A-Z0-9]+-\d+$/);
+      expect(l.issue.issueType).toBe("TASK");
+      expect(l.issue.title).toMatch(/^SI-ST-[A-Z]+ — /);
+      // The rationale travels with it, for whoever reads the card later.
+      expect(l.issue.description).toContain("Agreed in org B's workshop");
+    }
+
+    const settled = links.filter((l) => ["ADOPT", "DEFER", "OUT_OF_SCOPE"].includes(l.fitGapStatus!));
+    const open = links.filter((l) => ["CONFIGURE", "EXTEND", "INTEGRATE"].includes(l.fitGapStatus!));
+    expect(settled).toHaveLength(3);
+    expect(open).toHaveLength(3);
+
+    // Adopt, Defer and Out of scope arrive finished: nobody is going to work
+    // on "we decided to adopt the standard".
+    for (const l of settled) expect(l.issue.status.category).toBe("DONE");
+    // The other three are open work. This project's workflow has no Backlog
+    // column, so they land in its first column rather than one being invented.
+    for (const l of open) {
+      expect(l.issue.status.category).not.toBe("DONE");
+      expect(l.issue.status.name).toBe("To Do");
+    }
+    expect(
+      await prisma.workflowStatus.count({
+        where: { workflow: { projectId: fx.orgB.projectId }, category: "BACKLOG" },
+      })
+    ).toBe(0);
+  });
+
+  it("creates nothing the second time, however often it is run", async () => {
+    const before = await prisma.issue.count({ where: { projectId: fx.orgB.projectId } });
+
+    for (let i = 0; i < 2; i++) {
+      const res = await api(
+        fx.orgB.users.OWNER,
+        `/api/projects/${fx.orgB.projectId}/activate/backlog`,
+        { method: "POST", body: {} }
+      );
+      // 200, not 201: nothing was created. The unique originKey is what makes
+      // this true without a bookkeeping table remembering what was made.
+      expect(res.status).toBe(200);
+      expect(res.body.created).toBe(0);
+    }
+
+    expect(await prisma.issue.count({ where: { projectId: fx.orgB.projectId } })).toBe(before);
+    expect(
+      await prisma.activateDeliverableLink.count({
+        where: {
+          phase: { projectId: fx.orgB.projectId },
+          originKey: { startsWith: "decision:" },
+          issue: { title: { startsWith: "SI-ST-" } },
+        },
+      })
+    ).toBe(6);
+  });
+
+  it("moves like any other task, and regeneration does not drag it back", async () => {
+    const link = await prisma.activateDeliverableLink.findFirst({
+      where: {
+        phase: { projectId: fx.orgB.projectId },
+        originKey: { startsWith: "decision:" },
+        fitGapStatus: "CONFIGURE",
+      },
+      select: { issue: { select: { id: true, statusId: true } } },
+    });
+    expect(link).not.toBeNull();
+
+    // Through the ordinary issue endpoint, exactly as dragging a card does.
+    const moved = await api(fx.orgB.users.OWNER, `/api/issues/${link!.issue.id}`, {
+      method: "PATCH",
+      body: { statusId: fx.orgB.statusInProgressId },
+    });
+    expectAllowed(moved, "moving a generated card to In Progress");
+    expect(
+      (await prisma.issue.findUnique({
+        where: { id: link!.issue.id },
+        select: { statusId: true },
+      }))!.statusId
+    ).toBe(fx.orgB.statusInProgressId);
+
+    await api(fx.orgB.users.OWNER, `/api/projects/${fx.orgB.projectId}/activate/backlog`, {
+      method: "POST",
+      body: {},
+    });
+
+    /**
+     * Still where the person put it.
+     *
+     * Generation creates; it does not reach into the board and move what is
+     * already there. Someone dragging a card into progress and finding it
+     * back in To Do after a colleague regenerated would be the feature
+     * fighting the team.
+     */
+    expect(
+      (await prisma.issue.findUnique({
+        where: { id: link!.issue.id },
+        select: { statusId: true },
+      }))!.statusId
+    ).toBe(fx.orgB.statusInProgressId);
+  });
+
+  it("is editable like any other task", async () => {
+    const link = await prisma.activateDeliverableLink.findFirst({
+      where: {
+        phase: { projectId: fx.orgB.projectId },
+        originKey: { startsWith: "decision:" },
+        fitGapStatus: "ADOPT",
+      },
+      select: { issue: { select: { id: true } } },
+    });
+
+    const edited = await api(fx.orgB.users.OWNER, `/api/issues/${link!.issue.id}`, {
+      method: "PATCH",
+      body: { title: "Renamed by a human", priority: "HIGH" },
+    });
+    expectAllowed(edited, "editing a generated card");
+
+    const after = await prisma.issue.findUnique({
+      where: { id: link!.issue.id },
+      select: { title: true, priority: true },
+    });
+    expect(after!.title).toBe("Renamed by a human");
+    expect(after!.priority).toBe("HIGH");
+
+    // And the edit survives the next generation, for the same reason the
+    // move does: the card belongs to the team once it exists.
+    await api(fx.orgB.users.OWNER, `/api/projects/${fx.orgB.projectId}/activate/backlog`, {
+      method: "POST",
+      body: {},
+    });
+    expect(
+      (await prisma.issue.findUnique({ where: { id: link!.issue.id }, select: { title: true } }))!
+        .title
+    ).toBe("Renamed by a human");
+  });
+
+  it("adds one more card when one more item is decided, and nothing else", async () => {
+    const before = await prisma.activateDeliverableLink.count({
+      where: { phase: { projectId: fx.orgB.projectId }, originKey: { startsWith: "decision:" } },
+    });
+
+    await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/decisions/${siReportingId}`,
+      { method: "PUT", body: { decision: "ADOPT", status: "AGREED" } }
+    );
+    const res = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/backlog`,
+      { method: "POST", body: {} }
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.created).toBe(1);
+
+    expect(
+      await prisma.activateDeliverableLink.count({
+        where: { phase: { projectId: fx.orgB.projectId }, originKey: { startsWith: "decision:" } },
+      })
+    ).toBe(before + 1);
   });
 });

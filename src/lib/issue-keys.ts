@@ -115,3 +115,26 @@ export function backlogStatusIdFor(project: AllocatedKey["project"]): string {
   if (statuses.length === 0) throw new Error("No workflow statuses defined for this project");
   return (statuses.find((s) => s.category === "BACKLOG") ?? statuses[0]).id;
 }
+
+/**
+ * The column a generated item should be created in.
+ *
+ * "DONE" resolves to the DONE-category status, falling back to the LAST by
+ * position — the mirror of the Backlog fallback, and for the same reason:
+ * a workflow with no column of that category still has an end, and putting a
+ * settled decision at the end of the board is closer to the truth than
+ * putting it at the start where somebody will pick it up.
+ *
+ * Every workflow this application creates has a Done column, so the fallback
+ * is for a workflow a team has edited down. Throwing instead would mean a
+ * team's workflow edit could break backlog generation entirely.
+ */
+export function issueStatusIdFor(
+  project: AllocatedKey["project"],
+  want: "BACKLOG" | "DONE"
+): string {
+  const statuses = project.workflows[0]?.statuses ?? [];
+  if (statuses.length === 0) throw new Error("No workflow statuses defined for this project");
+  if (want === "BACKLOG") return backlogStatusIdFor(project);
+  return (statuses.find((s) => s.category === "DONE") ?? statuses[statuses.length - 1]).id;
+}

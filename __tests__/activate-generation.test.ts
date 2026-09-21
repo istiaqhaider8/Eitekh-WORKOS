@@ -63,6 +63,23 @@ function delta(over: Partial<DecisionInput["deltas"][number]> = {}) {
   };
 }
 
+/**
+ * The items a run produces MINUS the scope-item task.
+ *
+ * R6 gives every decided item one card standing for the decision itself, so
+ * a bare count no longer means "how much work did this produce". Rather than
+ * bumping every number by one and hoping the reader infers why, the rule
+ * tests below keep asserting the work and say so.
+ */
+function work(out: ReturnType<typeof planBacklog>) {
+  return out.filter((i) => !i.originKey.startsWith("decision:"));
+}
+
+/** The one card that stands for the decision, when there is one. */
+function card(out: ReturnType<typeof planBacklog>) {
+  return out.find((i) => i.originKey.startsWith("decision:"));
+}
+
 function run(decisions: DecisionInput[], items: ScopeItemInput[], inScope = [MODULE]) {
   return planBacklog({
     decisions,
@@ -73,7 +90,7 @@ function run(decisions: DecisionInput[], items: ScopeItemInput[], inScope = [MOD
 
 describe("R1 — an authored delta becomes one item", () => {
   it("produces one item per delta, carrying its own fields", () => {
-    const out = run([decision({ deltas: [delta(), delta({ id: "dl-2", title: "Second" })] })], [scopeItem()]);
+    const out = work(run([decision({ deltas: [delta(), delta({ id: "dl-2", title: "Second" })] })], [scopeItem()]));
     expect(out).toHaveLength(2);
     expect(out[0].title).toBe("Permission group structure by population");
     expect(out[0].priority).toBe("MUST");
@@ -85,9 +102,9 @@ describe("R1 — an authored delta becomes one item", () => {
   });
 
   it("targets Realize by default and Run for a deferred decision", () => {
-    expect(run([decision({ deltas: [delta()] })], [scopeItem()])[0].targetPhaseKey).toBe("REALIZE");
+    expect(work(run([decision({ deltas: [delta()] })], [scopeItem()]))[0].targetPhaseKey).toBe("REALIZE");
 
-    const deferred = run([decision({ decision: "DEFER", deltas: [delta()] })], [scopeItem()]);
+    const deferred = work(run([decision({ decision: "DEFER", deltas: [delta()] })], [scopeItem()]));
     // Deferred work was agreed, just not for this release. Putting it in
     // Realize would make the phase read as behind for work nobody intends to
     // do yet.
@@ -96,7 +113,9 @@ describe("R1 — an authored delta becomes one item", () => {
 
   it("generates nothing for ADOPT or OUT_OF_SCOPE, even with deltas attached", () => {
     for (const d of ["ADOPT", "OUT_OF_SCOPE"]) {
-      expect(run([decision({ decision: d, deltas: [delta()] })], [scopeItem()])).toHaveLength(0);
+      // No BUILD work. The decision card itself is still created -- that is
+      // R6, and it is what puts an adopted item on the board at all.
+      expect(work(run([decision({ decision: d, deltas: [delta()] })], [scopeItem()]))).toHaveLength(0);
     }
   });
 });
@@ -174,10 +193,13 @@ describe("R5 — an open question is tracked whatever the decision", () => {
     // A question that blocks sign-off is not build work. Letting it vanish
     // because the decision happened to be "adopt" is how a gate gets signed
     // over an unanswered question.
-    expect(out).toHaveLength(1);
-    expect(out[0].originKey).toBe("rule:dec-1:R5");
-    expect(out[0].targetPhaseKey).toBe("EXPLORE");
-    expect(out[0].workstreamKey).toBe("PROJECT_MANAGEMENT");
+    const w = work(out);
+    expect(w).toHaveLength(1);
+    expect(w[0].originKey).toBe("rule:dec-1:R5");
+    expect(w[0].targetPhaseKey).toBe("EXPLORE");
+    expect(w[0].workstreamKey).toBe("PROJECT_MANAGEMENT");
+    // And the adopted item still gets its own card, finished on arrival.
+    expect(card(out)!.issueStatus).toBe("DONE");
   });
 
   it("carries the question owner", () => {
@@ -190,13 +212,13 @@ describe("R5 — an open question is tracked whatever the decision", () => {
 
   it("ignores whitespace that is not a question", () => {
     const out = run([decision({ decision: "ADOPT", openQuestion: "   " })], [scopeItem()]);
-    expect(out).toHaveLength(0);
+    expect(work(out)).toHaveLength(0);
   });
 
   it("truncates a long question into a readable title", () => {
     const long = "x".repeat(300);
     const out = run([decision({ decision: "ADOPT", openQuestion: long })], [scopeItem()]);
-    expect(out[0].title.length).toBeLessThan(120);
+    expect(work(out)[0].title.length).toBeLessThan(120);
   });
 });
 
@@ -231,7 +253,13 @@ describe("R0 — a module out of scope generates nothing", () => {
 describe("Identity is stable, not positional", () => {
   it("keys an item by what produced it", () => {
     const out = run([decision({ decision: "EXTEND", deltas: [delta({ id: "dl-9" })] })], [scopeItem()]);
-    expect(out.map((i) => i.originKey).sort()).toEqual(["delta:dl-9", "rule:dec-1:R2"]);
+    // Three keys now: the delta, the rule it triggered, and the card that
+    // stands for the decision. Each names what produced it.
+    expect(out.map((i) => i.originKey).sort()).toEqual([
+      "decision:dec-1",
+      "delta:dl-9",
+      "rule:dec-1:R2",
+    ]);
   });
 
   it("does not renumber existing items when a new decision is added", () => {
@@ -271,10 +299,12 @@ describe("Rules combine", () => {
       ],
       [scopeItem({ tags: "ux" })]
     );
-    // two deltas (R1) + R3 + R4 + R5
-    expect(out).toHaveLength(5);
-    expect(out.filter((i) => i.automatic)).toHaveLength(3);
-    expect(new Set(out.map((i) => i.originKey)).size).toBe(5);
+    // two deltas (R1) + R3 + R4 + R5, plus the decision card (R6)
+    expect(out).toHaveLength(6);
+    expect(work(out)).toHaveLength(5);
+    // Four of the six were added by a rule rather than typed by a person.
+    expect(out.filter((i) => i.automatic)).toHaveLength(4);
+    expect(new Set(out.map((i) => i.originKey)).size).toBe(6);
   });
 });
 
@@ -351,9 +381,14 @@ describe("Fit-to-standard task status", () => {
    */
   it("marks a deferred item DONE while still generating its work", () => {
     const out = run([decision({ decision: "DEFER", deltas: [delta()] })], [scopeItem()]);
-    expect(out).toHaveLength(1);
-    expect(out[0].decisionTaskStatus).toBe("DONE");
-    expect(out[0].targetPhaseKey).toBe("RUN");
+    const w = work(out);
+    expect(w).toHaveLength(1);
+    expect(w[0].decisionTaskStatus).toBe("DONE");
+    expect(w[0].targetPhaseKey).toBe("RUN");
+    // The distinction the two fields exist for, in one assertion: the scope
+    // item is settled, and the work it implies is emphatically not done.
+    expect(w[0].issueStatus).toBe("BACKLOG");
+    expect(card(out)!.issueStatus).toBe("DONE");
   });
 
   it("marks an open question from a settled decision DONE, and still tracks it", () => {
@@ -363,9 +398,13 @@ describe("Fit-to-standard task status", () => {
       [decision({ decision: "ADOPT", openQuestion: "Who owns the exception list?" })],
       [scopeItem()]
     );
-    expect(out).toHaveLength(1);
-    expect(out[0].originKey).toBe("rule:dec-1:R5");
-    expect(out[0].decisionTaskStatus).toBe("DONE");
+    const w = work(out);
+    expect(w).toHaveLength(1);
+    expect(w[0].originKey).toBe("rule:dec-1:R5");
+    expect(w[0].decisionTaskStatus).toBe("DONE");
+    // The action is real work and is NOT created finished, even though the
+    // decision it hangs off is.
+    expect(w[0].issueStatus).toBe("BACKLOG");
   });
 
   it("treats a decision outside the vocabulary as unsettled, not as done", () => {
@@ -376,7 +415,102 @@ describe("Fit-to-standard task status", () => {
       [decision({ decision: "LEGACY_VALUE", openQuestion: "Still relevant?" })],
       [scopeItem()]
     );
-    expect(out).toHaveLength(1);
-    expect(out[0].decisionTaskStatus).toBe("BACKLOG");
+    const w = work(out);
+    expect(w).toHaveLength(1);
+    expect(w[0].decisionTaskStatus).toBe("BACKLOG");
+    // And its card is not created in Done either: an unrecognised decision
+    // must not close itself on the board.
+    expect(card(out)!.issueStatus).toBe("BACKLOG");
+  });
+});
+
+describe("R6 — every decided scope item becomes one board task", () => {
+  it.each([
+    ["ADOPT", "DONE"],
+    ["DEFER", "DONE"],
+    ["OUT_OF_SCOPE", "DONE"],
+    ["CONFIGURE", "BACKLOG"],
+    ["EXTEND", "BACKLOG"],
+    ["INTEGRATE", "BACKLOG"],
+  ])("creates the card for %s in the %s column", (decisionValue, column) => {
+    const out = run([decision({ decision: decisionValue })], [scopeItem()]);
+    const c = card(out);
+    expect(c).toBeDefined();
+    expect(c!.issueStatus).toBe(column);
+    expect(c!.decisionTaskStatus).toBe(column);
+    // Named so somebody scanning the board knows which scope item it is.
+    expect(c!.title).toBe("SI-01 — Role-based permissions");
+    // Explore, because that is where fit-to-standard happens. Filing it in
+    // Realize would make the build phase accountable for the conversation.
+    expect(c!.targetPhaseKey).toBe("EXPLORE");
+    expect(c!.workstreamKey).toBe("APPLICATION_DESIGN_CONFIGURATION");
+  });
+
+  it("creates exactly one card per decision, however much work there is", () => {
+    // Three deltas, a ux tag and an open question: four pieces of work and
+    // still one card. The card is the decision, not a summary of the work.
+    const out = run(
+      [
+        decision({
+          decision: "EXTEND",
+          openQuestion: "Which countries first?",
+          deltas: [delta(), delta({ id: "dl-2" }), delta({ id: "dl-3" })],
+        }),
+      ],
+      [scopeItem({ tags: "ux" })]
+    );
+    expect(out.filter((i) => i.originKey.startsWith("decision:"))).toHaveLength(1);
+    expect(work(out).length).toBeGreaterThan(1);
+  });
+
+  it("keys the card by the decision, so regeneration cannot duplicate it", () => {
+    const out = run([decision({ id: "dec-42" })], [scopeItem()]);
+    expect(card(out)!.originKey).toBe("decision:dec-42");
+    // Same input, same key: the route's unique originKey then makes the
+    // second run a no-op rather than a second card.
+    expect(card(run([decision({ id: "dec-42" })], [scopeItem()]))!.originKey).toBe("decision:dec-42");
+  });
+
+  it("carries the rationale into the card, and reads sensibly without one", () => {
+    const withReason = card(
+      run([decision({ decision: "ADOPT", rationale: "Standard accepted by the HR board." })], [scopeItem()])
+    );
+    expect(withReason!.note).toContain("adopt");
+    expect(withReason!.note).toContain("Standard accepted by the HR board.");
+
+    const without = card(run([decision({ decision: "ADOPT" })], [scopeItem()]));
+    expect(without!.note).toContain("adopt");
+    expect(without!.note!.trim().endsWith(".")).toBe(true);
+  });
+
+  it("creates nothing for an item nobody has decided", () => {
+    // No decision, no card. The catalogue is 60 items long on a real
+    // project; putting all of them on the board would bury the work.
+    expect(run([], [scopeItem()])).toHaveLength(0);
+  });
+
+  it("creates nothing for a module the project is not doing", () => {
+    // R0 still comes first. A card for scope the project excluded would
+    // reappear on the board every time somebody regenerated.
+    const out = run(
+      [decision({ decision: "CONFIGURE" })],
+      [scopeItem({ moduleId: OTHER_MODULE })],
+      [MODULE]
+    );
+    expect(out).toHaveLength(0);
+  });
+
+  it("gives one card to each of several decided items", () => {
+    const out = run(
+      [
+        decision({ id: "dec-1", scopeItemId: "si-1", decision: "ADOPT" }),
+        decision({ id: "dec-2", scopeItemId: "si-2", decision: "CONFIGURE" }),
+      ],
+      [scopeItem(), scopeItem({ id: "si-2", code: "SI-02", name: "Second item" })]
+    );
+    const cards = out.filter((i) => i.originKey.startsWith("decision:"));
+    expect(cards).toHaveLength(2);
+    expect(cards.map((c) => c.issueStatus).sort()).toEqual(["BACKLOG", "DONE"]);
+    expect(new Set(cards.map((c) => c.originKey)).size).toBe(2);
   });
 });

@@ -41,6 +41,8 @@ interface BacklogItem {
    * DONE for anything deferred.
    */
   decisionTaskStatus: "DONE" | "BACKLOG";
+  /** The board column this item will be created in. */
+  issueStatus: "DONE" | "BACKLOG";
   automatic: boolean;
   note: string | null;
   issue: { id: string; issueKey: string } | null;
@@ -183,6 +185,11 @@ export function ActivateBacklog({
                   <th scope="col" className="px-2 py-2 font-semibold">Pri</th>
                   <th scope="col" className="px-2 py-2 font-semibold">Size</th>
                   <th scope="col" className="px-2 py-2 font-semibold">Phase</th>
+                  {/* Where it will land on the board. Shown before anything
+                      is created, because "this one arrives already done" is
+                      a thing to notice before pressing the button, not
+                      after. */}
+                  <th scope="col" className="px-2 py-2 font-semibold">Column</th>
                   <th scope="col" className="px-2 py-2 font-semibold">Issue</th>
                 </tr>
               </thead>
@@ -227,6 +234,17 @@ export function ActivateBacklog({
                     </td>
                     <td className="px-2 py-2 text-slate-600 dark:text-slate-400">
                       {label(b.targetPhaseKey)}
+                    </td>
+                    <td className="px-2 py-2">
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                          b.issueStatus === "DONE"
+                            ? "border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
+                            : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                        }`}
+                      >
+                        {b.issueStatus === "DONE" ? "Done" : "Backlog"}
+                      </span>
                     </td>
                     <td className="px-2 py-2">
                       {b.issue ? (

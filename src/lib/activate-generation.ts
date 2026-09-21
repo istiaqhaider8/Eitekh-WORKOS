@@ -148,6 +148,8 @@ export interface DecisionInput {
   decision: string;
   openQuestion: string | null;
   questionOwnerId: string | null;
+  /** Why the organisation landed here. Becomes the scope-item task's body. */
+  rationale?: string | null;
   deltas: DeltaInput[];
 }
 
@@ -176,6 +178,19 @@ export interface PlannedItem {
    * the distinction worth carrying, and BACKLOG for the build decisions.
    */
   decisionTaskStatus: ActivateTaskStatus;
+  /**
+   * The COLUMN this item's issue should be created in.
+   *
+   * Build work is created in the Backlog whatever produced it, because
+   * nobody has done it yet. The one exception is the scope-item task itself
+   * (R6): it represents the decision, so an Adopt, a Defer or an exclusion
+   * arrives already finished — there is nothing for anyone to pick up.
+   *
+   * Separate from `decisionTaskStatus`, which describes the SCOPE ITEM. The
+   * two differ for anything generated from a deferred decision: the item is
+   * settled, the work it implies is not.
+   */
+  issueStatus: ActivateTaskStatus;
   /** False for an authored delta, true for one a rule added. */
   automatic: boolean;
   note: string | null;
@@ -228,6 +243,70 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
      */
     const decisionTaskStatus = taskStatusForDecision(d.decision) ?? "BACKLOG";
 
+    /**
+     * R6 — every decided scope item becomes one task on the board.
+     *
+     * WHY THIS EXISTS
+     *
+     * Before it, recording six decisions produced two board tasks, and both
+     * of those came from automatic rules rather than from anything anybody
+     * typed. Adopt and Out of scope generated nothing at all by design, and
+     * Configure or Defer with no delta recorded generated nothing either. The
+     * workshop said "6 of 60 decided" and the board said zero, which is a
+     * product telling two different stories about the same afternoon's work.
+     *
+     * So each decided item now has exactly one task standing for the decision
+     * itself. It is an ordinary Issue — a real key, on the board, draggable,
+     * editable, reassignable — because a fit-to-standard outcome that people
+     * cannot see next to their other work is one they will forget.
+     *
+     * WHY IT IS SEPARATE FROM THE WORK
+     *
+     * This task is the DECISION. The deltas are the BUILD. A Configure with
+     * three deltas produces one decision task and three build tasks, and that
+     * is right: the decision is done when the workshop agrees it, each piece
+     * of build is done when somebody builds it.
+     *
+     * WHY SOME OF THEM ARE BORN FINISHED
+     *
+     * Adopt, Defer and Out of scope settle the item, so their task is created
+     * in the Done column. Nobody is going to work on "we decided to adopt the
+     * standard" — leaving it open would put three permanently unactionable
+     * cards in front of the team for every six decisions they take.
+     *
+     * The key is `decision:<id>`, so re-running generation after ten more
+     * decisions creates ten tasks and touches nothing that exists.
+     */
+    out.push({
+      originKey: `decision:${d.id}`,
+      title: `${si.code} — ${si.name}`,
+      buildType: DEFAULT_BUILD_TYPE[d.decision] || "CONFIGURATION",
+      // Not MUST even for a build decision: this card records an outcome, and
+      // the work that carries the delivery risk is the delta beside it.
+      priority: "SHOULD",
+      size: "S",
+      ownerId: null,
+      workstreamKey: si.workstreamKey,
+      /**
+       * Explore, where fit-to-standard happens — not Realize.
+       *
+       * The decision is an Explore deliverable whatever it decided, and
+       * filing it in Realize would make the build phase accountable for
+       * conversations that belong to the one before it.
+       */
+      targetPhaseKey: "EXPLORE",
+      scopeItemId: si.id,
+      scopeItemCode: si.code,
+      decisionId: d.id,
+      decision: d.decision,
+      decisionTaskStatus,
+      issueStatus: decisionTaskStatus,
+      automatic: true,
+      note:
+        `Fit-to-standard decision: ${d.decision.replace(/_/g, " ").toLowerCase()}.` +
+        (d.rationale?.trim() ? `\n\n${d.rationale.trim()}` : ""),
+    });
+
     // R1 — every authored delta becomes one item.
     if (generates) {
       for (const dl of d.deltas) {
@@ -248,6 +327,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
           decisionId: d.id,
           decision: d.decision,
           decisionTaskStatus,
+          issueStatus: "BACKLOG",
           automatic: false,
           note: dl.note,
         });
@@ -276,6 +356,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         decisionId: d.id,
         decision: d.decision,
         decisionTaskStatus,
+        issueStatus: "BACKLOG",
         automatic: true,
         note: "Extensions are what break when the vendor releases. This joins the permanent regression pack.",
       });
@@ -302,6 +383,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         decisionId: d.id,
         decision: d.decision,
         decisionTaskStatus,
+        issueStatus: "BACKLOG",
         automatic: true,
         note: "Who is told when this fails, and what happens to the data in the meantime.",
       });
@@ -327,6 +409,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         decisionId: d.id,
         decision: d.decision,
         decisionTaskStatus,
+        issueStatus: "BACKLOG",
         automatic: true,
         note: "Employee or manager facing. Adoption is where programmes lose their benefits case.",
       });
@@ -355,6 +438,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         decisionId: d.id,
         decision: d.decision,
         decisionTaskStatus,
+        issueStatus: "BACKLOG",
         automatic: true,
         note: "Blocks design sign-off for this scope item.",
       });
