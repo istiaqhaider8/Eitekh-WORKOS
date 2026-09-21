@@ -2,12 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  CheckCircle2,
-  Circle,
   CircleDashed,
   Loader2,
   ShieldCheck,
-  SlashIcon,
   TriangleAlert,
 } from "lucide-react";
 import { ActivateWorkshop } from "./ActivateWorkshop";
@@ -737,67 +734,17 @@ export function ActivateWorkspace({
                 </span>
               </div>
 
-              <ul className="space-y-1.5">
-                {gate.criteria.map((c) => {
-                  const met = c.status === "MET";
-                  const waived = c.status === "WAIVED";
-                  const Icon = met ? CheckCircle2 : waived ? SlashIcon : Circle;
-                  return (
-                    <li key={c.id} className="flex items-center gap-2">
-                      <Icon
-                        className={`w-3.5 h-3.5 shrink-0 ${
-                          met
-                            ? "text-emerald-600"
-                            : waived
-                              ? "text-amber-500"
-                              : "text-slate-300 dark:text-slate-600"
-                        }`}
-                        aria-hidden="true"
-                      />
-                      <span className="text-xs text-slate-700 dark:text-slate-300 flex-1">
-                        {c.criterion}
-                      </span>
-                      <span className="sr-only">{c.status}</span>
-                      {can("activate:manage_gates") && gate.status !== "APPROVED" && (
-                        <span className="flex gap-1">
-                          <button
-                            type="button"
-                            disabled={busy !== null || met}
-                            aria-label={`Mark "${c.criterion}" met`}
-                            onClick={() =>
-                              send(
-                                "Criterion",
-                                `/api/projects/${projectId}/activate/gates/${gate.id}/criteria/${c.id}`,
-                                { method: "PATCH", body: JSON.stringify({ status: "MET" }) },
-                                loadProfile
-                              )
-                            }
-                            className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 disabled:opacity-40"
-                          >
-                            Met
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy !== null || waived}
-                            aria-label={`Waive "${c.criterion}"`}
-                            onClick={() =>
-                              send(
-                                "Criterion",
-                                `/api/projects/${projectId}/activate/gates/${gate.id}/criteria/${c.id}`,
-                                { method: "PATCH", body: JSON.stringify({ status: "WAIVED" }) },
-                                loadProfile
-                              )
-                            }
-                            className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 disabled:opacity-40"
-                          >
-                            Waive
-                          </button>
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* The criteria themselves are listed by the worksheet below,
+                  where they can be ticked, added and removed. This panel
+                  keeps the part the worksheet has no business doing: the
+                  gate's lifecycle. Listing them in both places would be the
+                  same rows twice, and a person would reasonably ask which
+                  one counted. */}
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {gate.criteria.filter((c) => c.status === "MET" || c.status === "WAIVED").length} of{" "}
+                {gate.criteria.length} criteri{gate.criteria.length === 1 ? "on" : "a"} settled.
+                Tick them in the worksheet below; sign-off happens here.
+              </p>
 
               {outstanding.length > 0 && (
                 <p className="flex items-start gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
@@ -950,7 +897,11 @@ export function ActivateWorkspace({
             onPhaseChange={setSelectedKey}
             canManageDeliverables={can("activate:manage_deliverables")}
             canManageGates={can("activate:manage_gates")}
-            showGate={false}
+            /* The gate IS shown here: its criteria, with the checkboxes and
+               the add and remove controls. The panel above keeps the
+               lifecycle — raising and signing off — which is a different
+               act from recording evidence. */
+            showGate
             onOpenIssue={onOpenIssue}
             onChanged={() => {
               loadProfile();
