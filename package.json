@@ -28,7 +28,11 @@
     "test:a11y": "node scripts/run-axe.mjs",
     "test:a11y:update": "node scripts/run-axe.mjs --update",
     "start:local": "node scripts/start-local.mjs",
-    "start:local:mail": "node scripts/start-local.mjs --mail"
+    "start:local:mail": "node scripts/start-local.mjs --mail",
+    "backup": "node scripts/backup-scheduled.mjs",
+    "backup:dry-run": "node scripts/backup-scheduled.mjs --dry-run",
+    "backup:schedule": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-backup-schedule.ps1",
+    "backup:unschedule": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-backup-schedule.ps1 -Uninstall"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",

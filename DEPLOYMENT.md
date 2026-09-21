@@ -1025,6 +1025,37 @@ and being down.
 exists for — disk loss, host loss, ransomware walking the filesystem, or a cloud account action
 that takes the instance and its volumes together. `BACKUP_RETAIN` only controls local pruning.
 
+### Running it automatically (the development host)
+
+These scripts existed for weeks and had never been scheduled. That was not an oversight with no
+consequence: the local Postgres data directory sat under `%TEMP%`, Windows cleaned it, and the
+entire development database went with it — seeded organizations, projects created through the
+UI, every user. There was nothing to restore from. **A backup script nobody schedules is a plan,
+not a backup.**
+
+```bash
+npm run backup            # take one now, exactly as the scheduler does
+npm run backup:dry-run    # print the resolved configuration, take nothing
+npm run backup:schedule   # register the nightly Windows task
+npm run backup:unschedule # remove it
+```
+
+| | |
+|---|---|
+| Task | `EitekhWorkOS-DbBackup`, daily 02:00, **StartWhenAvailable** so a missed night runs when the machine returns |
+| Runs | `node scripts/backup-scheduled.mjs` — one line, because everything that can change is resolved in that file rather than baked into the task |
+| Backups | `~/.eitekh/backups`, 7 retained, log at `~/.eitekh/backups/backup.log` |
+| Client tools | `~/.eitekh/pgsql/bin` — the embedded Postgres package ships the **server only**, so `pg_dump` is not otherwise present on this host |
+
+The task runs as the logged-on user. "Whether the user is logged on or not" needs the account
+password stored in the task, which an automated session cannot supply; the cost is a missed
+night while nobody is signed in, which `StartWhenAvailable` then makes up for.
+
+Two limitations, stated rather than buried: the backups are **on the same disk as the database**,
+which is not a backup against disk loss, and they are **unencrypted** — set
+`BACKUP_ENCRYPTION_KEY` (64 hex characters, stored somewhere the dumps are not) before this
+pattern goes anywhere near real data.
+
 ### The offsite copy (A1 / Phase 5)
 
 Every previous version of this section ended with that instruction and nothing performed it. An
@@ -1121,6 +1152,13 @@ real data, run the drill against a production-sized copy and record the timing.
 
 The restore duration is the number people guess at and get badly wrong. `db-restore.mjs` prints
 it as `RECORD THIS:` — put it in the table.
+
+**Rehearsed on the development host, 21 Sep 2026.** A 0.22 MB dump of `eitekh_workos` restored
+into an empty scratch database in **1.7s**, and `db-verify-restore.mjs` matched **72 of 72
+tables** across 714 rows by row count and primary-key checksum. Useful as proof the tooling
+works end to end and useless as an RTO estimate for anything production-sized: restore time is
+dominated by data volume and by fetching the backup from wherever it is stored, and neither
+applied here.
 
 ### If you are restoring for real, right now
 
