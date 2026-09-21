@@ -1,7 +1,7 @@
 /**
  * A phase worksheet, seeded: its deliverables, their tasks and its gate.
  *
- * Discover, Prepare, Explore and Realize are all here, chosen with --phase. One script,
+ * Discover through Deploy are all here, chosen with --phase. One script,
  * because the worksheet has never been phase-specific — one screen, one API,
  * one code allocator, addressed by phase key — and only the content differs.
  * A second script would have meant a second copy of the login, the rate-limit
@@ -654,11 +654,134 @@ const REALIZE_GATE = {
   ],
 };
 
+
+/**
+ * Deploy: putting it into production and switching the business over.
+ *
+ * Nothing here builds anything. Realize finished the solution and rehearsed
+ * the cutover; Deploy moves configuration to production, loads the real
+ * data, runs the cutover, provisions access, launches training, stands up
+ * hypercare and validates the first live transactions.
+ *
+ * DP-01 holds the go or no-go MEETING. The decision is a governance act and
+ * the gate criterion beside it is evidence that it happened — neither is the
+ * same as approving G4, which is why the criterion and the gate's own
+ * lifecycle stay separate.
+ */
+const DEPLOY_DELIVERABLES = [
+  {
+    name: "Production readiness assessment",
+    workstream: "Project management and governance",
+    tasks: [
+      "Complete the readiness checklist across workstreams",
+      "Confirm go or no-go criteria and thresholds",
+      "Hold the go or no-go decision meeting",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Production setup and integration activation",
+    workstream: "Integration and technology",
+    tasks: [
+      "Move configuration to production",
+      "Activate production integrations and certificates",
+      "Enable production monitoring and alerting",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Final cutover rehearsal",
+    workstream: "Cutover and go-live",
+    tasks: [
+      "Execute the final dry run end to end",
+      "Validate timings and the critical path",
+      "Resolve rehearsal issues and re-baseline the plan",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Production data load",
+    workstream: "Data migration",
+    tasks: [
+      "Take the final extract and complete cleansing",
+      "Execute the production load",
+      "Reconcile and obtain data sign-off",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Cutover execution",
+    workstream: "Cutover and go-live",
+    tasks: [
+      "Operate the command centre",
+      "Track task completion against the T-minus plan",
+      "Hold checkpoint decisions at the agreed milestones",
+      "Confirm go-live and communicate it",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Access provisioning",
+    workstream: "Security and permissions",
+    tasks: [
+      "Assign production roles and permission groups",
+      "Verify access for a sample of every role",
+      "Hand permission administration to its owner",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Training delivery and launch",
+    workstream: "Change management and adoption",
+    tasks: [
+      "Deliver training to end users",
+      "Issue launch communications",
+      "Stand up floorwalking and local support",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Hypercare mobilisation",
+    workstream: "Support and release management",
+    tasks: [
+      "Stand up the hypercare team",
+      "Open the issue log and triage process",
+      "Start the daily stand-up cadence",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Post-go-live validation",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Validate the first live transactions in each module",
+      "Validate integrations running on schedule",
+      "Validate reports against expected values",
+    ],
+    complete: 0,
+  },
+];
+
+const DEPLOY_GATE = {
+  name: "Go-live readiness",
+  criteria: [
+    "Go or no-go decision approved by the steering committee",
+    "Production data load reconciled and signed",
+    "First live transactions validated end to end",
+    "Integrations running on schedule and monitored in production",
+    "Reports validated in production against expected values",
+    "Users trained and access provisioned",
+    "Hypercare team active with triage running",
+    "No open critical defects in production",
+  ],
+};
+
 const PHASES = {
   DISCOVER: { deliverables: DISCOVER_DELIVERABLES, gate: DISCOVER_GATE },
   PREPARE: { deliverables: PREPARE_DELIVERABLES, gate: PREPARE_GATE },
   EXPLORE: { deliverables: EXPLORE_DELIVERABLES, gate: EXPLORE_GATE },
   REALIZE: { deliverables: REALIZE_DELIVERABLES, gate: REALIZE_GATE },
+  DEPLOY: { deliverables: DEPLOY_DELIVERABLES, gate: DEPLOY_GATE },
 };
 
 const chosen = PHASES[PHASE_KEY];
