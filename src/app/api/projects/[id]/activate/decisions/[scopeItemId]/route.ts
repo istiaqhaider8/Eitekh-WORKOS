@@ -6,6 +6,7 @@ import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activateDecisionSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
+import { taskStatusForDecision } from "@/lib/activate-generation";
 
 /**
  * Record what a project decided about one scope item, with its deltas.
@@ -184,7 +185,13 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ decision: full }, { status: existing ? 200 : 201 });
+    // The task status rides back with the saved decision so a client that
+    // just recorded one can show the consequence immediately, from the same
+    // map the catalogue uses, rather than refetching or deciding for itself.
+    return NextResponse.json(
+      { decision: full ? { ...full, taskStatus: taskStatusForDecision(full.decision) } : full },
+      { status: existing ? 200 : 201 }
+    );
   } catch (error: any) {
     return handleApiError(error, "projects/[id]/activate/decisions/[scopeItemId]");
   }

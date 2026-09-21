@@ -44,6 +44,60 @@ export type ActivateDecisionValue = (typeof ACTIVATE_DECISIONS)[number];
 /** Decisions that produce build work. ADOPT and OUT_OF_SCOPE produce none. */
 const GENERATES = new Set<string>(["CONFIGURE", "EXTEND", "INTEGRATE", "DEFER"]);
 
+/**
+ * The status a fit-to-standard task carries once its decision is recorded.
+ *
+ * Two values, because a workshop is really asking one question of each scope
+ * item: is anything still owed on it? Adopting the standard, deferring to a
+ * later release and ruling something out of scope all settle the item — there
+ * is nothing left for this programme to decide or build about it, so the task
+ * is DONE. Configure, Extend and Integrate each commit somebody to building
+ * something, so the task sits in BACKLOG until that work is planned.
+ *
+ * THIS IS NOT THE SAME QUESTION AS `GENERATES`, AND MERGING THEM IS A BUG
+ *
+ * DEFER appears in both — its task is DONE and it still produces work. That
+ * looks like a contradiction and is not: the fit-to-standard CONVERSATION is
+ * finished (the answer is "yes, but not now"), while the thing agreed is real
+ * and is filed into the Run phase so it cannot quietly evaporate between
+ * releases. Deriving one of these sets from the other would either resurrect
+ * deferred items as outstanding fit-to-standard work, or drop agreed scope
+ * off the board entirely. They are two properties of one decision and both
+ * are stated explicitly here.
+ *
+ * One map, exported, because the same answer has to appear in the workshop
+ * list, the scope-item API, the backlog preview and the generated issues. Six
+ * copies of a lookup table drift, and the way anybody finds out is a screen
+ * disagreeing with a report.
+ */
+export const ACTIVATE_TASK_STATUSES = ["BACKLOG", "DONE"] as const;
+export type ActivateTaskStatus = (typeof ACTIVATE_TASK_STATUSES)[number];
+
+export const ACTIVATE_DECISION_TASK_STATUS: Record<ActivateDecisionValue, ActivateTaskStatus> = {
+  ADOPT: "DONE",
+  DEFER: "DONE",
+  OUT_OF_SCOPE: "DONE",
+  CONFIGURE: "BACKLOG",
+  EXTEND: "BACKLOG",
+  INTEGRATE: "BACKLOG",
+};
+
+/**
+ * The task status for a decision, or null when there is not one yet.
+ *
+ * Null rather than a default: an undecided scope item is neither settled nor
+ * queued for build, and calling it BACKLOG would put every item a workshop
+ * has not reached yet into the same bucket as work somebody committed to.
+ * An unrecognised value also returns null instead of guessing — a decision
+ * this map has never heard of is a bug to see, not to paper over.
+ */
+export function taskStatusForDecision(
+  decision: string | null | undefined
+): ActivateTaskStatus | null {
+  if (!decision) return null;
+  return ACTIVATE_DECISION_TASK_STATUS[decision as ActivateDecisionValue] ?? null;
+}
+
 export const ACTIVATE_BUILD_TYPES = [
   "CONFIGURATION",
   "BUSINESS_RULE",
@@ -111,6 +165,17 @@ export interface PlannedItem {
   scopeItemCode: string;
   decisionId: string;
   decision: string;
+  /**
+   * The status of the FIT-TO-STANDARD TASK this item came from — not the
+   * status of the issue this item becomes.
+   *
+   * Every planned item is work waiting to be done, so a generated issue
+   * always starts in the project's Backlog. This field is the other thing: it
+   * says whether the scope-item conversation behind it is settled. It is DONE
+   * for an item generated from a DEFER, which is exactly the case that makes
+   * the distinction worth carrying, and BACKLOG for the build decisions.
+   */
+  decisionTaskStatus: ActivateTaskStatus;
   /** False for an authored delta, true for one a rule added. */
   automatic: boolean;
   note: string | null;
@@ -152,6 +217,17 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
     const generates = GENERATES.has(d.decision);
     const ux = hasTag(si.tags, "ux");
 
+    /**
+     * Falls back to BACKLOG for a decision this build has never heard of.
+     *
+     * That direction is deliberate. A stored value outside the six — a row
+     * written before the vocabulary settled, an import — is something nobody
+     * has looked at, and the two wrong answers are not equally wrong:
+     * "unsettled" invites somebody to check, while "done" removes it from
+     * every list that would have surfaced it.
+     */
+    const decisionTaskStatus = taskStatusForDecision(d.decision) ?? "BACKLOG";
+
     // R1 — every authored delta becomes one item.
     if (generates) {
       for (const dl of d.deltas) {
@@ -171,6 +247,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
           scopeItemCode: si.code,
           decisionId: d.id,
           decision: d.decision,
+          decisionTaskStatus,
           automatic: false,
           note: dl.note,
         });
@@ -198,6 +275,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         scopeItemCode: si.code,
         decisionId: d.id,
         decision: d.decision,
+        decisionTaskStatus,
         automatic: true,
         note: "Extensions are what break when the vendor releases. This joins the permanent regression pack.",
       });
@@ -223,6 +301,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         scopeItemCode: si.code,
         decisionId: d.id,
         decision: d.decision,
+        decisionTaskStatus,
         automatic: true,
         note: "Who is told when this fails, and what happens to the data in the meantime.",
       });
@@ -247,6 +326,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         scopeItemCode: si.code,
         decisionId: d.id,
         decision: d.decision,
+        decisionTaskStatus,
         automatic: true,
         note: "Employee or manager facing. Adoption is where programmes lose their benefits case.",
       });
@@ -274,6 +354,7 @@ export function planBacklog(input: PlanInput): PlannedItem[] {
         scopeItemCode: si.code,
         decisionId: d.id,
         decision: d.decision,
+        decisionTaskStatus,
         automatic: true,
         note: "Blocks design sign-off for this scope item.",
       });

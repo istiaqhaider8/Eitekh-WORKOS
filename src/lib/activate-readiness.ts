@@ -28,10 +28,40 @@
  */
 
 import { prisma } from "./prisma";
+import { ACTIVATE_DECISION_TASK_STATUS } from "./activate-generation";
 
 /** The DEPLOY gate is the go-live decision; RUN's is the handover. */
 export const DEPLOY_PHASE_KEY = "DEPLOY";
 export const RUN_PHASE_KEY = "RUN";
+
+/**
+ * What counts as an open gap on a phase.
+ *
+ * DERIVED FROM THE TASK-STATUS MAP, NOT WRITTEN OUT AGAIN
+ *
+ * A gap is a deliverable whose fit-to-standard decision leaves its scope item
+ * in BACKLOG — Configure, Extend, Integrate. Adopt, Defer and Out of scope
+ * settle the item, so they are not open gaps: nothing about them is waiting
+ * on a decision, and deferred work is tracked in Run rather than counted
+ * against the phase it was raised in.
+ *
+ * THIS REPLACES A FILTER THAT COULD NEVER MATCH
+ *
+ * The query used to count `fitGapStatus = 'GAP'`. 'GAP' belonged to an
+ * earlier three-value vocabulary that was replaced by the six decisions, and
+ * the column has been validated against the six ever since — so the filter
+ * matched nothing, on any project, and every phase reported zero open gaps
+ * however many Extends and Integrates it carried. A go-live readiness panel
+ * that always says "no gaps" is worse than no panel.
+ *
+ * It survived because the test wrote 'GAP' into the database directly,
+ * through Prisma, bypassing the validation the application goes through. A
+ * fixture that can produce states the product cannot will keep a dead branch
+ * alive indefinitely.
+ */
+export const GAP_DECISIONS: string[] = Object.entries(ACTIVATE_DECISION_TASK_STATUS)
+  .filter(([, status]) => status === "BACKLOG")
+  .map(([decision]) => decision);
 
 /** How many blocking issues to name. Beyond this a list stops being read. */
 export const BLOCKER_LIMIT = 20;
@@ -148,7 +178,7 @@ export async function getReadiness(
              COUNT(*) FILTER (WHERE l."isMandatory")::int                       AS mandatory,
              COUNT(*) FILTER (WHERE s.category = 'DONE')::int                   AS done,
              COUNT(*) FILTER (WHERE l."isMandatory" AND s.category = 'DONE')::int AS "mandatoryDone",
-             COUNT(*) FILTER (WHERE l."fitGapStatus" = 'GAP')::int              AS gaps,
+             COUNT(*) FILTER (WHERE l."fitGapStatus" = ANY(${GAP_DECISIONS}))::int AS gaps,
              COUNT(*) FILTER (WHERE l."fitGapStatus" IS NULL)::int              AS unassessed
       FROM "ActivateDeliverableLink" l
       JOIN "ActivatePhase" p ON p.id = l."phaseId"

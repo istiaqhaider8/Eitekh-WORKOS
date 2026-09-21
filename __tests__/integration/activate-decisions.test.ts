@@ -26,6 +26,8 @@ let siPermissionsId: string; // tagged ux
 let siReportingId: string; // in the optional module
 /** A scope item belonging to a template org A cannot see. */
 let foreignScopeItemId: string;
+/** The module holding one scope item per decision, for the status cases. */
+let statusModuleId: string;
 
 async function templateIdOf(projectId: string) {
   const p = await prisma.activateProfile.findUnique({
@@ -119,7 +121,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.templateModule.deleteMany({
-    where: { id: { in: [moduleCoreId, moduleOptionalId].filter(Boolean) } },
+    where: { id: { in: [moduleCoreId, moduleOptionalId, statusModuleId].filter(Boolean) } },
   });
   await prisma.methodTemplate.deleteMany({ where: { key: "FOREIGN_ONLY" } });
   await destroyFixture(prisma);
@@ -788,5 +790,292 @@ describe("Custom scope items", () => {
     );
     expect(throughOwnProject.status).toBe(404);
     expect(await prisma.activateCustomScopeItem.count({ where: { id: customId } })).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * The fit-to-standard task status, through the running system.
+ *
+ * The mapping itself is unit-tested against the pure function. What only a
+ * real server can show is that the API actually returns it, that it is
+ * derived from the decision currently stored rather than from something
+ * cached at write time, and that generated work lands in the project's
+ * Backlog status and not wherever the workflow happens to start.
+ */
+describe("Fit-to-standard task status", () => {
+  /** A scope item per decision, so the six cases do not overwrite each other. */
+  let caseItems: Record<string, string> = {};
+
+  beforeAll(async () => {
+    const mod = await prisma.templateModule.create({
+      data: {
+        templateId: await templateIdOf(fx.orgA.projectId),
+        key: "TEST_STATUS",
+        name: "Status cases",
+        position: 95,
+        scopeItems: {
+          create: [
+            { code: "SI-ST-ADOPT", name: "Adopt case", workstreamKey: "TESTING", position: 0 },
+            { code: "SI-ST-DEFER", name: "Defer case", workstreamKey: "TESTING", position: 1 },
+            { code: "SI-ST-OOS", name: "Out of scope case", workstreamKey: "TESTING", position: 2 },
+            { code: "SI-ST-CONF", name: "Configure case", workstreamKey: "TESTING", position: 3 },
+            { code: "SI-ST-EXT", name: "Extend case", workstreamKey: "TESTING", position: 4 },
+            { code: "SI-ST-INT", name: "Integrate case", workstreamKey: "TESTING", position: 5 },
+          ],
+        },
+      },
+      select: { id: true, scopeItems: { select: { id: true, code: true } } },
+    });
+    statusModuleId = mod.id;
+    caseItems = Object.fromEntries(mod.scopeItems.map((s) => [s.code, s.id]));
+  }, 120_000);
+
+  const CASES: Array<[string, string, string]> = [
+    // code, decision, expected task status
+    ["SI-ST-ADOPT", "ADOPT", "DONE"],
+    ["SI-ST-DEFER", "DEFER", "DONE"],
+    ["SI-ST-OOS", "OUT_OF_SCOPE", "DONE"],
+    ["SI-ST-CONF", "CONFIGURE", "BACKLOG"],
+    ["SI-ST-EXT", "EXTEND", "BACKLOG"],
+    ["SI-ST-INT", "INTEGRATE", "BACKLOG"],
+  ];
+
+  it("reports null for a scope item nobody has decided", async () => {
+    // The accept case first: before any decision is recorded, the field must
+    // exist and say nothing. A test suite that only checked decided items
+    // would pass just as happily if the field were hard-coded.
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    expectAllowed(res, "reading the catalogue before deciding");
+    const undecided = res.body.scopeItems.find((i: any) => i.code === "SI-ST-ADOPT");
+    expect(undecided).toBeDefined();
+    expect(undecided.decision).toBeNull();
+    expect(undecided.taskStatus).toBeNull();
+  });
+
+  it.each(CASES)("records %s and reports the task status as %s", async (code, decision, expected) => {
+    const scopeItemId = caseItems[code];
+
+    const saved = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${scopeItemId}`,
+      {
+        method: "PUT",
+        body: {
+          decision,
+          status: "AGREED",
+          rationale: `Recorded for the ${decision} status case.`,
+          // A delta on every decision that accepts one, so the deferred case
+          // genuinely has work behind it.
+          deltas: ["CONFIGURE", "EXTEND", "INTEGRATE", "DEFER"].includes(decision)
+            ? [{ title: `${code} build work`, priority: "SHOULD" }]
+            : [],
+        },
+      }
+    );
+    expect(saved.status).toBe(201);
+    // The save response carries it, so a client need not refetch to show it.
+    expect(saved.body.decision.taskStatus).toBe(expected);
+
+    const catalogue = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    const item = catalogue.body.scopeItems.find((i: any) => i.code === code);
+    expect(item.decision.decision).toBe(decision);
+    expect(item.taskStatus).toBe(expected);
+  });
+
+  it("re-derives the status when a decision changes, rather than remembering the old one", async () => {
+    const scopeItemId = caseItems["SI-ST-CONF"];
+    const path = `/api/projects/${fx.orgA.projectId}/activate/decisions/${scopeItemId}`;
+
+    // CONFIGURE -> BACKLOG was asserted above. Change it to ADOPT.
+    const changed = await api(fx.orgA.users.OWNER, path, {
+      method: "PUT",
+      body: { decision: "ADOPT", status: "AGREED" },
+    });
+    expect(changed.status).toBe(200);
+    expect(changed.body.decision.taskStatus).toBe("DONE");
+
+    const catalogue = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    // A stored copy would still say BACKLOG here. This is the assertion that
+    // makes the derived-not-stored decision worth having.
+    expect(
+      catalogue.body.scopeItems.find((i: any) => i.code === "SI-ST-CONF").taskStatus
+    ).toBe("DONE");
+
+    // Put it back, so the backlog assertions below see a build decision.
+    await api(fx.orgA.users.OWNER, path, {
+      method: "PUT",
+      body: {
+        decision: "CONFIGURE",
+        status: "AGREED",
+        deltas: [{ title: "SI-ST-CONF build work", priority: "SHOULD" }],
+      },
+    });
+  });
+
+  it("drops the status back to null when the decision is withdrawn", async () => {
+    const scopeItemId = caseItems["SI-ST-OOS"];
+    const del = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${scopeItemId}`,
+      { method: "DELETE" }
+    );
+    expect([200, 204]).toContain(del.status);
+
+    const catalogue = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    expect(
+      catalogue.body.scopeItems.find((i: any) => i.code === "SI-ST-OOS").taskStatus
+    ).toBeNull();
+  });
+
+  it("carries the originating scope item's status onto every planned item", async () => {
+    const preview = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`
+    );
+    expectAllowed(preview, "previewing the backlog");
+
+    const deferred = preview.body.items.filter((i: any) => i.scopeItemCode === "SI-ST-DEFER");
+    const configured = preview.body.items.filter((i: any) => i.scopeItemCode === "SI-ST-CONF");
+
+    // Deferred work still reaches the backlog -- that is the whole point of
+    // separating "the decision is settled" from "there is work to do".
+    expect(deferred.length).toBeGreaterThan(0);
+    expect(deferred.every((i: any) => i.decisionTaskStatus === "DONE")).toBe(true);
+    expect(deferred.every((i: any) => i.targetPhaseKey === "RUN")).toBe(true);
+
+    expect(configured.length).toBeGreaterThan(0);
+    expect(configured.every((i: any) => i.decisionTaskStatus === "BACKLOG")).toBe(true);
+  });
+
+  /**
+   * Both branches of the status lookup, against real workflows.
+   *
+   * This fixture's project has NO Backlog column — To Do, In Progress, Done,
+   * the shape a Kanban project ships with. That is the fallback case and it
+   * is tested first, because the first version of this test assumed a Scrum
+   * workflow, failed, and the honest fix was to test the behaviour that
+   * actually exists rather than to loosen the assertion.
+   */
+  it("falls back to the first column when the workflow has no Backlog", async () => {
+    const before = await prisma.issue.count({ where: { projectId: fx.orgA.projectId } });
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`,
+      { method: "POST", body: {} }
+    );
+    expect([200, 201]).toContain(res.status);
+    expect(await prisma.issue.count({ where: { projectId: fx.orgA.projectId } })).toBeGreaterThan(
+      before
+    );
+
+    // Nothing was invented in somebody's workflow to make room for this.
+    expect(
+      await prisma.workflowStatus.count({
+        where: { workflow: { projectId: fx.orgA.projectId }, category: "BACKLOG" },
+      })
+    ).toBe(0);
+
+    const generated = await prisma.activateDeliverableLink.findMany({
+      where: {
+        phase: { projectId: fx.orgA.projectId },
+        originKey: { not: null },
+        fitGapStatus: { in: ["DEFER", "CONFIGURE", "EXTEND", "INTEGRATE"] },
+      },
+      select: {
+        fitGapStatus: true,
+        issue: { select: { issueKey: true, status: { select: { name: true, position: true } } } },
+      },
+    });
+    expect(generated.length).toBeGreaterThan(0);
+    for (const link of generated) {
+      // The earliest column, which is where a manually created issue starts
+      // too — so generated work is not somewhere surprising on the board.
+      expect(link.issue.status.name).toBe("To Do");
+    }
+
+    // Deferred work is created like any other, NOT as Done: the decision
+    // being settled does not mean anybody has built the thing, and creating
+    // it complete would count unstarted work towards phase readiness.
+    const deferred = generated.filter((l) => l.fitGapStatus === "DEFER");
+    expect(deferred.length).toBeGreaterThan(0);
+    expect(deferred.every((l) => l.issue.status.name !== "Done")).toBe(true);
+  });
+
+  it("uses the Backlog column when the project has one", async () => {
+    // Give this project the column a Scrum project ships with, then generate
+    // one more item and watch where it lands. Without this half, the test
+    // above would pass just as happily if the lookup ignored categories
+    // entirely and always took the first status.
+    const workflow = await prisma.workflow.findFirst({
+      where: { projectId: fx.orgA.projectId },
+      select: { id: true },
+    });
+    await prisma.workflowStatus.create({
+      data: {
+        workflowId: workflow!.id,
+        name: "Backlog",
+        category: "BACKLOG",
+        position: 0,
+        color: "#64748b",
+      },
+    });
+
+    // A new delta means a new originKey, which means exactly one new issue.
+    const scopeItemId = caseItems["SI-ST-EXT"];
+    const saved = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${scopeItemId}`,
+      {
+        method: "PUT",
+        body: {
+          decision: "EXTEND",
+          status: "AGREED",
+          deltas: [
+            { title: "SI-ST-EXT build work", priority: "SHOULD" },
+            { title: "SI-ST-EXT second build item", priority: "SHOULD" },
+          ],
+        },
+      }
+    );
+    expect(saved.status).toBe(200);
+
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`,
+      { method: "POST", body: {} }
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.created).toBeGreaterThan(0);
+
+    const newest = await prisma.issue.findFirst({
+      where: { projectId: fx.orgA.projectId, title: "SI-ST-EXT second build item" },
+      select: { status: { select: { name: true, category: true } } },
+    });
+    expect(newest?.status.category).toBe("BACKLOG");
+    expect(newest?.status.name).toBe("Backlog");
+  });
+
+  it("still generates nothing at all from an adopted decision", async () => {
+    // The regression that matters in the other direction: the status work
+    // must not have turned ADOPT into something that produces items.
+    const preview = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`
+    );
+    expect(preview.body.items.some((i: any) => i.scopeItemCode === "SI-ST-ADOPT")).toBe(false);
   });
 });

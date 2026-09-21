@@ -34,6 +34,13 @@ interface BacklogItem {
   targetPhaseKey: string;
   scopeItemCode: string;
   decision: string;
+  /**
+   * The status of the scope item this came from — NOT of the issue it
+   * becomes. Generated work always starts in the project's Backlog; this says
+   * whether the fit-to-standard conversation behind it is settled, which is
+   * DONE for anything deferred.
+   */
+  decisionTaskStatus: "DONE" | "BACKLOG";
   automatic: boolean;
   note: string | null;
   issue: { id: string; issueKey: string } | null;
@@ -199,6 +206,14 @@ export function ActivateBacklog({
                       )}
                       <span className="block text-[10px] text-slate-400 font-mono">
                         {b.scopeItemCode} · {label(b.decision)}
+                        {/* Reads "defer · scope item done" — the pairing that
+                            would otherwise look like a mistake on the board:
+                            settled decision, real work still to do. */}
+                        {b.decisionTaskStatus === "DONE" && (
+                          <span className="ml-1 text-emerald-600 dark:text-emerald-400">
+                            · scope item done
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="px-2 py-2 text-slate-600 dark:text-slate-400">

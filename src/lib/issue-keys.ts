@@ -87,3 +87,31 @@ export function defaultStatusIdFor(project: AllocatedKey["project"]): string {
   if (!status) throw new Error("No workflow statuses defined for this project");
   return status.id;
 }
+
+/**
+ * The status generated work should start in: the project's Backlog.
+ *
+ * WHY BY CATEGORY AND NOT BY NAME
+ *
+ * `WorkflowStatus.name` is whatever the team typed — "Backlog", "Icebox",
+ * "Nieuw". `category` is the fixed vocabulary the board and the reports
+ * already reason with, so matching on it works for a renamed column and for
+ * a project set up in another language.
+ *
+ * WHY A FALLBACK RATHER THAN CREATING ONE
+ *
+ * A Kanban project has no BACKLOG-category status at all: it is To Do, In
+ * Progress, Done by design. Adding a column to a workflow a team configured,
+ * as a side effect of generating a backlog, would be this feature quietly
+ * editing something that is not its own. So it falls back to the first status
+ * by position, which for Kanban is To Do — the same place a manually created
+ * issue starts, and therefore not a surprise to anybody looking at the board.
+ *
+ * Position order matters here and is the caller's responsibility: the
+ * statuses come from `allocateIssueKey`, which orders them by position.
+ */
+export function backlogStatusIdFor(project: AllocatedKey["project"]): string {
+  const statuses = project.workflows[0]?.statuses ?? [];
+  if (statuses.length === 0) throw new Error("No workflow statuses defined for this project");
+  return (statuses.find((s) => s.category === "BACKLOG") ?? statuses[0]).id;
+}

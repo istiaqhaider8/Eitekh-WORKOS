@@ -5,7 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { planBacklog, type PlannedItem } from "@/lib/activate-generation";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
-import { allocateIssueKey, defaultStatusIdFor } from "@/lib/issue-keys";
+import { allocateIssueKey, backlogStatusIdFor } from "@/lib/issue-keys";
 import { allowedIssueTypeValues } from "@/lib/project-context";
 import { logAuditEvent } from "@/lib/audit-logger";
 
@@ -153,7 +153,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             description: item.note,
             issueType,
             priority: item.priority === "WONT" ? "LOW" : item.priority === "MUST" ? "HIGH" : "MEDIUM",
-            statusId: defaultStatusIdFor(project),
+            /**
+             * Generated work starts in the Backlog, every time.
+             *
+             * Including work from a DEFER, whose scope item is settled: the
+             * decision being finished does not mean the thing agreed has been
+             * built. Creating it as Done would count work nobody has started
+             * towards completion on the phase readiness figures and the Run
+             * dashboard, which is the one number a steering committee reads
+             * without checking.
+             *
+             * This used to be `defaultStatusIdFor`, the first status by
+             * position. For the Scrum template that happened to BE Backlog,
+             * so the behaviour is unchanged there — but it was true by
+             * coincidence of ordering rather than by intent, and a team that
+             * reordered their columns would have silently changed where
+             * generated work lands.
+             */
+            statusId: backlogStatusIdFor(project),
             reporterId: user.id,
             assigneeId: item.ownerId ?? null,
           },

@@ -80,7 +80,16 @@ beforeAll(async () => {
   /**
    * A deliberately mixed Deploy set:
    *   3 mandatory done, 2 mandatory not done, 2 optional done, 1 optional open
-   *   with a GAP, 1 optional open unassessed.
+   *   carrying an EXTEND decision, 1 optional open unassessed.
+   *
+   * The classified row used to be written as "GAP", a value from a
+   * three-value vocabulary that the six fit-to-standard decisions replaced.
+   * Writing it straight through Prisma bypassed the validation the API
+   * applies, so this suite stayed green for months while the readiness query
+   * counted a value no running system could produce and every project was
+   * told it had zero open gaps. The fixture now uses values the product
+   * itself stores.
+   *
    * Nine rows in total, and every count the report produces is a different
    * number — so a swapped filter cannot coincidentally agree.
    */
@@ -88,7 +97,7 @@ beforeAll(async () => {
   for (let i = 0; i < 3; i++) await link((await makeIssue(n++, fx.orgA.statusDoneId)).id, deployPhaseId, { isMandatory: true });
   for (let i = 0; i < 2; i++) await link((await makeIssue(n++, fx.orgA.statusId)).id, deployPhaseId, { isMandatory: true });
   for (let i = 0; i < 2; i++) await link((await makeIssue(n++, fx.orgA.statusDoneId)).id, deployPhaseId);
-  await link((await makeIssue(n++, fx.orgA.statusId)).id, deployPhaseId, { fitGapStatus: "GAP" });
+  await link((await makeIssue(n++, fx.orgA.statusId)).id, deployPhaseId, { fitGapStatus: "EXTEND" });
   await link((await makeIssue(n++, fx.orgA.statusId)).id, deployPhaseId);
 
   // Run gets a smaller, different mix so the two phases cannot be confused.
@@ -120,7 +129,7 @@ describe("Readiness report", () => {
     // 3 mandatory done + 2 optional done.
     expect(deploy.done).toBe(5);
     expect(deploy.gaps).toBe(1);
-    // Everything except the single GAP row is unclassified.
+    // Everything except the single classified row is unassessed.
     expect(deploy.unassessed).toBe(8);
   });
 
@@ -139,6 +148,50 @@ describe("Readiness report", () => {
     const discover = res.body.phases.find((p: any) => p.key === "DISCOVER");
     expect(discover).toBeDefined();
     expect(discover.total).toBe(0);
+  });
+
+  /**
+   * Which decisions count as an open gap, against the running report.
+   *
+   * Added because the filter this asserts was broken for months in a way no
+   * test could see: it matched a value from a retired vocabulary, and the
+   * fixture wrote that value directly into the database. Here every value is
+   * one the API itself stores, and both halves are asserted — the three that
+   * must count and the three that must not. A test that only checked the
+   * counted half would pass just as happily if everything counted.
+   */
+  it("counts Configure, Extend and Integrate as gaps, and the settled three as not", async () => {
+    const before = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/readiness`
+    );
+    const runBefore = before.body.phases.find((p: any) => p.key === "RUN").gaps;
+
+    let k = 1500;
+    for (const decision of ["CONFIGURE", "EXTEND", "INTEGRATE"]) {
+      await link((await makeIssue(k++, fx.orgA.statusId)).id, runPhaseId, {
+        fitGapStatus: decision,
+      });
+    }
+    for (const decision of ["ADOPT", "DEFER", "OUT_OF_SCOPE"]) {
+      await link((await makeIssue(k++, fx.orgA.statusId)).id, runPhaseId, {
+        fitGapStatus: decision,
+      });
+    }
+
+    const after = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/readiness`
+    );
+    const run = after.body.phases.find((p: any) => p.key === "RUN");
+
+    // Six rows added, three of them gaps. Asserting the delta rather than an
+    // absolute keeps this independent of what the rest of the suite linked.
+    expect(run.gaps).toBe(runBefore + 3);
+    expect(run.total).toBe(2 + 6);
+    // And the settled three are not hidden from the report altogether: they
+    // are classified, so they must not fall into `unassessed` either.
+    expect(run.unassessed).toBe(2);
   });
 
   it("names the mandatory Deploy deliverables that are still open", async () => {
@@ -331,7 +384,7 @@ describe("Cost does not grow with the project — the exit gate", () => {
       const issue = await makeIssue(2000 + i, isDone ? fx.orgA.statusDoneId : fx.orgA.statusId);
       await link(issue.id, isDeploy ? deployPhaseId : runPhaseId, {
         isMandatory: isDeploy,
-        fitGapStatus: i % 7 === 0 ? "GAP" : null,
+        fitGapStatus: i % 7 === 0 ? "CONFIGURE" : null,
       });
     }
   }, 240_000);

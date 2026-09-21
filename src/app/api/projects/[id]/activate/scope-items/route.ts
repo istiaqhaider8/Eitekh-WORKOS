@@ -5,6 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { parseJsonBody, activateCustomScopeItemSchema } from "@/lib/validation";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
+import { taskStatusForDecision } from "@/lib/activate-generation";
 
 /**
  * The fit-to-standard catalogue, with whatever this project has decided.
@@ -66,6 +67,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         custom: i.custom,
         inScope: inScope.has(i.moduleId),
         decision: byScopeItem.get(i.id) ?? null,
+        /**
+         * DONE, BACKLOG, or null while nobody has decided.
+         *
+         * Derived here rather than stored, and derived from the one exported
+         * map rather than recomputed: a stored copy would go stale the moment
+         * a decision changed, and a second lookup table in the client would
+         * be the screen and the report disagreeing about the same item.
+         */
+        taskStatus: taskStatusForDecision(byScopeItem.get(i.id)?.decision),
       })),
       // `custom` tells a client which items it may edit. A template item is
       // shared with every tenant seeded from that template and is read-only.

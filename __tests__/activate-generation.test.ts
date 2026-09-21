@@ -13,7 +13,11 @@
 
 import {
   planBacklog,
+  taskStatusForDecision,
   ACTIVATE_DECISIONS,
+  ACTIVATE_DECISION_TASK_STATUS,
+  ACTIVATE_TASK_STATUSES,
+  type ActivateDecisionValue,
   type DecisionInput,
   type ScopeItemInput,
 } from "@/lib/activate-generation";
@@ -271,5 +275,108 @@ describe("Rules combine", () => {
     expect(out).toHaveLength(5);
     expect(out.filter((i) => i.automatic)).toHaveLength(3);
     expect(new Set(out.map((i) => i.originKey)).size).toBe(5);
+  });
+});
+
+describe("Fit-to-standard task status", () => {
+  /**
+   * All six, named individually.
+   *
+   * A table-driven test over ACTIVATE_DECISIONS would be shorter and would
+   * also pass if the map and the expectation were generated from the same
+   * mistaken idea. These are written out so the file states the intended
+   * mapping in a form a reader can check against the specification without
+   * running anything.
+   */
+  it.each([
+    ["ADOPT", "DONE"],
+    ["DEFER", "DONE"],
+    ["OUT_OF_SCOPE", "DONE"],
+    ["CONFIGURE", "BACKLOG"],
+    ["EXTEND", "BACKLOG"],
+    ["INTEGRATE", "BACKLOG"],
+  ])("maps %s to %s", (decisionValue, expected) => {
+    expect(taskStatusForDecision(decisionValue)).toBe(expected);
+    expect(ACTIVATE_DECISION_TASK_STATUS[decisionValue as ActivateDecisionValue]).toBe(expected);
+  });
+
+  it("covers every decision in the vocabulary, with nothing extra", () => {
+    // The map and the list of decisions must not drift apart: a seventh
+    // decision added without a status here would otherwise fall through to
+    // the "unrecognised" path and silently be treated as unsettled.
+    expect(Object.keys(ACTIVATE_DECISION_TASK_STATUS).sort()).toEqual([...ACTIVATE_DECISIONS].sort());
+    for (const s of Object.values(ACTIVATE_DECISION_TASK_STATUS)) {
+      expect(ACTIVATE_TASK_STATUSES).toContain(s);
+    }
+  });
+
+  it("says nothing at all about an item nobody has decided", () => {
+    // Not BACKLOG: an item the workshop has not reached yet is not work
+    // somebody committed to, and counting it as such would inflate every
+    // "outstanding build" figure by the size of the untouched catalogue.
+    expect(taskStatusForDecision(null)).toBeNull();
+    expect(taskStatusForDecision(undefined)).toBeNull();
+    expect(taskStatusForDecision("")).toBeNull();
+  });
+
+  it("returns null for a decision it has never heard of", () => {
+    // A value outside the six is a bug to surface, not to guess at.
+    expect(taskStatusForDecision("MAYBE")).toBeNull();
+    expect(taskStatusForDecision("adopt")).toBeNull(); // case matters; the stored values are upper
+  });
+
+  it("is carried on every planned item, including the automatic ones", () => {
+    const out = run(
+      [
+        decision({
+          decision: "INTEGRATE",
+          openQuestion: "Which provider?",
+          deltas: [delta()],
+        }),
+      ],
+      [scopeItem({ tags: "ux" })]
+    );
+    expect(out.length).toBeGreaterThan(1);
+    for (const item of out) expect(item.decisionTaskStatus).toBe("BACKLOG");
+  });
+
+  /**
+   * The case that makes the two concepts worth keeping apart.
+   *
+   * A deferred item is settled — there is nothing left to decide — and the
+   * thing agreed is still real work, filed into Run. If these two ever get
+   * derived from one another, one of them breaks: either deferred items come
+   * back as outstanding fit-to-standard work, or agreed scope vanishes from
+   * the board.
+   */
+  it("marks a deferred item DONE while still generating its work", () => {
+    const out = run([decision({ decision: "DEFER", deltas: [delta()] })], [scopeItem()]);
+    expect(out).toHaveLength(1);
+    expect(out[0].decisionTaskStatus).toBe("DONE");
+    expect(out[0].targetPhaseKey).toBe("RUN");
+  });
+
+  it("marks an open question from a settled decision DONE, and still tracks it", () => {
+    // R5 fires on ADOPT, which generates no build work. The action exists;
+    // the scope item it hangs off is finished. Both are true at once.
+    const out = run(
+      [decision({ decision: "ADOPT", openQuestion: "Who owns the exception list?" })],
+      [scopeItem()]
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].originKey).toBe("rule:dec-1:R5");
+    expect(out[0].decisionTaskStatus).toBe("DONE");
+  });
+
+  it("treats a decision outside the vocabulary as unsettled, not as done", () => {
+    // Legacy or imported rows. Erring towards BACKLOG keeps the item on
+    // somebody's list; erring towards DONE would remove it from every view
+    // that would have prompted a human to look at it.
+    const out = run(
+      [decision({ decision: "LEGACY_VALUE", openQuestion: "Still relevant?" })],
+      [scopeItem()]
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].decisionTaskStatus).toBe("BACKLOG");
   });
 });

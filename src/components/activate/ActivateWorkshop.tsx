@@ -39,6 +39,45 @@ const DECISIONS = [
 /** Decisions that produce build work, and therefore accept deltas. */
 const GENERATES = new Set(["CONFIGURE", "EXTEND", "INTEGRATE", "DEFER"]);
 
+/**
+ * What each decision means for the scope item's own task status.
+ *
+ * Kept as a client-side copy of one specific kind: it must match
+ * ACTIVATE_DECISION_TASK_STATUS in src/lib/activate-generation.ts, and a unit
+ * test compares the two so a change in one that is not made in the other
+ * fails the build rather than showing a person the wrong badge. The copy
+ * exists because the editor shows the consequence of a decision BEFORE it is
+ * saved, when there is no server answer to display.
+ *
+ * DEFER is DONE here and still generates work, which is not a contradiction:
+ * the conversation is finished, the thing agreed goes to the Run phase.
+ */
+const TASK_STATUS: Record<string, "DONE" | "BACKLOG"> = {
+  ADOPT: "DONE",
+  DEFER: "DONE",
+  OUT_OF_SCOPE: "DONE",
+  CONFIGURE: "BACKLOG",
+  EXTEND: "BACKLOG",
+  INTEGRATE: "BACKLOG",
+};
+
+/** The badge for a task status, or nothing at all while it is undecided. */
+function TaskStatusBadge({ status }: { status: "DONE" | "BACKLOG" | null | undefined }) {
+  if (!status) return null;
+  const done = status === "DONE";
+  return (
+    <span
+      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+        done
+          ? "border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
+          : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+      }`}
+    >
+      {done ? "Done" : "Backlog"}
+    </span>
+  );
+}
+
 const BUILD_TYPES = [
   "CONFIGURATION",
   "BUSINESS_RULE",
@@ -84,6 +123,8 @@ interface ScopeItem {
   /** True for an item this project added. Only those may be edited or removed. */
   custom: boolean;
   decision: DecisionRecord | null;
+  /** DONE, BACKLOG, or null while undecided. Derived by the API. */
+  taskStatus: "DONE" | "BACKLOG" | null;
 }
 
 interface ModuleView {
@@ -532,6 +573,10 @@ export function ActivateWorkshop({
 
   const inScopeItems = items.filter((i) => i.inScope);
   const decided = inScopeItems.filter((i) => i.decision?.decision).length;
+  // Counted from the API's own field. "Decided" alone hides the difference
+  // between a workshop that settled things and one that queued up build work.
+  const settled = inScopeItems.filter((i) => i.taskStatus === "DONE").length;
+  const queued = inScopeItems.filter((i) => i.taskStatus === "BACKLOG").length;
 
   return (
     <div className="space-y-4">
@@ -588,6 +633,7 @@ export function ActivateWorkshop({
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">Scope items</h3>
             <span className="text-[11px] text-slate-500">
               {decided} of {inScopeItems.length} decided
+              {decided > 0 && ` · ${settled} done, ${queued} backlog`}
             </span>
           </div>
           {canDecide && (
@@ -627,8 +673,13 @@ export function ActivateWorkshop({
                       )}
                     </span>
                     {d ? (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                        {label(d)}
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                          {label(d)}
+                        </span>
+                        {/* The API's answer, not a second opinion computed
+                            here, so the list cannot disagree with a report. */}
+                        <TaskStatusBadge status={i.taskStatus} />
                       </span>
                     ) : (
                       <span className="text-[10px] text-slate-400">not decided</span>
@@ -693,6 +744,20 @@ export function ActivateWorkshop({
                     </button>
                   ))}
                 </div>
+
+                {/* The consequence, shown before Save rather than discovered
+                    after it. Adopt, Defer and Out of scope settle the item;
+                    the other three commit somebody to building something. */}
+                {draft.decision && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                    <TaskStatusBadge status={TASK_STATUS[draft.decision]} />
+                    {TASK_STATUS[draft.decision] === "DONE"
+                      ? draft.decision === "DEFER"
+                        ? "Settles this scope item. Anything you record below is still created, in the Run phase."
+                        : "Settles this scope item. Nothing is left to build."
+                      : "Leaves this scope item in the backlog until the work below is delivered."}
+                  </p>
+                )}
 
                 <div>
                   <label
