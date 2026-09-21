@@ -129,6 +129,24 @@ for (const file of ROOTS.flatMap(walk)) {
       if (!/\bonClick\s*=/.test(el.openTag)) continue;
       // A keyboard user can reach and operate it.
       if (/\bonKeyDown\s*=|\bonKeyUp\s*=|\bonKeyPress\s*=/.test(el.openTag)) continue;
+      /**
+       * A handler that ONLY stops propagation is not an interaction.
+       *
+       * `onClick={(e) => e.stopPropagation()}` is the standard way to keep a
+       * click inside a row of controls from also firing the row's own
+       * handler. It adds no behaviour, so there is nothing a keyboard user
+       * could be missing, and demanding a key handler for it would mean
+       * writing one that does nothing to satisfy a check.
+       *
+       * Matched narrowly, on the whole body: anything that stops propagation
+       * AND does something else is still a real interaction and still
+       * reported. This was found when a wrapper started being flagged
+       * because an unrelated edit moved its real <button> past the 400-
+       * character look-ahead below — the wrapper had not changed, and
+       * neither had its accessibility.
+       */
+      if (/\bonClick\s*=\s*\{\s*\(\s*\w*\s*\)\s*=>\s*\w+\.stopPropagation\(\)\s*\}/.test(el.openTag))
+        continue;
       // Or it delegates: a wrapper whose only child is a real control is a
       // common and harmless pattern.
       if (/<(button|a|input|select|textarea)\b/.test(el.children.slice(0, 400))) continue;

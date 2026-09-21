@@ -1,6 +1,6 @@
 {
   "$comment": "D3 — accessibility baseline. Counts of interactive controls with no accessible name, per file. This may go DOWN freely; going up fails the build. Regenerate with: node scripts/check-a11y.mjs --update",
-  "total": 450,
+  "total": 448,
   "files": {
     "src/app/forgot-password/page.tsx": 1,
     "src/app/projects/[id]/ProjectClient.tsx": 22,
@@ -40,7 +40,7 @@
     "src/components/views/DashboardView.tsx": 12,
     "src/components/views/KanbanBoardView.tsx": 1,
     "src/components/views/ListView.tsx": 5,
-    "src/components/views/ScrumBacklogView.tsx": 24,
+    "src/components/views/ScrumBacklogView.tsx": 22,
     "src/components/views/TimelineGanttView.tsx": 5,
     "src/components/views/WorkloadView.tsx": 21,
     "src/components/workload/SmartRebalanceModal.tsx": 3
