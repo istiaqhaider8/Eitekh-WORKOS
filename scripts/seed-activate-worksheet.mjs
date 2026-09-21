@@ -1,7 +1,7 @@
 /**
  * A phase worksheet, seeded: its deliverables, their tasks and its gate.
  *
- * Discover, Prepare and Explore are all here, chosen with --phase. One script,
+ * Discover, Prepare, Explore and Realize are all here, chosen with --phase. One script,
  * because the worksheet has never been phase-specific — one screen, one API,
  * one code allocator, addressed by phase key — and only the content differs.
  * A second script would have meant a second copy of the login, the rate-limit
@@ -490,10 +490,175 @@ const EXPLORE_GATE = {
   ],
 };
 
+
+/**
+ * Realize: building what Explore decided.
+ *
+ * Every line here consumes the backlog rather than adding to it. R-01
+ * configures in sprints against it; R-05 and R-06 test what was built; R-10
+ * rehearses the cutover. Nothing in this phase discovers requirements — that
+ * conversation finished at G2, and a Realize that re-opens it is a project
+ * about to miss its date.
+ *
+ * Deploy still owns the production setup and the go-live itself. R-10 builds
+ * and rehearses the cutover plan; it does not run it.
+ */
+const REALIZE_DELIVERABLES = [
+  {
+    name: "Iterative configuration",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Configure in sprints against the backlog",
+      "Run a playback at the end of each sprint",
+      "Maintain the configuration workbook as you build",
+      "Resolve playback feedback back into the backlog",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Extension and enhancement build",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Build custom objects and extension fields",
+      "Develop approved extensions and custom interfaces",
+      "Peer review developments against the design",
+      "Record each extension in the upgrade regression pack",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Integration build and unit test",
+    workstream: "Integration and technology",
+    tasks: [
+      "Build and configure each interface",
+      "Implement error handling and alerting",
+      "Unit test each interface against its design",
+      "Test failure and reprocessing paths",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Data migration build and load cycles",
+    workstream: "Data migration",
+    tasks: [
+      "Build load templates and transformation logic",
+      "Execute the second mock load and analyse defects",
+      "Execute the final mock load and reconcile",
+      "Publish data validation and exception reports",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Functional and end-to-end testing",
+    workstream: "Testing and quality",
+    tasks: [
+      "Run unit and string tests",
+      "Run system integration test cycles",
+      "Run end-to-end scenarios that cross modules",
+      "Run the regression pack",
+      "Operate defect triage and burndown",
+    ],
+    complete: 0,
+  },
+  {
+    name: "User acceptance testing",
+    workstream: "Testing and quality",
+    tasks: [
+      "Build the acceptance scenario pack",
+      "Execute acceptance testing with business users",
+      "Close or accept every business-raised defect",
+      "Obtain acceptance sign-off",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Permission build and test",
+    workstream: "Security and permissions",
+    tasks: [
+      "Build roles and permission groups",
+      "Test roles with real business users on real tasks",
+      "Validate segregation of duties",
+      "Plan production role assignment",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Report build and validation",
+    workstream: "Reporting and analytics",
+    tasks: [
+      "Build the agreed reports and dashboards",
+      "Validate figures against a trusted source",
+      "Test report access under each role",
+      "Hand reports over to their named owners",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Training build and readiness",
+    workstream: "Change management and adoption",
+    tasks: [
+      "Complete training needs analysis by role",
+      "Build materials and job aids",
+      "Prepare the training environment and data",
+      "Enable trainers and super users",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Cutover plan build",
+    workstream: "Cutover and go-live",
+    tasks: [
+      "Build the cutover task list with T-minus offsets",
+      "Assign owners and durations to every task",
+      "Execute the first dry run and record actual timings",
+      "Write rollback and contingency plans",
+      "Set up the command centre and communications",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Support model design",
+    workstream: "Support and release management",
+    tasks: [
+      "Design the hypercare model and staffing",
+      "Define support processes and service levels",
+      "Plan knowledge transfer",
+      "Configure ticket routing and categorisation",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Cross-module validation",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Validate data handoffs between modules",
+      "Validate end-to-end processes with real role combinations",
+      "Resolve ownership of cross-module defects",
+    ],
+    complete: 0,
+  },
+];
+
+const REALIZE_GATE = {
+  name: "Solution ready",
+  criteria: [
+    "All backlog items delivered, deferred with approval, or formally descoped",
+    "End-to-end process tested across every in-scope module",
+    "Integrations tested with real volumes and failure cases",
+    "User acceptance testing signed off",
+    "No open critical or high defects without an accepted workaround",
+    "Final mock data load reconciled and signed",
+    "Permissions built and tested by business users",
+    "Cutover dry run completed with timings recorded",
+    "Training materials approved",
+  ],
+};
+
 const PHASES = {
   DISCOVER: { deliverables: DISCOVER_DELIVERABLES, gate: DISCOVER_GATE },
   PREPARE: { deliverables: PREPARE_DELIVERABLES, gate: PREPARE_GATE },
   EXPLORE: { deliverables: EXPLORE_DELIVERABLES, gate: EXPLORE_GATE },
+  REALIZE: { deliverables: REALIZE_DELIVERABLES, gate: REALIZE_GATE },
 };
 
 const chosen = PHASES[PHASE_KEY];
