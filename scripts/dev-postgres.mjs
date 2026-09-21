@@ -19,6 +19,8 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 /**
  * embedded-postgres is installed with --no-save, so ANY later `npm install`
@@ -42,7 +44,21 @@ if (!existsSync("node_modules/embedded-postgres/package.json")) {
 const EmbeddedPostgresModule = await import("embedded-postgres");
 const EmbeddedPostgres = EmbeddedPostgresModule.default?.default ?? EmbeddedPostgresModule.default ?? EmbeddedPostgresModule;
 
-const DATA_DIR = process.env.DEV_PGDATA || "C:/Users/ASUS/AppData/Local/Temp/pgdata";
+/**
+ * NOT UNDER %TEMP%, AND THAT IS THE WHOLE POINT.
+ *
+ * This lived at `%LOCALAPPDATA%/Temp/pgdata` and Windows cleaned the directory
+ * out from under it — the entire development database, every seeded
+ * organization and every project created through the UI, gone between one
+ * session and the next, announced only as "Can't reach database server". A
+ * temp directory is a place the operating system is allowed to delete, so
+ * anything that must survive a reboot does not belong in one.
+ *
+ * DEV_PGDATA still overrides it, for a scratch cluster that is meant to be
+ * disposable.
+ */
+const DEFAULT_DATA_DIR = join(homedir(), ".eitekh", "pgdata");
+const DATA_DIR = process.env.DEV_PGDATA || DEFAULT_DATA_DIR;
 const PORT = Number(process.env.DEV_PGPORT || 54329);
 
 const pg = new EmbeddedPostgres({
@@ -55,10 +71,28 @@ const pg = new EmbeddedPostgres({
   persistent: true,
 });
 
+/**
+ * Initialise ONLY when there is demonstrably nothing there.
+ *
+ * `PG_VERSION` is the file every PostgreSQL data directory has and no
+ * half-made one does, so its absence is the one safe signal that initialising
+ * cannot destroy anything. Anything less careful here — initialising on a
+ * failed start, say — would turn a server that refused to boot into a server
+ * with an empty database, which is the same data loss with a cheerful
+ * message.
+ */
+const isInitialised = existsSync(join(DATA_DIR, "PG_VERSION"));
+
 if (process.argv.includes("--stop")) {
   await pg.stop().catch(() => {});
   console.log(`[dev-postgres] stopped (port ${PORT})`);
   process.exit(0);
+}
+
+if (!isInitialised) {
+  console.log(`[dev-postgres] no cluster at ${DATA_DIR} — initialising a new, EMPTY one.`);
+  console.log("[dev-postgres] it has no databases and no data: run your migrations and seed.");
+  await pg.initialise();
 }
 
 await pg.start();
