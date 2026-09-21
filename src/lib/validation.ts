@@ -1357,3 +1357,25 @@ export const activateDecisionSchema = z.object({
   deltas: z.array(activateDeltaInputSchema).max(50).optional(),
   version: z.coerce.number().int().min(0).optional(),
 });
+
+/**
+ * A scope item a project adds for itself.
+ *
+ * No `code`: it is generated per project, so two people adding an item in the
+ * same workshop cannot collide on an identifier a decision log will cite.
+ */
+export const activateCustomScopeItemSchema = z.object({
+  name: safeStringSchema.trim().min(3).max(200),
+  workstreamKey: safeStringSchema.trim().min(2).max(64),
+  /** The template module to file it under. Null means the project's own group. */
+  moduleId: optionalCuidSchema,
+  /** True when employees or managers see the change — drives the change rule. */
+  userFacing: z.boolean().optional(),
+});
+
+export const activateCustomScopeItemUpdateSchema = z.object({
+  name: safeStringSchema.trim().min(3).max(200).optional(),
+  workstreamKey: safeStringSchema.trim().min(2).max(64).optional(),
+  moduleId: optionalCuidSchema,
+  userFacing: z.boolean().optional(),
+});

@@ -13,6 +13,15 @@
 import { prisma } from "./prisma";
 import type { DecisionInput, ScopeItemInput } from "./activate-generation";
 
+/**
+ * The grouping custom scope items fall into when no module is chosen.
+ *
+ * A sentinel rather than a row: it exists per project by implication, and
+ * giving it a table would mean creating a row nobody asked for on every
+ * project that never adds a custom item.
+ */
+export const CUSTOM_MODULE_ID = "__custom__";
+
 export interface ProjectModuleView {
   moduleId: string;
   key: string;
@@ -102,11 +111,31 @@ export async function scopeItemsWithDecisions(projectId: string) {
     return { enabled: false as const, modules: [], items: [], decisions: [] };
   }
 
-  const [modules, items, decisions] = await Promise.all([
+  const [modules, templateItems, customItems, decisions] = await Promise.all([
     modulesForProject(projectId),
     prisma.templateScopeItem.findMany({
       where: { module: { templateId } },
       orderBy: [{ module: { position: "asc" } }, { position: "asc" }],
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        workstreamKey: true,
+        tags: true,
+        moduleId: true,
+        position: true,
+      },
+    }),
+    /**
+     * The project's own scope items.
+     *
+     * Merged here, at read time, and never written into the shared template.
+     * A content pack is one row read by every tenant; a customer's own item
+     * belongs to that customer.
+     */
+    prisma.activateCustomScopeItem.findMany({
+      where: { projectId },
+      orderBy: { position: "asc" },
       select: {
         id: true,
         code: true,
@@ -147,7 +176,46 @@ export async function scopeItemsWithDecisions(projectId: string) {
     }),
   ]);
 
-  return { enabled: true as const, modules, items, decisions };
+  /**
+   * Custom items with no module fall into a grouping of the project's own.
+   *
+   * It behaves like any other module — it can be switched out of scope and
+   * given a wave — because `ActivateProjectModule.moduleId` carries no foreign
+   * key and so happily holds this sentinel. Treating the project's own items
+   * as a special case that cannot be scoped would be a second set of rules to
+   * remember.
+   */
+  const withModule = customItems.map((i) => ({
+    ...i,
+    moduleId: i.moduleId ?? CUSTOM_MODULE_ID,
+    custom: true as const,
+  }));
+
+  const modulesWithCustom = [...modules];
+  if (withModule.some((i) => i.moduleId === CUSTOM_MODULE_ID)) {
+    const override = await prisma.activateProjectModule.findUnique({
+      where: { projectId_moduleId: { projectId, moduleId: CUSTOM_MODULE_ID } },
+      select: { inScope: true, waveNumber: true, ownerId: true },
+    });
+    modulesWithCustom.push({
+      moduleId: CUSTOM_MODULE_ID,
+      key: "CUSTOM",
+      name: "Custom scope",
+      description: "Scope items this project added for itself.",
+      position: 9999,
+      inScope: override ? override.inScope : true,
+      waveNumber: override?.waveNumber ?? null,
+      ownerId: override?.ownerId ?? null,
+      scopeItemCount: withModule.filter((i) => i.moduleId === CUSTOM_MODULE_ID).length,
+    });
+  }
+
+  const items = [
+    ...templateItems.map((i) => ({ ...i, custom: false as const })),
+    ...withModule,
+  ];
+
+  return { enabled: true as const, modules: modulesWithCustom, items, decisions };
 }
 
 /** Shape the catalogue and decisions the way the generation function wants. */

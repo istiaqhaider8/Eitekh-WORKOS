@@ -73,6 +73,7 @@ model User {
   activateDecisionsMade    ActivateDecision[]      @relation("ActivateDecisionDecider")
   activateQuestionsOwned   ActivateDecision[]      @relation("ActivateQuestionOwner")
   activateDeltasOwned      ActivateDelta[]         @relation("ActivateDeltaOwner")
+  activateCustomScope      ActivateCustomScopeItem[] @relation("ActivateCustomScopeAuthor")
 
   @@index([userType])
 }
@@ -299,6 +300,7 @@ model Project {
   @@index([searchVector], type: Gin)
   activateModules   ActivateProjectModule[]
   activateDecisions ActivateDecision[]
+  activateCustomScopeItems ActivateCustomScopeItem[]
 }
 
 model ProjectMember {
@@ -1305,6 +1307,13 @@ model ActivateProfile {
   /// the template it came from.
   templateId        String?
   templateVersion   Int?
+  /// The allocator for custom scope-item codes, and the reason it lives here
+  /// rather than being derived from the items themselves: derived from
+  /// `max(code)`, removing every custom item would hand the next one CUS-01
+  /// again, and a workshop's minutes citing CUS-01 would then point at a
+  /// different item. This only ever goes up. Reconciled against the highest
+  /// code that exists, the same way `Project.issueCounter` is.
+  customScopeCounter Int     @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   version           Int      @default(0)
@@ -1696,4 +1705,44 @@ model ActivateDelta {
   owner    User?            @relation("ActivateDeltaOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
   @@index([decisionId])
+}
+
+/// A scope item a PROJECT added for itself.
+///
+/// WHY THIS IS NOT A ROW IN TemplateScopeItem
+///
+/// The built-in methodology and every content pack are shared: one row, seen
+/// by every tenant. Writing a customer's own scope item into that catalogue
+/// would show it to all of them. So a custom item lives here, scoped by
+/// projectId with a real foreign key, and the catalogue a project sees is the
+/// template's items plus its own — merged at read time, never merged in the
+/// database.
+///
+/// `moduleId` is the TemplateModule this item is filed under, or null for the
+/// project's own "Custom scope" grouping. No foreign key, for the same reason
+/// the profile's template stamp has none: a project must outlive the template
+/// it was seeded from.
+model ActivateCustomScopeItem {
+  id            String   @id @default(cuid())
+  projectId     String
+  moduleId      String?
+  /// Unique within the project. Generated rather than typed, so two people
+  /// adding an item in the same workshop cannot collide on a code that a
+  /// decision log will later cite.
+  code          String
+  name          String
+  workstreamKey String
+  /// Comma-separated flags, same vocabulary as the template catalogue. `ux`
+  /// is what makes the change-and-training rule fire.
+  tags          String?
+  position      Int      @default(0)
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation("ActivateCustomScopeAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, code])
+  @@index([projectId])
 }

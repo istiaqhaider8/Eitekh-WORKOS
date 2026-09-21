@@ -504,3 +504,289 @@ describe("Generating the backlog", () => {
     expect((await api(null, path)).status).toBe(401);
   });
 });
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Scope items a project adds for itself.
+ *
+ * The thing worth proving here is not that a row can be created — it is that
+ * the row lands in the PROJECT and not in the shared catalogue. The built-in
+ * template and every content pack are one set of rows read by every tenant
+ * stamped with them, so an item written there would appear in front of all of
+ * them. Both tenants in this fixture are stamped with the same built-in
+ * template, which is exactly what makes the leak test below meaningful.
+ */
+describe("Custom scope items", () => {
+  let customId = "";
+  let secondId = "";
+
+  it("lets a project manager add one, and gives it a generated code", async () => {
+    const res = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`,
+      {
+        method: "POST",
+        body: {
+          name: "Works council reporting pack",
+          workstreamKey: "APPLICATION_DESIGN_CONFIGURATION",
+          userFacing: true,
+        },
+      }
+    );
+    expectAllowed(res, "a PROJECT_MANAGER adding a scope item");
+    expect(res.status).toBe(201);
+    customId = res.body.scopeItem.id;
+    // Generated, not supplied: a decision log cites an item by its code, so
+    // two people in one workshop must not be able to mint the same one.
+    expect(res.body.scopeItem.code).toMatch(/^CUS-\d\d$/);
+    expect(res.body.scopeItem.custom).toBe(true);
+  });
+
+  it("writes it to the project, never to the shared template", async () => {
+    const row = await prisma.activateCustomScopeItem.findUnique({
+      where: { id: customId },
+      select: { projectId: true },
+    });
+    expect(row?.projectId).toBe(fx.orgA.projectId);
+    // The shared catalogue must be untouched. If this ever fails, every tenant
+    // seeded from the built-in template is looking at one customer's item.
+    expect(
+      await prisma.templateScopeItem.count({ where: { name: "Works council reporting pack" } })
+    ).toBe(0);
+  });
+
+  it("shows it in this project's catalogue, under a grouping of its own", async () => {
+    const res = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`
+    );
+    const item = res.body.scopeItems.find((i: any) => i.id === customId);
+    expect(item).toBeDefined();
+    expect(item.custom).toBe(true);
+    expect(item.tags).toEqual(["ux"]);
+    expect(item.inScope).toBe(true);
+    // Template items still report what they are, so a client knows which of
+    // the two it may edit.
+    expect(res.body.scopeItems.find((i: any) => i.code === "SI-T-01").custom).toBe(false);
+    expect(res.body.modules.map((m: any) => m.key)).toContain("CUSTOM");
+    // The workstreams ride along because the add form needs exactly the set
+    // the POST validates against.
+    expect(res.body.workstreams.map((w: any) => w.key)).toContain(
+      "APPLICATION_DESIGN_CONFIGURATION"
+    );
+  });
+
+  it("never shows it to the other tenant, which shares the same template", async () => {
+    const res = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/scope-items`
+    );
+    expect(res.body.scopeItems.map((i: any) => i.id)).not.toContain(customId);
+    expect(JSON.stringify(res.body)).not.toContain("Works council reporting pack");
+  });
+
+  it("refuses a workstream or a module that is not this project's", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/scope-items`;
+    const badWorkstream = await api(fx.orgA.users.MANAGER, path, {
+      method: "POST",
+      body: { name: "Filed nowhere real", workstreamKey: "NOT_A_WORKSTREAM" },
+    });
+    expect(badWorkstream.status).toBe(400);
+
+    // A module id arrives in the BODY, where the path guard cannot see it.
+    const foreignModule = await prisma.templateModule.findFirst({
+      where: { template: { key: "FOREIGN_ONLY" } },
+      select: { id: true },
+    });
+    const badModule = await api(fx.orgA.users.MANAGER, path, {
+      method: "POST",
+      body: {
+        name: "Filed in another tenant",
+        workstreamKey: "APPLICATION_DESIGN_CONFIGURATION",
+        moduleId: foreignModule!.id,
+      },
+    });
+    expect(badModule.status).toBe(400);
+    expect(
+      await prisma.activateCustomScopeItem.count({
+        where: { projectId: fx.orgA.projectId, moduleId: foreignModule!.id },
+      })
+    ).toBe(0);
+  });
+
+  it("refuses a MEMBER, a VIEWER, a cross-tenant caller and an anonymous one", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/scope-items`;
+    const body = { name: "Should never exist", workstreamKey: "APPLICATION_DESIGN_CONFIGURATION" };
+    expectDenied(
+      await api(fx.orgA.users.MEMBER, path, { method: "POST", body }),
+      "a MEMBER adding a scope item"
+    );
+    expectDenied(
+      await api(fx.orgA.users.VIEWER, path, { method: "POST", body }),
+      "a VIEWER adding a scope item"
+    );
+    expectDenied(
+      await api(fx.orgB.users.OWNER, path, { method: "POST", body }),
+      "org B adding a scope item to org A's project"
+    );
+    expect((await api(null, path, { method: "POST", body })).status).toBe(401);
+    expect(
+      await prisma.activateCustomScopeItem.count({ where: { name: "Should never exist" } })
+    ).toBe(0);
+  });
+
+  it("carries a decision and generates work like any other scope item", async () => {
+    const decide = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${customId}`,
+      {
+        method: "PUT",
+        body: {
+          decision: "EXTEND",
+          status: "AGREED",
+          rationale: "Required by the works council agreement.",
+          deltas: [{ title: "Quarterly headcount extract", priority: "MUST" }],
+        },
+      }
+    );
+    expect(decide.status).toBe(201);
+
+    const preview = await api(
+      fx.orgA.users.OWNER,
+      `/api/projects/${fx.orgA.projectId}/activate/backlog`
+    );
+    // A project's own item is not a second-class citizen: it reaches the
+    // backlog through the same rules as the catalogue's.
+    expect(preview.body.items.map((i: any) => i.scopeItemId)).toContain(customId);
+  });
+
+  it("renames one, and leaves a template item alone", async () => {
+    const res = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items/${customId}`,
+      { method: "PATCH", body: { name: "Works council reporting pack (annual)" } }
+    );
+    expectAllowed(res, "a PROJECT_MANAGER renaming its own scope item");
+    expect(res.body.scopeItem.name).toBe("Works council reporting pack (annual)");
+
+    // A template item is shared, so editing it through this route is not a
+    // thing that exists — 404, because the project has no such item of its own.
+    const template = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items/${siPermissionsId}`,
+      { method: "PATCH", body: { name: "Renamed for everybody" } }
+    );
+    expect(template.status).toBe(404);
+    expect(
+      await prisma.templateScopeItem.findUnique({
+        where: { id: siPermissionsId },
+        select: { name: true },
+      })
+    ).toEqual({ name: "Role-based permissions" });
+  });
+
+  it("refuses removal while a decision stands, and says why", async () => {
+    const res = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items/${customId}`,
+      { method: "DELETE" }
+    );
+    // 409, not 403: the caller has the permission, the record is in the wrong
+    // state, and there is an obvious way forward. Deleting it would have left
+    // the decision pointing at nothing and the catalogue would simply stop
+    // showing it — a record disappearing with nobody told.
+    expect(res.status).toBe(409);
+    expect(await prisma.activateCustomScopeItem.count({ where: { id: customId } })).toBe(1);
+  });
+
+  it("removes one that nobody has decided", async () => {
+    const created = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items`,
+      {
+        method: "POST",
+        body: { name: "Added by mistake", workstreamKey: "TESTING" },
+      }
+    );
+    expect(created.status).toBe(201);
+    secondId = created.body.scopeItem.id;
+    // The sequence continues past what exists, so a code is never silently
+    // reused for something else.
+    expect(created.body.scopeItem.code).not.toBe("CUS-01");
+
+    const res = await api(
+      fx.orgA.users.MANAGER,
+      `/api/projects/${fx.orgA.projectId}/activate/scope-items/${secondId}`,
+      { method: "DELETE" }
+    );
+    expectAllowed(res, "a PROJECT_MANAGER removing an undecided item it added");
+    expect(await prisma.activateCustomScopeItem.count({ where: { id: secondId } })).toBe(0);
+  });
+
+  it("never hands a removed item's code to a new one, even with none left", async () => {
+    /**
+     * The regression this pins was found by live testing, not by this suite:
+     * the first implementation derived the next code from the highest one that
+     * EXISTED, so removing every custom item reset the sequence to CUS-01 and
+     * a workshop's minutes citing CUS-01 would then name a different item. The
+     * earlier tests all passed because one item always remained.
+     */
+    const before = await prisma.activateCustomScopeItem.findMany({
+      where: { projectId: fx.orgB.projectId },
+      select: { id: true },
+    });
+    expect(before).toHaveLength(0); // org B has added none, so this starts clean
+
+    const first = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/scope-items`,
+      { method: "POST", body: { name: "The only one", workstreamKey: "TESTING" } }
+    );
+    expect(first.status).toBe(201);
+    expect(first.body.scopeItem.code).toBe("CUS-01");
+
+    const removed = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/scope-items/${first.body.scopeItem.id}`,
+      { method: "DELETE" }
+    );
+    expect(removed.status).toBe(200);
+    expect(
+      await prisma.activateCustomScopeItem.count({ where: { projectId: fx.orgB.projectId } })
+    ).toBe(0);
+
+    const next = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/scope-items`,
+      { method: "POST", body: { name: "Its successor", workstreamKey: "TESTING" } }
+    );
+    expect(next.status).toBe(201);
+    expect(next.body.scopeItem.code).toBe("CUS-02");
+  });
+
+  it("refuses an edit or a removal from another tenant, a VIEWER and an anonymous caller", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/scope-items/${customId}`;
+    expectDenied(
+      await api(fx.orgB.users.OWNER, path, { method: "PATCH", body: { name: "Theirs now" } }),
+      "org B editing org A's scope item"
+    );
+    expectDenied(await api(fx.orgB.users.OWNER, path, { method: "DELETE" }), "org B removing it");
+    expectDenied(
+      await api(fx.orgA.users.VIEWER, path, { method: "PATCH", body: { name: "Viewer edit" } }),
+      "a VIEWER editing a scope item"
+    );
+    expect((await api(null, path, { method: "DELETE" })).status).toBe(401);
+
+    // Reaching org A's item through org B's OWN project must also fail, since
+    // that path guard passes and only the projectId scoping stands between
+    // them.
+    const throughOwnProject = await api(
+      fx.orgB.users.OWNER,
+      `/api/projects/${fx.orgB.projectId}/activate/scope-items/${customId}`,
+      { method: "DELETE" }
+    );
+    expect(throughOwnProject.status).toBe(404);
+    expect(await prisma.activateCustomScopeItem.count({ where: { id: customId } })).toBe(1);
+  });
+});
