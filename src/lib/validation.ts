@@ -1379,3 +1379,20 @@ export const activateCustomScopeItemUpdateSchema = z.object({
   moduleId: optionalCuidSchema,
   userFacing: z.boolean().optional(),
 });
+
+/**
+ * A deliverable added from a phase worksheet.
+ *
+ * No code: it is allocated per phase by a counter that only goes up, so two
+ * people adding a deliverable in the same planning session cannot collide on
+ * a D-number that a status report will later cite.
+ */
+export const activateWorksheetDeliverableSchema = z.object({
+  name: safeStringSchema.trim().min(3).max(200),
+  workstreamId: optionalCuidSchema,
+});
+
+/** A criterion added to a quality gate by hand. */
+export const activateGateCriterionCreateSchema = z.object({
+  criterion: safeStringSchema.trim().min(3).max(300),
+});

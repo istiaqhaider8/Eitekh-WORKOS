@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ActivateWorkshop } from "./ActivateWorkshop";
 import { ActivateBacklog } from "./ActivateBacklog";
+import { ActivateWorksheet } from "./ActivateWorksheet";
 
 /**
  * SAP Activate — the phase workspace, including the Explore fit-to-standard view.
@@ -185,7 +186,9 @@ export function ActivateWorkspace({
   const [loadedPhaseId, setLoadedPhaseId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [accelerators, setAccelerators] = useState<AcceleratorItem[]>([]);
-  const [section, setSection] = useState<"phases" | "workshop" | "backlog">("phases");
+  const [section, setSection] = useState<"phases" | "worksheet" | "workshop" | "backlog">(
+    "phases"
+  );
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [chosenTemplate, setChosenTemplate] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -490,6 +493,7 @@ export function ActivateWorkspace({
         {(
           [
             ["phases", "Phases and gates"],
+            ["worksheet", "Worksheet"],
             ["workshop", "Fit-to-standard"],
             ["backlog", "Backlog"],
           ] as const
@@ -510,6 +514,22 @@ export function ActivateWorkspace({
           </button>
         ))}
       </div>
+
+      {section === "worksheet" && (
+        <ActivateWorksheet
+          projectId={projectId}
+          /* The phase selected on the rail, so switching to the worksheet
+             shows the phase somebody was already looking at rather than
+             jumping them somewhere else. */
+          phaseKey={selectedKey}
+          phases={phases.map((p) => ({ key: p.key, name: p.name }))}
+          onPhaseChange={setSelectedKey}
+          canManageDeliverables={can("activate:manage_deliverables")}
+          canManageGates={can("activate:manage_gates")}
+          onOpenIssue={onOpenIssue}
+          onChanged={loadProfile}
+        />
+      )}
 
       {section === "workshop" && (
         <ActivateWorkshop

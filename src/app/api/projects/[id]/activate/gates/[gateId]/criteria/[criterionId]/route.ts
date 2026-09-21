@@ -108,3 +108,101 @@ export async function PATCH(
     return handleApiError(error, "projects/[id]/activate/gates/[gateId]/criteria/[criterionId]");
   }
 }
+
+/**
+ * Remove a criterion from a gate.
+ *
+ * THE LOOPHOLE THIS IS WRITTEN TO CLOSE
+ *
+ * A gate is passed when its criteria are satisfied. If an unmet criterion
+ * can be deleted, a gate can be "passed" by deleting the thing it was asking
+ * for — and the record afterwards shows a clean gate with no trace of the
+ * question. That is worse than no gate at all, because it looks like
+ * assurance.
+ *
+ * So:
+ *
+ *   - A RAISED or APPROVED gate refuses deletion outright. The list is what
+ *     an approver was asked to sign, or has signed; editing it afterwards
+ *     makes the record say something nobody agreed to.
+ *
+ *   - An open gate permits it, and the removal is AUDITED with the
+ *     criterion's text and the status it held. Deleting an unmet criterion
+ *     is sometimes legitimate — a condition that turned out not to apply —
+ *     and the answer to "was this dropped because it was inconvenient" has
+ *     to exist somewhere. `WAIVED` remains the better route, because it
+ *     stays visible on the gate.
+ *
+ *   - The LAST criterion cannot be removed. A gate with no criteria is one
+ *     that passes by being empty, which is the same loophole reached by a
+ *     different road.
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; gateId: string; criterionId: string }> }
+) {
+  try {
+    const { id: projectId, gateId, criterionId } = await params;
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    await assertProjectAccess(projectId);
+    await assertProjectPermission(projectId, "activate:manage_gates");
+
+    const criterion = await prisma.activateGateCriterion.findFirst({
+      where: { id: criterionId, gateId, gate: { phase: { projectId } } },
+      select: {
+        id: true,
+        status: true,
+        criterion: true,
+        gate: {
+          select: { id: true, status: true, name: true, _count: { select: { criteria: true } } },
+        },
+      },
+    });
+    if (!criterion) return NextResponse.json({ error: "Criterion not found" }, { status: 404 });
+
+    if (criterion.gate.status === "RAISED" || criterion.gate.status === "APPROVED") {
+      throw new ConflictError(
+        criterion.gate.status === "APPROVED"
+          ? "This gate has been approved. Re-raise it to change its criteria."
+          : "This gate is waiting for sign-off. Withdraw or reject it before changing its criteria.",
+        "GATE_LOCKED"
+      );
+    }
+
+    if (criterion.gate._count.criteria <= 1) {
+      throw new ConflictError(
+        "A gate must keep at least one criterion. Waive this one instead of removing it.",
+        "GATE_WOULD_BE_EMPTY"
+      );
+    }
+
+    await prisma.activateGateCriterion.delete({ where: { id: criterionId } });
+
+    await logAuditEvent({
+      actor: {
+        id: user.id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+        email: user.email,
+      },
+      action: "ACTIVATE_CRITERION_REMOVED",
+      category: "PROJECT",
+      // Higher than an update on purpose: removing a condition of sign-off is
+      // the kind of change somebody should be able to find later.
+      severity: "WARNING",
+      status: "SUCCESS",
+      targetResource: `ActivateGate:${gateId}`,
+      projectId,
+      details: {
+        gate: criterion.gate.name,
+        criterion: criterion.criterion,
+        statusWhenRemoved: criterion.status,
+      },
+    }).catch((e) => console.error("Failed to audit criterion removal:", e));
+
+    return NextResponse.json({ success: true, removed: criterion.criterion });
+  } catch (error: any) {
+    return handleApiError(error, "projects/[id]/activate/gates/[gateId]/criteria/[criterionId]");
+  }
+}

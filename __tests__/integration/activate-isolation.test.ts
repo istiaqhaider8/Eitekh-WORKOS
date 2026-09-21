@@ -19,6 +19,7 @@
 import { PrismaClient } from "@prisma/client";
 import { api, expectDenied, waitForServer, type Fixture } from "./harness";
 import { createFixture, destroyFixture } from "./fixture";
+import { ACTIVATE_WORKSTREAMS } from "@/lib/activate";
 
 const prisma = new PrismaClient();
 let fx: Fixture;
@@ -62,7 +63,7 @@ describe("Activate profile", () => {
       "DEPLOY",
       "RUN",
     ]);
-    expect(res.body.workstreams).toHaveLength(11);
+    expect(res.body.workstreams).toHaveLength(ACTIVATE_WORKSTREAMS.length);
     // Every phase seeds exactly one gate, and every gate has criteria.
     for (const phase of res.body.phases) {
       expect(phase.gates).toHaveLength(1);
@@ -77,7 +78,7 @@ describe("Activate profile", () => {
     });
     const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`);
     expect(res.body.phases).toHaveLength(6);
-    expect(res.body.workstreams).toHaveLength(11);
+    expect(res.body.workstreams).toHaveLength(ACTIVATE_WORKSTREAMS.length);
   });
 
   it("refuses a caller from another organization", async () => {

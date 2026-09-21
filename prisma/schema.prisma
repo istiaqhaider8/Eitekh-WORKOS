@@ -1439,6 +1439,15 @@ model ActivatePhase {
   updatedAt   DateTime  @updatedAt
   /// Optimistic locking. A gate sign-off must not race a phase edit.
   version     Int       @default(0)
+  /// The allocator for this phase's deliverable codes — D-01, D-02, and so on.
+  ///
+  /// It only ever goes up. Derived from the highest code present instead, a
+  /// phase whose D-03 was removed would hand the next deliverable D-03 again,
+  /// and a status report or a meeting note citing D-03 would come to mean a
+  /// different piece of work. Reconciled against the highest code that exists
+  /// before it is used, the same rule `Project.issueCounter` follows for issue
+  /// keys and `ActivateProfile.customScopeCounter` for scope items.
+  deliverableCounter Int  @default(0)
 
   project     Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   owner       User?                     @relation("ActivatePhaseOwner", fields: [ownerId], references: [id], onDelete: SetNull)
@@ -1500,12 +1509,20 @@ model ActivateDeliverableLink {
   /// "we looked at this and it fits" is a decision somebody made, and it must
   /// not be indistinguishable from nobody having looked.
   fitGapStatus   String?
+  /// The worksheet code — D-01, D-02 — unique within the phase.
+  ///
+  /// Nullable because most deliverables never get one: an issue linked to a
+  /// phase from the board, or generated from a decision, is a deliverable
+  /// without being a numbered line on a phase worksheet. Backfilling codes
+  /// for those would invent an ordering nobody agreed.
+  phaseCode      String?
   createdAt      DateTime @default(now())
 
   issue      Issue               @relation(fields: [issueId], references: [id], onDelete: Cascade)
   phase      ActivatePhase       @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   workstream ActivateWorkstream? @relation(fields: [workstreamId], references: [id], onDelete: SetNull)
 
+  @@unique([phaseId, phaseCode])
   @@index([phaseId])
   @@index([workstreamId])
 }

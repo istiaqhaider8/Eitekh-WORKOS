@@ -141,6 +141,22 @@ export const ACTIVATE_WORKSTREAMS: { key: string; name: string }[] = [
   { key: "INTEGRATION", name: "Integration" },
   { key: "ANALYTICS", name: "Analytics" },
   { key: "OPERATIONS_SUPPORT", name: "Operations & Support" },
+  /**
+   * Added for the phase worksheet, which needs a home for two kinds of work
+   * the eleven above have nowhere obvious to put.
+   *
+   * Security is not Application Design: who may see a salary is a separate
+   * conversation from how the salary process runs, and on every real
+   * programme it has different people and a different sign-off. Cutover is
+   * not Operations & Support either — it is the few days around go-live,
+   * planned and rehearsed months in advance, and folding it into the
+   * team that runs the system afterwards loses the rehearsal.
+   *
+   * Appended rather than inserted, so existing workstreams keep their
+   * positions and no project's ordering changes underneath it.
+   */
+  { key: "SECURITY_PERMISSIONS", name: "Security & Permissions" },
+  { key: "CUTOVER_GO_LIVE", name: "Cutover & Go-Live" },
 ];
 
 export const ACTIVATE_PHASE_KEYS = ACTIVATE_PHASES.map((p) => p.key);
