@@ -28,6 +28,8 @@ let siReportingId: string; // in the optional module
 let foreignScopeItemId: string;
 /** The module holding one scope item per decision, for the status cases. */
 let statusModuleId: string;
+/** The module for the create-on-save cases. */
+let onSaveModuleId: string;
 
 async function templateIdOf(projectId: string) {
   const p = await prisma.activateProfile.findUnique({
@@ -121,7 +123,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.templateModule.deleteMany({
-    where: { id: { in: [moduleCoreId, moduleOptionalId, statusModuleId].filter(Boolean) } },
+    where: {
+      id: { in: [moduleCoreId, moduleOptionalId, statusModuleId, onSaveModuleId].filter(Boolean) },
+    },
   });
   await prisma.methodTemplate.deleteMany({ where: { key: "FOREIGN_ONLY" } });
   await destroyFixture(prisma);
@@ -1351,18 +1355,271 @@ describe("A board task for every decided scope item", () => {
       `/api/projects/${fx.orgB.projectId}/activate/decisions/${siReportingId}`,
       { method: "PUT", body: { decision: "ADOPT", status: "AGREED" } }
     );
+    // The card already exists: saving the decision created it, so Generate
+    // has nothing left to make for it. 200 and created: 0 is the converged
+    // answer, and the card count still went up by exactly one.
     const res = await api(
       fx.orgB.users.OWNER,
       `/api/projects/${fx.orgB.projectId}/activate/backlog`,
       { method: "POST", body: {} }
     );
-    expect(res.status).toBe(201);
-    expect(res.body.created).toBe(1);
+    expect(res.status).toBe(200);
+    expect(res.body.created).toBe(0);
 
     expect(
       await prisma.activateDeliverableLink.count({
         where: { phase: { projectId: fx.orgB.projectId }, originKey: { startsWith: "decision:" } },
       })
     ).toBe(before + 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Saving a decision puts it on the board, immediately.
+ *
+ * The behaviour this replaces: record six decisions, look at the Kanban
+ * board, find it empty, because nobody had pressed Generate. Now the card
+ * appears on save and follows the decision — until a person moves it.
+ *
+ * Run against org A, whose workflow gained a real Backlog column earlier in
+ * this file, so both target columns exist and the assertions name them.
+ */
+describe("A decision reaches the board when it is saved", () => {
+  let subjectId = "";
+  let secondId = "";
+
+  beforeAll(async () => {
+    const mod = await prisma.templateModule.create({
+      data: {
+        templateId: await templateIdOf(fx.orgA.projectId),
+        key: "TEST_ONSAVE",
+        name: "On-save cases",
+        position: 96,
+        scopeItems: {
+          create: [
+            { code: "SI-OS-01", name: "Saved decision case", workstreamKey: "TESTING", position: 0 },
+            { code: "SI-OS-02", name: "Untouched card case", workstreamKey: "TESTING", position: 1 },
+          ],
+        },
+      },
+      select: { id: true, scopeItems: { select: { id: true, code: true } } },
+    });
+    onSaveModuleId = mod.id;
+    subjectId = mod.scopeItems.find((s) => s.code === "SI-OS-01")!.id;
+    secondId = mod.scopeItems.find((s) => s.code === "SI-OS-02")!.id;
+
+    /**
+     * Give the workflow a way out of Backlog.
+     *
+     * This fixture defines exactly one transition, To Do -> In Progress, and
+     * the Backlog column added earlier in this file therefore has no
+     * outgoing transitions at all -- so NO issue can be dragged out of it,
+     * generated or not. That is the workflow guard working correctly and it
+     * blocks the only interesting case here, which is a person moving the
+     * card. A real project configures a way out of its first column, so the
+     * fixture now does too.
+     */
+    const workflow = await prisma.workflow.findFirst({
+      where: { projectId: fx.orgA.projectId },
+      select: { id: true, statuses: { select: { id: true, category: true } } },
+    });
+    const backlog = workflow!.statuses.find((x) => x.category === "BACKLOG");
+    if (backlog) {
+      await prisma.workflowTransition.create({
+        data: {
+          workflowId: workflow!.id,
+          fromStatusId: backlog.id,
+          toStatusId: fx.orgA.statusId,
+        },
+      });
+    }
+  }, 120_000);
+
+  it("creates the card on save, in the column the decision implies", async () => {
+    const before = await prisma.issue.count({ where: { projectId: fx.orgA.projectId } });
+
+    const res = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${subjectId}`,
+      {
+        method: "PUT",
+        body: { decision: "CONFIGURE", status: "AGREED", rationale: "Tailoring agreed." },
+      }
+    );
+    expect(res.status).toBe(201);
+
+    // Reported back, so the client can say what happened rather than
+    // leaving the user to notice a board they did not expect.
+    expect(res.body.card).not.toBeNull();
+    expect(res.body.card.action).toBe("created");
+    expect(res.body.card.statusName).toBe("Backlog");
+
+    // One issue, and it is an ordinary one.
+    expect(await prisma.issue.count({ where: { projectId: fx.orgA.projectId } })).toBe(before + 1);
+    const issue = await prisma.issue.findUnique({
+      where: { id: res.body.card.issueId },
+      select: { issueKey: true, issueType: true, title: true, status: { select: { name: true } } },
+    });
+    expect(issue!.issueType).toBe("TASK");
+    expect(issue!.title).toBe("SI-OS-01 — Saved decision case");
+    expect(issue!.status.name).toBe("Backlog");
+  });
+
+  it("creates no BUILD work on save, however many deltas were recorded", async () => {
+    /**
+     * The half that stays deliberate.
+     *
+     * A card recording an outcome is cheap to be wrong about. An issue
+     * committing somebody to build something is not, and a workshop is
+     * exactly where people change their minds mid-sentence -- so the deltas
+     * still wait for Generate.
+     */
+    const res = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${subjectId}`,
+      {
+        method: "PUT",
+        body: {
+          decision: "CONFIGURE",
+          status: "AGREED",
+          deltas: [{ title: "SI-OS-01 build work", priority: "MUST" }],
+        },
+      }
+    );
+    expect(res.status).toBe(200);
+    expect(
+      await prisma.issue.count({
+        where: { projectId: fx.orgA.projectId, title: "SI-OS-01 build work" },
+      })
+    ).toBe(0);
+  });
+
+  it("re-files the card when the decision changes and nobody has moved it", async () => {
+    const res = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${subjectId}`,
+      { method: "PUT", body: { decision: "ADOPT", status: "AGREED" } }
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.card.action).toBe("move");
+    expect(res.body.card.statusName).toBe("Done");
+
+    const issue = await prisma.issue.findUnique({
+      where: { id: res.body.card.issueId },
+      select: { status: { select: { name: true, category: true } } },
+    });
+    expect(issue!.status.category).toBe("DONE");
+
+    // The classification on the link follows too, because the readiness
+    // report counts gaps from it.
+    const link = await prisma.activateDeliverableLink.findFirst({
+      where: { issueId: res.body.card.issueId },
+      select: { fitGapStatus: true },
+    });
+    expect(link!.fitGapStatus).toBe("ADOPT");
+  });
+
+  it("does nothing when the new decision lands in the same column", async () => {
+    // Adopt to Defer: both Done. Writing the same status back would be a
+    // pointless update and a pointless line in the activity log.
+    const res = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${subjectId}`,
+      { method: "PUT", body: { decision: "DEFER", status: "AGREED" } }
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.card.action).toBe("unchanged");
+    expect(res.body.card.statusName).toBe("Done");
+  });
+
+  it("leaves the card where a person moved it, and says so", async () => {
+    // A fresh item, so the move below is unambiguously a person's.
+    const created = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${secondId}`,
+      { method: "PUT", body: { decision: "CONFIGURE", status: "AGREED" } }
+    );
+    expect(created.body.card.action).toBe("created");
+    const issueId = created.body.card.issueId;
+
+    // Dragged, through the ordinary issue endpoint. Backlog -> To Do is the
+    // move a person makes when they pick something up.
+    const moved = await api(fx.orgA.users.ADMIN, `/api/issues/${issueId}`, {
+      method: "PATCH",
+      body: { statusId: fx.orgA.statusId },
+    });
+    expectAllowed(moved, "moving the card by hand");
+
+    const changed = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${secondId}`,
+      { method: "PUT", body: { decision: "ADOPT", status: "AGREED" } }
+    );
+    expect(changed.status).toBe(200);
+    // Not moved to Done, although Adopt means Done: somebody took ownership
+    // of this card, and overruling them about their own board is the thing
+    // that makes people stop trusting it.
+    expect(changed.body.card.action).toBe("leave_alone");
+    expect(
+      (await prisma.issue.findUnique({ where: { id: issueId }, select: { statusId: true } }))!
+        .statusId
+    ).toBe(fx.orgA.statusId);
+  });
+
+  it("does not create a second card, whatever happens next", async () => {
+    const count = async () =>
+      prisma.activateDeliverableLink.count({
+        where: {
+          phase: { projectId: fx.orgA.projectId },
+          originKey: { startsWith: "decision:" },
+          issue: { title: { startsWith: "SI-OS-" } },
+        },
+      });
+    expect(await count()).toBe(2);
+
+    // Three more saves and a full generation run.
+    for (const decision of ["EXTEND", "INTEGRATE", "OUT_OF_SCOPE"]) {
+      await api(
+        fx.orgA.users.ADMIN,
+        `/api/projects/${fx.orgA.projectId}/activate/decisions/${subjectId}`,
+        { method: "PUT", body: { decision, status: "AGREED" } }
+      );
+    }
+    await api(fx.orgA.users.ADMIN, `/api/projects/${fx.orgA.projectId}/activate/backlog`, {
+      method: "POST",
+      body: {},
+    });
+
+    // The originKey is `decision:<id>`, so every one of those converged on
+    // the same card instead of adding one.
+    expect(await count()).toBe(2);
+  });
+
+  it("withdrawing the decision leaves the card alone", async () => {
+    /**
+     * Deliberate, and the same rule the route has always followed for
+     * generated work: an issue may be underway, have comments, be in a
+     * sprint. Deleting somebody's card because a classification was
+     * withdrawn would be an astonishing thing for this to do.
+     */
+    const link = await prisma.activateDeliverableLink.findFirst({
+      where: {
+        phase: { projectId: fx.orgA.projectId },
+        originKey: { startsWith: "decision:" },
+        issue: { title: { startsWith: "SI-OS-01" } },
+      },
+      select: { issueId: true },
+    });
+
+    const del = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/decisions/${subjectId}`,
+      { method: "DELETE" }
+    );
+    expect([200, 204]).toContain(del.status);
+
+    expect(await prisma.issue.count({ where: { id: link!.issueId } })).toBe(1);
   });
 });

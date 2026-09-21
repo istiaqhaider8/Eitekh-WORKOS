@@ -442,7 +442,28 @@ export function ActivateWorkshop({
         setError(data?.error || `That did not save (${res.status}).`);
         return;
       }
-      setMessage("Decision saved.");
+      /**
+       * Say what happened to the board, not just that the save worked.
+       *
+       * The card is created or re-filed as a side effect of saving, and a
+       * side effect nobody is told about is one people discover by noticing
+       * a board they did not expect. The case that most needs saying is
+       * `leave_alone`: the decision changed, somebody had already moved the
+       * card, and it was deliberately not dragged back.
+       */
+      const card = data?.card;
+      if (card?.action === "created") {
+        setMessage(`Decision saved. ${card.issueKey} added to the board in ${card.statusName}.`);
+      } else if (card?.action === "move") {
+        setMessage(`Decision saved. ${card.issueKey} moved to ${card.statusName}.`);
+      } else if (card?.action === "leave_alone") {
+        setMessage(
+          `Decision saved. ${card.issueKey} was left in ${card.statusName} — somebody moved it, ` +
+            `so it was not moved back.`
+        );
+      } else {
+        setMessage("Decision saved.");
+      }
       await load();
       onChanged?.();
       if (data?.decision) {

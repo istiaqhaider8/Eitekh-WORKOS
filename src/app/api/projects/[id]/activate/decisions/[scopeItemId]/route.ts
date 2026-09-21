@@ -7,6 +7,7 @@ import { parseJsonBody, activateDecisionSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
 import { taskStatusForDecision } from "@/lib/activate-generation";
+import { syncDecisionCard } from "@/lib/activate-board";
 
 /**
  * Record what a project decided about one scope item, with its deltas.
@@ -69,7 +70,10 @@ export async function PUT(
 
     const existing = await prisma.activateDecision.findUnique({
       where: { projectId_scopeItemId: { projectId, scopeItemId } },
-      select: { id: true, version: true },
+      // The previous decision is read here, before the write, because it is
+      // what tells the board sync where the card WOULD have been filed — and
+      // therefore whether a person has since moved it.
+      select: { id: true, version: true, decision: true },
     });
 
     // Optimistic locking, matching the M4 convention. A workshop has several
@@ -185,11 +189,38 @@ export async function PUT(
       },
     });
 
+    /**
+     * The board follows the workshop, immediately.
+     *
+     * Before this, a decision reached the board only when somebody pressed
+     * Generate, and the usual experience was recording six decisions and
+     * finding an empty board — one product telling two stories about the
+     * same afternoon. Saving now creates the card, and changing the decision
+     * re-files it, unless a person has already moved it themselves.
+     *
+     * WRAPPED, BECAUSE THE DECISION MATTERS MORE THAN THE CARD
+     *
+     * What a workshop agreed is the record; a card is a convenience. A
+     * failure here — a project with no issue types, a phase that was
+     * deleted — must not turn a saved decision into an error the user has to
+     * retype their rationale after. It is logged and reported as a null
+     * card, and the Generate button remains the way to catch up.
+     */
+    let card = null;
+    try {
+      card = await syncDecisionCard(projectId, saved.id, existing?.decision ?? null, user.id);
+    } catch (e) {
+      console.error("Failed to sync the board card for decision", saved.id, e);
+    }
+
     // The task status rides back with the saved decision so a client that
     // just recorded one can show the consequence immediately, from the same
     // map the catalogue uses, rather than refetching or deciding for itself.
     return NextResponse.json(
-      { decision: full ? { ...full, taskStatus: taskStatusForDecision(full.decision) } : full },
+      {
+        decision: full ? { ...full, taskStatus: taskStatusForDecision(full.decision) } : full,
+        card,
+      },
       { status: existing ? 200 : 201 }
     );
   } catch (error: any) {

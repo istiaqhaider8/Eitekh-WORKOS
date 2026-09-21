@@ -5,21 +5,27 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { planBacklog, type PlannedItem } from "@/lib/activate-generation";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
-import { allocateIssueKey, issueStatusIdFor } from "@/lib/issue-keys";
-import { allowedIssueTypeValues } from "@/lib/project-context";
+import { createIssuesForPlan, loadBoardContext } from "@/lib/activate-board";
 import { logAuditEvent } from "@/lib/audit-logger";
 
 /**
  * The backlog the current decisions imply, and turning it into real issues.
  *
- * GENERATION IS EXPLICIT, NOT AUTOMATIC ON SAVE
+ * BUILD WORK IS EXPLICIT; THE DECISION CARD IS NOT
  *
- * A fit-to-standard workshop is exactly where people change their minds
- * mid-sentence. Creating an issue the instant a delta is typed would fill the
- * board with work that was retracted a minute later, and an issue is not free
- * to withdraw once someone has commented on it or put it in a sprint. So GET
- * shows what WOULD be created and POST creates it, deliberately, when the
- * workshop is over.
+ * The card standing for a decision is created the moment the decision is
+ * saved, by the decision route — because a workshop that records six
+ * outcomes and leaves the board empty is one product telling two stories
+ * about the same afternoon.
+ *
+ * The WORK still waits for this route. A fit-to-standard workshop is exactly
+ * where people change their minds mid-sentence, and an issue committing
+ * somebody to build something is not free to withdraw once a colleague has
+ * commented on it or put it in a sprint. So GET shows what WOULD be created
+ * and POST creates it, deliberately, when the workshop is over.
+ *
+ * Both paths write through `activate-board.ts`, so a card created on save is
+ * indistinguishable from one this route would have made.
  *
  * IT IS IDEMPOTENT BY CONSTRUCTION
  *
@@ -103,102 +109,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       throw new ConflictError("Activate is not enabled for this project.", "ACTIVATE_DISABLED");
     }
 
-    const already = await prisma.activateDeliverableLink.findMany({
-      where: { phase: { projectId }, originKey: { in: planned.map((p) => p.originKey) } },
-      select: { originKey: true },
-    });
-    const done = new Set(already.map((a) => a.originKey as string));
-    const todo = planned.filter((p) => !done.has(p.originKey));
-
-    if (todo.length === 0) {
-      return NextResponse.json({ created: 0, skipped: planned.length, issues: [] });
-    }
-
-    // Phases and workstreams by key, once, so the loop below does no lookups.
-    const [phases, workstreams, allowedTypes] = await Promise.all([
-      prisma.activatePhase.findMany({ where: { projectId }, select: { id: true, key: true } }),
-      prisma.activateWorkstream.findMany({ where: { projectId }, select: { id: true, key: true } }),
-      allowedIssueTypeValues(projectId),
-    ]);
-    const phaseByKey = new Map(phases.map((p) => [p.key, p.id]));
-    const wsByKey = new Map(workstreams.map((w) => [w.key, w.id]));
-
-    const issueType = allowedTypes.has("TASK") ? "TASK" : [...allowedTypes][0];
-    if (!issueType) {
+    const ctx = await loadBoardContext(projectId);
+    if (!ctx.issueType) {
       throw new ConflictError("This project has no issue types configured.", "NO_ISSUE_TYPES");
     }
 
-    const created: Array<{ originKey: string; issueKey: string; id: string }> = [];
-
-    for (const item of todo) {
-      const phaseId = phaseByKey.get(item.targetPhaseKey);
-      // A plan targeting a phase this project does not have is skipped rather
-      // than dropped into an arbitrary one: silently filing work under the
-      // wrong phase is worse than not filing it.
-      if (!phaseId) continue;
-
-      /**
-       * One transaction per item rather than one for the whole run.
-       *
-       * A single transaction around a hundred issue creations would hold a
-       * connection for the duration and lose everything on one bad row. Here
-       * a failure stops the run with everything before it committed, and
-       * re-running picks up where it left off — which the unique originKey
-       * makes safe.
-       */
-      const result = await prisma.$transaction(async (tx) => {
-        const { keyNumber, issueKey, project } = await allocateIssueKey(tx, projectId);
-        const issue = await tx.issue.create({
-          data: {
-            projectId,
-            keyNumber,
-            issueKey,
-            title: item.title,
-            description: item.note,
-            issueType,
-            priority: item.priority === "WONT" ? "LOW" : item.priority === "MUST" ? "HIGH" : "MEDIUM",
-            /**
-             * The column comes from the plan, not from the workflow's shape.
-             *
-             * Build work is created in the Backlog whatever produced it —
-             * including work from a DEFER, whose scope item is settled: the
-             * decision being finished does not mean the thing agreed has been
-             * built, and creating it Done would count work nobody has started
-             * towards phase readiness and the Run dashboard.
-             *
-             * The scope-item task (R6) is the exception, and the only one: an
-             * Adopt or an exclusion is finished the moment it is agreed, so
-             * it is created in Done rather than sitting on the board forever
-             * as a card nobody can act on.
-             *
-             * This used to be `defaultStatusIdFor`, the first status by
-             * position. For the Scrum template that happened to BE Backlog,
-             * so the behaviour is unchanged there — but it was true by
-             * coincidence of ordering rather than by intent.
-             */
-            statusId: issueStatusIdFor(project, item.issueStatus),
-            reporterId: user.id,
-            assigneeId: item.ownerId ?? null,
-          },
-          select: { id: true, issueKey: true },
-        });
-
-        await tx.activateDeliverableLink.create({
-          data: {
-            issueId: issue.id,
-            phaseId,
-            workstreamId: wsByKey.get(item.workstreamKey) ?? null,
-            isMandatory: item.priority === "MUST",
-            fitGapStatus: item.decision,
-            originKey: item.originKey,
-          },
-        });
-
-        return issue;
-      });
-
-      created.push({ originKey: item.originKey, issueKey: result.issueKey, id: result.id });
-    }
+    // The write loop lives in activate-board.ts, because the decision route
+    // creates cards through the same path the moment a decision is saved.
+    const created = await createIssuesForPlan(projectId, planned, user.id, ctx);
 
     await logAuditEvent({
       actor: {
@@ -215,9 +133,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       details: { created: created.length, planned: planned.length },
     }).catch((e) => console.error("Failed to audit backlog generation:", e));
 
+    /**
+     * 200 when nothing was created, 201 when something was.
+     *
+     * A run that creates nothing has not created anything, and a client that
+     * cannot tell the difference cannot tell a converged board from a
+     * successful generation.
+     */
     return NextResponse.json(
       { created: created.length, skipped: planned.length - created.length, issues: created },
-      { status: 201 }
+      { status: created.length > 0 ? 201 : 200 }
     );
   } catch (error: any) {
     return handleApiError(error, "projects/[id]/activate/backlog");
