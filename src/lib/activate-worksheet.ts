@@ -214,6 +214,21 @@ export interface PhaseWorksheet {
   phaseName: string;
   deliverables: WorksheetDeliverable[];
   deliverableCount: number;
+  /**
+   * Deliverables linked to this phase that are NOT worksheet lines.
+   *
+   * A fit-to-standard decision card, an issue somebody adopted into the
+   * phase from the board, anything generated: real work, genuinely in this
+   * phase, but not a numbered line of its plan — no code, no task list. The
+   * worksheet lists the plan and counts what it lists, because a header
+   * saying "19 deliverables" above eleven rows is a screen arguing with
+   * itself.
+   *
+   * Reported rather than dropped. Silently omitting eight pieces of real
+   * work would be the more comfortable lie, and the one somebody discovers
+   * while counting deliverables for a steering committee.
+   */
+  unlistedCount: number;
   tasksTotal: number;
   tasksComplete: number;
   gate: WorksheetGate | null;
@@ -298,7 +313,9 @@ export async function getPhaseWorksheet(
     }),
   ]);
 
-  const deliverables: WorksheetDeliverable[] = links.map((l) => {
+  // Worksheet lines are the coded ones. See `unlistedCount`.
+  const listed = links.filter((l) => l.phaseCode !== null);
+  const deliverables: WorksheetDeliverable[] = listed.map((l) => {
     const tasks = l.issue.subtasks.map((s) => ({
       id: s.id,
       title: s.title,
@@ -350,6 +367,7 @@ export async function getPhaseWorksheet(
     phaseName: phase.name,
     deliverables,
     deliverableCount: deliverables.length,
+    unlistedCount: links.length - listed.length,
     tasksTotal: deliverables.reduce((n, d) => n + d.tasksTotal, 0),
     tasksComplete: deliverables.reduce((n, d) => n + d.tasksComplete, 0),
     gate,

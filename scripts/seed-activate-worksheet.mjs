@@ -1,7 +1,7 @@
 /**
  * A phase worksheet, seeded: its deliverables, their tasks and its gate.
  *
- * Discover and Prepare are both here, chosen with --phase. One script,
+ * Discover, Prepare and Explore are all here, chosen with --phase. One script,
  * because the worksheet has never been phase-specific — one screen, one API,
  * one code allocator, addressed by phase key — and only the content differs.
  * A second script would have meant a second copy of the login, the rate-limit
@@ -339,9 +339,161 @@ const PREPARE_GATE = {
   ],
 };
 
+
+/**
+ * Explore: where fit-to-standard is actually RUN.
+ *
+ * Prepare scheduled the workshops and confirmed who decides; E-01 runs them,
+ * and everything downstream of it — the deltas, the backlog, the designs —
+ * is the output of that conversation. Keeping the two apart matters: a phase
+ * that claims the workshops it only planned reports progress it has not
+ * made.
+ *
+ * Build and configuration are NOT here. E-03 and E-04 design the
+ * configuration; Realize performs it against the backlog this phase
+ * baselines.
+ */
+const EXPLORE_DELIVERABLES = [
+  {
+    name: "Fit-to-standard workshop execution",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Run the workshop series by scope item",
+      "Demonstrate the standard process before discussing change",
+      "Record a decision for every scope item",
+      "Capture each delta with its business justification",
+      "Log open questions with an owner and a due date",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Backlog consolidation and sizing",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Convert deltas into backlog items",
+      "Classify each item by build type",
+      "Prioritise using the agreed model",
+      "Size items and sequence them into releases",
+      "Review the backlog with the steering committee",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Foundation configuration design",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Design the data models and field-level configuration",
+      "Design foundation objects and company structure",
+      "Design workflows, approvals and notifications",
+      "Build the business rule inventory",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Module solution design",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Design each in-scope module against the standard process",
+      "Document end-to-end process flows",
+      "Identify cross-module dependencies and name their owners",
+      "Agree module-to-module data handoffs",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Integration design",
+    workstream: "Integration and technology",
+    tasks: [
+      "Design each interface in the inventory",
+      "Design downstream data handoffs",
+      "Design error handling, monitoring and alerting",
+      "Agree interface ownership after go-live",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Data migration design",
+    workstream: "Data migration",
+    tasks: [
+      "Complete field-level source-to-target mapping",
+      "Define transformation and defaulting rules",
+      "Decide the treatment of historical data",
+      "Execute the first mock load and publish reconciliation results",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Permission design",
+    workstream: "Security and permissions",
+    tasks: [
+      "Build the role catalogue",
+      "Design permission groups and their membership rules",
+      "Design target population and data scoping rules",
+      "Produce the segregation of duties matrix",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Reporting design",
+    workstream: "Reporting and analytics",
+    tasks: [
+      "Confirm the report catalogue to be built",
+      "Define metric definitions and their owners",
+      "Design dashboards by audience",
+      "Agree row-level access rules",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Change impact assessment",
+    workstream: "Change management and adoption",
+    tasks: [
+      "Assess impact by role and population",
+      "Draft the training curriculum by audience",
+      "Plan communications against the delivery milestones",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Release and change control",
+    workstream: "Project management and governance",
+    tasks: [
+      "Baseline the backlog",
+      "Produce the sprint or iteration plan",
+      "Activate scope change control",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Design documentation and sign-off",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Assemble the solution design documentation",
+      "Close the decision log",
+      "Obtain business sign-off per module",
+    ],
+    complete: 0,
+  },
+];
+
+const EXPLORE_GATE = {
+  name: "Design complete",
+  criteria: [
+    "Every in-scope scope item has a recorded and signed decision",
+    "All deltas converted into backlog items with owner, size and priority",
+    "Cross-module dependencies identified and owned",
+    "Integration and data migration designs approved",
+    "Permission design approved including privacy review",
+    "Reporting design agreed with the report owners",
+    "No open critical design questions",
+    "Backlog baselined and sequenced into releases",
+  ],
+};
+
 const PHASES = {
   DISCOVER: { deliverables: DISCOVER_DELIVERABLES, gate: DISCOVER_GATE },
   PREPARE: { deliverables: PREPARE_DELIVERABLES, gate: PREPARE_GATE },
+  EXPLORE: { deliverables: EXPLORE_DELIVERABLES, gate: EXPLORE_GATE },
 };
 
 const chosen = PHASES[PHASE_KEY];

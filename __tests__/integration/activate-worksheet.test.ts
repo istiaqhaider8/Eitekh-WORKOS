@@ -492,3 +492,43 @@ describe("A second phase's worksheet", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+
+/**
+ * The worksheet lists the phase PLAN, not everything linked to the phase.
+ *
+ * A fit-to-standard decision card is filed in Explore and is real work in
+ * that phase — but it is not a numbered line of the plan: no code, no task
+ * list. Counting it among the deliverables would make the header argue with
+ * the rows beneath it; dropping it silently would hide real work. So it is
+ * counted separately and reported.
+ */
+describe("Work in a phase that is not a worksheet line", () => {
+  it("counts an uncoded deliverable apart from the plan, and says so", async () => {
+    const path = `/api/projects/${fx.orgA.projectId}/activate/phases/PREPARE/worksheet`;
+    const before = (await api(fx.orgA.users.ADMIN, path)).body.worksheet;
+    expect(before.unlistedCount).toBe(0);
+
+    // An issue adopted into the phase from the board: linked, but never a
+    // numbered line. A generated decision card has the same shape.
+    const phase = await prisma.activatePhase.findUnique({
+      where: { projectId_key: { projectId: fx.orgA.projectId, key: "PREPARE" } },
+      select: { id: true },
+    });
+    const link = await prisma.activateDeliverableLink.create({
+      data: { issueId: fx.orgA.issueId, phaseId: phase!.id },
+      select: { id: true },
+    });
+
+    const after = (await api(fx.orgA.users.ADMIN, path)).body.worksheet;
+    expect(after.unlistedCount).toBe(1);
+    // The plan is unchanged: same rows, same count, same task totals.
+    expect(after.deliverableCount).toBe(before.deliverableCount);
+    expect(after.deliverables.every((d: any) => d.phaseCode)).toBe(true);
+    expect(after.tasksTotal).toBe(before.tasksTotal);
+
+    await prisma.activateDeliverableLink.delete({ where: { id: link.id } });
+    expect((await api(fx.orgA.users.ADMIN, path)).body.worksheet.unlistedCount).toBe(0);
+  });
+});

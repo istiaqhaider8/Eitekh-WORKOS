@@ -60,6 +60,7 @@ interface Worksheet {
   phaseName: string;
   deliverables: Deliverable[];
   deliverableCount: number;
+  unlistedCount: number;
   tasksTotal: number;
   tasksComplete: number;
   gate: Gate | null;
@@ -216,6 +217,14 @@ export function ActivateWorksheet({
               {sheet.tasksComplete} of {sheet.tasksTotal} task
               {sheet.tasksTotal === 1 ? "" : "s"} complete
             </span>
+            {/* Disclosed, not listed and not hidden: work genuinely in this
+                phase that is not a numbered line of its plan — a decision
+                card, an issue adopted from the board. */}
+            {sheet.unlistedCount > 0 && (
+              <span className="text-[11px] text-slate-400">
+                · {sheet.unlistedCount} more linked to this phase without a worksheet code
+              </span>
+            )}
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800">
