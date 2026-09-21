@@ -75,6 +75,15 @@ export interface ActivateWorksheetProps {
   onPhaseChange: (key: string) => void;
   canManageDeliverables: boolean;
   canManageGates: boolean;
+  /**
+   * Whether to render the gate panel.
+   *
+   * False inside Phases and gates, which already shows the gate with its
+   * full lifecycle — raise, approve, waive — beside the phase summary. Two
+   * gate panels on one screen would be the same rows twice, and a person
+   * would reasonably wonder which one counted.
+   */
+  showGate?: boolean;
   onOpenIssue?: (issueId: string) => void;
   onChanged?: () => void;
 }
@@ -89,6 +98,7 @@ export function ActivateWorksheet({
   onPhaseChange,
   canManageDeliverables,
   canManageGates,
+  showGate = true,
   onOpenIssue,
   onChanged,
 }: ActivateWorksheetProps) {
@@ -179,6 +189,8 @@ export function ActivateWorksheet({
         )}
       </div>
 
+      {phases.length > 0 && (
+      <>
       {/* Which phase's worksheet. Here rather than only on the phase rail,
           because the worksheet is where somebody works through a phase and
           sending them to another tab to change it is a detour. */}
@@ -202,6 +214,8 @@ export function ActivateWorksheet({
           ))}
         </select>
       </div>
+      </>
+      )}
 
       {/* 70/30 on desktop, stacked on a phone — the gate and the workstream
           summary read as context beside the work, not as separate pages. */}
@@ -469,7 +483,7 @@ export function ActivateWorksheet({
 
         {/* Gate and workstreams ------------------------------------------ */}
         <div className="space-y-4">
-          {sheet.gate && (
+          {showGate && sheet.gate && (
             <section className="bg-white dark:bg-slate-900 rounded-2xl border-l-4 border-l-slate-800 dark:border-l-slate-300 border border-slate-200 dark:border-slate-800 p-4">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
                 Quality gate

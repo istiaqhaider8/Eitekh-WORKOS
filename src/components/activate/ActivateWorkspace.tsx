@@ -136,6 +136,8 @@ interface AcceleratorItem {
 interface Deliverable {
   id: string;
   isMandatory: boolean;
+  /** The worksheet code, or null for an issue merely linked to the phase. */
+  phaseCode: string | null;
   fitGapStatus: string | null;
   issue: {
     id: string;
@@ -930,19 +932,51 @@ export function ActivateWorkspace({
             </section>
           )}
 
-          {/* Deliverables / fit-to-standard ------------------------------- */}
-          <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              {selected.key === "EXPLORE" ? "Fit-to-standard" : "Deliverables"}
-            </h3>
-            {selected.key === "EXPLORE" && (
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Classify each item against the standard solution. An accepted gap
-                is a decision somebody made, and a gate review reads it
-                differently from one still waiting on a workshop.
-              </p>
-            )}
+          {/* The phase worksheet ------------------------------------------
+              The same component the Worksheet tab renders, with its own gate
+              panel switched off: this page already shows the gate with its
+              full lifecycle just above, and two gate panels on one screen
+              would be the same rows twice.
 
+              It replaces a flat list of linked issues. The list could not
+              show a deliverable's tasks, its code or what each workstream
+              was carrying, all of which this phase's plan is actually made
+              of. */}
+          <ActivateWorksheet
+            projectId={projectId}
+            phaseKey={selected.key}
+            /* No phase selector: the rail above this is the phase picker. */
+            phases={[]}
+            onPhaseChange={setSelectedKey}
+            canManageDeliverables={can("activate:manage_deliverables")}
+            canManageGates={can("activate:manage_gates")}
+            showGate={false}
+            onOpenIssue={onOpenIssue}
+            onChanged={() => {
+              loadProfile();
+              setLoadedPhaseId(null);
+            }}
+          />
+
+          {/* Issues linked to the phase that are NOT worksheet lines --------
+              A generated fit-to-standard card, an issue adopted from the
+              board. Shown only when there are some, because an empty panel
+              headed "other issues" invites the question of what is missing.
+
+              This is also the only place a classification can be set by
+              hand, which is why the list survives rather than being
+              replaced outright. */}
+          {phaseId === loadedPhaseId &&
+            deliverables.filter((d) => !d.phaseCode).length > 0 && (
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {selected.key === "EXPLORE" ? "Fit-to-standard" : "Also linked to this phase"}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {selected.key === "EXPLORE"
+                    ? "Classify each item against the standard solution. An accepted gap is a decision somebody made, and a gate review reads it differently from one still waiting on a workshop."
+                    : "Issues linked to this phase without a worksheet code — generated work, or an issue adopted from the board."}
+                </p>
             {phaseId !== loadedPhaseId ? (
               <p className="text-xs text-slate-500 py-4">Loading deliverables…</p>
             ) : deliverables.length === 0 ? (
@@ -1001,7 +1035,8 @@ export function ActivateWorkspace({
                 ))}
               </ul>
             )}
-          </section>
+              </section>
+            )}
 
           {!gate && (
             <p className="flex items-center gap-2 text-xs text-slate-500">

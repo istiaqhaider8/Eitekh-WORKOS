@@ -91,6 +91,9 @@ export async function listDeliverables(
         isMandatory: true,
         acceleratorKey: true,
         fitGapStatus: true,
+        // The worksheet code, so a client can tell a numbered plan line from
+        // an issue that was simply linked to the phase.
+        phaseCode: true,
         createdAt: true,
         phase: { select: { id: true, key: true, name: true, position: true } },
         workstream: { select: { id: true, key: true, name: true } },
