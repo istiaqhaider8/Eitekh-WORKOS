@@ -1,7 +1,7 @@
 /**
  * A phase worksheet, seeded: its deliverables, their tasks and its gate.
  *
- * Discover through Deploy are all here, chosen with --phase. One script,
+ * All six phases are here, chosen with --phase. One script,
  * because the worksheet has never been phase-specific — one screen, one API,
  * one code allocator, addressed by phase key — and only the content differs.
  * A second script would have meant a second copy of the login, the rate-limit
@@ -776,12 +776,111 @@ const DEPLOY_GATE = {
   ],
 };
 
+
+/**
+ * Run: the handover into normal operations, and what happens afterwards.
+ *
+ * Deploy mobilised hypercare; RN-01 runs it and RN-02 hands the solution to
+ * the support organisation. Nothing here cuts over or configures. The last
+ * two deliverables are the ones projects skip and regret: a release routine
+ * that keeps extensions working through vendor upgrades, and an improvement
+ * backlog with a forum that actually meets.
+ *
+ * Continuous improvement lives INSIDE Run rather than being a seventh
+ * phase, which is what the methodology says and what the first draft of
+ * this application got wrong.
+ *
+ * RN-04's first task reads "set an owner", matching the screenshots and the
+ * reference build. The plain-text list that came with them said "set a
+ * calendar"; the screenshots were described as authoritative, and an owner
+ * is the part that decays — a calendar with nobody responsible for it is
+ * how release assessment quietly stops happening.
+ */
+const RUN_DELIVERABLES = [
+  {
+    name: "Hypercare execution",
+    workstream: "Support and release management",
+    tasks: [
+      "Run daily triage and issue burndown",
+      "Monitor integrations and scheduled jobs",
+      "Report hypercare status to the steering committee",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Transition to support",
+    workstream: "Support and release management",
+    tasks: [
+      "Complete knowledge transfer sessions",
+      "Hand over to the support organisation",
+      "Hand over documentation and administrative access",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Benefits review and closure",
+    workstream: "Project management and governance",
+    tasks: [
+      "Measure benefits against the baseline",
+      "Run the lessons learned review",
+      "Close the project formally and release the team",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Release management setup",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Subscribe to vendor release information and set an owner",
+      "Establish the release assessment and regression routine",
+      "Maintain the regression pack against every extension",
+      "Plan how optional features are evaluated and adopted",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Adoption measurement and optimisation",
+    workstream: "Change management and adoption",
+    tasks: [
+      "Measure adoption by process and role",
+      "Collect user feedback",
+      "Deliver targeted retraining where adoption is weak",
+    ],
+    complete: 0,
+  },
+  {
+    name: "Continuous improvement",
+    workstream: "Solution design and configuration",
+    tasks: [
+      "Open the improvement backlog",
+      "Agree the prioritisation forum and its cadence",
+      "Plan the next module wave",
+    ],
+    complete: 0,
+  },
+];
+
+const RUN_GATE = {
+  name: "Transition to operations",
+  criteria: [
+    "Agreed stabilisation period completed without critical incident",
+    "Open issue count below the agreed threshold",
+    "Support handover formally accepted by the operations team",
+    "Documentation complete and stored in the agreed location",
+    "Lessons learned captured and published",
+    "Benefits measured against the baseline",
+    "Vendor release assessment routine operating",
+    "Improvement backlog open with a named prioritisation forum",
+  ],
+};
+
 const PHASES = {
   DISCOVER: { deliverables: DISCOVER_DELIVERABLES, gate: DISCOVER_GATE },
   PREPARE: { deliverables: PREPARE_DELIVERABLES, gate: PREPARE_GATE },
   EXPLORE: { deliverables: EXPLORE_DELIVERABLES, gate: EXPLORE_GATE },
   REALIZE: { deliverables: REALIZE_DELIVERABLES, gate: REALIZE_GATE },
   DEPLOY: { deliverables: DEPLOY_DELIVERABLES, gate: DEPLOY_GATE },
+  RUN: { deliverables: RUN_DELIVERABLES, gate: RUN_GATE },
 };
 
 const chosen = PHASES[PHASE_KEY];
