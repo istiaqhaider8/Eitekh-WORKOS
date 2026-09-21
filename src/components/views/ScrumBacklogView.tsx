@@ -79,7 +79,6 @@ interface ScrumBacklogViewProps {
   isProjectAdmin?: boolean;
   canCreateIssue?: boolean;
   onSelectIssue: (issue: any) => void;
-  onUpdateStatus?: (issueId: string, statusId: string) => void;
   onRefresh: () => void;
 }
 
@@ -95,7 +94,6 @@ export function ScrumBacklogView({
   isProjectAdmin = false,
   canCreateIssue,
   onSelectIssue,
-  onUpdateStatus,
   onRefresh,
 }: ScrumBacklogViewProps) {
   // Shared clock for the sprint "Nd left" badge; see src/hooks/useNow.ts.
@@ -174,7 +172,6 @@ export function ScrumBacklogView({
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null);
 
   // Interactive Dropdown States
-  const [activeStatusMenu, setActiveStatusMenu] = useState<string | null>(null);
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
 
   // Collapsible Sprint Sections
@@ -820,30 +817,6 @@ export function ScrumBacklogView({
     }
   };
 
-  const handleDirectStatusChange = async (issueId: string, statusId: string) => {
-    setActiveStatusMenu(null);
-    if (onUpdateStatus) {
-      onUpdateStatus(issueId, statusId);
-      showSuccess("Status updated");
-    } else {
-      try {
-        const res = await fetch(`/api/issues/${issueId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ statusId }),
-        });
-        if (res.ok) {
-          showSuccess("Status updated");
-          onRefresh();
-        } else {
-          showError("Failed to update status");
-        }
-      } catch (err) {
-        showError("Error updating status");
-      }
-    }
-  };
-
   const handleDeleteSingleIssue = async (issueId: string, issueKey: string) => {
     setActiveActionMenu(null);
     if (!confirm(`Are you sure you want to delete ${issueKey}?`)) return;
@@ -1031,71 +1004,6 @@ export function ScrumBacklogView({
             </div>
           )}
 
-          {/* 1. Interactive Status Change Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveStatusMenu(activeStatusMenu === issue.id ? null : issue.id);
-                setActiveActionMenu(null);
-              }}
-              className="px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border transition-all cursor-pointer"
-              style={
-                issue.status?.color
-                  ? {
-                      backgroundColor: `${issue.status?.color}15`,
-                      borderColor: `${issue.status?.color}40`,
-                      color: issue.status?.color,
-                    }
-                  : undefined
-              }
-              title="Click to change status"
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{
-                  backgroundColor:
-                    issue.status?.color ||
-                    (isDone ? "#10b981" : isInProgress ? "#3b82f6" : "#94a3b8"),
-                }}
-              />
-              <span className="truncate max-w-[80px] sm:max-w-none">{issue.status?.name || "To Do"}</span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
-            </button>
-
-            {activeStatusMenu === issue.id && (
-              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl shadow-2xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-2.5 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-300 dark:border-slate-800">
-                  Change Status
-                </div>
-                {statuses.map((st) => {
-                  const isCur = st.id === issue.statusId;
-                  return (
-                    <button
-                      key={st.id}
-                      type="button"
-                      onClick={() => handleDirectStatusChange(issue.id, st.id)}
-                      className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                        isCur
-                          ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold"
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: st.color || "#94a3b8" }}
-                        />
-                        <span>{st.name}</span>
-                      </div>
-                      {isCur && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* 2. Move to Sprint Dropdown */}
           <select
             value={issue.sprintId || ""}
@@ -1122,7 +1030,6 @@ export function ScrumBacklogView({
               type="button"
               onClick={() => {
                 setActiveActionMenu(activeActionMenu === issue.id ? null : issue.id);
-                setActiveStatusMenu(null);
               }}
               className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="More task actions"
@@ -1667,7 +1574,6 @@ export function ScrumBacklogView({
     <div
       className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-28 relative"
       onClick={() => {
-        setActiveStatusMenu(null);
         setActiveActionMenu(null);
         setActiveBulkDropdown(null);
       }}
