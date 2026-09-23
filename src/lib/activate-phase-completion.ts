@@ -233,8 +233,10 @@ export async function checkPhaseReadinessAndDeliverables(
   let tasksComplete = 0;
   let deliverablesDone = 0;
   const incompleteDeliverables: string[] = [];
+  const worksheetDeliverables = phase.deliverables.filter((d) => d.phaseCode !== null);
+  const relevantDeliverables = worksheetDeliverables.length > 0 ? worksheetDeliverables : phase.deliverables;
 
-  for (const del of phase.deliverables) {
+  for (const del of relevantDeliverables) {
     const subtasks = del.issue.subtasks || [];
     const isDoneCategory = del.issue.status?.category === "DONE";
     const subtasksDone = subtasks.length > 0 && subtasks.every((s) => s.isCompleted);
@@ -251,11 +253,11 @@ export async function checkPhaseReadinessAndDeliverables(
     }
   }
 
-  const hasDeliverables = phase.deliverables.length > 0;
+  const hasDeliverables = relevantDeliverables.length > 0;
   const deliverablesComplete = hasDeliverables
     ? tasksTotal > 0
       ? tasksComplete >= tasksTotal
-      : deliverablesDone >= phase.deliverables.length
+      : deliverablesDone >= relevantDeliverables.length
     : true;
   const criteriaComplete = criteriaTotal > 0 ? criteriaSettled >= criteriaTotal : true;
 
@@ -263,17 +265,18 @@ export async function checkPhaseReadinessAndDeliverables(
     phase.status === "COMPLETED" &&
     deliverablesComplete &&
     criteriaComplete &&
-    unsettledCriteria.length === 0 &&
-    incompleteDeliverables.length === 0;
+    unsettledCriteria.length === 0;
 
   const reason = !isComplete
     ? phase.status !== "COMPLETED"
       ? `Phase ${phase.name} is not marked COMPLETED.`
       : unsettledCriteria.length > 0
         ? `${unsettledCriteria.length} gate criteria unsettled.`
-        : incompleteDeliverables.length > 0
-          ? `${incompleteDeliverables.length} deliverables or tasks incomplete.`
-          : null
+        : tasksTotal > 0 && tasksComplete < tasksTotal
+          ? `${tasksTotal - tasksComplete} task(s) outstanding.`
+          : incompleteDeliverables.length > 0
+            ? `${incompleteDeliverables.length} deliverables or tasks incomplete.`
+            : null
     : null;
 
   return {
@@ -284,7 +287,7 @@ export async function checkPhaseReadinessAndDeliverables(
     tasksComplete,
     criteriaTotal,
     criteriaSettled,
-    deliverablesTotal: phase.deliverables.length,
+    deliverablesTotal: relevantDeliverables.length,
     deliverablesDone,
     unsettledCriteria,
     incompleteDeliverables,
@@ -332,8 +335,8 @@ export async function validatePhaseCanStart(
 
   // 2. All deliverables & workstreams must be completed
   if (
-    prev.incompleteDeliverables.length > 0 ||
-    (prev.tasksTotal > 0 && prev.tasksComplete < prev.tasksTotal)
+    (prev.tasksTotal > 0 && prev.tasksComplete < prev.tasksTotal) ||
+    (prev.tasksTotal === 0 && prev.deliverablesTotal > 0 && prev.deliverablesDone < prev.deliverablesTotal)
   ) {
     return {
       allowed: false,
@@ -371,16 +374,28 @@ export async function validatePhaseCanComplete(
   const rule = Object.values(PHASE_PROGRESSION_RULES).find((r) => r.fromKey === phaseKey);
   const checkName = rule ? rule.checkName : "quality gate criteria";
 
-  if (
-    check.incompleteDeliverables.length > 0 ||
-    (check.tasksTotal > 0 && check.tasksComplete < check.tasksTotal)
-  ) {
+  // Check 1: All tasks in deliverables must be completed
+  if (check.tasksTotal > 0 && check.tasksComplete < check.tasksTotal) {
+    const remaining = check.tasksTotal - check.tasksComplete;
     return {
       allowed: false,
-      error: `Cannot complete ${check.phaseName}: All ${check.phaseName} Deliverables & Workstreams must be completed first.`,
+      error: `Cannot complete ${check.phaseName}: All ${check.phaseName} Deliverables & Workstreams must be completed first (${remaining} task(s) outstanding).`,
     };
   }
 
+  // Check 2: Deliverables without checklist tasks must be in DONE status
+  if (
+    check.tasksTotal === 0 &&
+    check.deliverablesTotal > 0 &&
+    check.deliverablesDone < check.deliverablesTotal
+  ) {
+    return {
+      allowed: false,
+      error: `Cannot complete ${check.phaseName}: All ${check.phaseName} Deliverables & Workstreams must be completed first (${check.incompleteDeliverables.length} deliverable(s) incomplete).`,
+    };
+  }
+
+  // Check 3: All gate criteria / readiness checks must be completed
   if (
     check.unsettledCriteria.length > 0 ||
     (check.criteriaTotal > 0 && check.criteriaSettled < check.criteriaTotal)
