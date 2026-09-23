@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, fieldClass, FieldLabel } from "./ui";
 
 /**
  * The backlog the current decisions imply, and the button that makes it real.
@@ -120,7 +121,7 @@ export function ActivateBacklog({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-sm text-slate-500">
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
         Working out the backlog…
       </div>
@@ -131,7 +132,7 @@ export function ActivateBacklog({
     <div className="space-y-4">
       <div aria-live="polite" className="min-h-[1rem]">
         {error && (
-          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
         )}
@@ -140,35 +141,35 @@ export function ActivateBacklog({
         )}
       </div>
 
-      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+      <section className="bg-card rounded-2xl border border-border">
         <div className="flex flex-wrap items-center justify-between gap-2 p-4 pb-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            <h3 className="text-sm font-bold text-foreground">
               Backlog from decisions
             </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-muted-foreground">
               {items.length} item{items.length === 1 ? "" : "s"} implied ·{" "}
               {items.length - pending} already created · {pending} not yet
             </p>
           </div>
           {canGenerate && (
-            <button
+            <Btn
               type="button"
               disabled={busy || pending === 0}
               onClick={generate}
-              className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 disabled:opacity-40"
+              variant="primary"
             >
               {busy
                 ? "Creating…"
                 : pending === 0
                   ? "Nothing to create"
                   : `Create ${pending} issue${pending === 1 ? "" : "s"}`}
-            </button>
+            </Btn>
           )}
         </div>
 
         {items.length === 0 ? (
-          <p className="px-4 pb-5 text-xs text-slate-500">
+          <p className="px-4 pb-5 text-xs text-muted-foreground">
             No work is implied yet. Record a decision that departs from the
             standard, and it will appear here before anything is created.
           </p>
@@ -179,7 +180,7 @@ export function ActivateBacklog({
                 Backlog items implied by the current fit-to-standard decisions
               </caption>
               <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wide text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <tr className="text-left text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
                   <th scope="col" className="px-4 py-2 font-semibold">Item</th>
                   <th scope="col" className="px-2 py-2 font-semibold">Type</th>
                   <th scope="col" className="px-2 py-2 font-semibold">Pri</th>
@@ -197,21 +198,21 @@ export function ActivateBacklog({
                 {items.map((b) => (
                   <tr
                     key={b.originKey}
-                    className="border-b border-slate-100 dark:border-slate-800/70 align-top"
+                    className="border-b border-border align-top"
                   >
                     <td className="px-4 py-2">
-                      <span className="font-medium text-slate-800 dark:text-slate-200">
+                      <span className="font-medium text-foreground">
                         {b.title}
                       </span>
                       {b.automatic && (
                         <span
-                          className="ml-1.5 text-[9px] font-bold px-1 py-px rounded border border-slate-300 dark:border-slate-700 text-slate-500"
+                          className="ml-1.5 text-[9px] font-bold px-1 py-px rounded border border-border text-muted-foreground"
                           title={b.note ?? "Added by a generation rule"}
                         >
                           AUTO
                         </span>
                       )}
-                      <span className="block text-[10px] text-slate-400 font-mono">
+                      <span className="block text-[10px] text-muted-foreground font-mono">
                         {b.scopeItemCode} · {label(b.decision)}
                         {/* Reads "defer · scope item done" — the pairing that
                             would otherwise look like a mistake on the board:
@@ -223,16 +224,16 @@ export function ActivateBacklog({
                         )}
                       </span>
                     </td>
-                    <td className="px-2 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-2 py-2 text-muted-foreground">
                       {label(b.buildType)}
                     </td>
-                    <td className="px-2 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-2 py-2 text-muted-foreground">
                       {label(b.priority)}
                     </td>
-                    <td className="px-2 py-2 font-mono text-slate-600 dark:text-slate-400">
+                    <td className="px-2 py-2 font-mono text-muted-foreground">
                       {b.size}
                     </td>
-                    <td className="px-2 py-2 text-slate-600 dark:text-slate-400">
+                    <td className="px-2 py-2 text-muted-foreground">
                       {label(b.targetPhaseKey)}
                     </td>
                     <td className="px-2 py-2">
@@ -240,7 +241,7 @@ export function ActivateBacklog({
                         className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
                           b.issueStatus === "DONE"
                             ? "border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
-                            : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                            : "border-border text-muted-foreground"
                         }`}
                       >
                         {b.issueStatus === "DONE" ? "Done" : "Backlog"}
@@ -256,7 +257,7 @@ export function ActivateBacklog({
                           {b.issue.issueKey}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-slate-400">not created</span>
+                        <span className="text-[10px] text-muted-foreground">not created</span>
                       )}
                     </td>
                   </tr>
@@ -267,8 +268,8 @@ export function ActivateBacklog({
         )}
       </section>
 
-      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Why items appear</h3>
+      <section className="bg-card rounded-2xl border border-border p-4">
+        <h3 className="text-sm font-bold text-foreground">Why items appear</h3>
         <dl className="mt-2 space-y-1.5">
           {[
             ["Delta", "Every difference you record on a non-standard decision becomes one item."],
@@ -278,9 +279,9 @@ export function ActivateBacklog({
             ["Question", "An open question becomes a tracked action that blocks design sign-off."],
             ["Out of scope", "A module switched out generates nothing and is not counted."],
           ].map(([k, v]) => (
-            <div key={k} className="grid grid-cols-[6.5rem_1fr] gap-2">
-              <dt className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{k}</dt>
-              <dd className="text-[11px] text-slate-500 dark:text-slate-400">{v}</dd>
+            <div key={k} className="grid grid-cols-1 sm:grid-cols-[6.5rem_1fr] gap-1 sm:gap-2">
+              <dt className="text-[11px] font-bold text-foreground">{k}</dt>
+              <dd className="text-[11px] text-muted-foreground">{v}</dd>
             </div>
           ))}
         </dl>

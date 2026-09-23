@@ -377,3 +377,140 @@ export async function getPhaseWorksheet(
     })),
   };
 }
+
+/* -------------------------------------------------------------------------
+ * Seeding a project's plan from its methodology template
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Create a phase's deliverables, with their task checklists, from the
+ * template the project was seeded from.
+ *
+ * WHY THIS IS NOT PART OF THE ENABLE TRANSACTION
+ *
+ * `enableActivate` writes the profile, six phases, six gates and thirteen
+ * workstreams in one transaction, and that is right: a project left with
+ * phases but no profile is a state no screen can render. Adding 57 issues,
+ * 57 links and 213 subtasks to it would put several hundred writes inside a
+ * single interactive transaction, which is how a default 5-second timeout
+ * turns "enable Activate" into a half-built project.
+ *
+ * So the plan is seeded afterwards, phase by phase, each deliverable in its
+ * own small transaction — the same unit `createWorksheetDeliverable` uses
+ * when a person adds one by hand. A failure part-way leaves a project with
+ * some of its plan and a working screen, and running it again finishes the
+ * job rather than duplicating what landed.
+ *
+ * IDEMPOTENT, AND CONSERVATIVE ABOUT WHAT THAT MEANS
+ *
+ * A phase that already has any coded deliverable is skipped entirely. Not
+ * "add the ones that are missing": a project that has started planning has
+ * an opinion about its own phase, and topping it up from the methodology
+ * would quietly insert work nobody asked for beside work somebody wrote.
+ * Re-enabling Activate is therefore safe on a live project.
+ */
+export async function seedPhaseDeliverablesFromTemplate(input: {
+  projectId: string;
+  phaseId: string;
+  actorId: string;
+  deliverables: Array<{ name: string; workstreamKey: string | null; tasks: string[] }>;
+}): Promise<{ created: number; skipped: boolean }> {
+  if (input.deliverables.length === 0) return { created: 0, skipped: false };
+
+  const existing = await prisma.activateDeliverableLink.count({
+    where: { phaseId: input.phaseId, phaseCode: { not: null } },
+  });
+  if (existing > 0) return { created: 0, skipped: true };
+
+  /**
+   * A project that cannot host issues is skipped, not failed.
+   *
+   * Every deliverable becomes a real issue, which needs a workflow with
+   * statuses and at least one issue type. A project without them is unusual
+   * but possible — one built by an import, or by a test fixture — and the
+   * first version of this threw, which turned "enable Activate" into a 500
+   * and left the project with no methodology at all.
+   *
+   * That is the wrong trade. The phases and gates are the feature; the
+   * starter plan is a convenience on top. So a project that cannot take the
+   * plan still gets everything else, and can be seeded later once it has a
+   * board to put the work on.
+   */
+  const workflow = await prisma.workflow.findFirst({
+    where: { projectId: input.projectId },
+    select: { statuses: { select: { id: true }, take: 1 } },
+  });
+  if (!workflow || workflow.statuses.length === 0) return { created: 0, skipped: true };
+
+  const allowedTypes = await allowedIssueTypeValues(input.projectId);
+  const issueType = allowedTypes.has("TASK") ? "TASK" : [...allowedTypes][0];
+  if (!issueType) return { created: 0, skipped: true };
+
+  // The project's workstreams, by key, so a template line lands in the right
+  // one. A key the project does not have leaves the deliverable unassigned
+  // rather than failing the seed — a missing workstream is a gap in the
+  // methodology, not a reason to refuse somebody a plan.
+  const workstreams = await prisma.activateWorkstream.findMany({
+    where: { projectId: input.projectId },
+    select: { id: true, key: true },
+  });
+  const byKey = new Map(workstreams.map((w) => [w.key, w.id]));
+
+  let created = 0;
+  for (const d of input.deliverables) {
+    await prisma.$transaction(async (tx) => {
+      const phaseCode = await allocatePhaseCode(tx, input.phaseId);
+      const { keyNumber, issueKey, project } = await allocateIssueKey(tx, input.projectId);
+
+      const issue = await tx.issue.create({
+        data: {
+          projectId: input.projectId,
+          keyNumber,
+          issueKey,
+          title: d.name,
+          issueType,
+          priority: "MEDIUM",
+          // Backlog: a seeded plan is work nobody has started.
+          statusId: issueStatusIdFor(project, "BACKLOG"),
+          reporterId: input.actorId,
+        },
+        select: { id: true },
+      });
+
+      await tx.activateDeliverableLink.create({
+        data: {
+          issueId: issue.id,
+          phaseId: input.phaseId,
+          workstreamId: (d.workstreamKey && byKey.get(d.workstreamKey)) || null,
+          phaseCode,
+        },
+      });
+
+      if (d.tasks.length > 0) {
+        /**
+         * The timestamps are set explicitly, one millisecond apart.
+         *
+         * A task list is read in order — "draft it, review it, sign it" is
+         * not the same checklist shuffled. The worksheet orders subtasks by
+         * `createdAt`, and in Postgres every row written inside one
+         * transaction shares that transaction's timestamp, so a plain
+         * `createMany` would give all four tasks of a deliverable the same
+         * instant and let the database return them in any order it liked.
+         * Offsetting the index restores the order the methodology states it
+         * in, without a schema change for a field only seeding needs.
+         */
+        const base = Date.now();
+        await tx.subtask.createMany({
+          data: d.tasks.map((title, i) => ({
+            parentIssueId: issue.id,
+            title,
+            createdAt: new Date(base + i),
+          })),
+        });
+      }
+    });
+    created += 1;
+  }
+
+  return { created, skipped: false };
+}

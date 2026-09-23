@@ -104,10 +104,27 @@ const findings = [];
 for (const file of ROOTS.flatMap(walk)) {
   const src = readFileSync(file, "utf8");
 
-  for (const el of elementsOf(src, "button")) {
-    if (NAMED.test(el.openTag)) continue;
-    if (hasTextContent(el.children)) continue;
-    findings.push({ file, line: el.line, kind: "button-no-name" });
+  /**
+   * `Btn` is scanned alongside `button` because it IS one.
+   *
+   * The Activate screens moved their twelve hand-styled buttons onto a shared
+   * `Btn` wrapper. Scanning only the lowercase tag would have quietly taken
+   * all twelve out of this check — the count would have improved by losing
+   * coverage, which is the one way a ratchet can lie.
+   */
+  for (const tag of ["button", "Btn"]) {
+    for (const el of elementsOf(src, tag)) {
+      if (NAMED.test(el.openTag)) continue;
+      if (hasTextContent(el.children)) continue;
+      /**
+       * A wrapper that spreads its caller's props is not the thing to name.
+       * Its accessible name arrives as children from each call site, and
+       * those call sites are what the loop above now checks. Naming the
+       * wrapper itself would give every button in the app the same label.
+       */
+      if (/\{\s*\.\.\.\w+\s*\}/.test(el.openTag)) continue;
+      findings.push({ file, line: el.line, kind: "button-no-name" });
+    }
   }
 
   /**

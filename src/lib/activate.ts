@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { ACTIVATE_PHASE_CONTENT } from "./activate-template-content";
 
 /**
  * SAP Activate — methodology data and seeding.
@@ -41,83 +42,55 @@ export const ACTIVATE_PHASES: PhaseSeed[] = [
     key: "DISCOVER",
     name: "Discover",
     gate: {
-      name: "Discover gate",
+      name: ACTIVATE_PHASE_CONTENT.DISCOVER.gate.name,
       description: "Scope, value and approach are agreed before a project is funded.",
-      criteria: [
-        "Value case documented",
-        "Solution scope outlined",
-        "Deployment approach chosen",
-      ],
+      criteria: ACTIVATE_PHASE_CONTENT.DISCOVER.gate.criteria,
     },
   },
   {
     key: "PREPARE",
     name: "Prepare",
     gate: {
-      name: "Prepare gate",
+      name: ACTIVATE_PHASE_CONTENT.PREPARE.gate.name,
       description: "The project can actually start: plan, people and environments.",
-      criteria: [
-        "Project plan baselined",
-        "Team onboarded and roles assigned",
-        "Environments provisioned",
-        "Kickoff completed",
-      ],
+      criteria: ACTIVATE_PHASE_CONTENT.PREPARE.gate.criteria,
     },
   },
   {
     key: "EXPLORE",
     name: "Explore",
     gate: {
-      name: "Explore gate",
+      name: ACTIVATE_PHASE_CONTENT.EXPLORE.gate.name,
       description: "Requirements are understood and every gap has a decision.",
-      criteria: [
-        "Fit-to-standard workshops completed",
-        "Backlog confirmed",
-        "Gaps classified as FIT, GAP or ACCEPTED_GAP",
-        "Key decisions recorded",
-      ],
+      criteria: ACTIVATE_PHASE_CONTENT.EXPLORE.gate.criteria,
     },
   },
   {
     key: "REALIZE",
     name: "Realize",
     gate: {
-      name: "Realize gate",
+      name: ACTIVATE_PHASE_CONTENT.REALIZE.gate.name,
       description: "The solution is built and proven, and the data move is rehearsed.",
-      criteria: [
-        "Configuration and build complete",
-        "Test cycles passed",
-        "Data migration rehearsed",
-        "Integrations verified",
-      ],
+      criteria: ACTIVATE_PHASE_CONTENT.REALIZE.gate.criteria,
     },
   },
   {
     key: "DEPLOY",
     name: "Deploy",
     gate: {
-      name: "Go-live gate",
+      name: ACTIVATE_PHASE_CONTENT.DEPLOY.gate.name,
       description:
         "The go-live decision. This is the gate where separation of duties matters most.",
-      criteria: [
-        "Cutover plan approved",
-        "Production readiness confirmed",
-        "Support model in place",
-        "Go-live decision recorded",
-      ],
+      criteria: ACTIVATE_PHASE_CONTENT.DEPLOY.gate.criteria,
     },
   },
   {
     key: "RUN",
     name: "Run",
     gate: {
-      name: "Transition to operations",
+      name: ACTIVATE_PHASE_CONTENT.RUN.gate.name,
       description: "Hypercare ends and the solution is owned by operations.",
-      criteria: [
-        "Hypercare completed",
-        "Incidents within agreed thresholds",
-        "Operations handover accepted",
-      ],
+      criteria: ACTIVATE_PHASE_CONTENT.RUN.gate.criteria,
     },
   },
 ];
@@ -173,7 +146,18 @@ export const ACTIVATE_PHASE_KEYS = ACTIVATE_PHASES.map((p) => p.key);
  * Runs in a single transaction. A project left with phases but no profile —
  * or half its workstreams — would be a state no screen knows how to render.
  */
-export async function enableActivate(projectId: string, templateId?: string): Promise<void> {
+export async function enableActivate(
+  projectId: string,
+  templateId?: string,
+  /**
+   * Who is turning it on. Required to seed the plan, because every
+   * deliverable becomes a real issue and an issue must have a reporter.
+   * Optional so that callers which only want the phases — the older
+   * signature, and the template-equivalence tests — still compile; the
+   * plan is simply not seeded without one.
+   */
+  actorId?: string
+): Promise<void> {
   /**
    * Seeded FROM A TEMPLATE since increment 8.
    *
@@ -253,6 +237,44 @@ export async function enableActivate(projectId: string, templateId?: string): Pr
       });
     }
   });
+
+  /**
+   * The plan, seeded AFTER the transaction above has committed.
+   *
+   * Deliberately outside it: this creates one issue, one link and a
+   * handful of subtasks per deliverable — several hundred writes for a
+   * six-phase methodology. Inside the transaction that also writes the
+   * profile, that is a long-running lock and a plausible timeout, and a
+   * timeout there would roll back the phases as well and leave the
+   * project with nothing.
+   *
+   * Out here, the worst case is a project with its phases, its gates and
+   * part of its plan — a working screen that finishes filling in when
+   * Activate is enabled again, because seeding skips any phase that
+   * already has deliverables.
+   */
+  if (actorId) {
+    const { seedPhaseDeliverablesFromTemplate } = await import('./activate-worksheet');
+    const phases = await prisma.activatePhase.findMany({
+      where: { projectId },
+      select: { id: true, key: true },
+    });
+    const byKey = new Map(phases.map((p) => [p.key, p.id]));
+    for (const seed of template.phases) {
+      const phaseId = byKey.get(seed.key);
+      if (!phaseId || seed.deliverables.length === 0) continue;
+      await seedPhaseDeliverablesFromTemplate({
+        projectId,
+        phaseId,
+        actorId,
+        deliverables: seed.deliverables.map((d) => ({
+          name: d.name,
+          workstreamKey: d.workstreamKey,
+          tasks: d.tasks.map((t) => t.title),
+        })),
+      });
+    }
+  }
 }
 
 /**
@@ -277,4 +299,31 @@ export async function isActivateEnabled(projectId: string): Promise<boolean> {
     select: { enabled: true },
   });
   return Boolean(profile?.enabled);
+}
+
+/**
+ * Refuse a write to a project that has switched Activate off.
+ *
+ * WHY THIS IS A SHARED FUNCTION AND NOT A LINE IN EACH ROUTE
+ *
+ * It was a line in each route, and only five of nineteen route files had it.
+ * The rest — raising a gate, signing one off, completing a phase, editing a
+ * fit-to-standard decision, renaming a scope item — went through untouched,
+ * so a project with the methodology switched off could still accumulate
+ * approved gates and completed phases. Disabling looked like it worked
+ * because the screens disappear; the API never stopped accepting the writes
+ * behind them.
+ *
+ * Every mutating Activate route calls this. Reads deliberately do not: the
+ * rows survive a disable by design, and a project turning Activate back on
+ * expects to find its history rather than a blank methodology.
+ *
+ * A 409 rather than a 403: the caller holds the right permission, the project
+ * is in the wrong state, and enabling it makes the identical request succeed.
+ */
+export async function assertActivateEnabled(projectId: string): Promise<void> {
+  if (!(await isActivateEnabled(projectId))) {
+    const { ConflictError } = await import("./api-error");
+    throw new ConflictError("Activate is not enabled for this project.", "ACTIVATE_DISABLED");
+  }
 }

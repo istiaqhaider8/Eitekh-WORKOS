@@ -30,7 +30,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 const argv = process.argv.slice(2);
@@ -47,13 +47,31 @@ const ROOT = resolve(process.cwd());
 const STANDALONE = join(ROOT, ".next", "standalone");
 
 if (!existsSync(join(STANDALONE, "server.js"))) {
-  console.error(
-    "\n[start-local] No standalone build found.\n" +
-      "  npm run build\n" +
-      "  cp -r .next/static .next/standalone/.next/\n",
-  );
+  console.error("\n[start-local] No standalone build found. Run: npm run build\n");
   process.exitCode = 1;
 } else {
+  /**
+   * Copy the static assets next to the standalone server, every start.
+   *
+   * `next build` deliberately leaves `.next/static` out of the standalone
+   * output, and this script used to PRINT that as advice and start anyway.
+   * So a plain `npm run build` — which replaces `.next/standalone` — produced
+   * a server that boots cleanly, answers 200 on every page, passes an API
+   * test suite, and serves the application with no CSS at all. The failure
+   * looks like a styling bug rather than a missing directory, and nothing in
+   * the log mentions it: the 404s are for asset URLs, in the browser.
+   *
+   * `run-integration-tests.mjs` has always done this copy. Two scripts, one
+   * doing the step and one describing it, is how the step gets skipped.
+   * Doing it here costs a directory copy per start and removes the failure.
+   */
+  cpSync(join(ROOT, ".next", "static"), join(STANDALONE, ".next", "static"), {
+    recursive: true,
+  });
+  if (existsSync(join(ROOT, "public"))) {
+    cpSync(join(ROOT, "public"), join(STANDALONE, "public"), { recursive: true });
+  }
+
   /**
    * Read .env directly rather than relying on Next to load it.
    *

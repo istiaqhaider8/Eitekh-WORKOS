@@ -30,7 +30,7 @@ async function enableAndLoad(side: "orgA" | "orgB") {
   const s = fx[side];
   await api(s.users.OWNER, `/api/projects/${s.projectId}/activate`, {
     method: "POST",
-    body: { enabled: true },
+    body: { enabled: true, seedPlan: false },
   });
   const res = await api(s.users.OWNER, `/api/projects/${s.projectId}/activate`);
   return res.body;
@@ -520,7 +520,7 @@ describe("Deliverables on a project with Activate switched off", () => {
     // Re-enable: the seed is idempotent and the phases are the same rows.
     await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     const after = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`);
     expect(after.body.phases.find((p: any) => p.key === "EXPLORE").id).toBe(phaseA.id);

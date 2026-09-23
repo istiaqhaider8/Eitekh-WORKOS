@@ -1189,6 +1189,18 @@ export const activateEnableSchema = z.object({
    * exactly what it used to.
    */
   templateId: optionalCuidSchema,
+  /**
+   * Whether to create the methodology's starter plan — its deliverables and
+   * their task checklists — as real issues on the board.
+   *
+   * Defaults to true, because a methodology with no plan in it is six empty
+   * phases and a gate, and typing 57 deliverables in by hand is not a
+   * reasonable first step. The opt-out is for a project arriving with a plan
+   * of its own: an implementation already under way, or one migrating in
+   * from another tool, where 57 issues nobody asked for is noise to clean up
+   * rather than a head start.
+   */
+  seedPlan: z.boolean().optional(),
 });
 
 /**

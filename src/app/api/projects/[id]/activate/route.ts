@@ -122,7 +122,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const parsed = await parseJsonBody(req, activateEnableSchema);
     if (!parsed.success) return parsed.error;
-    const { enabled, templateId } = parsed.data;
+    const { enabled, templateId, seedPlan } = parsed.data;
 
     if (enabled) {
       /**
@@ -147,7 +147,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           );
         }
       }
-      await enableActivate(projectId, templateId ?? undefined);
+      // The plan is seeded unless the caller says otherwise; see the schema.
+      await enableActivate(projectId, templateId ?? undefined, seedPlan === false ? undefined : user.id);
     } else {
       await disableActivate(projectId);
     }

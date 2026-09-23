@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError, ConflictError, ForbiddenError } from "@/lib/api-error";
 import { parseJsonBody, activateGateApprovalSchema } from "@/lib/validation";
-import { recordGateDecision, isGoLiveGate } from "@/lib/activate-gates";
+import { recordGateDecision, isGoLiveGate, unsatisfiedCriteria } from "@/lib/activate-gates";
 import { logAuditEvent } from "@/lib/audit-logger";
 import { syncEngine } from "@/lib/sync-engine";
 
@@ -44,6 +45,7 @@ export async function POST(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:sign_off_gate");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateGateApprovalSchema);
     if (!parsed.success) return parsed.error;
@@ -57,6 +59,7 @@ export async function POST(
         status: true,
         raisedById: true,
         phase: { select: { key: true, name: true } },
+        criteria: { select: { criterion: true, status: true } },
       },
     });
     if (!gate) return NextResponse.json({ error: "Gate not found" }, { status: 404 });
@@ -93,6 +96,36 @@ export async function POST(
           : "This gate has not been raised for sign-off.",
         "GATE_NOT_RAISED"
       );
+    }
+
+    /**
+     * The criteria are checked AGAIN, here, at the moment of signing.
+     *
+     * Raising already refuses while anything is unsettled, and this used to
+     * rely on that. It was not enough: raising and signing are two requests
+     * with a review in between, and a criterion could be marked NOT_MET in
+     * that window — which is exactly what a reviewer who has found a problem
+     * would do. The gate stayed RAISED, nothing re-read the criteria, and a
+     * live system produced an APPROVED gate carrying a NOT_MET criterion.
+     * The one artefact the whole feature exists to produce, saying two
+     * opposite things at once.
+     *
+     * So the check lives where the consequence is. A reviewer marking a
+     * criterion NOT_MET during sign-off now BLOCKS the approval instead of
+     * being silently overtaken by it, which is what marking it was for.
+     *
+     * Only approvals are gated. Rejecting an unsatisfied gate is the correct
+     * response to one, and revoking an approval must never be blocked by the
+     * state of the thing being revoked.
+     */
+    if (decision === "APPROVED") {
+      const outstanding = unsatisfiedCriteria(gate.criteria);
+      if (outstanding.length > 0) {
+        throw new ConflictError(
+          `This gate cannot be approved while criteria are neither met nor waived: ${outstanding.join("; ")}.`,
+          "GATE_CRITERIA_OUTSTANDING"
+        );
+      }
     }
 
     if (gate.raisedById === user.id) {

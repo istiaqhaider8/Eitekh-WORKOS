@@ -18,6 +18,7 @@
 import { PrismaClient } from "@prisma/client";
 import { api, expectDenied, expectAllowed, waitForServer, type Fixture } from "./harness";
 import { createFixture, destroyFixture } from "./fixture";
+import { ACTIVATE_PHASE_CONTENT } from "@/lib/activate-template-content";
 
 const prisma = new PrismaClient();
 let fx: Fixture;
@@ -42,6 +43,9 @@ beforeAll(async () => {
     select: { id: true },
   });
   gateId = gate!.id;
+
+  const w = await readSheet();
+  seeded = { deliverables: w.deliverableCount, tasks: w.tasksTotal };
 }, 240_000);
 
 afterAll(async () => {
@@ -52,6 +56,28 @@ afterAll(async () => {
 const sheet = (projectId: string, phase = discoverKey) =>
   `/api/projects/${projectId}/activate/phases/${phase}/worksheet`;
 
+/** The worksheet as it stands, for assertions relative to what is there. */
+async function readSheet(phase = discoverKey) {
+  const res = await api(fx.orgA.users.OWNER, sheet(fx.orgA.projectId, phase));
+  expectAllowed(res, `reading the ${phase} worksheet`);
+  return res.body.worksheet;
+}
+
+/** The code the allocator must hand out next, given what it has issued. */
+function nextCode(prefix: string, issuedSoFar: number) {
+  return `${prefix}-${String(issuedSoFar + 1).padStart(2, "0")}`;
+}
+
+/**
+ * How much of Discover's plan arrived with the project.
+ *
+ * Read once, after enabling, so the assertions below can be deltas. The
+ * first test also pins it against the content module: a baseline read
+ * from the system would cheerfully be zero if seeding broke, and then
+ * every relative assertion would pass while the feature was gone.
+ */
+let seeded = { deliverables: 0, tasks: 0 };
+
 // ---------------------------------------------------------------------------
 
 describe("Reading a phase worksheet", () => {
@@ -61,15 +87,28 @@ describe("Reading a phase worksheet", () => {
 
     const w = res.body.worksheet;
     expect(w.phaseKey).toBe("DISCOVER");
-    expect(w.deliverableCount).toBe(0);
-    expect(w.tasksTotal).toBe(0);
+    // The project arrives with the methodology's plan for this phase,
+    // asserted against the content module rather than a literal: a number
+    // copied here would need editing every time the methodology gained a
+    // deliverable, and would not say why it had changed.
+    const plan = ACTIVATE_PHASE_CONTENT.DISCOVER;
+    expect(w.deliverableCount).toBe(plan.deliverables.length);
+    expect(w.tasksTotal).toBe(plan.deliverables.reduce((n, d) => n + d.tasks.length, 0));
+    // Seeded, never pre-ticked: a new project must not claim progress.
     expect(w.tasksComplete).toBe(0);
+    expect(w.deliverables.map((d: any) => d.name)).toEqual(
+      plan.deliverables.map((d) => d.name)
+    );
     // G0: derived from the phase's position, not stored, so it cannot drift
     // away from where the phase actually sits.
     expect(w.gate.code).toBe("G0");
     expect(w.gate.criteriaTotal).toBeGreaterThan(0);
     expect(w.workstreams.length).toBeGreaterThan(0);
-    expect(w.workstreams.every((x: any) => x.deliverableCount === 0)).toBe(true);
+    // Every seeded deliverable is filed under a workstream, so the counts
+    // across them add up to the plan rather than all being zero.
+    expect(w.workstreams.reduce((n: number, x: any) => n + x.deliverableCount, 0)).toBe(
+      plan.deliverables.length
+    );
   });
 
   it("is 404 for a phase key this project does not have", async () => {
@@ -117,7 +156,7 @@ describe("Adding a deliverable", () => {
       body: { name: "Business case and target outcomes", workstreamId: pm.id },
     });
     expect(res.status).toBe(201);
-    expect(res.body.deliverable.phaseCode).toBe("D-01");
+    expect(res.body.deliverable.phaseCode).toBe(nextCode("D", seeded.deliverables));
     firstLinkId = res.body.deliverable.linkId;
     firstIssueId = res.body.deliverable.issueId;
 
@@ -148,15 +187,22 @@ describe("Adding a deliverable", () => {
       method: "POST",
       body: { name: "Suite scope and module roadmap", workstreamId: sol.id },
     });
-    expect(res.body.deliverable.phaseCode).toBe("D-02");
+    expect(res.body.deliverable.phaseCode).toBe(nextCode("D", seeded.deliverables + 1));
 
-    const w = (await api(fx.orgA.users.OWNER, sheet(fx.orgA.projectId))).body.worksheet;
-    expect(w.deliverableCount).toBe(2);
+    const w = await readSheet();
+    expect(w.deliverableCount).toBe(seeded.deliverables + 2);
     // Counted from the rows, not stored: the summary and the list cannot
     // disagree because there is only one source for both.
+    // A DELTA against the seeded plan: both workstreams already carry
+    // deliverables from the methodology, and the claim under test is that
+    // each new one lands in the workstream it was filed under.
     const byKey = Object.fromEntries(w.workstreams.map((x: any) => [x.key, x.deliverableCount]));
-    expect(byKey.PROJECT_MANAGEMENT).toBe(1);
-    expect(byKey.APPLICATION_DESIGN_CONFIGURATION).toBe(1);
+    const seededIn = (key: string) =>
+      ACTIVATE_PHASE_CONTENT.DISCOVER.deliverables.filter((d) => d.workstreamKey === key).length;
+    expect(byKey.PROJECT_MANAGEMENT).toBe(seededIn("PROJECT_MANAGEMENT") + 1);
+    expect(byKey.APPLICATION_DESIGN_CONFIGURATION).toBe(
+      seededIn("APPLICATION_DESIGN_CONFIGURATION") + 1
+    );
   });
 
   it("refuses a nameless deliverable and a workstream from another project", async () => {
@@ -182,8 +228,14 @@ describe("Adding a deliverable", () => {
     // not one of the path-guard statuses expectDenied knows about.
     expect(res.status).toBe(400);
     expect(res.body.code).toBe("INVALID_REFERENCE");
+    // Scoped to org A's phases. A global count was once zero and is now
+    // nine, because org B's project is seeded from the same methodology
+    // and files deliverables under its own workstreams — org B using its
+    // own data correctly, not a leak.
     expect(
-      await prisma.activateDeliverableLink.count({ where: { workstreamId: foreign!.id } })
+      await prisma.activateDeliverableLink.count({
+        where: { workstreamId: foreign!.id, phase: { projectId: fx.orgA.projectId } },
+      })
     ).toBe(0);
   });
 
@@ -193,7 +245,7 @@ describe("Adding a deliverable", () => {
       `/api/projects/${fx.orgA.projectId}/activate/deliverables/${firstLinkId}`,
       { method: "DELETE" }
     );
-    expectAllowed(removed, "removing D-01 from the phase");
+    expectAllowed(removed, "removing the first added deliverable from the phase");
 
     const next = await api(fx.orgA.users.OWNER, sheet(fx.orgA.projectId), {
       method: "POST",
@@ -208,7 +260,7 @@ describe("Adding a deliverable", () => {
      * different piece of work. The regression that shape of bug produces was
      * found in the scope-item allocator by live testing, not by a suite.
      */
-    expect(next.body.deliverable.phaseCode).toBe("D-03");
+    expect(next.body.deliverable.phaseCode).toBe(nextCode("D", seeded.deliverables + 2));
   });
 
   it("keeps the issue on the board when the deliverable is unlinked", async () => {
@@ -250,8 +302,9 @@ describe("Tasks on a deliverable", () => {
     const d = w.deliverables.find((x: any) => x.linkId === linkId);
     expect(d.tasksTotal).toBe(3);
     expect(d.tasksComplete).toBe(0);
-    // The phase total moves with it, from the same rows.
-    expect(w.tasksTotal).toBe(3);
+    // The phase total moves with it, from the same rows — on top of the
+    // tasks the methodology seeded, none of which this test has touched.
+    expect(w.tasksTotal).toBe(seeded.tasks + 3);
     expect(w.tasksComplete).toBe(0);
   });
 
@@ -268,7 +321,7 @@ describe("Tasks on a deliverable", () => {
     const w1 = (await api(fx.orgA.users.OWNER, sheet(fx.orgA.projectId))).body.worksheet;
     expect(w1.deliverables.find((x: any) => x.linkId === linkId).tasksComplete).toBe(1);
     expect(w1.tasksComplete).toBe(1);
-    expect(w1.tasksTotal).toBe(3);
+    expect(w1.tasksTotal).toBe(seeded.tasks + 3);
   });
 
   it("drops the denominator when a task is removed", async () => {
@@ -282,7 +335,7 @@ describe("Tasks on a deliverable", () => {
 
     const w1 = (await api(fx.orgA.users.OWNER, sheet(fx.orgA.projectId))).body.worksheet;
     expect(w1.deliverables.find((x: any) => x.linkId === linkId).tasksTotal).toBe(2);
-    expect(w1.tasksTotal).toBe(2);
+    expect(w1.tasksTotal).toBe(seeded.tasks + 2);
   });
 });
 
@@ -437,7 +490,7 @@ describe("Gate criteria", () => {
  * test on more than one phase.
  */
 describe("A second phase's worksheet", () => {
-  it("numbers Prepare deliverables P-01, independently of Discover", async () => {
+  it("continues Prepare's own sequence, independently of Discover", async () => {
     const path = `/api/projects/${fx.orgA.projectId}/activate/phases/PREPARE/worksheet`;
 
     const before = await api(fx.orgA.users.ADMIN, path);
@@ -445,20 +498,24 @@ describe("A second phase's worksheet", () => {
     expect(before.body.worksheet.phaseKey).toBe("PREPARE");
     // Its own gate, its own number: G1, from the phase's position.
     expect(before.body.worksheet.gate.code).toBe("G1");
-    expect(before.body.worksheet.deliverableCount).toBe(0);
+    // Prepare arrives with its own twelve, quite separately from Discover.
+    expect(before.body.worksheet.deliverableCount).toBe(
+      ACTIVATE_PHASE_CONTENT.PREPARE.deliverables.length
+    );
+    const seededPrepare = before.body.worksheet.deliverableCount;
 
     const first = await api(fx.orgA.users.ADMIN, path, {
       method: "POST",
       body: { name: "Project charter and governance" },
     });
     expect(first.status).toBe(201);
-    expect(first.body.deliverable.phaseCode).toBe("P-01");
+    expect(first.body.deliverable.phaseCode).toBe(nextCode("P", seededPrepare));
 
     const second = await api(fx.orgA.users.ADMIN, path, {
       method: "POST",
       body: { name: "Plan, RAID and reporting" },
     });
-    expect(second.body.deliverable.phaseCode).toBe("P-02");
+    expect(second.body.deliverable.phaseCode).toBe(nextCode("P", seededPrepare + 1));
   });
 
   it("keeps the two phases' sequences and contents apart", async () => {
@@ -530,5 +587,155 @@ describe("Work in a phase that is not a worksheet line", () => {
 
     await prisma.activateDeliverableLink.delete({ where: { id: link.id } });
     expect((await api(fx.orgA.users.ADMIN, path)).body.worksheet.unlistedCount).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Completing a phase, and the two things completing it must not do.
+ *
+ * The screen shows an "all complete" state once every task is ticked and
+ * every gate criterion is settled, and enables a Mark complete button. The
+ * arithmetic behind that badge is unit-tested. What only a running system
+ * can show is the part that matters more: that reaching the bottom of the
+ * checklist does NOT close the phase, does NOT raise the gate and certainly
+ * does not approve one. Completing is a person's act, and signing the gate
+ * is a different person's act.
+ */
+describe("Completing a phase", () => {
+  /** REALIZE, so the blocks above keep Discover and Prepare to themselves. */
+  const phaseKey = "REALIZE";
+  const path = (projectId: string) =>
+    `/api/projects/${projectId}/activate/phases/${phaseKey}/worksheet`;
+
+  async function phaseRow(projectId: string) {
+    return prisma.activatePhase.findUnique({
+      where: { projectId_key: { projectId, key: phaseKey } },
+      select: { id: true, status: true, completedAt: true },
+    });
+  }
+
+  it("settling every task and criterion does not complete the phase by itself", async () => {
+    const projectId = fx.orgA.projectId;
+
+    // A deliverable with one task, so the phase has work to finish. The
+    // deliverable and its tasks are two calls, the same pair the worksheet
+    // makes: creating a line does not take a task list.
+    const created = await api(fx.orgA.users.ADMIN, path(projectId), {
+      method: "POST",
+      body: { name: "ZZACT Completion check" },
+    });
+    expectAllowed(created, "the admin adding a Realize deliverable");
+    const issueId = created.body.deliverable.issueId;
+    expectAllowed(
+      await api(fx.orgA.users.ADMIN, `/api/issues/${issueId}/subtasks`, {
+        method: "POST",
+        body: { title: "ZZACT only task" },
+      }),
+      "the admin adding a task to it"
+    );
+
+    const before = (await api(fx.orgA.users.ADMIN, path(projectId))).body.worksheet;
+    // The phase now has work in it — otherwise the assertions below would
+    // pass on an empty phase and prove nothing.
+    expect(before.tasksTotal).toBeGreaterThan(0);
+    const gate = before.gate;
+    expect(gate).toBeTruthy();
+    const phaseRowId = before.phaseId;
+
+    /**
+     * Tick every task, in the database, as SETUP.
+     *
+     * Through the API this was one PATCH per task. That was fine when the
+     * phase held a single task; a project now arrives with the methodology's
+     * plan, so Realize has fifty, and fifty mutations in a few seconds
+     * crosses the thirty-per-minute limit. The run then answered 429 for the
+     * rest and the test failed with 28 of 50 complete — a rate limit
+     * reported as a product defect.
+     *
+     * Writing them directly is safe HERE because completing a task is not
+     * what is under test: the claim below is about what a completed phase
+     * does NOT do to its gate. The API path for completing a task has its
+     * own test further up, which asserts every counter moves with it.
+     */
+    await prisma.subtask.updateMany({
+      where: { parentIssue: { activateDeliverable: { phaseId: phaseRowId } } },
+      data: { isCompleted: true },
+    });
+    for (const c of gate.criteria) {
+      await api(fx.orgA.users.ADMIN, `/api/projects/${projectId}/activate/gates/${gate.id}/criteria/${c.id}`, {
+        method: "PATCH",
+        body: { status: "MET" },
+      });
+    }
+
+    const after = (await api(fx.orgA.users.ADMIN, path(projectId))).body.worksheet;
+    // Everything the badge is computed from is now satisfied...
+    expect(after.tasksTotal).toBeGreaterThan(0);
+    expect(after.tasksComplete).toBe(after.tasksTotal);
+    const settled = after.gate.criteria.filter(
+      (c: any) => c.status === "MET" || c.status === "WAIVED"
+    );
+    expect(settled.length).toBe(after.gate.criteria.length);
+    expect(after.gate.criteria.length).toBeGreaterThan(0);
+
+    // ...and NONE of it has closed the phase or touched the gate.
+    const row = await phaseRow(projectId);
+    expect(row!.status).not.toBe("COMPLETED");
+    expect(row!.completedAt).toBeNull();
+    expect(after.gate.status).toBe("OPEN");
+    expect(
+      await prisma.activateGateApproval.count({ where: { gateId: after.gate.id } })
+    ).toBe(0);
+  });
+
+  it("a person holding activate:manage_phases can then complete it", async () => {
+    const projectId = fx.orgA.projectId;
+    const row = await phaseRow(projectId);
+    const res = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${projectId}/activate/phases/${row!.id}`,
+      { method: "PATCH", body: { status: "COMPLETED" } }
+    );
+    expectAllowed(res, "the admin completing Realize");
+    expect((await phaseRow(projectId))!.status).toBe("COMPLETED");
+  });
+
+  it("completing the phase still leaves the gate unraised and unsigned", async () => {
+    // The whole reason the button exists rather than the checkbox acting on
+    // its own: a completed phase is not an approved gate, and a gate review
+    // reads the two differently.
+    const sheetNow = (await api(fx.orgA.users.ADMIN, path(fx.orgA.projectId))).body.worksheet;
+    expect(sheetNow.gate.status).toBe("OPEN");
+    expect(
+      await prisma.activateGateApproval.count({ where: { gateId: sheetNow.gate.id } })
+    ).toBe(0);
+  });
+
+  it("refuses a viewer, who may read the worksheet but not close the phase", async () => {
+    const row = await phaseRow(fx.orgA.projectId);
+    expectAllowed(
+      await api(fx.orgA.users.VIEWER, path(fx.orgA.projectId)),
+      "a viewer reading the Realize worksheet"
+    );
+    expectDenied(
+      await api(fx.orgA.users.VIEWER, `/api/projects/${fx.orgA.projectId}/activate/phases/${row!.id}`, {
+        method: "PATCH",
+        body: { status: "COMPLETED" },
+      }),
+      "a viewer completing a phase"
+    );
+  });
+
+  it("refuses another tenant outright", async () => {
+    const row = await phaseRow(fx.orgA.projectId);
+    expectDenied(
+      await api(fx.orgB.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate/phases/${row!.id}`, {
+        method: "PATCH",
+        body: { status: "COMPLETED" },
+      }),
+      "org B completing org A's phase"
+    );
   });
 });

@@ -1,0 +1,857 @@
+﻿const fs = require('fs');
+
+const leafLogoB64 = fs.readFileSync('public/leaf-logo.png').toString('base64');
+const leafLogoDataUri = `data:image/png;base64,${leafLogoB64}`;
+
+const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eitekh WorkOS 2.0 — Enterprise Technical & Functional Specification</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-subtle: #eff6ff;
+      --navy: #0f172a;
+      --navy-light: #1e293b;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --emerald: #059669;
+      --emerald-subtle: #ecfdf5;
+      --amber: #d97706;
+      --amber-subtle: #fffbeb;
+      --border: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--slate-800);
+      background-color: #f1f5f9;
+      line-height: 1.65;
+      padding: 30px 16px 60px;
+    }
+
+    .document-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+
+    /* Fixed/Sticky Top Action Toolbar */
+    .action-toolbar {
+      background: var(--navy);
+      color: #ffffff;
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+
+    .toolbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toolbar-logo {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .toolbar-title {
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toolbar-title span.live-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.12);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+
+    .content-container {
+      padding: 56px 64px;
+    }
+
+    /* Executive Cover Header */
+    .executive-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--slate-200);
+      padding-bottom: 40px;
+      margin-bottom: 40px;
+      gap: 32px;
+    }
+
+    .header-left {
+      flex: 1;
+    }
+
+    .header-logo-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .brand-logo-img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.08));
+    }
+
+    .brand-company-name {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.6px;
+      color: var(--navy);
+    }
+
+    .brand-company-tag {
+      font-size: 13px;
+      color: var(--slate-500);
+      font-weight: 500;
+    }
+
+    .doc-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      border-radius: 20px;
+      background: var(--primary-subtle);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      margin-bottom: 14px;
+    }
+
+    .doc-main-title {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--navy);
+      letter-spacing: -0.8px;
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+
+    .doc-sub-title {
+      font-size: 16px;
+      color: var(--slate-600);
+      font-weight: 400;
+      max-width: 820px;
+      line-height: 1.6;
+    }
+
+    .metadata-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      padding: 18px 24px;
+      margin-top: 28px;
+    }
+
+    .meta-item .meta-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--slate-500);
+      margin-bottom: 4px;
+    }
+
+    .meta-item .meta-val {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--slate-800);
+    }
+
+    .certified-callout {
+      background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+      border: 1px solid #a7f3d0;
+      border-left: 6px solid var(--emerald);
+      border-radius: 8px;
+      padding: 18px 24px;
+      margin: 28px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .callout-icon {
+      font-size: 20px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    /* Headings & Text */
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--navy);
+      margin: 44px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 5px solid var(--primary);
+      padding-left: 14px;
+    }
+
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 28px 0 12px;
+    }
+
+    h3 {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin: 16px 0 8px;
+    }
+
+    p, li {
+      font-size: 13.5px;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 20px;
+    }
+
+    /* Professional Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 32px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--slate-100);
+      color: var(--navy);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    tr:nth-child(even) {
+      background: #fbfcfd;
+    }
+
+    /* Visual Process Chevron for SAP Activate */
+    .activate-phases-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin: 20px 0 28px;
+    }
+
+    .phase-step {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-top: 4px solid var(--primary);
+      border-radius: 8px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+
+    .phase-num {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .phase-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-top: 4px;
+    }
+
+    .phase-desc {
+      font-size: 10.5px;
+      color: var(--slate-500);
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* Cards */
+    .info-card {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--slate-200);
+      color: var(--slate-800);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+
+    .pill-green { background: #d1fae5; color: #065f46; }
+    .pill-blue { background: #dbeafe; color: #1e40af; }
+    .pill-amber { background: #fef3c7; color: #92400e; }
+
+    .script-step {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+
+    .script-step-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+
+    /* Print Formatting */
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .document-page { border: none; box-shadow: none; border-radius: 0; max-width: 100%; }
+      .action-toolbar { display: none !important; }
+      .content-container { padding: 24px; }
+      .page-break { page-break-before: always; }
+      h1, h2, h3 { page-break-after: avoid; }
+      table, .info-card, .script-step { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="document-page">
+    
+    <!-- Top Action Toolbar -->
+    <div class="action-toolbar">
+      <div class="toolbar-brand">
+        <img src="${leafLogoDataUri}" alt="Eitekh WorkOS Logo" class="toolbar-logo">
+        <div class="toolbar-title">
+          <span class="live-dot"></span>
+          Eitekh WorkOS 2.0 &bull; Enterprise Technical & Functional Specification
+        </div>
+      </div>
+      <div class="toolbar-buttons">
+        <button class="btn btn-primary" onclick="window.print()">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/></svg>
+          Print / Save as PDF
+        </button>
+        <a class="btn btn-secondary" href="/Eitekh_WorkOS_Technical_and_Functional_Specification.md" download="Eitekh_WorkOS_Technical_and_Functional_Specification.md">
+          Download Markdown (.md)
+        </a>
+      </div>
+    </div>
+
+    <div class="content-container">
+
+      <!-- Executive Header with Brand Logo -->
+      <div class="executive-header">
+        <div class="header-left">
+          <div class="header-logo-container">
+            <img src="${leafLogoDataUri}" alt="Eitekh WorkOS Logo" class="brand-logo-img">
+            <div>
+              <div class="brand-company-name">Eitekh WorkOS</div>
+              <div class="brand-company-tag">Enterprise Work Operating System & Methodology Governance</div>
+            </div>
+          </div>
+          <div class="doc-badge">Verified System Specification Document</div>
+          <div class="doc-main-title">Technical & Functional Platform Specifications</div>
+          <div class="doc-sub-title">A complete architectural blueprint, security matrix, module breakdown, and presentation guide for enterprise stakeholders and clients.</div>
+        </div>
+      </div>
+
+      <!-- Metadata Box -->
+      <div class="metadata-grid">
+        <div class="meta-item">
+          <div class="meta-label">Document ID</div>
+          <div class="meta-val">EIT-SPEC-2026-V2</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Platform Edition</div>
+          <div class="meta-val">Enterprise v2.0.0</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Verification Health</div>
+          <div class="meta-val" style="color: var(--emerald);">Clean (596/596 Tests Passed)</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Engine Runtime</div>
+          <div class="meta-val">Next.js 16 (Turbopack)</div>
+        </div>
+      </div>
+
+      <div class="certified-callout">
+        <div class="callout-icon">&#9989;</div>
+        <div>
+          <strong>Verified Quality Certification:</strong> This document reflects the verified, production-compiled codebase of Eitekh WorkOS. Static type analysis is 100% verified (0 errors on Next.js 16/Turbopack), 40 Jest test suites passed, 148 API endpoints validated with Zod, and real-time Server-Sent Events (SSE) active.
+        </div>
+      </div>
+
+      <!-- 1. Executive Summary -->
+      <h1>1. Executive Summary & Value Proposition</h1>
+      <p>
+        <strong>Eitekh WorkOS</strong> is an all-in-one work management and issue tracking operating system engineered for enterprise agility, compliance, and large-scale digital transformations. It combines modern agile execution frameworks (Scrum, Kanban, Gantt Roadmaps) with native <strong>SAP Activate Methodology Governance</strong>, strict <strong>Policy-Based Access Control (PBAC)</strong>, and real-time Server-Sent Events (SSE) data synchronization.
+      </p>
+
+      <div class="info-card">
+        <h3>Strategic Enterprise Differentiators</h3>
+        <ul>
+          <li><strong>Zero-Latency Synchronization:</strong> Event-driven Server-Sent Events (SSE) keep all distributed team members synchronized across boards, backlogs, and charts without manual page reloads.</li>
+          <li><strong>Native SAP Activate Engine:</strong> Industry-first native implementation of the standard 6-phase SAP Activate methodology (Fit-to-Standard workshops, WRICEF backlog generator, and 4-eyes Quality Gate sign-offs).</li>
+          <li><strong>Rigorous Security Governance:</strong> 6-tier Policy-Based Access Control (PBAC), AES-256-GCM field encryption, and 100% input schema validation across all 148 API endpoints.</li>
+          <li><strong>Boardroom-Ready Reporting:</strong> 10 deep-dive analytical views with instant one-click export into formatted multi-page PDF, Microsoft Excel (.xlsx), and standard CSV formats.</li>
+        </ul>
+      </div>
+
+      <!-- 2. Technical Specifications -->
+      <div class="page-break"></div>
+      <h1>2. Technical Architecture & System Specifications</h1>
+      <p>
+        The platform adheres to modern cloud-native architectural patterns, separating presentation, business logic, access control, and persistence layers into decoupled, observable modules.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Architecture Layer</th>
+            <th>Technology Component</th>
+            <th>Enterprise Specifications & Standards</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>User Interface & Presentation</strong></td>
+            <td>Next.js 16 (Turbopack) + React 19</td>
+            <td>Server/Client component splitting, WCAG-compliant accessibility, native zero-flicker Dark/Light themes, responsive viewports.</td>
+          </tr>
+          <tr>
+            <td><strong>Interactive Framework</strong></td>
+            <td>@dnd-kit (Core & Sortable)</td>
+            <td>Hardware-accelerated drag-and-drop for Kanban boards, sprint backlogs, and priority ranking with full keyboard accessible navigation.</td>
+          </tr>
+          <tr>
+            <td><strong>Backend Application Layer</strong></td>
+            <td>Next.js API Engine (Node.js)</td>
+            <td>148 standardized RESTful route handlers with consistent JSON error handling, execution telemetry, and structured audit logs.</td>
+          </tr>
+          <tr>
+            <td><strong>Input Validation & Sanitization</strong></td>
+            <td>Zod 4.6 (100% Coverage)</td>
+            <td>Centralized schema validation on all inputs, query bounds, payload caps, and XSS URL sanitization (blocks javascript: schemes).</td>
+          </tr>
+          <tr>
+            <td><strong>ORM & Persistence</strong></td>
+            <td>Prisma ORM 5.22</td>
+            <td>Strongly typed relational schema with 24 relational foreign-key indexes, transactional integrity ($transaction), and tenant isolation.</td>
+          </tr>
+          <tr>
+            <td><strong>Security & Authorization</strong></td>
+            <td>Hierarchical PBAC Engine</td>
+            <td>6-tier hierarchy: Viewer (10) &rarr; Member (20) &rarr; Team Lead (30) &rarr; Project Admin (40) &rarr; Org Admin (50) &rarr; Super Admin (60).</td>
+          </tr>
+          <tr>
+            <td><strong>Cryptography & Encryption</strong></td>
+            <td>AES-256-GCM & bcrypt</td>
+            <td>Field-level encryption for webhook secrets and tokens; 10-salt bcrypt password hashing; SHA-256 OTP hashing with atomic attempt limits.</td>
+          </tr>
+          <tr>
+            <td><strong>Real-Time Messaging Bus</strong></td>
+            <td>Server-Sent Events (SSE)</td>
+            <td>Event-driven reactive sync engine with automatic client reconnection, heartbeat ping, and configurable sync intervals.</td>
+          </tr>
+          <tr>
+            <td><strong>Defense-in-Depth Headers</strong></td>
+            <td>HTTP Security Middleware</td>
+            <td>Strict Content Security Policy (CSP), HSTS (63072000s), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, CSRF origin verification.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 3. Security & Governance Matrix -->
+      <h1>3. Security, Authentication & PBAC Governance</h1>
+      <p>
+        Eitekh WorkOS enforces a multi-tier defense architecture ensuring zero data leakage between organizations and complete accountability.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Role Level</th>
+            <th>Role Key</th>
+            <th>Access Scope</th>
+            <th>Permitted Operations</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Level 10</strong></td>
+            <td><code>VIEWER</code></td>
+            <td>Assigned Projects</td>
+            <td>Read-only inspection of permitted boards, tasks, roadmaps, and reports. Cannot modify issues.</td>
+          </tr>
+          <tr>
+            <td><strong>Level 20</strong></td>
+            <td><code>MEMBER</code></td>
+            <td>Assigned Projects</td>
+            <td>Standard developer/contributor: create issues, transition assigned tasks, add attachments, post comments.</td>
+          </tr>
+          <tr>
+            <td><strong>Level 30</strong></td>
+            <td><code>TEAM_LEAD</code></td>
+            <td>Team & Workspace</td>
+            <td>Manage team backlogs, prioritize sprints, assign issues, run sprint ceremonies, balance team workloads.</td>
+          </tr>
+          <tr>
+            <td><strong>Level 40</strong></td>
+            <td><code>PROJECT_ADMIN</code></td>
+            <td>Project Scope</td>
+            <td>Configure custom project workflows, status transitions, custom fields, components, versions, and project memberships.</td>
+          </tr>
+          <tr>
+            <td><strong>Level 50</strong></td>
+            <td><code>ORG_ADMIN</code></td>
+            <td>Organization Scope</td>
+            <td>Workspace provisioning, organization-wide user invitations, billing management, organization audit logs.</td>
+          </tr>
+          <tr>
+            <td><strong>Level 60</strong></td>
+            <td><code>SUPER_ADMIN</code></td>
+            <td>Platform Scope</td>
+            <td>Multi-tenant oversight, cross-organization audits, security threat operations, system cache management, and platform health telemetry.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 4. Interactive View Suite -->
+      <div class="page-break"></div>
+      <h1>4. Functional Capabilities & Interactive Views</h1>
+      <p>
+        The platform provides 8 specialized core workspace views, allowing users to adapt their operational style according to their role and project methodology:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Workspace View</th>
+            <th>Primary Purpose</th>
+            <th>Key Interactive Capabilities</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>📊 Kanban Board</strong></td>
+            <td>Visual Workflow Execution</td>
+            <td>Drag-and-drop cards across columns, Work-In-Progress (WIP) limit thresholds with visual overload warnings, quick search and priority filters.</td>
+          </tr>
+          <tr>
+            <td><strong>📋 Interactive List</strong></td>
+            <td>High-Density Task Triage</td>
+            <td>Dense data grid with multi-selection checkboxes and a floating Bulk Actions Bar for batch status changes, priority shifts, and batch assignment.</td>
+          </tr>
+          <tr>
+            <td><strong>🏃 Scrum & Backlog</strong></td>
+            <td>Iterative Sprint Planning</td>
+            <td>Drag items between backlog and active sprint, story point velocity tallies, sprint lifecycle controls (Plan &rarr; Start &rarr; Complete Sprint).</td>
+          </tr>
+          <tr>
+            <td><strong>📅 Gantt / Timeline</strong></td>
+            <td>Strategic Roadmapping</td>
+            <td>Dynamic date ranges, priority color bars, interactive milestone dependencies with SVG connector lines, and today marker indicators.</td>
+          </tr>
+          <tr>
+            <td><strong>🗓️ Calendar View</strong></td>
+            <td>Date-Driven Milestone Tracking</td>
+            <td>Month-by-month grid, quick "Today" jump, due-date highlights, multi-issue day count badges, and click-to-preview drawers.</td>
+          </tr>
+          <tr>
+            <td><strong>👥 Team Workload</strong></td>
+            <td>Resource Capacity Balancing</td>
+            <td>Calculates team member utilization bandwidth, flags over-allocated team members (&gt;100% capacity), and assists in load rebalancing.</td>
+          </tr>
+          <tr>
+            <td><strong>🎯 SAP Activate</strong></td>
+            <td>ERP Implementation Engine</td>
+            <td>6-phase methodology rail (Discover &rarr; Run), Fit-to-Standard workshop evaluator, automated WRICEF backlog generator, and 4-eyes Q-Gates.</td>
+          </tr>
+          <tr>
+            <td><strong>📈 Charts & Analytics</strong></td>
+            <td>Operational Intelligence</td>
+            <td>Live Velocity metrics, Cumulative Flow Diagrams (CFD), Defect Leakage, Lead & Cycle time distributions, and Live Sync indicator deck.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 5. SAP Activate Implementation Framework -->
+      <h1>5. Native SAP Activate Implementation Methodology</h1>
+      <p>
+        A premier enterprise differentiator built natively into Eitekh WorkOS for SAP S/4HANA, SuccessFactors, and ERP digital transformations:
+      </p>
+
+      <div class="activate-phases-grid">
+        <div class="phase-step">
+          <div class="phase-num">Phase 1</div>
+          <div class="phase-name">Discover</div>
+          <div class="phase-desc">Scoping & strategy</div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-num">Phase 2</div>
+          <div class="phase-name">Prepare</div>
+          <div class="phase-desc">Kickoff & setup</div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-num">Phase 3</div>
+          <div class="phase-name">Explore</div>
+          <div class="phase-desc">Fit-to-standard</div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-num">Phase 4</div>
+          <div class="phase-name">Realize</div>
+          <div class="phase-desc">Sprints & WRICEF</div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-num">Phase 5</div>
+          <div class="phase-name">Deploy</div>
+          <div class="phase-desc">Cutover & go-live</div>
+        </div>
+        <div class="phase-step">
+          <div class="phase-num">Phase 6</div>
+          <div class="phase-name">Run</div>
+          <div class="phase-desc">Operations</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Module Component</th>
+            <th>Methodology Purpose</th>
+            <th>Platform Functionality</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Fit-to-Standard Workshops</strong></td>
+            <td>Explore Phase Solution Design</td>
+            <td>Interactive evaluation of standard SAP scope items with 6 decisions: <code>ADOPT</code>, <code>CONFIGURE</code>, <code>EXTEND</code>, <code>INTEGRATE</code>, <code>DEFER</code>, <code>OUT_OF_SCOPE</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>Automated Backlog Generator</strong></td>
+            <td>Sprint Readiness & Traceability</td>
+            <td>Decisions to "Extend" or "Integrate" automatically generate tracked WRICEF development tickets and configuration tasks directly in the sprint backlog.</td>
+          </tr>
+          <tr>
+            <td><strong>Quality Gates (Q-Gates)</strong></td>
+            <td>Phase-Exit Formal Governance</td>
+            <td>Multi-criteria sign-off gate between phases enforcing strict separation of duties (4-eyes principle) between Gate Raiser and Gate Approver.</td>
+          </tr>
+          <tr>
+            <td><strong>Pre-Packaged Scope Catalogues</strong></td>
+            <td>Accelerated Blueprinting</td>
+            <td>Seeded accelerators including SuccessFactors and S/4HANA standard scope items, deliverables, and role RACI templates.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 6. Analytics & Reports Center -->
+      <div class="page-break"></div>
+      <h1>6. Executive Analytics & Multi-Format Reporting Center</h1>
+      <p>
+        The platform features a dedicated Reports Center containing 10 enterprise reports with on-demand instant export capabilities:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Report Title</th>
+            <th>Target Audience</th>
+            <th>Analytical Insights Delivered</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Sprint Velocity & Forecast</strong></td>
+            <td>Product Managers & Scrum Masters</td>
+            <td>Commitment vs completed story points, rolling velocity average, and future milestone delivery projections.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Burndown & Burnup Tracking</strong></td>
+            <td>Engineering Leads</td>
+            <td>Real-time scope changes, ideal vs actual trajectory, and mid-sprint risk early detection.</td>
+          </tr>
+          <tr>
+            <td><strong>3. Cumulative Flow Diagram (CFD)</strong></td>
+            <td>Agile Coaches & PMO</td>
+            <td>Work-In-Progress stability, process bottlenecks, queue buildup, and lead time trends across all workflow columns.</td>
+          </tr>
+          <tr>
+            <td><strong>4. Lead & Cycle Time Distribution</strong></td>
+            <td>VP of Engineering & Directors</td>
+            <td>Average time from issue conception to delivery (Lead Time) and active coding to completion (Cycle Time).</td>
+          </tr>
+          <tr>
+            <td><strong>5. Bug & Defect Leakage Analysis</strong></td>
+            <td>Quality Assurance (QA) Directors</td>
+            <td>Defect escape rate by component, severity distribution, root cause categories, and mean time to resolution (MTTR).</td>
+          </tr>
+          <tr>
+            <td><strong>6. Epic Progress & Completion</strong></td>
+            <td>Portfolio Directors & Executives</td>
+            <td>High-level strategic initiative completion percentages, remaining child task estimation, and target date variance.</td>
+          </tr>
+          <tr>
+            <td><strong>7. Team Workload & Allocation</strong></td>
+            <td>Resource & Department Managers</td>
+            <td>Individual contributor hours logged, story points assigned, and bandwidth capacity threshold utilization.</td>
+          </tr>
+          <tr>
+            <td><strong>8. Issue Stagnation & Aging</strong></td>
+            <td>Project Managers</td>
+            <td>Identifies forgotten tasks, blockers sitting in status without activity for &gt;7 days, and triage compliance.</td>
+          </tr>
+          <tr>
+            <td><strong>9. Traceability & Dependency Matrix</strong></td>
+            <td>Compliance & Enterprise Auditors</td>
+            <td>Full upstream and downstream linkage mapping: Epic &rarr; User Story &rarr; Sub-Task &rarr; Bug with blocker detection.</td>
+          </tr>
+          <tr>
+            <td><strong>10. Project SLA Compliance Audit</strong></td>
+            <td>Client Relationship & Delivery Leads</td>
+            <td>First-response time, priority-based resolution SLA adherence, and contract breach risk monitoring.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 7. Client Pitch Script -->
+      <h1>7. Client Demonstration Walkthrough Script</h1>
+      <p>
+        Follow this curated 6-stage presentation narrative to showcase technical sophistication and business ROI in under 10 minutes:
+      </p>
+
+      <div class="script-step">
+        <div class="script-step-title">Stage 1: The Executive Command Center (1 min)</div>
+        <p>Log in and highlight the clean interface. Trigger the global <strong>Command Palette</strong> (<code>Ctrl + K</code>) to show instant fuzzy search across tasks, projects, and users. Toggle between Dark and Light themes to highlight design polish.</p>
+      </div>
+
+      <div class="script-step">
+        <div class="script-step-title">Stage 2: Agile Fluidity & Real-Time Sync (2 min)</div>
+        <p>Open an active project. Drag an issue across the Kanban board columns. Highlight the green pulsing <strong>Live Synced</strong> badge in the header, explaining that all team members see updates in real time with zero manual page refreshes.</p>
+      </div>
+
+      <div class="script-step">
+        <div class="script-step-title">Stage 3: High-Density Triage & Bulk Actions (1 min)</div>
+        <p>Switch to List View. Select three tasks with checkboxes. Demonstrate the floating <strong>Bulk Actions Bar</strong> updating priorities or statuses in one batch action.</p>
+      </div>
+
+      <div class="script-step">
+        <div class="script-step-title">Stage 4: Roadmaps & Workload Capacity (1.5 min)</div>
+        <p>Switch to the Gantt Timeline to show quarterly milestones and visual dependency lines. Open the Workload tab to demonstrate team bandwidth tracking and over-allocation warning thresholds.</p>
+      </div>
+
+      <div class="script-step">
+        <div class="script-step-title">Stage 5: The Enterprise Showstopper — SAP Activate (2.5 min)</div>
+        <p>Click into the <strong>SAP Activate</strong> tab. Walk through the 6 phase gates. Conduct a live Fit-to-Standard workshop assessment (Adopt vs Extend), show the auto-generated WRICEF tickets in the backlog, and explain the Quality Gate dual-approval governance.</p>
+      </div>
+
+      <div class="script-step">
+        <div class="script-step-title">Stage 6: The Executive Closer — Boardroom Exports (1 min)</div>
+        <p>Navigate to the Reports Center. Open the <em>Sprint Velocity Report</em>, click <strong>Export to PDF</strong>, and show the stakeholder-ready formatted document, ready for immediate C-level presentation.</p>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
+`;
+
+fs.writeFileSync('public/Eitekh_WorkOS_Technical_and_Functional_Specification.html', htmlContent, 'utf8');
+console.log('Successfully written presentable HTML specification document with logo');

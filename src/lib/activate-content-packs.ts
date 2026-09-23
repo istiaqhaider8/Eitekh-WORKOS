@@ -36,6 +36,7 @@ import {
   ACTIVATE_METHODOLOGY_VERSION,
 } from "./activate";
 import successfactors from "@/data/activate-packs/successfactors.json";
+import { writeTemplatePhasePlan } from "./activate-templates";
 
 const WORKSTREAM_KEYS = ACTIVATE_WORKSTREAMS.map((w) => w.key);
 
@@ -176,6 +177,9 @@ export async function ensureContentPacks(): Promise<string[]> {
           create: { templateId: template.id, key: seed.key, name: seed.name, position: i },
           select: { id: true },
         });
+        // The plan comes from the methodology too — see the note above.
+        await writeTemplatePhasePlan(tx, phase.id, seed.key);
+
         await tx.templateGate.deleteMany({ where: { phaseId: phase.id } });
         await tx.templateGate.create({
           data: {

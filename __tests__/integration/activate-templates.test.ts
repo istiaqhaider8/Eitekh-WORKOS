@@ -74,7 +74,7 @@ describe("THE EXIT GATE: seeding from a template matches the constant exactly", 
   it("reproduces every phase, gate and criterion, verbatim and in order", async () => {
     const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     expect(res.status).toBe(201);
 
@@ -155,7 +155,7 @@ describe("THE EXIT GATE: seeding from a template matches the constant exactly", 
     // a plain unique would place no constraint on rows whose orgId is NULL.
     await api(fx.orgB.users.OWNER, `/api/projects/${fx.orgB.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     const count = await prisma.methodTemplate.count({
       where: { orgId: null, key: BUILT_IN_TEMPLATE_KEY, version: BUILT_IN_TEMPLATE_VERSION },
@@ -228,7 +228,7 @@ describe("Listing the templates a project may use", () => {
 
     const enable = await api(fx.orgA.users.VIEWER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     expectDenied(enable, "a VIEWER enabling Activate");
   });
@@ -288,7 +288,7 @@ describe("Seeding from a template named in the body", () => {
     // Every caller written before templates existed sends this.
     const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     expect(res.status).toBe(201);
 

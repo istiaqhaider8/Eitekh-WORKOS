@@ -69,7 +69,7 @@ beforeAll(async () => {
     const s = fx[side];
     await api(s.users.OWNER, `/api/projects/${s.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
   }
 
@@ -324,7 +324,7 @@ describe("Readiness on a project not running Activate", () => {
 
     await api(fx.orgB.users.OWNER, `/api/projects/${fx.orgB.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
   });
 });

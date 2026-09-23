@@ -29,6 +29,7 @@
 
 import { prisma } from "./prisma";
 import { ACTIVATE_PHASES, ACTIVATE_WORKSTREAMS, ACTIVATE_METHODOLOGY_VERSION } from "./activate";
+import { ACTIVATE_PHASE_CONTENT } from "./activate-template-content";
 
 /** The built-in methodology's stable key. */
 export const BUILT_IN_TEMPLATE_KEY = "SAP_ACTIVATE";
@@ -47,6 +48,12 @@ export interface LoadedTemplate {
     key: string;
     name: string;
     position: number;
+    deliverables: Array<{
+      name: string;
+      workstreamKey: string | null;
+      position: number;
+      tasks: Array<{ title: string; position: number }>;
+    }>;
     gates: Array<{
       name: string;
       description: string | null;
@@ -65,6 +72,42 @@ export interface LoadedTemplate {
  * with no criteria, is a state no project should ever be seeded from, and a
  * partial failure here would produce exactly that.
  */
+/**
+ * Write a phase's deliverables and their tasks into a TEMPLATE.
+ *
+ * Rebuilt from the constant every time, for the same reason the gate is:
+ * a template deliverable has no per-project state to preserve. Nothing
+ * here touches a project — a project's copies are issues on its own
+ * board, created once and never revisited.
+ *
+ * Shared by the built-in template and by every content pack, because the
+ * plan is part of the METHODOLOGY rather than of a product line. A pack
+ * already takes its phases, gates and workstreams from the same place;
+ * leaving the deliverables out gave the SuccessFactors variant six
+ * phases, six gates and no work in them.
+ */
+export async function writeTemplatePhasePlan(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  phaseId: string,
+  phaseKey: string
+): Promise<void> {
+  await tx.templateDeliverable.deleteMany({ where: { phaseId } });
+  const content = ACTIVATE_PHASE_CONTENT[phaseKey];
+  if (!content) return;
+  for (let d = 0; d < content.deliverables.length; d += 1) {
+    const del = content.deliverables[d];
+    await tx.templateDeliverable.create({
+      data: {
+        phaseId,
+        name: del.name,
+        workstreamKey: del.workstreamKey,
+        position: d,
+        tasks: { create: del.tasks.map((title, i) => ({ title, position: i })) },
+      },
+    });
+  }
+}
+
 export async function ensureBuiltInTemplate(): Promise<string> {
   return prisma.$transaction(async (tx) => {
     /**
@@ -122,6 +165,8 @@ export async function ensureBuiltInTemplate(): Promise<string> {
         select: { id: true },
       });
 
+      await writeTemplatePhasePlan(tx, phase.id, seed.key);
+
       // The gate is replaced wholesale rather than merged. A template gate has
       // no per-project state to preserve — unlike a project gate, where
       // criteria somebody has already marked met must survive — so rebuilding
@@ -171,6 +216,15 @@ export async function loadTemplate(templateId: string): Promise<LoadedTemplate |
           key: true,
           name: true,
           position: true,
+          deliverables: {
+            orderBy: { position: "asc" },
+            select: {
+              name: true,
+              workstreamKey: true,
+              position: true,
+              tasks: { orderBy: { position: "asc" }, select: { title: true, position: true } },
+            },
+          },
           gates: {
             orderBy: { position: "asc" },
             select: {

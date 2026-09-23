@@ -3,10 +3,17 @@
 > **IMPORTANT**: Every AI session MUST update this file after making changes.
 > This is the single source of truth for all AI assistants working on this project.
 
-> **Last Updated**: 2026-09-17
+> **Last Updated**: 2026-09-22
 > **Last Updated By**: Claude Opus 5 (1M context)
 > **Branch**: `security/phase-1-critical-fixes`
-> **Latest Commit**: `6719b2d`
+> **Latest Commit**: `22269ee` — **but the working tree holds ~55 uncommitted files.**
+> The SAP Activate work in the top SESSION LOG entry is on disk and unversioned. Commit it
+> before starting anything, or you will be building on a baseline you cannot diff against.
+
+> **The SAP Activate feature is not described in the audit tables below.** It was built after
+> them and is the active area of work: six phases, quality gates with separation of duties, a
+> fit-to-standard workshop, and a methodology template that seeds a 57-deliverable plan. Its
+> state, and six open items (ACT-1…ACT-6), are in the newest SESSION LOG entry.
 
 ---
 
@@ -326,6 +333,108 @@ Kept for traceability. **Reopened items are listed in Gate 0/1 above — work th
 ## SESSION LOG
 
 > Every AI session adds an entry here. This is the audit trail.
+
+### 2026-09-21/22 — Claude Opus 5 (1M context) — SAP Activate: template content, two governance defects, UI and layout fixes
+
+**⚠️ UNCOMMITTED.** Everything below is in the working tree of
+`security/phase-1-critical-fixes` — 55 changed/new files, no commit. Commit before
+building on it, so the next session has a baseline to diff against.
+
+#### 1. The methodology template now carries a plan (new capability)
+
+Until now a template carried phases, workstreams, gates and criteria — the *shape* of a
+project — and no work. The 57 deliverables and 213 tasks that make it usable lived only in
+`scripts/seed-activate-worksheet.mjs`, so every new project began with six empty phases and
+somebody had to run a script by hand.
+
+- `src/lib/activate-template-content.ts` (new) holds all six phase plans: **57 deliverables,
+  213 tasks, 48 gate criteria**. Extracted from the seeder's literals rather than retyped.
+- Migration `0021_template_deliverables` adds `TemplateDeliverable` + `TemplateDeliverableTask`.
+  Template-scoped, never project-scoped, so editing one project's plan cannot rewrite the
+  methodology for every tenant.
+- `enableActivate()` seeds the plan as real board issues **after** its transaction commits —
+  several hundred writes inside the transaction that also writes the profile is a long lock and
+  a plausible timeout, and a timeout there would roll back the phases too.
+- `POST /activate` accepts `seedPlan: false` for a project arriving with its own plan.
+- Both templates carry it: the SuccessFactors pack takes its phases and gates from the
+  methodology and now takes the plan the same way.
+- Subtask `createdAt` is set explicitly, one millisecond apart. Postgres gives every row in one
+  transaction the same transaction timestamp, and the worksheet orders tasks by `createdAt` —
+  without this a four-step checklist comes back shuffled.
+
+#### 2. Two governance defects, found by live review, fixed
+
+- **A gate could be APPROVED with a criterion NOT_MET.** The criteria were checked only when
+  raising. Raising and signing are two requests with a review in between, and marking a
+  criterion NOT_MET in that window — exactly what a reviewer who finds a problem does — left
+  the gate RAISED with nothing re-reading it. Reproduced on a live project: gate APPROVED,
+  criteria `[MET, MET, NOT_MET]`. The approvals route now re-checks and refuses with
+  `GATE_CRITERIA_OUTSTANDING`; rejecting and revoking stay allowed, or the gate would be
+  trapped. The worksheet's lock was split in two: a raised gate's *questions* stay frozen, its
+  *answers* no longer are.
+- **Disabling Activate did not stop its writes.** The `enabled` flag was checked in 5 of 19
+  route files. With it off, a phase could still be completed, a gate raised and **approved**,
+  and scope items edited — all verified against a live disabled project. `assertActivateEnabled`
+  now guards **14 handlers across 10 route files**. Reads stay open by design.
+
+Both have regression tests that fail when the fix is reverted (mutation-checked).
+
+#### 3. Audit coverage
+
+`ACTIVATE_PHASE_STATUS_CHANGED` (who completed a phase, and from what) and
+`ACTIVATE_DECISION_RECORDED / CHANGED / WITHDRAWN` (carrying the value replaced). Neither
+existed; `ActivateDecision` keeps only the current answer, so ADOPT → EXTEND left no trail.
+
+#### 4. UI and layout
+
+- `src/components/activate/ui.tsx` (new): `Panel`, `PanelHeader`, `Btn`, `Pill`, `Note`,
+  `Stat`, `Meter`, `EmptyState`. **232 hardcoded colour spellings** replaced with the app's
+  theme tokens — Activate used *zero* of them, which is why it looked like a different product.
+- **The scroll bug, which was not where it looked.** Tailwind's `sr-only` is `position:absolute`
+  with no offsets; with no *positioned* ancestor its containing block is the document, so the
+  worksheet's five hidden labels escaped `main`'s `overflow-y-auto` and added ~121px of document
+  scroll. Scrolling slid the whole `h-screen` app up, cutting off the header and sidebar.
+  `overflow:hidden` on main, body and html all failed to contain it — none was its containing
+  block. Fixed with `relative` on `<main>` in `ProjectClient.tsx`. Measured in a real browser:
+  document 1021→900, `window.scrollTo(0,400)` → scrollY 121→**0**.
+- The sidebar was `md:h-[calc(100vh-3.5rem)]` against a **91px** top chrome (a 35px strip above
+  the 56px header), so 35px of it were clipped by its `overflow-hidden` row. Now it stretches.
+- `src/app/not-found.tsx` (new). There was none, so every `notFound()` — including a deleted
+  project — fell through to Next's unstyled default with no way back.
+
+#### 5. Tooling
+
+- **`scripts/start-local.mjs` now copies `.next/static` into `.next/standalone` on every
+  start.** `next build` leaves it out; the script previously only *printed* that as advice and
+  started anyway. A plain `npm run build` then produced a server that boots cleanly, logs
+  nothing wrong, answers 200 everywhere — and serves the app with no CSS or JS. The integration
+  runner had always done the copy. Two scripts, one doing the step and one describing it.
+- `scripts/check-a11y.mjs` now scans `<Btn>` as well as `<button>`, and skips a wrapper that
+  spreads `{...props}`. Moving 12 buttons onto a shared component would otherwise have improved
+  the number by **losing coverage** — the one way a ratchet can lie.
+
+#### Evidence
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | clean |
+| `npm test` | **596 passed**, 40 suites |
+| `npm run test:integration` | **522 passed**, 23 suites |
+| `npm run lint` | 128 warnings, **0 errors** — identical to before, diffed by rule |
+| `npm run check:a11y` | 448 = baseline, no file regressed |
+| `npm run check:bundle` | `/projects/[id]` 773 kB, within budget |
+| Live | 16/16 on a throwaway project (57/213/48 seeded, order preserved, nothing pre-ticked); scratch data deleted, zero residue |
+
+#### Open, found and NOT fixed
+
+| ID | What | Where |
+|---|---|---|
+| **ACT-1** | `fitGapStatus` now stores a *decision* (`ADOPT`…`OUT_OF_SCOPE`), not a fit/gap. The stale name already caused one bug (readiness filtered on the retired `'GAP'`). A rename needs a column migration because `activate-readiness.ts` queries it in raw SQL | `schema.prisma`, 6 source files |
+| **ACT-2** | `scripts/seed-activate-worksheet.mjs` still holds its own copy of the plan. The library is marked authoritative in its header; teaching the script to read the template's rows would retire the duplicate | seeder |
+| **ACT-3** | The accelerators endpoint and content pack are live with no UI caller since the panel was removed. Either resurface inside the worksheet's add form, or retire | `activate/accelerators/` |
+| **ACT-4** | Nothing enforces gate approval before the next phase starts. A phase can be COMPLETED with its gate OPEN. Now shows an amber caution rather than a block — deliberate, but revisit | `ActivateWorkspace.tsx` |
+| **ACT-5** | CSRF allowlist is `{nextUrl.origin, NEXTAUTH_URL, BASE_URL}`. In `next dev`, `nextUrl.origin` is pinned to the dev origin, so `http://127.0.0.1:3000` is refused while `localhost:3000` works; a LAN IP or a tunnel URL is refused too. The standard check is `Origin` vs this request's own host | `src/middleware.ts:333` |
+| **ACT-6** | 4 × "Ecmascript file had an error" in every build, from `src/lib/storage/local-fs.ts` via `api/docs/download`. Build still succeeds. Pre-existing | build output |
 
 ### 2026-09-18 — Claude Opus 5 (1M context) — PROD-0: migration drift repaired
 

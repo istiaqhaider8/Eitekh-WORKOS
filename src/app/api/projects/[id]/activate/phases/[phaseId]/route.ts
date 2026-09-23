@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activatePhaseUpdateSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
+import { logAuditEvent } from "@/lib/audit-logger";
 
 /**
  * Update a phase: owner, dates, status.
@@ -29,6 +31,7 @@ export async function PATCH(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_phases");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activatePhaseUpdateSchema);
     if (!parsed.success) return parsed.error;
@@ -118,6 +121,38 @@ export async function PATCH(
         version: true,
       },
     });
+
+    /**
+     * A status change is audited; a date or owner edit is not.
+     *
+     * Completing a phase is a claim that a stage of the project is finished,
+     * and "who marked Discover complete, and when" is a question a gate
+     * review asks. It had no answer: this route wrote nothing to the audit
+     * log, so the only record was the phase's own `status` column, which the
+     * next edit overwrites.
+     *
+     * Only a real transition is recorded. A request that re-sends the status
+     * a phase already has is not an event, and logging it would bury the
+     * transitions among repeats. Dates and owners are left out deliberately:
+     * they are ordinary planning edits, and an audit log that fills with
+     * them is one nobody reads.
+     */
+    if (body.status !== undefined && body.status !== phase.status) {
+      await logAuditEvent({
+        actor: {
+          id: user.id,
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+          email: user.email,
+        },
+        action: "ACTIVATE_PHASE_STATUS_CHANGED",
+        category: "PROJECT",
+        severity: body.status === "COMPLETED" ? "NOTICE" : "INFO",
+        status: "SUCCESS",
+        targetResource: `ActivatePhase:${phaseId}`,
+        projectId,
+        details: { phase: updated.key, name: updated.name, from: phase.status, to: body.status },
+      }).catch((e) => console.error("Failed to audit phase status change:", e));
+    }
 
     // Keep the profile's cursor in step with the phase actually in progress.
     if (body.status === "IN_PROGRESS") {

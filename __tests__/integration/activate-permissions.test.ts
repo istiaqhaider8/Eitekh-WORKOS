@@ -32,7 +32,7 @@ beforeAll(async () => {
 
   await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
     method: "POST",
-    body: { enabled: true },
+    body: { enabled: true, seedPlan: false },
   });
   const profile = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`);
   const explore = profile.body.phases.find((p: any) => p.key === "EXPLORE");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activateDeliverableUpdateSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
@@ -36,6 +37,7 @@ export async function PATCH(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_deliverables");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateDeliverableUpdateSchema);
     if (!parsed.success) return parsed.error;
@@ -98,6 +100,7 @@ export async function DELETE(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_deliverables");
+    await assertActivateEnabled(projectId);
 
     const link = await loadLink(projectId, linkId);
     if (!link) return NextResponse.json({ error: "Deliverable not found" }, { status: 404 });

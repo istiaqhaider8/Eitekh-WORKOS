@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, fieldClass, FieldLabel } from "./ui";
+import { isCriterionSettled } from "@/lib/activate-phase-completion";
 
 /**
  * One phase's implementation worksheet: its deliverables, their task
@@ -86,10 +88,39 @@ export interface ActivateWorksheetProps {
   showGate?: boolean;
   onOpenIssue?: (issueId: string) => void;
   onChanged?: () => void;
+  /**
+   * The phase's totals, reported after every load.
+   *
+   * The page above needs them to say whether the phase is finished, and it
+   * would otherwise fetch the same worksheet a second time — two requests
+   * for one answer, and two chances to disagree about it. The phase key
+   * travels with the numbers so a caller can tell whose totals these are;
+   * during a phase switch the old ones are still in hand.
+   */
+  onCounts?: (counts: {
+    phaseKey: string;
+    deliverableCount: number;
+    tasksTotal: number;
+    tasksComplete: number;
+    criteriaTotal: number;
+    criteriaSettled: number;
+  }) => void;
 }
 
-/** A gate whose sign-off is in progress must not have its questions edited. */
-const GATE_LOCKED = new Set(["RAISED", "APPROVED"]);
+/**
+ * A gate whose sign-off is in progress must not have its QUESTIONS changed —
+ * criteria cannot be added or removed once it is raised.
+ */
+const GATE_QUESTIONS_FROZEN = new Set(["RAISED", "APPROVED"]);
+
+/**
+ * ANSWERS are a different matter. Marking a criterion met, or not met, is
+ * what a reviewer does while a gate is raised, and an approval is now
+ * refused while anything is unsettled — so recording a finding blocks the
+ * sign-off, which is what recording it was for. Only an approved gate is
+ * closed to answers, being a finished record.
+ */
+const GATE_ANSWERS_FROZEN = new Set(["APPROVED"]);
 
 export function ActivateWorksheet({
   projectId,
@@ -101,6 +132,7 @@ export function ActivateWorksheet({
   showGate = true,
   onOpenIssue,
   onChanged,
+  onCounts,
 }: ActivateWorksheetProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -119,13 +151,23 @@ export function ActivateWorksheet({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Could not load the worksheet.");
       setSheet(data.worksheet);
+      const criteria = data.worksheet.gate?.criteria ?? [];
+      onCounts?.({
+        phaseKey,
+        deliverableCount: data.worksheet.deliverableCount,
+        tasksTotal: data.worksheet.tasksTotal,
+        tasksComplete: data.worksheet.tasksComplete,
+        criteriaTotal: criteria.length,
+        criteriaSettled: criteria.filter((c: { status: string }) => isCriterionSettled(c.status))
+          .length,
+      });
       setError(null);
     } catch (e: any) {
       setError(e?.message || "Could not load the worksheet.");
     } finally {
       setLoading(false);
     }
-  }, [base]);
+  }, [base, phaseKey, onCounts]);
 
   useEffect(() => {
     load();
@@ -160,7 +202,7 @@ export function ActivateWorksheet({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-sm text-slate-500">
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
         Loading the worksheet…
       </div>
@@ -170,20 +212,21 @@ export function ActivateWorksheet({
   if (!sheet) {
     return (
       <div className="p-6 text-center">
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-destructive">
           {error ?? "This phase has no worksheet."}
         </p>
       </div>
     );
   }
 
-  const gateLocked = sheet.gate ? GATE_LOCKED.has(sheet.gate.status) : false;
+  const questionsFrozen = sheet.gate ? GATE_QUESTIONS_FROZEN.has(sheet.gate.status) : false;
+  const answersFrozen = sheet.gate ? GATE_ANSWERS_FROZEN.has(sheet.gate.status) : false;
 
   return (
     <div className="space-y-4">
       <div aria-live="polite" className="min-h-[1rem]">
         {error && (
-          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
         )}
@@ -197,7 +240,7 @@ export function ActivateWorksheet({
       <div className="flex items-center gap-2">
         <label
           htmlFor="worksheet-phase"
-          className="text-[11px] font-semibold text-slate-600 dark:text-slate-400"
+          className="text-[11px] font-semibold text-muted-foreground"
         >
           Phase
         </label>
@@ -205,7 +248,7 @@ export function ActivateWorksheet({
           id="worksheet-phase"
           value={phaseKey}
           onChange={(e) => onPhaseChange(e.target.value)}
-          className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+          className="text-xs rounded-lg border border-border bg-card px-2 py-1.5"
         >
           {phases.map((p) => (
             <option key={p.key} value={p.key}>
@@ -222,11 +265,11 @@ export function ActivateWorksheet({
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-4 items-start">
         {/* Deliverables and tasks ---------------------------------------- */}
         <section>
-          <div className="flex items-baseline gap-2 flex-wrap mb-2">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+          <div className="flex items-baseline gap-2 flex-wrap mb-1">
+            <h3 className="text-sm font-bold text-foreground">
               Deliverables and tasks
             </h3>
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-muted-foreground">
               {sheet.deliverableCount} deliverable{sheet.deliverableCount === 1 ? "" : "s"} ·{" "}
               {sheet.tasksComplete} of {sheet.tasksTotal} task
               {sheet.tasksTotal === 1 ? "" : "s"} complete
@@ -235,35 +278,44 @@ export function ActivateWorksheet({
                 phase that is not a numbered line of its plan — a decision
                 card, an issue adopted from the board. */}
             {sheet.unlistedCount > 0 && (
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-muted-foreground">
                 · {sheet.unlistedCount} more linked to this phase without a worksheet code
               </span>
             )}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800">
+          {sheet.tasksTotal > 0 && (
+            <div className="mb-3 max-w-xs">
+              <Meter value={sheet.tasksComplete} total={sheet.tasksTotal} />
+            </div>
+          )}
+
+          <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
             {sheet.deliverables.length === 0 && (
-              <p className="text-xs text-slate-500 p-6 text-center">
-                No deliverables in {sheet.phaseName} yet.
-              </p>
+              <EmptyState title={`No deliverables in ${sheet.phaseName} yet`}>
+                A deliverable is one numbered line of this phase&apos;s plan, with its own
+                task list. {canManageDeliverables
+                  ? "Add the first one below."
+                  : "Somebody who can manage deliverables adds the first one."}
+              </EmptyState>
             )}
 
             {sheet.deliverables.map((d) => (
               <article key={d.linkId} className="p-4">
                 <div className="flex items-start gap-3">
-                  <span className="font-mono text-[10px] text-slate-400 pt-1 min-w-[2.5rem]">
+                  <span className="font-mono text-[10px] text-muted-foreground pt-1 min-w-[2.5rem]">
                     {d.phaseCode ?? "—"}
                   </span>
                   <div className="flex-1 min-w-0">
                     <button
                       type="button"
                       onClick={() => onOpenIssue?.(d.issueId)}
-                      className="text-sm font-bold text-slate-900 dark:text-white text-left hover:underline"
+                      className="text-sm font-bold text-foreground text-left hover:underline"
                       title={`Open ${d.issueKey}`}
                     >
                       {d.name}
                     </button>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-muted-foreground">
                       {d.workstreamName ?? "No workstream"} · {d.tasksComplete}/{d.tasksTotal}{" "}
                       tasks
                     </p>
@@ -287,7 +339,7 @@ export function ActivateWorksheet({
                         "That workstream could not be set"
                       )
                     }
-                    className="text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-1 max-w-[9rem]"
+                    className="text-[11px] rounded-lg border border-border bg-card px-1.5 py-1 max-w-[9rem]"
                   >
                     <option value="">No workstream</option>
                     {sheet.workstreams.map((w) => (
@@ -315,7 +367,7 @@ export function ActivateWorksheet({
                           "That could not be removed"
                         );
                       }}
-                      className="text-[11px] font-semibold px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                      className="text-[11px] font-semibold px-2 py-1 rounded-lg border border-border text-muted-foreground"
                     >
                       Remove
                     </button>
@@ -341,14 +393,14 @@ export function ActivateWorksheet({
                             "That task could not be updated"
                           )
                         }
-                        className="rounded border-slate-300 dark:border-slate-700"
+                        className="rounded border-border"
                       />
                       <label
                         htmlFor={`task-${t.id}`}
                         className={`text-xs flex-1 min-w-0 ${
                           t.isCompleted
-                            ? "line-through text-slate-400"
-                            : "text-slate-700 dark:text-slate-300"
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
                         }`}
                       >
                         {t.title}
@@ -365,7 +417,7 @@ export function ActivateWorksheet({
                               "That task could not be removed"
                             )
                           }
-                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500"
+                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-lg border border-border text-muted-foreground"
                         >
                           Remove
                         </button>
@@ -398,15 +450,15 @@ export function ActivateWorksheet({
                       value={newTask[d.linkId] ?? ""}
                       onChange={(e) => setNewTask((s) => ({ ...s, [d.linkId]: e.target.value }))}
                       placeholder={`New task in ${d.name}`}
-                      className="flex-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5"
+                      className="flex-1 text-xs rounded-lg border border-border bg-muted px-2 py-1.5"
                     />
-                    <button
+                    <Btn
                       type="submit"
                       disabled={busy || !(newTask[d.linkId] ?? "").trim()}
-                      className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40"
+                      variant="secondary"
                     >
                       Add
-                    </button>
+                    </Btn>
                   </form>
                 )}
               </article>
@@ -416,7 +468,7 @@ export function ActivateWorksheet({
           {/* Add deliverable --------------------------------------------- */}
           {canManageDeliverables && (
             <form
-              className="mt-3 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-4 space-y-2"
+              className="mt-3 rounded-2xl border border-dashed border-border p-4 space-y-2"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!newDeliverable.trim()) return;
@@ -434,7 +486,7 @@ export function ActivateWorksheet({
                 if (ok) setNewDeliverable("");
               }}
             >
-              <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              <h4 className="text-[11px] font-bold text-foreground">
                 New deliverable in {sheet.phaseName}
               </h4>
               <label className="sr-only" htmlFor="new-deliverable-name">
@@ -447,7 +499,7 @@ export function ActivateWorksheet({
                 placeholder="Deliverable name"
                 minLength={3}
                 maxLength={200}
-                className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-2"
+                className="w-full text-xs rounded-lg border border-border bg-muted px-2 py-2"
               />
               <div className="flex gap-2">
                 <label className="sr-only" htmlFor="new-deliverable-ws">
@@ -457,7 +509,7 @@ export function ActivateWorksheet({
                   id="new-deliverable-ws"
                   value={newDeliverableWs}
                   onChange={(e) => setNewDeliverableWs(e.target.value)}
-                  className="flex-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2"
+                  className="flex-1 text-xs rounded-lg border border-border bg-card px-2 py-2"
                 >
                   <option value="">No workstream</option>
                   {sheet.workstreams.map((w) => (
@@ -466,15 +518,15 @@ export function ActivateWorksheet({
                     </option>
                   ))}
                 </select>
-                <button
+                <Btn
                   type="submit"
                   disabled={busy || newDeliverable.trim().length < 3}
-                  className="px-3 py-2 text-[11px] font-bold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 disabled:opacity-40"
+                  variant="primary"
                 >
                   Add deliverable
-                </button>
+                </Btn>
               </div>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-muted-foreground">
                 Code is assigned automatically from this phase&apos;s sequence.
               </p>
             </form>
@@ -484,27 +536,31 @@ export function ActivateWorksheet({
         {/* Gate and workstreams ------------------------------------------ */}
         <div className="space-y-4">
           {showGate && sheet.gate && (
-            <section className="bg-white dark:bg-slate-900 rounded-2xl border-l-4 border-l-slate-800 dark:border-l-slate-300 border border-slate-200 dark:border-slate-800 p-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+            <section className="bg-card rounded-2xl border-l-4 border-l-primary border border-border p-4">
+              <h3 className="text-sm font-bold text-foreground mb-2">
                 Quality gate
               </h3>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-[11px] text-slate-400">{sheet.gate.code}</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                <span className="font-mono text-[11px] text-muted-foreground">{sheet.gate.code}</span>
+                <span className="text-sm font-bold text-foreground">
                   {sheet.gate.name}
                 </span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-border text-muted-foreground">
                   {sheet.gate.criteriaMet}/{sheet.gate.criteriaTotal}
                 </span>
               </div>
               {/* Said plainly, because a full checklist is the most likely
                   moment for somebody to assume the gate is passed. It is
                   not: a gate is passed by a person signing it. */}
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 {sheet.gate.criteriaMet === sheet.gate.criteriaTotal
                   ? "Every criterion is settled. The gate still has to be raised and approved."
                   : "Criteria are evidence. Raising and approving the gate is separate."}
-                {gateLocked && ` This gate is ${sheet.gate.status.toLowerCase()}, so its criteria are frozen.`}
+                {answersFrozen
+                  ? ` This gate is approved, so its criteria are frozen.`
+                  : questionsFrozen
+                    ? ` This gate is raised: criteria can still be answered, but not added or removed. An unsettled criterion blocks approval.`
+                    : ``}
               </p>
 
               <ul className="mt-3 space-y-2">
@@ -515,7 +571,7 @@ export function ActivateWorksheet({
                       id={`crit-${c.id}`}
                       aria-label={`${c.criterion} — mark met`}
                       checked={c.met}
-                      disabled={!canManageGates || gateLocked || busy}
+                      disabled={!canManageGates || answersFrozen || busy}
                       onChange={(e) =>
                         mutate(
                           `/api/projects/${projectId}/activate/gates/${sheet.gate!.id}/criteria/${c.id}`,
@@ -526,18 +582,18 @@ export function ActivateWorksheet({
                           "That criterion could not be updated"
                         )
                       }
-                      className="mt-0.5 rounded border-slate-300 dark:border-slate-700"
+                      className="mt-0.5 rounded border-border"
                     />
                     <label
                       htmlFor={`crit-${c.id}`}
-                      className="text-xs flex-1 min-w-0 text-slate-700 dark:text-slate-300"
+                      className="text-xs flex-1 min-w-0 text-foreground"
                     >
                       {c.criterion}
                       {c.status === "WAIVED" && (
                         <span className="ml-1 text-[10px] text-amber-600">waived</span>
                       )}
                     </label>
-                    {canManageGates && !gateLocked && (
+                    {canManageGates && !questionsFrozen && (
                       <button
                         type="button"
                         disabled={busy}
@@ -556,7 +612,7 @@ export function ActivateWorksheet({
                             "That criterion could not be removed"
                           );
                         }}
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-lg border border-slate-300 dark:border-slate-700 text-red-600"
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-lg border border-border text-red-600"
                       >
                         Remove
                       </button>
@@ -565,7 +621,7 @@ export function ActivateWorksheet({
                 ))}
               </ul>
 
-              {canManageGates && !gateLocked && (
+              {canManageGates && !questionsFrozen && (
                 <form
                   className="flex gap-2 mt-3"
                   onSubmit={async (e) => {
@@ -587,39 +643,39 @@ export function ActivateWorksheet({
                     value={newCriterion}
                     onChange={(e) => setNewCriterion(e.target.value)}
                     placeholder="New gate criterion"
-                    className="flex-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5"
+                    className="flex-1 text-xs rounded-lg border border-border bg-muted px-2 py-1.5"
                   />
-                  <button
+                  <Btn
                     type="submit"
                     disabled={busy || newCriterion.trim().length < 3}
-                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40"
+                    variant="secondary"
                   >
                     <Plus className="w-3 h-3 inline" aria-hidden="true" /> Add
-                  </button>
+                  </Btn>
                 </form>
               )}
             </section>
           )}
 
-          <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+          <section className="bg-card rounded-2xl border border-border p-4">
+            <h3 className="text-sm font-bold text-foreground mb-2">
               Workstreams in this phase
             </h3>
             {/* Only the ones carrying something. A list of every workstream
                 with ten zeroes says less than the three that matter. */}
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            <ul className="divide-y divide-border">
               {sheet.workstreams
                 .filter((w) => w.deliverableCount > 0)
                 .map((w) => (
                   <li key={w.id} className="flex items-center justify-between py-1.5">
-                    <span className="text-xs text-slate-700 dark:text-slate-300">{w.name}</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    <span className="text-xs text-foreground">{w.name}</span>
+                    <span className="text-xs font-bold text-foreground">
                       {w.deliverableCount}
                     </span>
                   </li>
                 ))}
               {sheet.workstreams.every((w) => w.deliverableCount === 0) && (
-                <li className="text-xs text-slate-500 py-2">
+                <li className="text-xs text-muted-foreground py-2">
                   Nothing assigned to a workstream yet.
                 </li>
               )}

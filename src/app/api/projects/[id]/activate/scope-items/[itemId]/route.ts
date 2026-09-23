@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { parseJsonBody, activateCustomScopeItemUpdateSchema } from "@/lib/validation";
 import { modulesForProject } from "@/lib/activate-scope";
@@ -36,6 +37,7 @@ export async function PATCH(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_deliverables");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateCustomScopeItemUpdateSchema);
     if (!parsed.success) return parsed.error;
@@ -112,6 +114,7 @@ export async function DELETE(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_deliverables");
+    await assertActivateEnabled(projectId);
 
     const existing = await loadCustom(projectId, itemId);
     if (!existing) return NextResponse.json({ error: "Scope item not found" }, { status: 404 });

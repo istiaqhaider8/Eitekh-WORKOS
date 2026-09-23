@@ -45,34 +45,34 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  sessions               Session[]
-  orgMemberships         OrganizationMember[]
-  workspaceMemberships   WorkspaceMember[]
-  teamMemberships        TeamMember[]
-  projectMemberships     ProjectMember[]
-  reportedIssues         Issue[]              @relation("IssueReporter")
-  assignedIssues         Issue[]              @relation("IssueAssignee")
-  assignedSubtasks       Subtask[]
-  comments               Comment[]
-  timeEntries            TimeEntry[]
-  watchers               Watcher[]
-  notifications          Notification[]
-  triggeredNotifications Notification[]       @relation("NotificationActor")
-  activityLogs           ActivityLog[]
-  attachments            Attachment[]
-  leaves                 Leave[]
-  originalDelegations    TaskDelegation[]     @relation("DelegationOriginalAssignee")
-  receivedDelegations    TaskDelegation[]     @relation("DelegationDelegateUser")
-  createdDelegations     TaskDelegation[]     @relation("DelegationCreator")
-  delegationHistories    DelegationHistory[]
-  activatePhasesOwned      ActivatePhase[]        @relation("ActivatePhaseOwner")
-  activateWorkstreamsOwned ActivateWorkstream[]   @relation("ActivateWorkstreamOwner")
-  activateGateApprovals    ActivateGateApproval[] @relation("ActivateGateApprover")
-  activateGatesRaised      ActivateGate[]         @relation("ActivateGateRaiser")
-  activateModulesOwned     ActivateProjectModule[] @relation("ActivateModuleOwner")
-  activateDecisionsMade    ActivateDecision[]      @relation("ActivateDecisionDecider")
-  activateQuestionsOwned   ActivateDecision[]      @relation("ActivateQuestionOwner")
-  activateDeltasOwned      ActivateDelta[]         @relation("ActivateDeltaOwner")
+  sessions                 Session[]
+  orgMemberships           OrganizationMember[]
+  workspaceMemberships     WorkspaceMember[]
+  teamMemberships          TeamMember[]
+  projectMemberships       ProjectMember[]
+  reportedIssues           Issue[]                   @relation("IssueReporter")
+  assignedIssues           Issue[]                   @relation("IssueAssignee")
+  assignedSubtasks         Subtask[]
+  comments                 Comment[]
+  timeEntries              TimeEntry[]
+  watchers                 Watcher[]
+  notifications            Notification[]
+  triggeredNotifications   Notification[]            @relation("NotificationActor")
+  activityLogs             ActivityLog[]
+  attachments              Attachment[]
+  leaves                   Leave[]
+  originalDelegations      TaskDelegation[]          @relation("DelegationOriginalAssignee")
+  receivedDelegations      TaskDelegation[]          @relation("DelegationDelegateUser")
+  createdDelegations       TaskDelegation[]          @relation("DelegationCreator")
+  delegationHistories      DelegationHistory[]
+  activatePhasesOwned      ActivatePhase[]           @relation("ActivatePhaseOwner")
+  activateWorkstreamsOwned ActivateWorkstream[]      @relation("ActivateWorkstreamOwner")
+  activateGateApprovals    ActivateGateApproval[]    @relation("ActivateGateApprover")
+  activateGatesRaised      ActivateGate[]            @relation("ActivateGateRaiser")
+  activateModulesOwned     ActivateProjectModule[]   @relation("ActivateModuleOwner")
+  activateDecisionsMade    ActivateDecision[]        @relation("ActivateDecisionDecider")
+  activateQuestionsOwned   ActivateDecision[]        @relation("ActivateQuestionOwner")
+  activateDeltasOwned      ActivateDelta[]           @relation("ActivateDeltaOwner")
   activateCustomScope      ActivateCustomScopeItem[] @relation("ActivateCustomScopeAuthor")
 
   @@index([userType])
@@ -147,11 +147,11 @@ model Organization {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  members     OrganizationMember[]
-  workspaces  Workspace[]
-  webhooks    Webhook[]
-  leaves      Leave[]
-  invitations Invitation[]
+  members         OrganizationMember[]
+  workspaces      Workspace[]
+  webhooks        Webhook[]
+  leaves          Leave[]
+  invitations     Invitation[]
   /// Methodology templates this organization authored. Built-in templates
   /// have a null orgId and belong to nobody.
   methodTemplates MethodTemplate[]
@@ -274,22 +274,25 @@ model Project {
   /// See Issue.searchVector for why the default is declared this way.
   searchVector Unsupported("tsvector")? @default(dbgenerated("((setweight(to_tsvector('english'::regconfig, COALESCE(key, ''::text)), 'A'::\"char\") || setweight(to_tsvector('english'::regconfig, COALESCE(name, ''::text)), 'A'::\"char\")) || setweight(to_tsvector('english'::regconfig, COALESCE(description, ''::text)), 'B'::\"char\"))"))
 
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  team            Team?            @relation(fields: [teamId], references: [id])
-  projectTeams    Team[]           @relation("ProjectTeamsList")
-  members         ProjectMember[]
-  components      Component[]
-  epics           Epic[]
-  activateProfile   ActivateProfile?
-  activatePhases    ActivatePhase[]
-  activateWorkstreams ActivateWorkstream[]
-  sprints         Sprint[]
-  workflows       Workflow[]
-  issues          Issue[]
-  labels          Label[]
-  automationRules AutomationRule[]
-  recurringTasks  RecurringTask[]
-  webhooks        Webhook[]
+  workspace                Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  team                     Team?                     @relation(fields: [teamId], references: [id])
+  projectTeams             Team[]                    @relation("ProjectTeamsList")
+  members                  ProjectMember[]
+  components               Component[]
+  epics                    Epic[]
+  activateProfile          ActivateProfile?
+  activatePhases           ActivatePhase[]
+  activateWorkstreams      ActivateWorkstream[]
+  sprints                  Sprint[]
+  workflows                Workflow[]
+  issues                   Issue[]
+  labels                   Label[]
+  automationRules          AutomationRule[]
+  recurringTasks           RecurringTask[]
+  webhooks                 Webhook[]
+  activateModules          ActivateProjectModule[]
+  activateDecisions        ActivateDecision[]
+  activateCustomScopeItems ActivateCustomScopeItem[]
 
   @@index([workspaceId])
   @@index([workspaceId, status])
@@ -298,9 +301,6 @@ model Project {
   @@index([ownerId])
   @@index([teamId])
   @@index([searchVector], type: Gin)
-  activateModules   ActivateProjectModule[]
-  activateDecisions ActivateDecision[]
-  activateCustomScopeItems ActivateCustomScopeItem[]
 }
 
 model ProjectMember {
@@ -489,29 +489,29 @@ model Issue {
   /// migration — `migrate diff` compares the normalised string.
   searchVector Unsupported("tsvector")? @default(dbgenerated("((setweight(to_tsvector('english'::regconfig, COALESCE(\"issueKey\", ''::text)), 'A'::\"char\") || setweight(to_tsvector('english'::regconfig, COALESCE(title, ''::text)), 'A'::\"char\")) || setweight(to_tsvector('english'::regconfig, COALESCE(description, ''::text)), 'B'::\"char\"))"))
 
-  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  status            WorkflowStatus     @relation(fields: [statusId], references: [id])
-  reporter          User               @relation("IssueReporter", fields: [reporterId], references: [id])
-  assignee          User?              @relation("IssueAssignee", fields: [assigneeId], references: [id])
-  team              Team?              @relation(fields: [teamId], references: [id])
-  epic              Epic?              @relation(fields: [epicId], references: [id])
-  sprint            Sprint?            @relation(fields: [sprintId], references: [id])
-  component         Component?         @relation(fields: [componentId], references: [id])
-  parentIssue       Issue?             @relation("ParentChild", fields: [parentIssueId], references: [id], onDelete: SetNull)
-  subIssues         Issue[]            @relation("ParentChild")
-  subtasks          Subtask[]
-  comments          Comment[]
-  attachments       Attachment[]
-  timeEntries       TimeEntry[]
-  watchers          Watcher[]
-  labels            IssueLabel[]
-  activityLogs      ActivityLog[]
-  customFieldValues CustomFieldValue[]
-  activateDeliverable ActivateDeliverableLink?
-  activateCriterionEvidence ActivateGateCriterion[] @relation("ActivateCriterionEvidence")
-  outgoingDeps      IssueDependency[]  @relation("SourceDep")
-  incomingDeps      IssueDependency[]  @relation("TargetDep")
-  delegations       TaskDelegation[]
+  project                   Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status                    WorkflowStatus           @relation(fields: [statusId], references: [id])
+  reporter                  User                     @relation("IssueReporter", fields: [reporterId], references: [id])
+  assignee                  User?                    @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  team                      Team?                    @relation(fields: [teamId], references: [id])
+  epic                      Epic?                    @relation(fields: [epicId], references: [id])
+  sprint                    Sprint?                  @relation(fields: [sprintId], references: [id])
+  component                 Component?               @relation(fields: [componentId], references: [id])
+  parentIssue               Issue?                   @relation("ParentChild", fields: [parentIssueId], references: [id], onDelete: SetNull)
+  subIssues                 Issue[]                  @relation("ParentChild")
+  subtasks                  Subtask[]
+  comments                  Comment[]
+  attachments               Attachment[]
+  timeEntries               TimeEntry[]
+  watchers                  Watcher[]
+  labels                    IssueLabel[]
+  activityLogs              ActivityLog[]
+  customFieldValues         CustomFieldValue[]
+  activateDeliverable       ActivateDeliverableLink?
+  activateCriterionEvidence ActivateGateCriterion[]  @relation("ActivateCriterionEvidence")
+  outgoingDeps              IssueDependency[]        @relation("SourceDep")
+  incomingDeps              IssueDependency[]        @relation("TargetDep")
+  delegations               TaskDelegation[]
 
   @@unique([projectId, keyNumber])
   @@index([issueKey])
@@ -1288,14 +1288,14 @@ model SyncEventOutbox {
 /// One per project. Absent means the project is not running Activate at all,
 /// which is the state every existing project is in.
 model ActivateProfile {
-  id                String   @id @default(cuid())
-  projectId         String   @unique
-  enabled           Boolean  @default(false)
-  methodologyVersion String  @default("2024")
+  id                 String   @id @default(cuid())
+  projectId          String   @unique
+  enabled            Boolean  @default(false)
+  methodologyVersion String   @default("2024")
   /// Phase key the project currently sits in. Null until phases are seeded.
-  currentPhaseKey   String?
+  currentPhaseKey    String?
   /// Reserved for per-project tailoring (skipped phases, renamed workstreams).
-  configJson        String?
+  configJson         String?
   /// THE STAMP. Which template this project was seeded from, and at which
   /// version. Null means the built-in methodology as it stood before templates
   /// existed, which is why it is nullable rather than backfilled: a project
@@ -1305,18 +1305,18 @@ model ActivateProfile {
   /// Kept as a plain id with NO relation, so deleting a template can never
   /// cascade into a running project's profile. A project's plan must survive
   /// the template it came from.
-  templateId        String?
-  templateVersion   Int?
+  templateId         String?
+  templateVersion    Int?
   /// The allocator for custom scope-item codes, and the reason it lives here
   /// rather than being derived from the items themselves: derived from
   /// `max(code)`, removing every custom item would hand the next one CUS-01
   /// again, and a workshop's minutes citing CUS-01 would then point at a
   /// different item. This only ever goes up. Reconciled against the highest
   /// code that exists, the same way `Project.issueCounter` is.
-  customScopeCounter Int     @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  version           Int      @default(0)
+  customScopeCounter Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  version            Int      @default(0)
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -1356,7 +1356,7 @@ model MethodTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization Organization?        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   phases       TemplatePhase[]
   workstreams  TemplateWorkstream[]
   modules      TemplateModule[]
@@ -1367,19 +1367,64 @@ model MethodTemplate {
 }
 
 model TemplatePhase {
-  id          String   @id @default(cuid())
-  templateId  String
-  key         String
-  name        String
-  position    Int      @default(0)
-  purpose     String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  templateId String
+  key        String
+  name       String
+  position   Int      @default(0)
+  purpose    String?
+  createdAt  DateTime @default(now())
 
-  template MethodTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  gates    TemplateGate[]
+  template     MethodTemplate        @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  gates        TemplateGate[]
+  deliverables TemplateDeliverable[]
 
   @@unique([templateId, key])
   @@index([templateId])
+}
+
+/// One numbered line of a phase's plan, as the METHODOLOGY describes it.
+///
+/// WHY THIS IS NOT AN ActivateDeliverableLink
+///
+/// A project's deliverable is an Issue on its board, with a key, an
+/// assignee and a status — a real piece of work somebody owns. This is the
+/// description that work is created FROM, shared by every project seeded
+/// from the template and owned by none of them. Editing a project's plan
+/// must never reach back and change the methodology for everyone else,
+/// which a single table could not prevent.
+///
+/// `workstreamKey` is a key rather than a foreign key for the same reason
+/// the phases carry keys: a project renames its workstreams, and a template
+/// pointing at one project's row would be wrong for every other project.
+model TemplateDeliverable {
+  id            String   @id @default(cuid())
+  phaseId       String
+  name          String
+  workstreamKey String?
+  /// Order within the phase. Also the order codes are allocated in, so a
+  /// project's D-01 is the same deliverable on every project.
+  position      Int      @default(0)
+  isMandatory   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  phase TemplatePhase             @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  tasks TemplateDeliverableTask[]
+
+  @@index([phaseId])
+}
+
+/// One line of a deliverable's checklist. Becomes a subtask on the issue.
+model TemplateDeliverableTask {
+  id            String   @id @default(cuid())
+  deliverableId String
+  title         String
+  position      Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  deliverable TemplateDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+
+  @@index([deliverableId])
 }
 
 model TemplateWorkstream {
@@ -1424,21 +1469,21 @@ model TemplateGateCriterion {
 }
 
 model ActivatePhase {
-  id          String    @id @default(cuid())
-  projectId   String
+  id                 String    @id @default(cuid())
+  projectId          String
   /// DISCOVER | PREPARE | EXPLORE | REALIZE | DEPLOY | RUN
-  key         String
-  name        String
-  position    Int       @default(0)
-  status      String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED, SKIPPED
-  ownerId     String?
-  startDate   DateTime?
-  targetDate  DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  key                String
+  name               String
+  position           Int       @default(0)
+  status             String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED, SKIPPED
+  ownerId            String?
+  startDate          DateTime?
+  targetDate         DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   /// Optimistic locking. A gate sign-off must not race a phase edit.
-  version     Int       @default(0)
+  version            Int       @default(0)
   /// The allocator for this phase's deliverable codes — D-01, D-02, and so on.
   ///
   /// It only ever goes up. Derived from the highest code present instead, a
@@ -1447,11 +1492,11 @@ model ActivatePhase {
   /// different piece of work. Reconciled against the highest code that exists
   /// before it is used, the same rule `Project.issueCounter` follows for issue
   /// keys and `ActivateProfile.customScopeCounter` for scope items.
-  deliverableCounter Int  @default(0)
+  deliverableCounter Int       @default(0)
 
-  project     Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner       User?                     @relation("ActivatePhaseOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  gates       ActivateGate[]
+  project      Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User?                     @relation("ActivatePhaseOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  gates        ActivateGate[]
   deliverables ActivateDeliverableLink[]
 
   @@unique([projectId, key])
@@ -1528,15 +1573,15 @@ model ActivateDeliverableLink {
 }
 
 model ActivateGate {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   phaseId     String
   name        String
   description String?
-  isMandatory Boolean  @default(true)
-  position    Int      @default(0)
+  isMandatory Boolean   @default(true)
+  position    Int       @default(0)
   /// OPEN, RAISED, APPROVED, REJECTED. A CACHE of the approval ledger — see
   /// deriveGateStatus in src/lib/activate-gates.ts. Never written on its own.
-  status      String   @default("OPEN")
+  status      String    @default("OPEN")
   /// SEPARATION OF DUTIES. Who submitted this gate for sign-off, and when.
   /// The rule "whoever raises a gate cannot approve it" needs a stored answer
   /// to "who raised it"; deriving it from the audit log would make an
@@ -1546,13 +1591,13 @@ model ActivateGate {
   /// the previous attempt survives in the approval ledger.
   raisedById  String?
   raisedAt    DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  phase      ActivatePhase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  raisedBy   User?                   @relation("ActivateGateRaiser", fields: [raisedById], references: [id], onDelete: SetNull)
-  criteria   ActivateGateCriterion[]
-  approvals  ActivateGateApproval[]
+  phase     ActivatePhase           @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  raisedBy  User?                   @relation("ActivateGateRaiser", fields: [raisedById], references: [id], onDelete: SetNull)
+  criteria  ActivateGateCriterion[]
+  approvals ActivateGateApproval[]
 
   @@index([phaseId])
   @@index([raisedById])

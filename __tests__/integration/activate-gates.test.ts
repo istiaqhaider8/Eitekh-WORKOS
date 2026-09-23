@@ -51,10 +51,35 @@ async function enableAndLoad(side: "orgA" | "orgB") {
   const s = fx[side];
   await api(s.users.OWNER, `/api/projects/${s.projectId}/activate`, {
     method: "POST",
-    body: { enabled: true },
+    body: { enabled: true, seedPlan: false },
   });
   const res = await api(s.users.OWNER, `/api/projects/${s.projectId}/activate`);
   return res.body.phases;
+}
+
+/**
+ * Mark every criterion MET in the DATABASE, as setup.
+ *
+ * The API version below is the one that tests the route, and the tests
+ * that are ABOUT settling criteria use it. This exists for blocks where
+ * settling is only the state a different claim needs: the built-in gates
+ * carry seven to nine criteria each now, and nine PATCHes per block was
+ * enough to cross the thirty-mutations-per-minute limit and fail the run
+ * with a 429 — a rate limit reported as a product defect.
+ */
+async function raiseInDb(gateId: string, raisedById: string) {
+  await prisma.activateGate.update({
+    where: { id: gateId },
+    data: { status: "RAISED", raisedById, raisedAt: new Date() },
+  });
+}
+
+async function settleAllCriteriaInDb(gateId: string) {
+  const { count } = await prisma.activateGateCriterion.updateMany({
+    where: { gateId, status: { notIn: ["MET", "WAIVED"] } },
+    data: { status: "MET" },
+  });
+  return count;
 }
 
 /** Mark every criterion of a gate MET, as the raiser would. */
@@ -574,5 +599,132 @@ describe("gate.status never diverges from the ledger", () => {
         status: deriveGateStatus(g.approvals, g.raisedAt),
       });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * The criteria are re-checked at the moment of signing, not only at raising.
+ *
+ * FOUND IN THE LIVE SYSTEM, NOT BY THIS SUITE.
+ *
+ * Raising refuses while anything is unsettled, and the approvals route used
+ * to rely on that. But raising and signing are two requests with a review in
+ * between, and marking a criterion NOT_MET during that window is exactly
+ * what a reviewer who has found a problem does. Nothing re-read the criteria,
+ * so a real project produced an APPROVED gate carrying a NOT_MET criterion —
+ * the one artefact this feature exists to produce, asserting two opposite
+ * things at once.
+ *
+ * The sequence below is the reproduction, step for step.
+ */
+describe("A gate cannot be signed off while a criterion is unsettled", () => {
+  it("refuses the approval, and writes nothing to the ledger", async () => {
+    const { gate } = gateOf(phasesA, "REALIZE");
+    const base = `/api/projects/${fx.orgA.projectId}/activate/gates/${gate.id}`;
+
+    // Reaching RAISED is setup here, done in the database. The raise route
+    // has its own tests above; this block is about the APPROVALS route,
+    // and every extra request it makes is charged against the same
+    // thirty-per-minute budget as the calls it is actually testing.
+    await settleAllCriteriaInDb(gate.id);
+    await raiseInDb(gate.id, fx.orgA.users.OWNER.id);
+
+    // A reviewer now finds a problem. This is permitted on purpose: recording
+    // the finding is the point, and it is what must block the sign-off.
+    const criteria = await prisma.activateGateCriterion.findMany({
+      where: { gateId: gate.id },
+      select: { id: true, criterion: true },
+    });
+    const flipped = criteria[0];
+    // Through the API: that a raised gate ACCEPTS this is half the point,
+    // and it is the half that used to be impossible in the interface.
+    expectAllowed(
+      await api(fx.orgA.users.OWNER, `${base}/criteria/${flipped.id}`, {
+        method: "PATCH",
+        body: { status: "NOT_MET" },
+      }),
+      "a reviewer marking a criterion NOT_MET on a raised gate"
+    );
+
+    // The gate is still RAISED — the flip does not un-raise it.
+    expect(
+      (await prisma.activateGate.findUnique({ where: { id: gate.id }, select: { status: true } }))!
+        .status
+    ).toBe("RAISED");
+
+    const res = await api(fx.orgA.users.ADMIN, `${base}/approvals`, {
+      method: "POST",
+      body: { decision: "APPROVED" },
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("GATE_CRITERIA_OUTSTANDING");
+    // The refusal must name what is in the way, or the approver cannot act.
+    expect(String(res.body.error)).toContain(flipped.criterion);
+
+    // A 409 alone does not prove nothing was written.
+    const after = await prisma.activateGate.findUnique({
+      where: { id: gate.id },
+      select: { status: true, approvals: { select: { decision: true } } },
+    });
+    expect(after!.approvals).toEqual([]);
+    expect(after!.status).toBe("RAISED");
+  });
+
+  it("still allows a REJECTION, which is the right answer to an unsettled gate", async () => {
+    // Blocking rejection too would trap the gate: the criterion cannot be
+    // settled honestly, and the only exit would be to fake it.
+    const { gate } = gateOf(phasesA, "REALIZE");
+    const res = await api(
+      fx.orgA.users.ADMIN,
+      `/api/projects/${fx.orgA.projectId}/activate/gates/${gate.id}/approvals`,
+      { method: "POST", body: { decision: "REJECTED", comment: "criterion not met" } }
+    );
+    expectAllowed(res, "rejecting a gate with an outstanding criterion");
+    expect(
+      (await prisma.activateGate.findUnique({ where: { id: gate.id }, select: { status: true } }))!
+        .status
+    ).toBe("REJECTED");
+  });
+
+  it("approves once the finding is settled, so the block is not a dead end", async () => {
+    // The accept case, asserted last here because it depends on the two
+    // above — but asserted, because a rule that only ever refuses is broken.
+    //
+    // Driven by ADMIN, and only the ONE criterion the first test flipped is
+    // settled again. Both are about the 30-mutations-per-minute limit: this
+    // block sits at the end of a long suite, and re-settling every criterion
+    // as the same actor pushed it over and answered 429 — which is neither a
+    // pass nor a real failure, so it is worth not provoking.
+    const { gate } = gateOf(phasesA, "REALIZE");
+    const base = `/api/projects/${fx.orgA.projectId}/activate/gates/${gate.id}`;
+    const unsettled = await prisma.activateGateCriterion.findMany({
+      where: { gateId: gate.id, status: { notIn: ["MET", "WAIVED"] } },
+      select: { id: true },
+    });
+    expect(unsettled.length).toBeGreaterThan(0);
+    // Through the API for the first one, so the path a reviewer actually
+    // takes is exercised here too; the remainder is setup.
+    expectAllowed(
+      await api(fx.orgA.users.ADMIN, `${base}/criteria/${unsettled[0].id}`, {
+        method: "PATCH",
+        body: { status: "MET" },
+      }),
+      "settling the outstanding criterion"
+    );
+    await settleAllCriteriaInDb(gate.id);
+    await raiseInDb(gate.id, fx.orgA.users.ADMIN.id);
+    expectAllowed(
+      await api(fx.orgA.users.OWNER, `${base}/approvals`, {
+        method: "POST",
+        body: { decision: "APPROVED" },
+      }),
+      "approving a fully settled gate"
+    );
+    expect(
+      (await prisma.activateGate.findUnique({ where: { id: gate.id }, select: { status: true } }))!
+        .status
+    ).toBe("APPROVED");
   });
 });

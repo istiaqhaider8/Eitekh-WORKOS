@@ -10,6 +10,8 @@ import {
 import { ActivateWorkshop } from "./ActivateWorkshop";
 import { ActivateBacklog } from "./ActivateBacklog";
 import { ActivateWorksheet } from "./ActivateWorksheet";
+import { isPhaseWorkComplete, phaseIncompleteReason } from "@/lib/activate-phase-completion";
+import { Panel, PanelHeader, Btn, Pill, Note, Stat, EmptyState, fieldClass, FieldLabel } from "./ui";
 
 /**
  * SAP Activate — the phase workspace, including the Explore fit-to-standard view.
@@ -159,10 +161,10 @@ function fmtDate(value: string | null): string {
 }
 
 const statusTone: Record<string, string> = {
-  NOT_STARTED: "text-slate-500 dark:text-slate-400",
+  NOT_STARTED: "text-muted-foreground",
   IN_PROGRESS: "text-blue-600 dark:text-blue-400",
   COMPLETED: "text-emerald-600 dark:text-emerald-400",
-  SKIPPED: "text-slate-400 dark:text-slate-500",
+  SKIPPED: "text-muted-foreground",
 };
 
 export function ActivateWorkspace({
@@ -177,7 +179,23 @@ export function ActivateWorkspace({
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loadedPhaseId, setLoadedPhaseId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
-  const [section, setSection] = useState<"phases" | "worksheet" | "workshop" | "backlog">(
+  /**
+   * The selected phase's totals, as the worksheet last reported them.
+   *
+   * Null until it has loaded — an empty phase and an unloaded one both look
+   * like zero, and only one of them is finished. The phase key is kept with
+   * them so the previous phase's numbers cannot be read as this one's during
+   * a switch.
+   */
+  const [worksheetCounts, setWorksheetCounts] = useState<{
+    phaseKey: string;
+    deliverableCount: number;
+    tasksTotal: number;
+    tasksComplete: number;
+    criteriaTotal: number;
+    criteriaSettled: number;
+  } | null>(null);
+  const [section, setSection] = useState<"phases" | "workshop" | "backlog">(
     "phases"
   );
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
@@ -244,6 +262,19 @@ export function ActivateWorkspace({
   }, [loadProfile]);
 
   const selected = phases.find((p) => p.key === selectedKey) || phases[0];
+
+  /* Stable, so the worksheet's loader is not a new function every render. */
+  const handleWorksheetCounts = useCallback(
+    (c: {
+      phaseKey: string;
+      deliverableCount: number;
+      tasksTotal: number;
+      tasksComplete: number;
+      criteriaTotal: number;
+      criteriaSettled: number;
+    }) => setWorksheetCounts(c),
+    []
+  );
 
   const loadDeliverables = useCallback(
     async (targetPhaseId: string, isCurrent: () => boolean = () => true) => {
@@ -341,7 +372,7 @@ export function ActivateWorkspace({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-sm text-slate-500">
+      <div className="flex items-center justify-center py-24 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
         Loading Activate…
       </div>
@@ -351,21 +382,21 @@ export function ActivateWorkspace({
   if (!enabled) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-lg w-full text-center space-y-4 bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-300 dark:border-slate-800">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">
+        <div className="max-w-lg w-full text-center space-y-4 bg-card p-8 rounded-2xl border border-border">
+          <h2 className="text-base font-bold text-foreground">
             Run this project with SAP Activate
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Enabling seeds the six phases, their quality gates and the default
             workstreams. Nothing already in the project changes, and turning it
             off later keeps every decision on record.
           </p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          <p className="text-[11px] text-muted-foreground">
             Aligned with the published SAP Activate methodology. Not certified
             by or affiliated with SAP.
           </p>
           {error && (
-            <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+            <p role="alert" className="text-xs text-destructive">
               {error}
             </p>
           )}
@@ -383,7 +414,7 @@ export function ActivateWorkspace({
                 <div className="text-left">
                   <label
                     htmlFor="activate-template"
-                    className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+                    className="block text-[11px] font-semibold text-muted-foreground mb-1"
                   >
                     Methodology
                   </label>
@@ -391,7 +422,7 @@ export function ActivateWorkspace({
                     id="activate-template"
                     value={chosenTemplate}
                     onChange={(e) => setChosenTemplate(e.target.value)}
-                    className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+                    className="w-full text-xs rounded-lg border border-border bg-card px-2 py-1.5"
                   >
                     {templates.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -401,13 +432,13 @@ export function ActivateWorkspace({
                       </option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-1">
                     A project keeps the version it was started on. Improving a
                     methodology later never rewrites a running plan.
                   </p>
                 </div>
               )}
-              <button
+              <Btn
                 type="button"
                 disabled={busy !== null}
                 onClick={() =>
@@ -424,13 +455,13 @@ export function ActivateWorkspace({
                     loadProfile
                   )
                 }
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                variant="primary" size="md"
               >
                 {busy ? "Enabling…" : "Enable Activate"}
-              </button>
+              </Btn>
             </div>
           ) : (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Ask a project administrator to enable it.
             </p>
           )}
@@ -446,8 +477,62 @@ export function ActivateWorkspace({
     ? gate.criteria.filter((c) => c.status !== "MET" && c.status !== "WAIVED")
     : [];
 
+  /**
+   * Is this phase's work finished?
+   *
+   * Only the counts belonging to the phase on screen count; during a switch
+   * the previous phase's are still held, and they would otherwise light up
+   * the button on a phase nobody has looked at yet.
+   *
+   * A phase with no tasks and no criteria is not "complete", it is empty —
+   * hence the two > 0 tests. Answering yes there would put a finished badge
+   * on every phase of a new project.
+   */
+  /**
+   * The phase before this one, and whether its gate was ever signed.
+   *
+   * Nothing stops a project starting Realize while Explore's gate sits open,
+   * and nothing should: a hard block would be wrong for the real projects
+   * that overlap phases deliberately, and for the ones that adopt this tool
+   * halfway through. But a gate that can be walked past in silence is not
+   * performing the one job it has. So the phase says it, where the person
+   * walking past is standing.
+   *
+   * Only IN_PROGRESS and COMPLETED phases are warned about. A phase nobody
+   * has started yet is not running ahead of anything.
+   */
+  const selectedIndex = selected ? phases.findIndex((p) => p.key === selected.key) : -1;
+  // The API returns phases in methodology order — the same order the rail
+  // above renders them in — so the one before this is the one before it here.
+  const previousPhase = selectedIndex > 0 ? phases[selectedIndex - 1] : null;
+  const previousGate = previousPhase?.gates?.[0] ?? null;
+  const runningAheadOfGate =
+    previousGate !== null &&
+    previousGate.status !== "APPROVED" &&
+    (selected?.status === "IN_PROGRESS" || selected?.status === "COMPLETED");
+
+  const counts = worksheetCounts?.phaseKey === selected?.key ? worksheetCounts : null;
+  const allComplete = isPhaseWorkComplete(counts);
+  const incompleteReason = phaseIncompleteReason(counts);
+
+  /**
+   * The root carries no `overflow-y-auto`, deliberately.
+   *
+   * The page's `<main>` is already `flex-1 flex flex-col overflow-y-auto`
+   * and is the scroll container for every view. A second one here made this
+   * view a scrolling box INSIDE a scrolling page: the panel took whatever
+   * height flex gave it, its content scrolled within that, and the rest of
+   * the window sat empty below it with a stubby second scrollbar on the
+   * right. Scrolling then moved whichever container the pointer happened to
+   * be over, and the bottom of a long phase could not be reached at all
+   * once the outer scroll had bottomed out.
+   *
+   * Every other full-page view — Workload, Board, List — is a plain
+   * `flex-1` child that grows and lets `main` do the scrolling. This one
+   * now matches them.
+   */
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+    <div className="flex-1 p-4 sm:p-6 space-y-5">
       {/**
        * Three sections, not three routes.
        *
@@ -460,12 +545,11 @@ export function ActivateWorkspace({
       <div
         role="tablist"
         aria-label="Activate sections"
-        className="flex gap-1 border-b border-slate-200 dark:border-slate-800"
+        className="flex gap-1 border-b border-border overflow-x-auto no-scrollbar"
       >
         {(
           [
             ["phases", "Phases and gates"],
-            ["worksheet", "Worksheet"],
             ["workshop", "Fit-to-standard"],
             ["backlog", "Backlog"],
           ] as const
@@ -476,32 +560,16 @@ export function ActivateWorkspace({
             type="button"
             aria-selected={section === key}
             onClick={() => setSection(key)}
-            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors ${
+            className={`px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md ${
               section === key
-                ? "border-blue-500 text-slate-900 dark:text-white"
-                : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             }`}
           >
             {text}
           </button>
         ))}
       </div>
-
-      {section === "worksheet" && (
-        <ActivateWorksheet
-          projectId={projectId}
-          /* The phase selected on the rail, so switching to the worksheet
-             shows the phase somebody was already looking at rather than
-             jumping them somewhere else. */
-          phaseKey={selectedKey}
-          phases={phases.map((p) => ({ key: p.key, name: p.name }))}
-          onPhaseChange={setSelectedKey}
-          canManageDeliverables={can("activate:manage_deliverables")}
-          canManageGates={can("activate:manage_gates")}
-          onOpenIssue={onOpenIssue}
-          onChanged={loadProfile}
-        />
-      )}
 
       {section === "workshop" && (
         <ActivateWorkshop
@@ -527,7 +595,7 @@ export function ActivateWorkspace({
       <div
         role="tablist"
         aria-label="Activate phases"
-        className="flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1"
+        className="flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory"
       >
         {phases.map((p, i) => {
           const isSelected = selected?.key === p.key;
@@ -544,16 +612,37 @@ export function ActivateWorkspace({
               tabIndex={isSelected ? 0 : -1}
               onKeyDown={(e) => onTabKeyDown(e, i)}
               onClick={() => setSelectedKey(p.key)}
-              className={`min-w-[140px] text-left px-3 py-2 rounded-xl border transition-colors shrink-0 ${
+              className={`min-w-[148px] snap-start text-left px-3 py-2.5 rounded-xl border transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 isSelected
-                  ? "bg-white dark:bg-slate-800 border-blue-400 dark:border-blue-600"
-                  : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800"
+                  ? "bg-card border-primary ring-1 ring-primary/30 shadow-sm"
+                  : "bg-muted/40 border-border hover:bg-card hover:border-border"
               }`}
             >
-              <span className="block text-[10px] font-mono text-slate-400">
-                {String(PHASE_ORDER.indexOf(p.key as (typeof PHASE_ORDER)[number]) + 1).padStart(2, "0")}
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {String(PHASE_ORDER.indexOf(p.key as (typeof PHASE_ORDER)[number]) + 1).padStart(2, "0")}
+                </span>
+                {/* The gate at a glance. Marked aria-hidden and given a
+                    title rather than a label: the gate status is already
+                    announced in words further down this card, and saying
+                    it twice is noise to a screen reader. */}
+                {p.gates?.[0] && (
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      p.gates[0].status === "APPROVED"
+                        ? "bg-emerald-500"
+                        : p.gates[0].status === "REJECTED"
+                          ? "bg-rose-500"
+                          : p.gates[0].status === "RAISED"
+                            ? "bg-amber-500"
+                            : "bg-transparent"
+                    }`}
+                    title={`Gate ${p.gates[0].status.toLowerCase()}`}
+                    aria-hidden="true"
+                  />
+                )}
               </span>
-              <span className="block text-xs font-bold text-slate-900 dark:text-white">{p.name}</span>
+              <span className="block text-xs font-bold text-foreground mt-0.5">{p.name}</span>
               <span className={`block text-[10px] font-semibold ${statusTone[p.status] || ""}`}>
                 {p.status.replace("_", " ").toLowerCase()}
               </span>
@@ -565,7 +654,7 @@ export function ActivateWorkspace({
       {/* Live region: refusals from the API are the useful part of this UI. */}
       <div aria-live="polite" className="min-h-[1rem]">
         {error && (
-          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
         )}
@@ -582,16 +671,41 @@ export function ActivateWorkspace({
           className="space-y-5"
         >
           {/* Phase summary ------------------------------------------------ */}
-          <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+          <section className="bg-card rounded-2xl border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">{selected.name}</h2>
-                <p className="text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm font-bold text-foreground">
+                    {selected.name}
+                  </h2>
+                  {selected.status === "COMPLETED" ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+                      COMPLETED
+                    </span>
+                  ) : (
+                    allComplete && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+                        ALL COMPLETE
+                      </span>
+                    )
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
                   {fmtDate(selected.startDate)} → {fmtDate(selected.targetDate)}
                 </p>
+                {/* The two numbers the badge is made of. Without them a
+                    greyed-out button is a puzzle: it is these that say
+                    whether three tasks or one criterion is in the way. */}
+                {counts && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {counts.tasksComplete} of {counts.tasksTotal} task
+                    {counts.tasksTotal === 1 ? "" : "s"} · {counts.criteriaSettled} of{" "}
+                    {counts.criteriaTotal} criteri{counts.criteriaTotal === 1 ? "on" : "a"} settled
+                  </p>
+                )}
               </div>
               {can("activate:manage_phases") && selected.status !== "IN_PROGRESS" && (
-                <button
+                <Btn
                   type="button"
                   disabled={busy !== null}
                   onClick={() =>
@@ -602,68 +716,104 @@ export function ActivateWorkspace({
                       loadProfile
                     )
                   }
-                  className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+                  variant="secondary"
                 >
                   Mark in progress
-                </button>
+                </Btn>
+              )}
+              {/* Completing a phase is a DECISION, not an arithmetic
+                  consequence of the last tick. The button enables once the
+                  evidence is in; somebody still presses it, and the gate is
+                  still raised and signed separately by someone else. That
+                  separation is the whole point of a gate, and a checklist
+                  auto-approving one would quietly remove it. */}
+              {can("activate:manage_phases") && selected.status !== "COMPLETED" && (
+                <Btn
+                  type="button"
+                  disabled={busy !== null || !allComplete}
+                  title={
+                    allComplete
+                      ? "Closes the phase. It does not sign the quality gate — that stays a separate approval."
+                      : `Available once every task is complete and every gate criterion is settled — ${incompleteReason}`
+                  }
+                  onClick={() =>
+                    send(
+                      "Complete phase",
+                      `/api/projects/${projectId}/activate/phases/${selected.id}`,
+                      { method: "PATCH", body: JSON.stringify({ status: "COMPLETED" }) },
+                      loadProfile
+                    )
+                  }
+                  variant="primary"
+                >
+                  Mark complete
+                </Btn>
               )}
             </div>
+
+            {/* Said here rather than enforced: see the note on
+                runningAheadOfGate. It is a caution, not a refusal. */}
+            {runningAheadOfGate && previousPhase && (
+              <p className="mt-3 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-2.5 py-1.5">
+                {previousPhase.name}&apos;s quality gate is{" "}
+                {previousGate?.status === "REJECTED" ? "rejected" : "not signed off"}. This
+                phase is running ahead of it.
+              </p>
+            )}
           </section>
 
           {/* Deploy readiness / Run hypercare ----------------------------- */}
           {(selected.key === "DEPLOY" || selected.key === "RUN") && phaseReadiness && (
-            <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                {selected.key === "DEPLOY" ? "Go-live readiness" : "Hypercare"}
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {selected.key === "DEPLOY"
-                  ? "What has to be true before go-live. This reports; it does not approve — the gate below is where a person signs."
-                  : "Continuous improvement runs inside this phase rather than after it, so these are the items still open in Run."}
-              </p>
+            <Panel className="space-y-3">
+              <PanelHeader
+                title={selected.key === "DEPLOY" ? "Go-live readiness" : "Hypercare"}
+                description={
+                  selected.key === "DEPLOY"
+                    ? "What has to be true before go-live. This reports; it does not approve — the gate below is where a person signs."
+                    : "Continuous improvement runs inside this phase rather than after it, so these are the items still open in Run."
+                }
+              />
 
               <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { label: "Deliverables done", value: `${phaseReadiness.done} / ${phaseReadiness.total}` },
+                  {
+                    label: "Deliverables done",
+                    value: `${phaseReadiness.done} / ${phaseReadiness.total}`,
+                    tone: undefined,
+                  },
                   {
                     label: "Mandatory done",
                     value: `${phaseReadiness.mandatoryDone} / ${phaseReadiness.mandatory}`,
+                    tone: undefined,
                   },
                   {
                     label: "Criteria settled",
+                    tone: undefined,
                     value: phaseReadiness.gate
                       ? `${phaseReadiness.gate.criteriaSettled} / ${phaseReadiness.gate.criteriaTotal}`
                       : "—",
                   },
-                  { label: "Open gaps", value: String(phaseReadiness.gaps) },
+                  {
+                    label: "Open gaps",
+                    value: String(phaseReadiness.gaps),
+                    // Coloured only when there is something to see; a zero
+                    // in amber would be a false alarm every time.
+                    tone: phaseReadiness.gaps > 0 ? ("warning" as const) : undefined,
+                  },
                 ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="rounded-xl border border-slate-200 dark:border-slate-800 p-2"
-                  >
-                    <dt className="text-[10px] uppercase tracking-wide text-slate-400">{s.label}</dt>
-                    <dd className="text-sm font-bold text-slate-900 dark:text-white font-mono">
-                      {s.value}
-                    </dd>
-                  </div>
+                  <Stat key={s.label} label={s.label} value={s.value} tone={s.tone} />
                 ))}
               </dl>
 
-              <p
-                className={`text-xs font-semibold ${
-                  phaseReadiness.readyToRaise
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-amber-600 dark:text-amber-400"
-                }`}
-              >
+              <Note tone={phaseReadiness.readyToRaise ? "success" : "warning"}>
                 {phaseReadiness.readyToRaise
                   ? "Ready to raise for sign-off."
                   : "Not ready to raise yet."}
-              </p>
+              </Note>
 
               {selected.key === "DEPLOY" && readiness && readiness.deployBlockerTotal > 0 && (
                 <div className="space-y-1.5">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <h4 className="text-xs font-bold text-foreground">
                     Mandatory deliverables still open ({readiness.deployBlockerTotal})
                   </h4>
                   <ul className="space-y-1">
@@ -676,33 +826,33 @@ export function ActivateWorkspace({
                         >
                           {b.issueKey}
                         </button>
-                        <span className="text-xs text-slate-700 dark:text-slate-300 flex-1 min-w-[10rem] truncate">
+                        <span className="text-xs text-foreground flex-1 min-w-[10rem] truncate">
                           {b.title}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                           {b.statusName || "no status"}
                         </span>
                       </li>
                     ))}
                   </ul>
                   {readiness.deployBlockerTotal > readiness.deployBlockers.length && (
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-muted-foreground">
                       Showing the first {readiness.deployBlockers.length}. The count above is the
                       whole set.
                     </p>
                   )}
                 </div>
               )}
-            </section>
+            </Panel>
           )}
 
           {/* Quality gate ------------------------------------------------- */}
           {gate && (
-            <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+            <section className="bg-card rounded-2xl border border-border p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{gate.name}</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                <h3 className="text-sm font-bold text-foreground">{gate.name}</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                   {gate.status}
                 </span>
               </div>
@@ -713,7 +863,7 @@ export function ActivateWorkspace({
                   gate's lifecycle. Listing them in both places would be the
                   same rows twice, and a person would reasonably ask which
                   one counted. */}
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] text-muted-foreground">
                 {gate.criteria.filter((c) => c.status === "MET" || c.status === "WAIVED").length} of{" "}
                 {gate.criteria.length} criteri{gate.criteria.length === 1 ? "on" : "a"} settled.
                 Tick them in the worksheet below; sign-off happens here.
@@ -731,7 +881,7 @@ export function ActivateWorkspace({
 
               <div className="flex flex-wrap gap-2 pt-1">
                 {can("activate:manage_gates") && gate.status !== "RAISED" && gate.status !== "APPROVED" && (
-                  <button
+                  <Btn
                     type="button"
                     disabled={busy !== null || outstanding.length > 0}
                     onClick={() =>
@@ -742,10 +892,10 @@ export function ActivateWorkspace({
                         loadProfile
                       )
                     }
-                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 disabled:opacity-40"
+                    variant="primary"
                   >
                     Raise for sign-off
-                  </button>
+                  </Btn>
                 )}
                 {can("activate:sign_off_gate") && gate.status === "RAISED" && (
                   <>
@@ -754,7 +904,7 @@ export function ActivateWorkspace({
                         would be guessing at who they are from the client; the
                         refusal is shown instead, which is honest and keeps the
                         control server-side where it belongs. */}
-                    <button
+                    <Btn
                       type="button"
                       disabled={busy !== null}
                       onClick={() =>
@@ -765,11 +915,11 @@ export function ActivateWorkspace({
                           loadProfile
                         )
                       }
-                      className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-600 text-white disabled:opacity-40"
+                      variant="success"
                     >
                       Approve
-                    </button>
-                    <button
+                    </Btn>
+                    <Btn
                       type="button"
                       disabled={busy !== null}
                       onClick={() =>
@@ -780,10 +930,10 @@ export function ActivateWorkspace({
                           loadProfile
                         )
                       }
-                      className="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-red-300 text-red-600 disabled:opacity-40"
+                      variant="danger"
                     >
                       Reject
-                    </button>
+                    </Btn>
                   </>
                 )}
               </div>
@@ -815,6 +965,7 @@ export function ActivateWorkspace({
                act from recording evidence. */
             showGate
             onOpenIssue={onOpenIssue}
+            onCounts={handleWorksheetCounts}
             onChanged={() => {
               loadProfile();
               setLoadedPhaseId(null);
@@ -831,23 +982,23 @@ export function ActivateWorkspace({
               replaced outright. */}
           {phaseId === loadedPhaseId &&
             deliverables.filter((d) => !d.phaseCode).length > 0 && (
-              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              <section className="bg-card rounded-2xl border border-border p-4 space-y-3">
+                <h3 className="text-sm font-bold text-foreground">
                   {selected.key === "EXPLORE" ? "Fit-to-standard" : "Also linked to this phase"}
                 </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-muted-foreground">
                   {selected.key === "EXPLORE"
                     ? "Classify each item against the standard solution. An accepted gap is a decision somebody made, and a gate review reads it differently from one still waiting on a workshop."
                     : "Issues linked to this phase without a worksheet code — generated work, or an issue adopted from the board."}
                 </p>
             {phaseId !== loadedPhaseId ? (
-              <p className="text-xs text-slate-500 py-4">Loading deliverables…</p>
+              <p className="text-xs text-muted-foreground py-4">Loading deliverables…</p>
             ) : deliverables.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4">
+              <p className="text-xs text-muted-foreground py-4">
                 No issues are linked to this phase yet.
               </p>
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              <ul className="divide-y divide-border">
                 {deliverables.map((d) => (
                   <li key={d.id} className="py-2 flex flex-wrap items-center gap-2">
                     <button
@@ -857,11 +1008,11 @@ export function ActivateWorkspace({
                     >
                       {d.issue.issueKey}
                     </button>
-                    <span className="text-xs text-slate-700 dark:text-slate-300 flex-1 min-w-[12rem] truncate">
+                    <span className="text-xs text-foreground flex-1 min-w-[12rem] truncate">
                       {d.issue.title}
                     </span>
                     {d.workstream && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                         {d.workstream.name}
                       </span>
                     )}
@@ -886,7 +1037,7 @@ export function ActivateWorkspace({
                           }
                         );
                       }}
-                      className="text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 disabled:opacity-50"
+                      className="text-[11px] rounded-lg border border-border bg-card px-2 py-1 disabled:opacity-50"
                     >
                       {FIT_GAP_CHOICES.map((c) => (
                         <option key={c.value || "none"} value={c.value}>
@@ -902,7 +1053,7 @@ export function ActivateWorkspace({
             )}
 
           {!gate && (
-            <p className="flex items-center gap-2 text-xs text-slate-500">
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <CircleDashed className="w-3.5 h-3.5" aria-hidden="true" />
               This phase has no gate configured.
             </p>

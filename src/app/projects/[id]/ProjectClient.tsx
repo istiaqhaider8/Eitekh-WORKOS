@@ -1210,7 +1210,28 @@ export function ProjectClient({
         />
 
         {/* View Content Area */}
-        <main className="flex-1 flex flex-col overflow-y-auto">
+        {/**
+         * `relative` is load-bearing, not decoration.
+         *
+         * Tailwind's `sr-only` is `position:absolute` with no offsets. An
+         * absolutely positioned element is laid out against its nearest
+         * POSITIONED ancestor, and is clipped by that ancestor's overflow —
+         * not by any other. With nothing positioned between an `sr-only`
+         * label and <html>, its containing block was the document, so it
+         * escaped this scroll container entirely and added its own position
+         * to the document's scrollable height.
+         *
+         * The visible result: on a view with hidden labels below the fold —
+         * the Activate worksheet has five — the whole page gained about
+         * 120px of scroll. Scrolling it slid the entire `h-screen` app
+         * upwards, cutting off the header and the sidebar and leaving a band
+         * of empty background at the bottom. Nothing was wrong with the view
+         * itself; `overflow:hidden` on main, body and html all failed to
+         * contain it, because none of them was its containing block.
+         *
+         * One word here fixes it for every view at once.
+         */}
+        <main className="relative flex-1 flex flex-col overflow-y-auto">
           {/* Project Title Bar & Quick Filter Toolbar */}
           <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/90 backdrop-blur-md flex flex-col xl:flex-row xl:items-center justify-between gap-3 sticky top-0 z-10 shadow-2xs">
             <div className="flex items-center flex-wrap gap-2.5 sm:gap-3.5">

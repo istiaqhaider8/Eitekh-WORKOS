@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activateWorkstreamUpdateSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
@@ -42,6 +43,7 @@ export async function PATCH(
     // before a permission error can confirm the project exists.
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_phases");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateWorkstreamUpdateSchema);
     if (!parsed.success) return parsed.error;

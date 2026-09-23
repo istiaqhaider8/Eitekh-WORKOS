@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, fieldClass, FieldLabel } from "./ui";
 
 /**
  * The fit-to-standard workshop.
@@ -70,7 +71,7 @@ function TaskStatusBadge({ status }: { status: "DONE" | "BACKLOG" | null | undef
       className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
         done
           ? "border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
-          : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+          : "border-border text-muted-foreground"
       }`}
     >
       {done ? "Done" : "Backlog"}
@@ -223,7 +224,7 @@ function AddScopeItemForm({
           setWorkstreamKey((k) => k || workstreams[0].key);
           setOpen(true);
         }}
-        className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+        className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-border text-foreground"
       >
         <Plus className="w-3 h-3" aria-hidden="true" />
         Add scope item
@@ -234,15 +235,15 @@ function AddScopeItemForm({
   return (
     <form
       onSubmit={submit}
-      className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2"
+      className="rounded-xl border border-border p-3 space-y-2"
     >
-      <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+      <h4 className="text-[11px] font-bold text-foreground">
         A scope item of your own
       </h4>
       <div>
         <label
           htmlFor="activate-custom-name"
-          className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+          className="block text-[11px] font-semibold text-muted-foreground mb-1"
         >
           What the business needs
         </label>
@@ -254,14 +255,14 @@ function AddScopeItemForm({
           minLength={3}
           maxLength={200}
           placeholder="Named the way the business says it, not the way the system does."
-          className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+          className="w-full text-xs rounded-lg border border-border bg-card px-2 py-1.5"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label
             htmlFor="activate-custom-workstream"
-            className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+            className="block text-[11px] font-semibold text-muted-foreground mb-1"
           >
             Workstream
           </label>
@@ -269,7 +270,7 @@ function AddScopeItemForm({
             id="activate-custom-workstream"
             value={workstreamKey}
             onChange={(e) => setWorkstreamKey(e.target.value)}
-            className="w-full text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-1.5"
+            className="w-full text-[11px] rounded-lg border border-border bg-card px-1.5 py-1.5"
           >
             {workstreams.map((w) => (
               <option key={w.key} value={w.key}>
@@ -281,7 +282,7 @@ function AddScopeItemForm({
         <div>
           <label
             htmlFor="activate-custom-module"
-            className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+            className="block text-[11px] font-semibold text-muted-foreground mb-1"
           >
             Module
           </label>
@@ -289,7 +290,7 @@ function AddScopeItemForm({
             id="activate-custom-module"
             value={moduleId}
             onChange={(e) => setModuleId(e.target.value)}
-            className="w-full text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-1.5"
+            className="w-full text-[11px] rounded-lg border border-border bg-card px-1.5 py-1.5"
           >
             <option value="">Custom scope</option>
             {targetModules.map((m) => (
@@ -306,30 +307,30 @@ function AddScopeItemForm({
           type="checkbox"
           checked={userFacing}
           onChange={(e) => setUserFacing(e.target.checked)}
-          className="rounded border-slate-300 dark:border-slate-700"
+          className="rounded border-border"
         />
         <label
           htmlFor="activate-custom-userfacing"
-          className="text-[11px] text-slate-600 dark:text-slate-400"
+          className="text-[11px] text-muted-foreground"
         >
           Employees or managers will see this change
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <button
+        <Btn
           type="submit"
           disabled={saving || !name.trim()}
-          className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 disabled:opacity-40"
+          variant="primary"
         >
           {saving ? "Adding…" : "Add item"}
-        </button>
+        </Btn>
         <button
           type="button"
           onClick={() => {
             setOpen(false);
             onError(null);
           }}
-          className="px-2 py-1.5 text-[11px] font-semibold rounded-lg border border-slate-300 dark:border-slate-700"
+          className="px-2 py-1.5 text-[11px] font-semibold rounded-lg border border-border"
         >
           Cancel
         </button>
@@ -355,6 +356,15 @@ export function ActivateWorkshop({
   const [modules, setModules] = useState<ModuleView[]>([]);
   const [items, setItems] = useState<ScopeItem[]>([]);
   const [workstreams, setWorkstreams] = useState<WorkstreamView[]>([]);
+  /**
+   * The methodologies this organisation could seed from. Only ever used by
+   * the empty state below — a workshop with a catalogue has no question to
+   * ask about templates.
+   */
+  const [templates, setTemplates] = useState<
+    Array<{ id: string; name: string; variant: string | null; version: number; builtIn?: boolean }>
+  >([]);
+  const [switching, setSwitching] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<{
     decision: string;
@@ -376,6 +386,19 @@ export function ActivateWorkshop({
       setModules(Array.isArray(data.modules) ? data.modules : []);
       setItems(Array.isArray(data.scopeItems) ? data.scopeItems : []);
       setWorkstreams(Array.isArray(data.workstreams) ? data.workstreams : []);
+      // Fetched only when the catalogue came back empty, because that is
+      // the only place the answer is used and every other visit would be
+      // a request whose result is thrown away.
+      if (!Array.isArray(data.scopeItems) || data.scopeItems.length === 0) {
+        try {
+          const t = await fetch(`/api/projects/${projectId}/activate/templates`);
+          const tb = await t.json();
+          setTemplates(Array.isArray(tb.templates) ? tb.templates : []);
+        } catch {
+          // A missing template list costs the offer below, not the screen.
+          setTemplates([]);
+        }
+      }
       setError(null);
     } catch (e: any) {
       setError(e?.message || "Could not load the catalogue.");
@@ -548,7 +571,7 @@ export function ActivateWorkshop({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-sm text-slate-500">
+      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
         Loading the catalogue…
       </div>
@@ -559,17 +582,18 @@ export function ActivateWorkshop({
     return (
       <div className="p-6 max-w-lg mx-auto text-center space-y-3">
         <div>
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <p className="text-sm font-semibold text-foreground">
             This methodology has no scope items yet.
           </p>
-          <p className="text-xs text-slate-500 mt-1">
-            A fit-to-standard workshop needs a catalogue to walk through. Load a
-            content pack, add items to the methodology template — or start
-            listing what this project needs.
+          <p className="text-xs text-muted-foreground mt-1">
+            A fit-to-standard workshop needs a catalogue to walk through. This
+            project was started on a methodology that carries phases, gates and
+            workstreams but no product scope — so there is nothing here to
+            decide on yet.
           </p>
         </div>
         {error && (
-          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
         )}
@@ -577,6 +601,60 @@ export function ActivateWorkshop({
             empty is the one that most needs a way to write its own list, and
             sending it away to edit a template it may not administer would
             leave it with nothing to do on this screen. */}
+        {/**
+          * Switching methodology, offered only when there is one to switch
+          * to and only to somebody who may change the project's setup.
+          *
+          * Re-seeding keeps the phases, the gates, their sign-off history
+          * and every deliverable already linked — it adds the catalogue
+          * rather than starting the project again. The sentence says so,
+          * because a button that silently rebuilds a running project is one
+          * nobody should press on trust.
+          */}
+        {canManageModules && templates.length > 1 && (
+          <div className="text-left border border-border rounded-xl p-3 space-y-2">
+            <p className="text-[11px] font-semibold text-foreground">
+              Use a methodology that ships a catalogue
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Your phases, gates, sign-offs and deliverables are kept. Only the
+              scope-item catalogue changes.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={switching}
+                  onClick={async () => {
+                    setSwitching(true);
+                    setError(null);
+                    try {
+                      const res = await fetch(`/api/projects/${projectId}/activate`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ enabled: true, templateId: t.id }),
+                      });
+                      const body = await res.json().catch(() => ({}));
+                      if (!res.ok) {
+                        setError(body?.error || "That methodology could not be applied.");
+                        return;
+                      }
+                      await load();
+                      onChanged?.();
+                    } finally {
+                      setSwitching(false);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-border hover:bg-muted disabled:opacity-50"
+                >
+                  {t.name}
+                  {t.variant ? ` — ${t.variant}` : ""}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {canDecide && (
           <div className="text-left">
             <AddScopeItemForm
@@ -603,7 +681,7 @@ export function ActivateWorkshop({
     <div className="space-y-4">
       <div aria-live="polite" className="min-h-[1rem]">
         {error && (
-          <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
         )}
@@ -613,9 +691,9 @@ export function ActivateWorkshop({
       </div>
 
       {/* Modules ---------------------------------------------------------- */}
-      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Modules in scope</h3>
-        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+      <section className="bg-card rounded-2xl border border-border p-4">
+        <h3 className="text-sm font-bold text-foreground">Modules in scope</h3>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
           A module switched out stops being counted and stops generating work.
           A project measured against scope it is not doing reads as behind when
           it is not.
@@ -634,7 +712,7 @@ export function ActivateWorkshop({
               className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors disabled:opacity-60 ${
                 m.inScope
                   ? "border-blue-400 dark:border-blue-600 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40"
-                  : "border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500"
+                  : "border-border text-muted-foreground"
               }`}
             >
               {m.name}
@@ -649,10 +727,10 @@ export function ActivateWorkshop({
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-4 items-start">
         {/* Scope items -------------------------------------------------- */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <section className="bg-card rounded-2xl border border-border">
           <div className="flex items-baseline justify-between p-4 pb-2">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Scope items</h3>
-            <span className="text-[11px] text-slate-500">
+            <h3 className="text-sm font-bold text-foreground">Scope items</h3>
+            <span className="text-[11px] text-muted-foreground">
               {decided} of {inScopeItems.length} decided
               {decided > 0 && ` · ${settled} done, ${queued} backlog`}
             </span>
@@ -668,7 +746,12 @@ export function ActivateWorkshop({
               />
             </div>
           )}
-          <ul className="max-h-[60vh] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+          {/* Capped and scrollable only on the wide, two-pane layout, where
+              the list sits beside the editor and needs to stay put. Stacked
+              on a phone, a 60vh scrolling box inside a scrolling page is a
+              trap: a swipe over the list moves the list, a swipe either side
+              of it moves the page, and neither is what was intended. */}
+          <ul className="lg:max-h-[60vh] lg:overflow-y-auto divide-y divide-border">
             {inScopeItems.map((i) => {
               const d = i.decision?.decision;
               return (
@@ -677,25 +760,25 @@ export function ActivateWorkshop({
                     type="button"
                     aria-current={selectedId === i.id}
                     onClick={() => open(i)}
-                    className={`w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 ${
-                      selectedId === i.id ? "bg-slate-50 dark:bg-slate-800/60" : ""
+                    className={`w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-muted/60 ${
+                      selectedId === i.id ? "bg-muted/60" : ""
                     }`}
                   >
-                    <span className="font-mono text-[10px] text-slate-400 min-w-[4.5rem]">
+                    <span className="font-mono text-[10px] text-muted-foreground min-w-[4.5rem]">
                       {i.code}
                     </span>
-                    <span className="text-xs text-slate-800 dark:text-slate-200 flex-1 min-w-0 truncate">
+                    <span className="text-xs text-foreground flex-1 min-w-0 truncate">
                       {i.name}
                       {i.custom && (
-                        <span className="ml-1.5 text-[10px] text-slate-400">added here</span>
+                        <span className="ml-1.5 text-[10px] text-muted-foreground">added here</span>
                       )}
                       {i.tags.includes("ux") && (
-                        <span className="ml-1.5 text-[10px] text-slate-400">seen by users</span>
+                        <span className="ml-1.5 text-[10px] text-muted-foreground">seen by users</span>
                       )}
                     </span>
                     {d ? (
                       <span className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-border text-muted-foreground">
                           {label(d)}
                         </span>
                         {/* The API's answer, not a second opinion computed
@@ -703,7 +786,7 @@ export function ActivateWorkshop({
                         <TaskStatusBadge status={i.taskStatus} />
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400">not decided</span>
+                      <span className="text-[10px] text-muted-foreground">not decided</span>
                     )}
                   </button>
                 </li>
@@ -713,19 +796,19 @@ export function ActivateWorkshop({
         </section>
 
         {/* Decision editor ---------------------------------------------- */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+        <section className="bg-card rounded-2xl border border-border p-4">
           {!selected || !draft ? (
-            <p className="text-xs text-slate-500 py-6 text-center">
+            <p className="text-xs text-muted-foreground py-6 text-center">
               Choose a scope item to record its decision.
             </p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-sm font-bold text-foreground">
                     {selected.code} — {selected.name}
                   </h3>
-                  <p className="text-[11px] text-slate-500">{label(selected.workstreamKey)}</p>
+                  <p className="text-[11px] text-muted-foreground">{label(selected.workstreamKey)}</p>
                 </div>
                 {/* Only an item this project added. A template item is one row
                     read by every project seeded from that template, so there
@@ -736,7 +819,7 @@ export function ActivateWorkshop({
                     disabled={busy}
                     onClick={() => remove(selected)}
                     aria-label={`Remove ${selected.code}`}
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-red-600 disabled:opacity-40"
+                    className="shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg border border-border text-red-600 disabled:opacity-40"
                   >
                     <Trash2 className="w-3 h-3" aria-hidden="true" />
                     Remove
@@ -758,7 +841,7 @@ export function ActivateWorkshop({
                       className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border text-left ${
                         draft.decision === d.value
                           ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                          : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                          : "border-border text-muted-foreground"
                       }`}
                     >
                       {d.label}
@@ -770,7 +853,7 @@ export function ActivateWorkshop({
                     after it. Adopt, Defer and Out of scope settle the item;
                     the other three commit somebody to building something. */}
                 {draft.decision && (
-                  <p className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     <TaskStatusBadge status={TASK_STATUS[draft.decision]} />
                     {TASK_STATUS[draft.decision] === "DONE"
                       ? draft.decision === "DEFER"
@@ -783,7 +866,7 @@ export function ActivateWorkshop({
                 <div>
                   <label
                     htmlFor="activate-rationale"
-                    className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+                    className="block text-[11px] font-semibold text-muted-foreground mb-1"
                   >
                     Why the organisation landed here
                   </label>
@@ -793,14 +876,14 @@ export function ActivateWorkshop({
                     value={draft.rationale}
                     onChange={(e) => setDraft({ ...draft, rationale: e.target.value })}
                     placeholder="Written for someone who was not in the room."
-                    className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+                    className="w-full text-xs rounded-lg border border-border bg-card px-2 py-1.5"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="activate-question"
-                    className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1"
+                    className="block text-[11px] font-semibold text-muted-foreground mb-1"
                   >
                     Open question
                   </label>
@@ -809,22 +892,22 @@ export function ActivateWorkshop({
                     value={draft.openQuestion}
                     onChange={(e) => setDraft({ ...draft, openQuestion: e.target.value })}
                     placeholder="Anything blocking sign-off. It becomes a tracked action."
-                    className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+                    className="w-full text-xs rounded-lg border border-border bg-card px-2 py-1.5"
                   />
                 </div>
 
                 {GENERATES.has(draft.decision) ? (
                   <div className="space-y-2">
                     <div className="flex items-baseline justify-between">
-                      <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      <h4 className="text-[11px] font-bold text-foreground">
                         Deltas
                       </h4>
-                      <span className="text-[10px] text-slate-400">each becomes one backlog item</span>
+                      <span className="text-[10px] text-muted-foreground">each becomes one backlog item</span>
                     </div>
                     {draft.deltas.map((d, idx) => (
                       <div
                         key={d.id ?? `new-${idx}`}
-                        className="rounded-xl border border-slate-200 dark:border-slate-800 p-2 space-y-2"
+                        className="rounded-xl border border-border p-2 space-y-2"
                       >
                         <div className="flex gap-2">
                           {/* An explicit aria-label rather than a paired
@@ -840,7 +923,7 @@ export function ActivateWorkshop({
                               setDraft({ ...draft, deltas: next });
                             }}
                             placeholder="What differs from standard, and what has to be built"
-                            className="flex-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5"
+                            className="flex-1 text-xs rounded-lg border border-border bg-card px-2 py-1.5"
                           />
                           <button
                             type="button"
@@ -851,12 +934,12 @@ export function ActivateWorkshop({
                                 deltas: draft.deltas.filter((_, j) => j !== idx),
                               })
                             }
-                            className="px-2 rounded-lg border border-slate-300 dark:border-slate-700 text-red-600"
+                            className="px-2 rounded-lg border border-border text-red-600"
                           >
                             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {[
                             { key: "buildType" as const, opts: BUILD_TYPES, name: "Build type" },
                             { key: "priority" as const, opts: PRIORITIES, name: "Priority" },
@@ -876,7 +959,7 @@ export function ActivateWorkshop({
                                   next[idx] = { ...d, [f.key]: e.target.value };
                                   setDraft({ ...draft, deltas: next });
                                 }}
-                                className="w-full text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-1"
+                                className="w-full text-[11px] rounded-lg border border-border bg-card px-1.5 py-1"
                               >
                                 {f.opts.map((o) => (
                                   <option key={o} value={o}>
@@ -900,14 +983,14 @@ export function ActivateWorkshop({
                           ],
                         })
                       }
-                      className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700"
+                      className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-border"
                     >
                       <Plus className="w-3 h-3" aria-hidden="true" />
                       Add delta
                     </button>
                   </div>
                 ) : draft.decision ? (
-                  <p className="text-[11px] text-slate-500 border-t border-slate-200 dark:border-slate-800 pt-2">
+                  <p className="text-[11px] text-muted-foreground border-t border-border pt-2">
                     {draft.decision === "ADOPT"
                       ? "Adopting standard generates no build work. The decision itself is the record, and it is what protects the timeline."
                       : "An exclusion generates no build work. It is logged so it cannot quietly return during Realize."}
@@ -922,19 +1005,19 @@ export function ActivateWorkshop({
                     id="activate-decision-status"
                     value={draft.status}
                     onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-                    className="text-[11px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1"
+                    className="text-[11px] rounded-lg border border-border bg-card px-2 py-1"
                   >
                     <option value="DRAFT">Draft</option>
                     <option value="AGREED">Agreed and signed</option>
                   </select>
-                  <button
+                  <Btn
                     type="button"
                     disabled={!draft.decision || busy}
                     onClick={save}
-                    className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 disabled:opacity-40"
+                    variant="primary"
                   >
                     {busy ? "Saving…" : "Save decision"}
-                  </button>
+                  </Btn>
                 </div>
               </fieldset>
             </div>

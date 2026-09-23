@@ -7,7 +7,18 @@
  * A second script would have meant a second copy of the login, the rate-limit
  * pacing and the gate reconciliation, which is three chances to drift.
  *
- * WHY A SEEDER AND NOT THE METHODOLOGY TEMPLATE
+ * THE METHODOLOGY TEMPLATE NOW CARRIES THIS CONTENT
+ *
+ * `src/lib/activate-template-content.ts` holds the same six phase plans,
+ * and enabling Activate seeds a project from them — so a NEW project no
+ * longer needs this script at all. The library is the authoritative copy;
+ * the arrays below are a second one, kept because this script predates it
+ * and still runs. If the two ever disagree, the library is right.
+ *
+ * Retiring these arrays means teaching this script to read the template's
+ * own rows, which is worth doing and is not done here.
+ *
+ * WHY A SEEDER STILL EXISTS
  *
  * These seven deliverables are one organisation's Discover plan for one
  * product line. The built-in methodology deliberately carries phases, gates

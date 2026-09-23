@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { parseJsonBody, activateCriterionUpdateSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
@@ -32,6 +33,7 @@ export async function PATCH(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_gates");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateCriterionUpdateSchema);
     if (!parsed.success) return parsed.error;
@@ -148,6 +150,7 @@ export async function DELETE(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_gates");
+    await assertActivateEnabled(projectId);
 
     const criterion = await prisma.activateGateCriterion.findFirst({
       where: { id: criterionId, gateId, gate: { phase: { projectId } } },

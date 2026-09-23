@@ -98,7 +98,7 @@ export function AppSidebar({
   });
 
   if (!isMounted) {
-    return <aside className="w-60 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0c1322] flex flex-col justify-between shrink-0 h-[calc(100vh-3.5rem)] select-none hidden md:flex" />;
+    return <aside className="w-60 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0c1322] flex flex-col justify-between shrink-0 select-none hidden md:flex" />;
   }
 
   return (
@@ -124,7 +124,7 @@ export function AppSidebar({
 
       {/* Sidebar Container */}
       <aside 
-        className={`fixed md:relative top-13 md:top-0 z-50 md:z-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-3.25rem)] md:h-[calc(100vh-3.5rem)] select-none transition-all duration-300 ease-in-out shadow-xl md:shadow-2xs w-72 max-w-[85vw] ${
+        className={`fixed md:relative top-13 md:top-0 z-50 md:z-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] backdrop-blur-md flex flex-col justify-between shrink-0 h-[calc(100vh-3.25rem)] md:h-auto select-none transition-all duration-300 ease-in-out shadow-xl md:shadow-2xs w-72 max-w-[85vw] ${
           isCollapsed ? "md:w-14" : "md:w-60"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >

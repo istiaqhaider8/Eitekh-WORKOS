@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activateDecisionSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
 import { scopeItemsWithDecisions } from "@/lib/activate-scope";
 import { taskStatusForDecision } from "@/lib/activate-generation";
 import { syncDecisionCard } from "@/lib/activate-board";
+import { logAuditEvent } from "@/lib/audit-logger";
 
 /**
  * Record what a project decided about one scope item, with its deltas.
@@ -39,6 +41,7 @@ export async function PUT(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_deliverables");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateDecisionSchema);
     if (!parsed.success) return parsed.error;
@@ -213,6 +216,40 @@ export async function PUT(
       console.error("Failed to sync the board card for decision", saved.id, e);
     }
 
+    /**
+     * A fit-to-standard decision is audited, with the value it replaced.
+     *
+     * The row keeps only the CURRENT answer: deciding ADOPT and later
+     * changing it to EXTEND overwrites the first one, and `decidedById` then
+     * names whoever moved it last. So the question a review actually asks —
+     * when did this stop being standard, and who changed it — had no answer
+     * anywhere. The previous value is already in hand for the board sync, so
+     * recording it here costs one write and makes the change legible.
+     *
+     * Logged after the write, not inside its transaction: an audit failure
+     * must never roll back what a workshop agreed.
+     */
+    await logAuditEvent({
+      actor: {
+        id: user.id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+        email: user.email,
+      },
+      action: existing ? "ACTIVATE_DECISION_CHANGED" : "ACTIVATE_DECISION_RECORDED",
+      category: "PROJECT",
+      severity: "INFO",
+      status: "SUCCESS",
+      targetResource: `ActivateDecision:${saved.id}`,
+      projectId,
+      details: {
+        scopeItemId,
+        from: existing?.decision ?? null,
+        to: body.decision,
+        decisionStatus: body.status ?? "DRAFT",
+        deltas: (body.deltas ?? []).length,
+      },
+    }).catch((e) => console.error("Failed to audit the decision:", e));
+
     // The task status rides back with the saved decision so a client that
     // just recorded one can show the consequence immediately, from the same
     // map the catalogue uses, rather than refetching or deciding for itself.
@@ -248,14 +285,33 @@ export async function DELETE(
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_deliverables");
+    await assertActivateEnabled(projectId);
 
     const existing = await prisma.activateDecision.findUnique({
       where: { projectId_scopeItemId: { projectId, scopeItemId } },
-      select: { id: true },
+      select: { id: true, decision: true, status: true },
     });
     if (!existing) return NextResponse.json({ error: "Decision not found" }, { status: 404 });
 
     await prisma.activateDecision.delete({ where: { id: existing.id } });
+
+    // Withdrawing is the one change that leaves no row behind at all, so it
+    // is the one most in need of a record of itself.
+    await logAuditEvent({
+      actor: {
+        id: user.id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+        email: user.email,
+      },
+      action: "ACTIVATE_DECISION_WITHDRAWN",
+      category: "PROJECT",
+      severity: "NOTICE",
+      status: "SUCCESS",
+      targetResource: `ActivateDecision:${existing.id}`,
+      projectId,
+      details: { scopeItemId, was: existing.decision, decisionStatus: existing.status },
+    }).catch((e) => console.error("Failed to audit the withdrawn decision:", e));
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return handleApiError(error, "projects/[id]/activate/decisions/[scopeItemId]");

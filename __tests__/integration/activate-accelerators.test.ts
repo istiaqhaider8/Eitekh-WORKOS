@@ -27,7 +27,7 @@ beforeAll(async () => {
   for (const side of ["orgA", "orgB"] as const) {
     await api(fx[side].users.OWNER, `/api/projects/${fx[side].projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
   }
 }, 180_000);
@@ -228,7 +228,7 @@ describe("Applying an accelerator", () => {
 
     await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
   });
 });

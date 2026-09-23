@@ -47,7 +47,7 @@ describe("Activate profile", () => {
   it("enables, seeding six phases and eleven workstreams", async () => {
     const enable = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     expect(enable.status).toBe(201);
 
@@ -74,7 +74,7 @@ describe("Activate profile", () => {
   it("is idempotent — enabling twice does not duplicate phases", async () => {
     await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     const res = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`);
     expect(res.body.phases).toHaveLength(6);
@@ -100,7 +100,7 @@ describe("Activate profile", () => {
   it("refuses a VIEWER attempting to enable", async () => {
     const res = await api(fx.orgA.users.VIEWER, `/api/projects/${fx.orgA.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     expectDenied(res, "a VIEWER enabling Activate");
   });
@@ -119,7 +119,7 @@ describe("Activate phase update", () => {
     const side = fx[fixtureSide];
     await api(side.users.OWNER, `/api/projects/${side.projectId}/activate`, {
       method: "POST",
-      body: { enabled: true },
+      body: { enabled: true, seedPlan: false },
     });
     const res = await api(side.users.OWNER, `/api/projects/${side.projectId}/activate`);
     return res.body.phases.find((p: any) => p.key === key);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
+import { assertActivateEnabled } from "@/lib/activate";
 import { handleApiError, ConflictError } from "@/lib/api-error";
 import { parseJsonBody, activateModuleScopeSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
@@ -49,6 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await assertProjectAccess(projectId);
     await assertProjectPermission(projectId, "activate:manage_phases");
+    await assertActivateEnabled(projectId);
 
     const parsed = await parseJsonBody(req, activateModuleScopeSchema);
     if (!parsed.success) return parsed.error;
