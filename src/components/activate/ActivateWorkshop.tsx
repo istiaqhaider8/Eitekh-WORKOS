@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Search, CheckCircle2, Sparkles, Filter } from "lucide-react";
 import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, fieldClass, FieldLabel } from "./ui";
 
 /**
@@ -377,6 +377,8 @@ export function ActivateWorkshop({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [decisionFilter, setDecisionFilter] = useState<"ALL" | "UNDECIDED" | "DECIDED">("ALL");
 
   const load = useCallback(async () => {
     try {
@@ -727,126 +729,202 @@ export function ActivateWorkshop({
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-4 items-start">
         {/* Scope items -------------------------------------------------- */}
-        <section className="bg-card rounded-2xl border border-border">
-          <div className="flex items-baseline justify-between p-4 pb-2">
-            <h3 className="text-sm font-bold text-foreground">Scope items</h3>
-            <span className="text-[11px] text-muted-foreground">
-              {decided} of {inScopeItems.length} decided
-              {decided > 0 && ` · ${settled} done, ${queued} backlog`}
-            </span>
-          </div>
-          {canDecide && (
-            <div className="px-4 pb-2">
-              <AddScopeItemForm
-                projectId={projectId}
-                modules={modules}
-                workstreams={workstreams}
-                onAdded={afterAdd}
-                onError={setError}
-              />
+        {/* Scope items -------------------------------------------------- */}
+        <section className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden">
+          <div className="p-4 pb-3 border-b border-border/40 space-y-2.5">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-foreground tracking-tight">Scope Items Catalog</h3>
+                <span className="text-[11px] text-muted-foreground mt-0.5 block">
+                  {decided} of {inScopeItems.length} decided · {settled} done, {queued} queued for build
+                </span>
+              </div>
+              {canDecide && (
+                <AddScopeItemForm
+                  projectId={projectId}
+                  modules={modules}
+                  workstreams={workstreams}
+                  onAdded={afterAdd}
+                  onError={setError}
+                />
+              )}
             </div>
-          )}
-          {/* Capped and scrollable only on the wide, two-pane layout, where
-              the list sits beside the editor and needs to stay put. Stacked
-              on a phone, a 60vh scrolling box inside a scrolling page is a
-              trap: a swipe over the list moves the list, a swipe either side
-              of it moves the page, and neither is what was intended. */}
-          <ul className="lg:max-h-[60vh] lg:overflow-y-auto divide-y divide-border">
-            {inScopeItems.map((i) => {
-              const d = i.decision?.decision;
-              return (
-                <li key={i.id}>
+
+            {/* Scope Items Search & Filter */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Filter scope items by name or code…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full text-xs pl-8 pr-2.5 py-1.5 rounded-lg border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                />
+              </div>
+
+              <div className="flex rounded-lg border border-border p-0.5 bg-muted/40 text-[10px] font-semibold shrink-0">
+                {(["ALL", "UNDECIDED", "DECIDED"] as const).map((mode) => (
                   <button
+                    key={mode}
                     type="button"
-                    aria-current={selectedId === i.id}
-                    onClick={() => open(i)}
-                    className={`w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-muted/60 ${
-                      selectedId === i.id ? "bg-muted/60" : ""
+                    onClick={() => setDecisionFilter(mode)}
+                    className={`px-2 py-1 rounded-md transition-colors ${
+                      decisionFilter === mode
+                        ? "bg-card text-foreground shadow-2xs font-bold"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <span className="font-mono text-[10px] text-muted-foreground min-w-[4.5rem]">
-                      {i.code}
-                    </span>
-                    <span className="text-xs text-foreground flex-1 min-w-0 truncate">
-                      {i.name}
-                      {i.custom && (
-                        <span className="ml-1.5 text-[10px] text-muted-foreground">added here</span>
-                      )}
-                      {i.tags.includes("ux") && (
-                        <span className="ml-1.5 text-[10px] text-muted-foreground">seen by users</span>
-                      )}
-                    </span>
-                    {d ? (
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-border text-muted-foreground">
-                          {label(d)}
-                        </span>
-                        {/* The API's answer, not a second opinion computed
-                            here, so the list cannot disagree with a report. */}
-                        <TaskStatusBadge status={i.taskStatus} />
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground">not decided</span>
-                    )}
+                    {mode === "ALL" ? "All" : mode === "UNDECIDED" ? "Open" : "Decided"}
                   </button>
-                </li>
-              );
-            })}
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <ul className="lg:max-h-[60vh] lg:overflow-y-auto divide-y divide-border/60">
+            {inScopeItems
+              .filter((i) => {
+                if (decisionFilter === "UNDECIDED" && i.decision?.decision) return false;
+                if (decisionFilter === "DECIDED" && !i.decision?.decision) return false;
+                if (searchQuery.trim()) {
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    i.name.toLowerCase().includes(q) ||
+                    i.code.toLowerCase().includes(q) ||
+                    i.workstreamKey.toLowerCase().includes(q)
+                  );
+                }
+                return true;
+              })
+              .map((i) => {
+                const d = i.decision?.decision;
+                const isSelected = selectedId === i.id;
+
+                return (
+                  <li key={i.id}>
+                    <button
+                      type="button"
+                      aria-current={isSelected}
+                      onClick={() => open(i)}
+                      className={`w-full text-left px-4 py-2.5 flex items-center gap-2.5 transition-colors ${
+                        isSelected
+                          ? "bg-primary/10 border-l-3 border-l-primary font-medium"
+                          : "hover:bg-muted/40"
+                      }`}
+                    >
+                      <span className="font-mono text-[10px] font-bold text-muted-foreground min-w-[4.25rem]">
+                        {i.code}
+                      </span>
+                      <span className="text-xs text-foreground flex-1 min-w-0 truncate">
+                        {i.name}
+                        {i.custom && (
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
+                            Custom
+                          </span>
+                        )}
+                        {i.tags.includes("ux") && (
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            UX Impact
+                          </span>
+                        )}
+                      </span>
+                      {d ? (
+                        <span className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            d === "ADOPT"
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                              : d === "CONFIGURE"
+                                ? "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                : d === "EXTEND"
+                                  ? "bg-purple-500/10 text-purple-600 border-purple-500/30"
+                                  : d === "INTEGRATE"
+                                    ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                                    : "bg-muted text-muted-foreground border-border"
+                          }`}>
+                            {label(d)}
+                          </span>
+                          <TaskStatusBadge status={i.taskStatus} />
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
+                          Undecided
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
           </ul>
         </section>
 
         {/* Decision editor ---------------------------------------------- */}
-        <section className="bg-card rounded-2xl border border-border p-4">
+        <section className="bg-card rounded-2xl border border-border p-5 shadow-xs">
           {!selected || !draft ? (
-            <p className="text-xs text-muted-foreground py-6 text-center">
-              Choose a scope item to record its decision.
+            <p className="text-xs text-muted-foreground py-10 text-center">
+              Choose a scope item from the catalog on the left to record its fit-to-standard outcome.
             </p>
           ) : (
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-2">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-2 pb-3 border-b border-border/40">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-foreground">
-                    {selected.code} — {selected.name}
-                  </h3>
-                  <p className="text-[11px] text-muted-foreground">{label(selected.workstreamKey)}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-primary px-2 py-0.5 rounded bg-primary/10">
+                      {selected.code}
+                    </span>
+                    <h3 className="text-sm font-bold text-foreground">
+                      {selected.name}
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Workstream: <strong className="text-foreground">{label(selected.workstreamKey)}</strong>
+                  </p>
                 </div>
-                {/* Only an item this project added. A template item is one row
-                    read by every project seeded from that template, so there
-                    is no version of removing it that affects only this one. */}
                 {selected.custom && canDecide && (
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => remove(selected)}
                     aria-label={`Remove ${selected.code}`}
-                    className="shrink-0 flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg border border-border text-red-600 disabled:opacity-40"
+                    className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-rose-300 dark:border-rose-900 text-rose-600 hover:bg-rose-500/10 transition-colors disabled:opacity-40"
                   >
-                    <Trash2 className="w-3 h-3" aria-hidden="true" />
-                    Remove
+                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                    Delete Item
                   </button>
                 )}
               </div>
 
-              <fieldset disabled={!canDecide || busy} className="space-y-3 disabled:opacity-70">
+              <fieldset disabled={!canDecide || busy} className="space-y-3.5 disabled:opacity-70">
                 <legend className="sr-only">Decision for {selected.code}</legend>
 
-                <div className="flex flex-wrap gap-1.5">
-                  {DECISIONS.map((d) => (
-                    <button
-                      key={d.value}
-                      type="button"
-                      aria-pressed={draft.decision === d.value}
-                      title={d.hint}
-                      onClick={() => setDraft({ ...draft, decision: d.value })}
-                      className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border text-left ${
-                        draft.decision === d.value
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
-                          : "border-border text-muted-foreground"
-                      }`}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
+                <div>
+                  <FieldLabel>Workshop Agreement / Decision</FieldLabel>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {DECISIONS.map((d) => {
+                      const isChosen = draft.decision === d.value;
+                      return (
+                        <button
+                          key={d.value}
+                          type="button"
+                          aria-pressed={isChosen}
+                          title={d.hint}
+                          onClick={() => setDraft({ ...draft, decision: d.value })}
+                          className={`p-2.5 rounded-xl border text-left transition-all duration-150 ${
+                            isChosen
+                              ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-2xs"
+                              : "border-border/80 bg-muted/20 hover:bg-muted/50"
+                          }`}
+                        >
+                          <span className={`block text-xs font-bold ${isChosen ? "text-primary" : "text-foreground"}`}>
+                            {d.label}
+                          </span>
+                          <span className="block text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                            {d.hint}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* The consequence, shown before Save rather than discovered

@@ -6,12 +6,20 @@ import {
   Loader2,
   ShieldCheck,
   TriangleAlert,
+  CheckCircle2,
+  ChevronRight,
+  Award,
+  Compass,
+  FileSpreadsheet,
+  Layers,
+  Sparkles,
+  XCircle,
 } from "lucide-react";
 import { ActivateWorkshop } from "./ActivateWorkshop";
 import { ActivateBacklog } from "./ActivateBacklog";
 import { ActivateWorksheet } from "./ActivateWorksheet";
 import { isPhaseWorkComplete, phaseIncompleteReason } from "@/lib/activate-phase-completion";
-import { Panel, PanelHeader, Btn, Pill, Note, Stat, EmptyState, fieldClass, FieldLabel } from "./ui";
+import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, GateBadge, PhaseStatusBadge, fieldClass, FieldLabel } from "./ui";
 
 /**
  * SAP Activate — the phase workspace, including the Explore fit-to-standard view.
@@ -591,75 +599,131 @@ export function ActivateWorkspace({
 
       {section !== "phases" ? null : (
       <>
-      {/* Phase rail ------------------------------------------------------- */}
-      <div
-        role="tablist"
-        aria-label="Activate phases"
-        className="flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1 snap-x snap-mandatory"
-      >
-        {phases.map((p, i) => {
-          const isSelected = selected?.key === p.key;
-          return (
-            <button
-              key={p.id}
-              ref={(el) => {
-                tabRefs.current[i] = el;
-              }}
-              role="tab"
-              id={`activate-tab-${p.key}`}
-              aria-selected={isSelected}
-              aria-controls="activate-phase-panel"
-              tabIndex={isSelected ? 0 : -1}
-              onKeyDown={(e) => onTabKeyDown(e, i)}
-              onClick={() => setSelectedKey(p.key)}
-              className={`min-w-[148px] snap-start text-left px-3 py-2.5 rounded-xl border transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                isSelected
-                  ? "bg-card border-primary ring-1 ring-primary/30 shadow-sm"
-                  : "bg-muted/40 border-border hover:bg-card hover:border-border"
-              }`}
-            >
-              <span className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  {String(PHASE_ORDER.indexOf(p.key as (typeof PHASE_ORDER)[number]) + 1).padStart(2, "0")}
-                </span>
-                {/* The gate at a glance. Marked aria-hidden and given a
-                    title rather than a label: the gate status is already
-                    announced in words further down this card, and saying
-                    it twice is noise to a screen reader. */}
-                {p.gates?.[0] && (
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      p.gates[0].status === "APPROVED"
-                        ? "bg-emerald-500"
-                        : p.gates[0].status === "REJECTED"
-                          ? "bg-rose-500"
-                          : p.gates[0].status === "RAISED"
-                            ? "bg-amber-500"
-                            : "bg-transparent"
-                    }`}
-                    title={`Gate ${p.gates[0].status.toLowerCase()}`}
-                    aria-hidden="true"
-                  />
+      {/* Executive KPI Highlights Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat
+          label="Methodology"
+          value="SAP Activate"
+          sublabel="2024 Release Framework"
+          tone="info"
+        />
+        <Stat
+          label="Active Phase"
+          value={selected?.name ?? "—"}
+          sublabel={`${phases.filter(p => p.status === "COMPLETED").length} of ${phases.length} Phases Closed`}
+          tone={selected?.status === "COMPLETED" ? "success" : "info"}
+        />
+        <Stat
+          label="Quality Gates"
+          value={`${phases.filter(p => p.gates?.[0]?.status === "APPROVED").length} / ${phases.length}`}
+          sublabel="Approved by Leadership"
+          tone={phases.filter(p => p.gates?.[0]?.status === "APPROVED").length >= 2 ? "success" : "warning"}
+        />
+        <Stat
+          label="Deliverables"
+          value={readiness?.phases?.reduce((acc, p) => acc + (p.total || 0), 0) || (counts ? `${counts.deliverableCount} tracked` : "—")}
+          sublabel={readiness?.deployBlockerTotal ? `${readiness.deployBlockerTotal} go-live items` : "Full scope synchronized"}
+        />
+      </div>
+
+      {/* Modern Connected Phase Stepper ------------------------------------ */}
+      <div className="bg-card/70 border border-border/70 rounded-2xl p-2.5 shadow-2xs backdrop-blur-xs">
+        <div
+          role="tablist"
+          aria-label="Activate phases"
+          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 snap-x snap-mandatory"
+        >
+          {phases.map((p, i) => {
+            const isSelected = selected?.key === p.key;
+            const isCompleted = p.status === "COMPLETED";
+            const isInProgress = p.status === "IN_PROGRESS";
+            const gateStatus = p.gates?.[0]?.status;
+
+            return (
+              <React.Fragment key={p.id}>
+                <button
+                  ref={(el) => {
+                    tabRefs.current[i] = el;
+                  }}
+                  role="tab"
+                  id={`activate-tab-${p.key}`}
+                  aria-selected={isSelected}
+                  aria-controls="activate-phase-panel"
+                  tabIndex={isSelected ? 0 : -1}
+                  onKeyDown={(e) => onTabKeyDown(e, i)}
+                  onClick={() => setSelectedKey(p.key)}
+                  className={`min-w-[155px] flex-1 snap-start text-left p-3 rounded-xl border transition-all duration-200 shrink-0 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    isSelected
+                      ? "bg-card border-primary/80 ring-2 ring-primary/20 shadow-xs"
+                      : isCompleted
+                        ? "bg-emerald-500/5 hover:bg-card border-emerald-500/20 hover:border-border"
+                        : isInProgress
+                          ? "bg-blue-500/5 hover:bg-card border-blue-500/30 hover:border-border"
+                          : "bg-muted/30 border-border/70 hover:bg-card hover:border-border"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold tracking-tight">
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${
+                        isCompleted
+                          ? "bg-emerald-500 text-white"
+                          : isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                      }`}>
+                        {i + 1}
+                      </span>
+                      <span className="text-muted-foreground">P-0{i + 1}</span>
+                    </span>
+
+                    {/* Quality Gate Status Indicator */}
+                    {gateStatus && (
+                      <span
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                          gateStatus === "APPROVED"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            : gateStatus === "RAISED"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse"
+                              : gateStatus === "REJECTED"
+                                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                : "bg-muted text-muted-foreground border border-border/60"
+                        }`}
+                        title={`Gate: ${gateStatus}`}
+                      >
+                        <ShieldCheck className="w-2.5 h-2.5" />
+                        {gateStatus === "APPROVED" ? "Passed" : gateStatus === "RAISED" ? "Raised" : "Gate"}
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="block text-xs font-bold text-foreground truncate">{p.name}</span>
+                  <div className="flex items-center justify-between mt-1 pt-1 border-t border-border/40">
+                    <PhaseStatusBadge status={p.status} />
+                  </div>
+                </button>
+
+                {i < phases.length - 1 && (
+                  <div className="shrink-0 text-muted-foreground/40 hidden md:flex items-center justify-center">
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
                 )}
-              </span>
-              <span className="block text-xs font-bold text-foreground mt-0.5">{p.name}</span>
-              <span className={`block text-[10px] font-semibold ${statusTone[p.status] || ""}`}>
-                {p.status.replace("_", " ").toLowerCase()}
-              </span>
-            </button>
-          );
-        })}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
 
       {/* Live region: refusals from the API are the useful part of this UI. */}
       <div aria-live="polite" className="min-h-[1rem]">
         {error && (
-          <p role="alert" className="text-xs text-destructive">
+          <p role="alert" className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
         {!error && message && (
-          <p className="text-xs text-emerald-600 dark:text-emerald-400">{message}</p>
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-3 py-2">
+            {message}
+          </p>
         )}
       </div>
 
@@ -670,95 +734,127 @@ export function ActivateWorkspace({
           aria-labelledby={`activate-tab-${selected.key}`}
           className="space-y-5"
         >
-          {/* Phase summary ------------------------------------------------ */}
-          <section className="bg-card rounded-2xl border border-border p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm font-bold text-foreground">
+          {/* Phase Hero Overview ------------------------------------------ */}
+          <section className="bg-card/90 rounded-2xl border border-border p-5 shadow-xs relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-radial from-primary/5 to-transparent pointer-events-none rounded-full blur-2xl" />
+            
+            <div className="flex flex-wrap items-center justify-between gap-4 relative">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-mono text-[10px] font-bold">
+                    PHASE {String(PHASE_ORDER.indexOf(selected.key as (typeof PHASE_ORDER)[number]) + 1).padStart(2, "0")}
+                  </span>
+                  <h2 className="text-base font-extrabold text-foreground tracking-tight">
                     {selected.name}
                   </h2>
-                  {selected.status === "COMPLETED" ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-border text-muted-foreground">
-                      COMPLETED
+                  <PhaseStatusBadge status={selected.status} />
+                  {allComplete && selected.status !== "COMPLETED" && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 animate-pulse">
+                      READY TO CLOSE
                     </span>
-                  ) : (
-                    allComplete && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
-                        ALL COMPLETE
-                      </span>
-                    )
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {fmtDate(selected.startDate)} → {fmtDate(selected.targetDate)}
-                </p>
-                {/* The two numbers the badge is made of. Without them a
-                    greyed-out button is a puzzle: it is these that say
-                    whether three tasks or one criterion is in the way. */}
-                {counts && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {counts.tasksComplete} of {counts.tasksTotal} task
-                    {counts.tasksTotal === 1 ? "" : "s"} · {counts.criteriaSettled} of{" "}
-                    {counts.criteriaTotal} criteri{counts.criteriaTotal === 1 ? "on" : "a"} settled
-                  </p>
+
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                  <span>
+                    Schedule: <strong className="text-foreground">{fmtDate(selected.startDate)}</strong> → <strong className="text-foreground">{fmtDate(selected.targetDate)}</strong>
+                  </span>
+                  {counts && (
+                    <>
+                      <span>•</span>
+                      <span>
+                        Tasks: <strong className="text-foreground">{counts.tasksComplete}</strong>/{counts.tasksTotal} done
+                      </span>
+                      <span>•</span>
+                      <span>
+                        Gate Criteria: <strong className="text-foreground">{counts.criteriaSettled}</strong>/{counts.criteriaTotal} settled
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {counts && counts.tasksTotal > 0 && (
+                  <div className="pt-1 max-w-md">
+                    <Meter value={counts.tasksComplete} total={counts.tasksTotal} showLabel height="h-2" />
+                  </div>
                 )}
               </div>
-              {can("activate:manage_phases") && selected.status !== "IN_PROGRESS" && (
-                <Btn
-                  type="button"
-                  disabled={busy !== null}
-                  onClick={() =>
-                    send(
-                      "Start phase",
-                      `/api/projects/${projectId}/activate/phases/${selected.id}`,
-                      { method: "PATCH", body: JSON.stringify({ status: "IN_PROGRESS" }) },
-                      loadProfile
-                    )
-                  }
-                  variant="secondary"
-                >
-                  Mark in progress
-                </Btn>
-              )}
-              {/* Completing a phase is a DECISION, not an arithmetic
-                  consequence of the last tick. The button enables once the
-                  evidence is in; somebody still presses it, and the gate is
-                  still raised and signed separately by someone else. That
-                  separation is the whole point of a gate, and a checklist
-                  auto-approving one would quietly remove it. */}
-              {can("activate:manage_phases") && selected.status !== "COMPLETED" && (
-                <Btn
-                  type="button"
-                  disabled={busy !== null || !allComplete}
-                  title={
-                    allComplete
-                      ? "Closes the phase. It does not sign the quality gate — that stays a separate approval."
-                      : `Available once every task is complete and every gate criterion is settled — ${incompleteReason}`
-                  }
-                  onClick={() =>
-                    send(
-                      "Complete phase",
-                      `/api/projects/${projectId}/activate/phases/${selected.id}`,
-                      { method: "PATCH", body: JSON.stringify({ status: "COMPLETED" }) },
-                      loadProfile
-                    )
-                  }
-                  variant="primary"
-                >
-                  Mark complete
-                </Btn>
-              )}
+
+              <div className="flex items-center gap-2">
+                {can("activate:manage_phases") && selected.status !== "IN_PROGRESS" && selected.status !== "COMPLETED" && (
+                  <Btn
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() =>
+                      send(
+                        "Start phase",
+                        `/api/projects/${projectId}/activate/phases/${selected.id}`,
+                        { method: "PATCH", body: JSON.stringify({ status: "IN_PROGRESS" }) },
+                        loadProfile
+                      )
+                    }
+                    variant="primary"
+                    size="md"
+                  >
+                    Start Phase
+                  </Btn>
+                )}
+
+                {can("activate:manage_phases") && selected.status === "COMPLETED" && (
+                  <Btn
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() =>
+                      send(
+                        "Reopen phase",
+                        `/api/projects/${projectId}/activate/phases/${selected.id}`,
+                        { method: "PATCH", body: JSON.stringify({ status: "IN_PROGRESS" }) },
+                        loadProfile
+                      )
+                    }
+                    variant="outline"
+                  >
+                    Reopen Phase
+                  </Btn>
+                )}
+
+                {can("activate:manage_phases") && selected.status !== "COMPLETED" && (
+                  <Btn
+                    type="button"
+                    disabled={busy !== null || !allComplete}
+                    title={
+                      allComplete
+                        ? "Closes the phase. Gate sign-off remains a distinct governance step."
+                        : `Available once all tasks and criteria are settled — ${incompleteReason}`
+                    }
+                    onClick={() =>
+                      send(
+                        "Complete phase",
+                        `/api/projects/${projectId}/activate/phases/${selected.id}`,
+                        { method: "PATCH", body: JSON.stringify({ status: "COMPLETED" }) },
+                        loadProfile
+                      )
+                    }
+                    variant={allComplete ? "success" : "secondary"}
+                    size="md"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Complete Phase
+                  </Btn>
+                )}
+              </div>
             </div>
 
-            {/* Said here rather than enforced: see the note on
-                runningAheadOfGate. It is a caution, not a refusal. */}
+            {/* Caution Banner */}
             {runningAheadOfGate && previousPhase && (
-              <p className="mt-3 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-2.5 py-1.5">
-                {previousPhase.name}&apos;s quality gate is{" "}
-                {previousGate?.status === "REJECTED" ? "rejected" : "not signed off"}. This
-                phase is running ahead of it.
-              </p>
+              <div className="mt-3.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                <TriangleAlert className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>
+                  <strong>Governance Warning:</strong> {previousPhase.name}&apos;s quality gate is{" "}
+                  {previousGate?.status === "REJECTED" ? "rejected" : "not signed off yet"}. This
+                  phase is currently executing ahead of methodology sign-off.
+                </span>
+              </div>
             )}
           </section>
 
@@ -846,97 +942,108 @@ export function ActivateWorkspace({
             </Panel>
           )}
 
-          {/* Quality gate ------------------------------------------------- */}
+          {/* Quality Gate Governance Panel ----------------------------- */}
           {gate && (
-            <section className="bg-card rounded-2xl border border-border p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-sm font-bold text-foreground">{gate.name}</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                  {gate.status}
-                </span>
+            <section className="bg-card/90 rounded-2xl border border-border/80 p-5 shadow-xs space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-foreground">{gate.name}</h3>
+                      <GateBadge status={gate.status} />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Quality Gate validation ensures all phase deliverables and compliance standards are verified before phase transition.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {can("activate:manage_gates") && gate.status !== "RAISED" && gate.status !== "APPROVED" && (
+                    <Btn
+                      type="button"
+                      disabled={busy !== null || outstanding.length > 0}
+                      onClick={() =>
+                        send(
+                          "Raise gate",
+                          `/api/projects/${projectId}/activate/gates/${gate.id}/raise`,
+                          { method: "POST", body: JSON.stringify({}) },
+                          loadProfile
+                        )
+                      }
+                      variant="primary"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      Raise Gate for Sign-Off
+                    </Btn>
+                  )}
+                  {can("activate:sign_off_gate") && gate.status === "RAISED" && (
+                    <>
+                      <Btn
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() =>
+                          send(
+                            "Approve gate",
+                            `/api/projects/${projectId}/activate/gates/${gate.id}/approvals`,
+                            { method: "POST", body: JSON.stringify({ decision: "APPROVED" }) },
+                            loadProfile
+                          )
+                        }
+                        variant="success"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Sign-Off & Approve
+                      </Btn>
+                      <Btn
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() =>
+                          send(
+                            "Reject gate",
+                            `/api/projects/${projectId}/activate/gates/${gate.id}/approvals`,
+                            { method: "POST", body: JSON.stringify({ decision: "REJECTED" }) },
+                            loadProfile
+                          )
+                        }
+                        variant="danger"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Reject Gate
+                      </Btn>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* The criteria themselves are listed by the worksheet below,
-                  where they can be ticked, added and removed. This panel
-                  keeps the part the worksheet has no business doing: the
-                  gate's lifecycle. Listing them in both places would be the
-                  same rows twice, and a person would reasonably ask which
-                  one counted. */}
-              <p className="text-[11px] text-muted-foreground">
-                {gate.criteria.filter((c) => c.status === "MET" || c.status === "WAIVED").length} of{" "}
-                {gate.criteria.length} criteri{gate.criteria.length === 1 ? "on" : "a"} settled.
-                Tick them in the worksheet below; sign-off happens here.
-              </p>
-
-              {outstanding.length > 0 && (
-                <p className="flex items-start gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
-                  <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
-                  <span>
-                    {outstanding.length} criteri{outstanding.length === 1 ? "on" : "a"} still to
-                    settle before this gate can be raised.
+              {/* Criteria Progress Meter */}
+              <div className="bg-muted/30 border border-border/60 rounded-xl p-3 space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-foreground">
+                    Criteria Verification Progress
                   </span>
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-2 pt-1">
-                {can("activate:manage_gates") && gate.status !== "RAISED" && gate.status !== "APPROVED" && (
-                  <Btn
-                    type="button"
-                    disabled={busy !== null || outstanding.length > 0}
-                    onClick={() =>
-                      send(
-                        "Raise gate",
-                        `/api/projects/${projectId}/activate/gates/${gate.id}/raise`,
-                        { method: "POST", body: JSON.stringify({}) },
-                        loadProfile
-                      )
-                    }
-                    variant="primary"
-                  >
-                    Raise for sign-off
-                  </Btn>
-                )}
-                {can("activate:sign_off_gate") && gate.status === "RAISED" && (
-                  <>
-                    {/* The server refuses the raiser's own approval with a 403
-                        that explains itself. Hiding the button for the raiser
-                        would be guessing at who they are from the client; the
-                        refusal is shown instead, which is honest and keeps the
-                        control server-side where it belongs. */}
-                    <Btn
-                      type="button"
-                      disabled={busy !== null}
-                      onClick={() =>
-                        send(
-                          "Approve gate",
-                          `/api/projects/${projectId}/activate/gates/${gate.id}/approvals`,
-                          { method: "POST", body: JSON.stringify({ decision: "APPROVED" }) },
-                          loadProfile
-                        )
-                      }
-                      variant="success"
-                    >
-                      Approve
-                    </Btn>
-                    <Btn
-                      type="button"
-                      disabled={busy !== null}
-                      onClick={() =>
-                        send(
-                          "Reject gate",
-                          `/api/projects/${projectId}/activate/gates/${gate.id}/approvals`,
-                          { method: "POST", body: JSON.stringify({ decision: "REJECTED" }) },
-                          loadProfile
-                        )
-                      }
-                      variant="danger"
-                    >
-                      Reject
-                    </Btn>
-                  </>
-                )}
+                  <span className="font-mono text-muted-foreground font-semibold">
+                    {gate.criteria.filter((c) => c.status === "MET" || c.status === "WAIVED").length} / {gate.criteria.length} settled
+                  </span>
+                </div>
+                <Meter
+                  value={gate.criteria.filter((c) => c.status === "MET" || c.status === "WAIVED").length}
+                  total={gate.criteria.length}
+                  height="h-2"
+                />
               </div>
+
+              {outstanding.length > 0 && gate.status !== "APPROVED" && (
+                <div className="flex items-center gap-2 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                  <TriangleAlert className="w-4 h-4 shrink-0 text-amber-500" aria-hidden="true" />
+                  <span>
+                    <strong>{outstanding.length} criteria</strong> must be settled with evidence in the checklist below before leadership sign-off can be initiated.
+                  </span>
+                </div>
+              )}
             </section>
           )}
 

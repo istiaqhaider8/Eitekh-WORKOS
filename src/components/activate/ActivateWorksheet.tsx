@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
-import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, fieldClass, FieldLabel } from "./ui";
+import { Loader2, Plus, Search, Filter, CheckCircle2, ChevronDown, Trash2, ExternalLink } from "lucide-react";
+import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, GateBadge, fieldClass, FieldLabel } from "./ui";
 import { isCriterionSettled } from "@/lib/activate-phase-completion";
 
 /**
@@ -142,6 +142,9 @@ export function ActivateWorksheet({
   const [newDeliverable, setNewDeliverable] = useState("");
   const [newDeliverableWs, setNewDeliverableWs] = useState("");
   const [newCriterion, setNewCriterion] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedWorkstream, setSelectedWorkstream] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "INCOMPLETE" | "COMPLETED">("ALL");
 
   const base = `/api/projects/${projectId}/activate/phases/${phaseKey}/worksheet`;
 
@@ -264,205 +267,287 @@ export function ActivateWorksheet({
           summary read as context beside the work, not as separate pages. */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-4 items-start">
         {/* Deliverables and tasks ---------------------------------------- */}
-        <section>
-          <div className="flex items-baseline gap-2 flex-wrap mb-1">
-            <h3 className="text-sm font-bold text-foreground">
-              Deliverables and tasks
-            </h3>
-            <span className="text-[11px] text-muted-foreground">
-              {sheet.deliverableCount} deliverable{sheet.deliverableCount === 1 ? "" : "s"} ·{" "}
-              {sheet.tasksComplete} of {sheet.tasksTotal} task
-              {sheet.tasksTotal === 1 ? "" : "s"} complete
-            </span>
-            {/* Disclosed, not listed and not hidden: work genuinely in this
-                phase that is not a numbered line of its plan — a decision
-                card, an issue adopted from the board. */}
-            {sheet.unlistedCount > 0 && (
-              <span className="text-[11px] text-muted-foreground">
-                · {sheet.unlistedCount} more linked to this phase without a worksheet code
-              </span>
-            )}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="text-sm font-bold text-foreground tracking-tight">
+                Deliverables & Workstreams
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {sheet.deliverableCount} deliverables · {sheet.tasksComplete} of {sheet.tasksTotal} checklist tasks completed
+                {sheet.unlistedCount > 0 && ` · ${sheet.unlistedCount} additional linked items`}
+              </p>
+            </div>
+
+            {/* Quick Filter Controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative min-w-[160px]">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Filter deliverables…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full text-xs pl-8 pr-2.5 py-1.5 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                />
+              </div>
+
+              <select
+                aria-label="Filter by workstream"
+                value={selectedWorkstream}
+                onChange={(e) => setSelectedWorkstream(e.target.value)}
+                className="text-xs rounded-lg border border-border bg-card px-2 py-1.5 text-foreground"
+              >
+                <option value="ALL">All Workstreams</option>
+                {sheet.workstreams.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name} ({w.deliverableCount})
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex rounded-lg border border-border p-0.5 bg-muted/30 text-[10px] font-semibold">
+                {(["ALL", "INCOMPLETE", "COMPLETED"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setStatusFilter(mode)}
+                    className={`px-2 py-1 rounded-md transition-colors ${
+                      statusFilter === mode
+                        ? "bg-card text-foreground shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {mode === "ALL" ? "All" : mode === "INCOMPLETE" ? "Open" : "Done"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {sheet.tasksTotal > 0 && (
-            <div className="mb-3 max-w-xs">
-              <Meter value={sheet.tasksComplete} total={sheet.tasksTotal} />
+            <div className="bg-card p-3 rounded-xl border border-border/80">
+              <Meter value={sheet.tasksComplete} total={sheet.tasksTotal} showLabel height="h-2" />
             </div>
           )}
 
-          <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
-            {sheet.deliverables.length === 0 && (
-              <EmptyState title={`No deliverables in ${sheet.phaseName} yet`}>
-                A deliverable is one numbered line of this phase&apos;s plan, with its own
-                task list. {canManageDeliverables
-                  ? "Add the first one below."
-                  : "Somebody who can manage deliverables adds the first one."}
-              </EmptyState>
-            )}
+          {/* Deliverables Cards List */}
+          <div className="space-y-2.5">
+            {sheet.deliverables
+              .filter((d) => {
+                if (selectedWorkstream !== "ALL" && d.workstreamId !== selectedWorkstream) return false;
+                if (statusFilter === "COMPLETED" && d.tasksTotal > 0 && d.tasksComplete < d.tasksTotal) return false;
+                if (statusFilter === "INCOMPLETE" && d.tasksTotal > 0 && d.tasksComplete === d.tasksTotal) return false;
+                if (searchQuery.trim()) {
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    d.name.toLowerCase().includes(q) ||
+                    (d.phaseCode && d.phaseCode.toLowerCase().includes(q)) ||
+                    d.issueKey.toLowerCase().includes(q)
+                  );
+                }
+                return true;
+              })
+              .map((d) => {
+                const isAllTasksDone = d.tasksTotal > 0 && d.tasksComplete === d.tasksTotal;
 
-            {sheet.deliverables.map((d) => (
-              <article key={d.linkId} className="p-4">
-                <div className="flex items-start gap-3">
-                  <span className="font-mono text-[10px] text-muted-foreground pt-1 min-w-[2.5rem]">
-                    {d.phaseCode ?? "—"}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => onOpenIssue?.(d.issueId)}
-                      className="text-sm font-bold text-foreground text-left hover:underline"
-                      title={`Open ${d.issueKey}`}
-                    >
-                      {d.name}
-                    </button>
-                    <p className="text-[11px] text-muted-foreground">
-                      {d.workstreamName ?? "No workstream"} · {d.tasksComplete}/{d.tasksTotal}{" "}
-                      tasks
-                    </p>
-                  </div>
-
-                  <label className="sr-only" htmlFor={`ws-${d.linkId}`}>
-                    Workstream for {d.name}
-                  </label>
-                  <select
-                    id={`ws-${d.linkId}`}
-                    aria-label={`Workstream for ${d.name}`}
-                    value={d.workstreamId ?? ""}
-                    disabled={!canManageDeliverables || busy}
-                    onChange={(e) =>
-                      mutate(
-                        `/api/projects/${projectId}/activate/deliverables/${d.linkId}`,
-                        {
-                          method: "PATCH",
-                          body: JSON.stringify({ workstreamId: e.target.value || null }),
-                        },
-                        "That workstream could not be set"
-                      )
-                    }
-                    className="text-[11px] rounded-lg border border-border bg-card px-1.5 py-1 max-w-[9rem]"
+                return (
+                  <article
+                    key={d.linkId}
+                    className={`p-4 rounded-xl border transition-all duration-150 ${
+                      isAllTasksDone
+                        ? "bg-card/60 border-emerald-500/20 shadow-2xs"
+                        : "bg-card border-border/80 shadow-2xs hover:border-border"
+                    }`}
                   >
-                    <option value="">No workstream</option>
-                    {sheet.workstreams.map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground shrink-0 mt-0.5">
+                          {d.phaseCode ?? "D-—"}
+                        </span>
 
-                  {canManageDeliverables && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => {
-                        if (
-                          !window.confirm(
-                            `Remove ${d.phaseCode ?? d.issueKey} from ${sheet.phaseName}? ` +
-                              `${d.issueKey} stays on the board.`
-                          )
-                        )
-                          return;
-                        mutate(
-                          `/api/projects/${projectId}/activate/deliverables/${d.linkId}`,
-                          { method: "DELETE" },
-                          "That could not be removed"
-                        );
-                      }}
-                      className="text-[11px] font-semibold px-2 py-1 rounded-lg border border-border text-muted-foreground"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => onOpenIssue?.(d.issueId)}
+                              className="text-xs sm:text-sm font-bold text-foreground text-left hover:text-primary transition-colors inline-flex items-center gap-1 group"
+                              title={`Open ${d.issueKey}`}
+                            >
+                              <span>{d.name}</span>
+                              <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors opacity-70" />
+                            </button>
+                            <span className="text-[10px] font-mono text-muted-foreground font-semibold">
+                              {d.issueKey}
+                            </span>
+                          </div>
 
-                <ul className="mt-2 space-y-1 pl-[3.25rem]">
-                  {d.tasks.map((t) => (
-                    <li key={t.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`task-${t.id}`}
-                        aria-label={`${t.title} — mark complete`}
-                        checked={t.isCompleted}
-                        disabled={!canManageDeliverables || busy}
-                        onChange={(e) =>
-                          mutate(
-                            `/api/subtasks/${t.id}`,
-                            {
-                              method: "PATCH",
-                              body: JSON.stringify({ isCompleted: e.target.checked }),
-                            },
-                            "That task could not be updated"
-                          )
-                        }
-                        className="rounded border-border"
-                      />
-                      <label
-                        htmlFor={`task-${t.id}`}
-                        className={`text-xs flex-1 min-w-0 ${
-                          t.isCompleted
-                            ? "line-through text-muted-foreground"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {t.title}
-                      </label>
-                      {canManageDeliverables && (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          aria-label={`Remove task: ${t.title}`}
-                          onClick={() =>
+                          <div className="flex items-center gap-2.5 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                            <span className="inline-flex items-center gap-1 text-foreground font-medium">
+                              {d.workstreamName ?? "Unassigned Workstream"}
+                            </span>
+                            <span>•</span>
+                            <span className={isAllTasksDone ? "text-emerald-600 dark:text-emerald-400 font-semibold" : ""}>
+                              {d.tasksComplete} of {d.tasksTotal} tasks verified
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <label className="sr-only" htmlFor={`ws-${d.linkId}`}>
+                          Workstream for {d.name}
+                        </label>
+                        <select
+                          id={`ws-${d.linkId}`}
+                          aria-label={`Workstream for ${d.name}`}
+                          value={d.workstreamId ?? ""}
+                          disabled={!canManageDeliverables || busy}
+                          onChange={(e) =>
                             mutate(
-                              `/api/subtasks/${t.id}`,
-                              { method: "DELETE" },
-                              "That task could not be removed"
+                              `/api/projects/${projectId}/activate/deliverables/${d.linkId}`,
+                              {
+                                method: "PATCH",
+                                body: JSON.stringify({ workstreamId: e.target.value || null }),
+                              },
+                              "That workstream could not be set"
                             )
                           }
-                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-lg border border-border text-muted-foreground"
+                          className="text-[11px] rounded-lg border border-border bg-card px-2 py-1 max-w-[8.5rem] truncate"
                         >
-                          Remove
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                          <option value="">No workstream</option>
+                          {sheet.workstreams.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </select>
 
-                {canManageDeliverables && (
-                  <form
-                    className="flex gap-2 mt-2 pl-[3.25rem]"
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const title = (newTask[d.linkId] ?? "").trim();
-                      if (!title) return;
-                      const ok = await mutate(
-                        `/api/issues/${d.issueId}/subtasks`,
-                        { method: "POST", body: JSON.stringify({ title }) },
-                        "That task could not be added"
-                      );
-                      if (ok) setNewTask((s) => ({ ...s, [d.linkId]: "" }));
-                    }}
-                  >
-                    <label className="sr-only" htmlFor={`newtask-${d.linkId}`}>
-                      New task in {d.name}
-                    </label>
-                    <input
-                      id={`newtask-${d.linkId}`}
-                      aria-label={`New task in ${d.name}`}
-                      value={newTask[d.linkId] ?? ""}
-                      onChange={(e) => setNewTask((s) => ({ ...s, [d.linkId]: e.target.value }))}
-                      placeholder={`New task in ${d.name}`}
-                      className="flex-1 text-xs rounded-lg border border-border bg-muted px-2 py-1.5"
-                    />
-                    <Btn
-                      type="submit"
-                      disabled={busy || !(newTask[d.linkId] ?? "").trim()}
-                      variant="secondary"
-                    >
-                      Add
-                    </Btn>
-                  </form>
-                )}
-              </article>
-            ))}
+                        {canManageDeliverables && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  `Remove ${d.phaseCode ?? d.issueKey} from ${sheet.phaseName}? ` +
+                                    `${d.issueKey} stays on the board.`
+                                )
+                              )
+                                return;
+                              mutate(
+                                `/api/projects/${projectId}/activate/deliverables/${d.linkId}`,
+                                { method: "DELETE" },
+                                "That could not be removed"
+                              );
+                            }}
+                            className="p-1 rounded-md text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                            title="Remove from phase"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subtask Checklist */}
+                    {d.tasks.length > 0 && (
+                      <ul className="mt-3 space-y-1.5 pt-2.5 border-t border-border/40 pl-2">
+                        {d.tasks.map((t) => (
+                          <li key={t.id} className="flex items-center gap-2 group">
+                            <input
+                              type="checkbox"
+                              id={`task-${t.id}`}
+                              aria-label={`${t.title} — mark complete`}
+                              checked={t.isCompleted}
+                              disabled={!canManageDeliverables || busy}
+                              onChange={(e) =>
+                                mutate(
+                                  `/api/subtasks/${t.id}`,
+                                  {
+                                    method: "PATCH",
+                                    body: JSON.stringify({ isCompleted: e.target.checked }),
+                                  },
+                                  "That task could not be updated"
+                                )
+                              }
+                              className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                            />
+                            <label
+                              htmlFor={`task-${t.id}`}
+                              className={`text-xs flex-1 min-w-0 cursor-pointer ${
+                                t.isCompleted
+                                  ? "line-through text-muted-foreground/80"
+                                  : "text-foreground"
+                              }`}
+                            >
+                              {t.title}
+                            </label>
+                            {canManageDeliverables && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                aria-label={`Remove task: ${t.title}`}
+                                onClick={() =>
+                                  mutate(
+                                    `/api/subtasks/${t.id}`,
+                                    { method: "DELETE" },
+                                    "That task could not be removed"
+                                  )
+                                }
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-muted-foreground hover:text-rose-500 text-[10px]"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {canManageDeliverables && (
+                      <form
+                        className="flex gap-2 mt-2.5 pt-2 border-t border-border/40 pl-2"
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const title = (newTask[d.linkId] ?? "").trim();
+                          if (!title) return;
+                          const ok = await mutate(
+                            `/api/issues/${d.issueId}/subtasks`,
+                            { method: "POST", body: JSON.stringify({ title }) },
+                            "That task could not be added"
+                          );
+                          if (ok) setNewTask((s) => ({ ...s, [d.linkId]: "" }));
+                        }}
+                      >
+                        <input
+                          id={`newtask-${d.linkId}`}
+                          aria-label={`New task in ${d.name}`}
+                          value={newTask[d.linkId] ?? ""}
+                          onChange={(e) => setNewTask((s) => ({ ...s, [d.linkId]: e.target.value }))}
+                          placeholder={`Add a verification step or deliverable subtask…`}
+                          className="flex-1 text-xs rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        />
+                        <Btn
+                          type="submit"
+                          disabled={busy || !(newTask[d.linkId] ?? "").trim()}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Step
+                        </Btn>
+                      </form>
+                    )}
+                  </article>
+                );
+              })}
+
+            {sheet.deliverables.length === 0 && (
+              <EmptyState title={`No deliverables in ${sheet.phaseName} yet`}>
+                A deliverable is one numbered line of this phase&apos;s plan with its own task checklist.
+              </EmptyState>
+            )}
           </div>
 
           {/* Add deliverable --------------------------------------------- */}
@@ -536,36 +621,38 @@ export function ActivateWorksheet({
         {/* Gate and workstreams ------------------------------------------ */}
         <div className="space-y-4">
           {showGate && sheet.gate && (
-            <section className="bg-card rounded-2xl border-l-4 border-l-primary border border-border p-4">
-              <h3 className="text-sm font-bold text-foreground mb-2">
-                Quality gate
-              </h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono text-[11px] text-muted-foreground">{sheet.gate.code}</span>
-                <span className="text-sm font-bold text-foreground">
-                  {sheet.gate.name}
-                </span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-border text-muted-foreground">
-                  {sheet.gate.criteriaMet}/{sheet.gate.criteriaTotal}
-                </span>
+            <section className="bg-card rounded-2xl border border-border/80 p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-border/40">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    {sheet.gate.code}
+                  </span>
+                  <h3 className="text-sm font-bold text-foreground">
+                    {sheet.gate.name}
+                  </h3>
+                </div>
+                <GateBadge status={sheet.gate.status} />
               </div>
-              {/* Said plainly, because a full checklist is the most likely
-                  moment for somebody to assume the gate is passed. It is
-                  not: a gate is passed by a person signing it. */}
-              <p className="text-[10px] text-muted-foreground mt-1">
+
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-muted-foreground font-medium">Criteria settled:</span>
+                  <span className="font-bold text-foreground font-mono">
+                    {sheet.gate.criteriaMet} / {sheet.gate.criteriaTotal}
+                  </span>
+                </div>
+                <Meter value={sheet.gate.criteriaMet} total={sheet.gate.criteriaTotal} height="h-1.5" />
+              </div>
+
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
                 {sheet.gate.criteriaMet === sheet.gate.criteriaTotal
-                  ? "Every criterion is settled. The gate still has to be raised and approved."
-                  : "Criteria are evidence. Raising and approving the gate is separate."}
-                {answersFrozen
-                  ? ` This gate is approved, so its criteria are frozen.`
-                  : questionsFrozen
-                    ? ` This gate is raised: criteria can still be answered, but not added or removed. An unsettled criterion blocks approval.`
-                    : ``}
+                  ? "✓ All gate criteria verified. Proceed to the top governance panel to raise for sign-off."
+                  : "Criteria are required verification artifacts. Checking an item records completion."}
               </p>
 
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-2 space-y-2 divide-y divide-border/30">
                 {sheet.gate.criteria.map((c) => (
-                  <li key={c.id} className="flex items-start gap-2">
+                  <li key={c.id} className="flex items-start gap-2 pt-2 first:pt-0 group">
                     <input
                       type="checkbox"
                       id={`crit-${c.id}`}
@@ -582,15 +669,19 @@ export function ActivateWorksheet({
                           "That criterion could not be updated"
                         )
                       }
-                      className="mt-0.5 rounded border-border"
+                      className="mt-0.5 rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
                     />
                     <label
                       htmlFor={`crit-${c.id}`}
-                      className="text-xs flex-1 min-w-0 text-foreground"
+                      className={`text-xs flex-1 min-w-0 cursor-pointer ${
+                        c.met ? "text-foreground font-medium" : "text-muted-foreground"
+                      }`}
                     >
                       {c.criterion}
                       {c.status === "WAIVED" && (
-                        <span className="ml-1 text-[10px] text-amber-600">waived</span>
+                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 border border-amber-500/30">
+                          WAIVED
+                        </span>
                       )}
                     </label>
                     {canManageGates && !questionsFrozen && (
@@ -612,9 +703,10 @@ export function ActivateWorksheet({
                             "That criterion could not be removed"
                           );
                         }}
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-lg border border-border text-red-600"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-muted-foreground hover:text-rose-500"
+                        title="Remove criterion"
                       >
-                        Remove
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     )}
                   </li>
@@ -623,7 +715,7 @@ export function ActivateWorksheet({
 
               {canManageGates && !questionsFrozen && (
                 <form
-                  className="flex gap-2 mt-3"
+                  className="flex gap-2 mt-3 pt-2 border-t border-border/40"
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!newCriterion.trim()) return;
@@ -635,48 +727,48 @@ export function ActivateWorksheet({
                     if (ok) setNewCriterion("");
                   }}
                 >
-                  <label className="sr-only" htmlFor="new-criterion">
-                    New gate criterion
-                  </label>
                   <input
                     id="new-criterion"
                     value={newCriterion}
                     onChange={(e) => setNewCriterion(e.target.value)}
-                    placeholder="New gate criterion"
-                    className="flex-1 text-xs rounded-lg border border-border bg-muted px-2 py-1.5"
+                    placeholder="Add custom criterion…"
+                    className="flex-1 text-xs rounded-lg border border-border bg-muted/40 px-2 py-1.5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
                   />
                   <Btn
                     type="submit"
                     disabled={busy || newCriterion.trim().length < 3}
                     variant="secondary"
+                    size="sm"
                   >
-                    <Plus className="w-3 h-3 inline" aria-hidden="true" /> Add
+                    <Plus className="w-3 h-3" /> Add
                   </Btn>
                 </form>
               )}
             </section>
           )}
 
-          <section className="bg-card rounded-2xl border border-border p-4">
-            <h3 className="text-sm font-bold text-foreground mb-2">
-              Workstreams in this phase
+          <section className="bg-card rounded-2xl border border-border/80 p-4 shadow-xs">
+            <h3 className="text-sm font-bold text-foreground mb-1">
+              Workstreams Distribution
             </h3>
-            {/* Only the ones carrying something. A list of every workstream
-                with ten zeroes says less than the three that matter. */}
-            <ul className="divide-y divide-border">
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Deliverables allocated by functional discipline
+            </p>
+
+            <ul className="divide-y divide-border/40">
               {sheet.workstreams
                 .filter((w) => w.deliverableCount > 0)
                 .map((w) => (
-                  <li key={w.id} className="flex items-center justify-between py-1.5">
-                    <span className="text-xs text-foreground">{w.name}</span>
-                    <span className="text-xs font-bold text-foreground">
-                      {w.deliverableCount}
+                  <li key={w.id} className="flex items-center justify-between py-2">
+                    <span className="text-xs text-foreground font-medium">{w.name}</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-muted text-foreground">
+                      {w.deliverableCount} {w.deliverableCount === 1 ? "item" : "items"}
                     </span>
                   </li>
                 ))}
               {sheet.workstreams.every((w) => w.deliverableCount === 0) && (
-                <li className="text-xs text-muted-foreground py-2">
-                  Nothing assigned to a workstream yet.
+                <li className="text-xs text-muted-foreground py-2 text-center">
+                  No deliverables assigned to workstreams yet.
                 </li>
               )}
             </ul>

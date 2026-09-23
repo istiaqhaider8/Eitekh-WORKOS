@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2, Layers } from "lucide-react";
 import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, fieldClass, FieldLabel } from "./ui";
 
 /**
@@ -141,15 +141,19 @@ export function ActivateBacklog({
         )}
       </div>
 
-      <section className="bg-card rounded-2xl border border-border">
-        <div className="flex flex-wrap items-center justify-between gap-2 p-4 pb-3">
-          <div>
-            <h3 className="text-sm font-bold text-foreground">
-              Backlog from decisions
-            </h3>
+      <section className="bg-card rounded-2xl border border-border shadow-xs overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-border/40">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Layers className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-foreground">
+                Generated Backlog Queue
+              </h3>
+            </div>
             <p className="text-[11px] text-muted-foreground">
-              {items.length} item{items.length === 1 ? "" : "s"} implied ·{" "}
-              {items.length - pending} already created · {pending} not yet
+              {items.length} items derived from workshop decisions · {items.length - pending} synced to board · {pending} pending creation
             </p>
           </div>
           {canGenerate && (
@@ -158,20 +162,21 @@ export function ActivateBacklog({
               disabled={busy || pending === 0}
               onClick={generate}
               variant="primary"
+              size="md"
             >
+              <Sparkles className="w-3.5 h-3.5" />
               {busy
-                ? "Creating…"
+                ? "Creating Issues…"
                 : pending === 0
-                  ? "Nothing to create"
-                  : `Create ${pending} issue${pending === 1 ? "" : "s"}`}
+                  ? "All Synchronized"
+                  : `Create ${pending} Project Issue${pending === 1 ? "" : "s"}`}
             </Btn>
           )}
         </div>
 
         {items.length === 0 ? (
-          <p className="px-4 pb-5 text-xs text-muted-foreground">
-            No work is implied yet. Record a decision that departs from the
-            standard, and it will appear here before anything is created.
+          <p className="px-5 py-8 text-xs text-muted-foreground text-center">
+            No work is implied yet. Record a decision that departs from standard in the Fit-to-Standard workshop to preview generated backlog issues.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -180,65 +185,62 @@ export function ActivateBacklog({
                 Backlog items implied by the current fit-to-standard decisions
               </caption>
               <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
-                  <th scope="col" className="px-4 py-2 font-semibold">Item</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Type</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Pri</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Size</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Phase</th>
-                  {/* Where it will land on the board. Shown before anything
-                      is created, because "this one arrives already done" is
-                      a thing to notice before pressing the button, not
-                      after. */}
-                  <th scope="col" className="px-2 py-2 font-semibold">Column</th>
-                  <th scope="col" className="px-2 py-2 font-semibold">Issue</th>
+                <tr className="text-left text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted/20 border-b border-border">
+                  <th scope="col" className="px-4 py-3">Work Item</th>
+                  <th scope="col" className="px-3 py-3">Type</th>
+                  <th scope="col" className="px-2 py-3">Priority</th>
+                  <th scope="col" className="px-2 py-3">Size</th>
+                  <th scope="col" className="px-2 py-3">Target Phase</th>
+                  <th scope="col" className="px-3 py-3">Initial Status</th>
+                  <th scope="col" className="px-4 py-3">Linked Board Issue</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/50">
                 {items.map((b) => (
                   <tr
                     key={b.originKey}
-                    className="border-b border-border align-top"
+                    className="hover:bg-muted/30 transition-colors align-middle"
                   >
-                    <td className="px-4 py-2">
-                      <span className="font-medium text-foreground">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-foreground">
                         {b.title}
-                      </span>
-                      {b.automatic && (
-                        <span
-                          className="ml-1.5 text-[9px] font-bold px-1 py-px rounded border border-border text-muted-foreground"
-                          title={b.note ?? "Added by a generation rule"}
-                        >
-                          AUTO
-                        </span>
-                      )}
-                      <span className="block text-[10px] text-muted-foreground font-mono">
-                        {b.scopeItemCode} · {label(b.decision)}
-                        {/* Reads "defer · scope item done" — the pairing that
-                            would otherwise look like a mistake on the board:
-                            settled decision, real work still to do. */}
-                        {b.decisionTaskStatus === "DONE" && (
-                          <span className="ml-1 text-emerald-600 dark:text-emerald-400">
-                            · scope item done
+                        {b.automatic && (
+                          <span
+                            className="ml-2 text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                            title={b.note ?? "Added by an automated methodology rule"}
+                          >
+                            AUTO-RULE
                           </span>
                         )}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5">
+                        <span className="font-bold text-foreground/80">{b.scopeItemCode}</span>
+                        <span>•</span>
+                        <span className="capitalize">{label(b.decision)}</span>
+                        {b.decisionTaskStatus === "DONE" && (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                            • Decision Agreed
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                        {label(b.buildType)}
                       </span>
                     </td>
-                    <td className="px-2 py-2 text-muted-foreground">
-                      {label(b.buildType)}
-                    </td>
-                    <td className="px-2 py-2 text-muted-foreground">
+                    <td className="px-2 py-3 font-semibold text-muted-foreground">
                       {label(b.priority)}
                     </td>
-                    <td className="px-2 py-2 font-mono text-muted-foreground">
+                    <td className="px-2 py-3 font-mono font-bold text-foreground">
                       {b.size}
                     </td>
-                    <td className="px-2 py-2 text-muted-foreground">
+                    <td className="px-2 py-3 text-muted-foreground font-medium">
                       {label(b.targetPhaseKey)}
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-3 py-3">
                       <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                           b.issueStatus === "DONE"
                             ? "border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40"
                             : "border-border text-muted-foreground"
@@ -247,17 +249,19 @@ export function ActivateBacklog({
                         {b.issueStatus === "DONE" ? "Done" : "Backlog"}
                       </span>
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-4 py-3">
                       {b.issue ? (
                         <button
                           type="button"
                           onClick={() => onOpenIssue?.(b.issue!.id)}
-                          className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                          className="font-mono text-[11px] font-bold text-primary hover:underline"
                         >
                           {b.issue.issueKey}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground">not created</span>
+                        <span className="text-[10px] text-muted-foreground italic">
+                          Queued (Click Create)
+                        </span>
                       )}
                     </td>
                   </tr>
