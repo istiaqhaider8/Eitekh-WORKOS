@@ -7,6 +7,10 @@ import { handleApiError } from "@/lib/api-error";
 import { parseJsonBody, activatePhaseUpdateSchema } from "@/lib/validation";
 import { assertActivateRefsBelongToProject } from "@/lib/activate-refs";
 import { logAuditEvent } from "@/lib/audit-logger";
+import {
+  validatePhaseCanStart,
+  validatePhaseCanComplete,
+} from "@/lib/activate-phase-completion";
 
 /**
  * Update a phase: owner, dates, status.
@@ -39,7 +43,7 @@ export async function PATCH(
 
     const phase = await prisma.activatePhase.findFirst({
       where: { id: phaseId, projectId },
-      select: { id: true, version: true, status: true },
+      select: { id: true, key: true, name: true, version: true, status: true },
     });
     if (!phase) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
 
@@ -72,6 +76,21 @@ export async function PATCH(
      * is unchanged.
      */
     await assertActivateRefsBelongToProject(projectId, { ownerId: body.ownerId });
+
+    // Validate phase gate rules and progression eligibility
+    if (body.status !== undefined && body.status !== phase.status) {
+      if (body.status === "IN_PROGRESS") {
+        const startCheck = await validatePhaseCanStart(projectId, phase.key);
+        if (!startCheck.allowed) {
+          return NextResponse.json({ error: startCheck.error }, { status: 400 });
+        }
+      } else if (body.status === "COMPLETED") {
+        const completeCheck = await validatePhaseCanComplete(projectId, phase.key);
+        if (!completeCheck.allowed) {
+          return NextResponse.json({ error: completeCheck.error }, { status: 400 });
+        }
+      }
+    }
 
     const data: Record<string, unknown> = { version: { increment: 1 } };
     if (body.name !== undefined) data.name = body.name;

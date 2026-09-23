@@ -18,7 +18,11 @@ import {
 import { ActivateWorkshop } from "./ActivateWorkshop";
 import { ActivateBacklog } from "./ActivateBacklog";
 import { ActivateWorksheet } from "./ActivateWorksheet";
-import { isPhaseWorkComplete, phaseIncompleteReason } from "@/lib/activate-phase-completion";
+import {
+  isPhaseWorkComplete,
+  phaseIncompleteReason,
+  PHASE_PROGRESSION_RULES,
+} from "@/lib/activate-phase-completion";
 import { Panel, PanelHeader, Btn, Pill, Note, Stat, Meter, EmptyState, GateBadge, PhaseStatusBadge, fieldClass, FieldLabel } from "./ui";
 
 /**
@@ -523,6 +527,14 @@ export function ActivateWorkspace({
   const allComplete = isPhaseWorkComplete(counts);
   const incompleteReason = phaseIncompleteReason(counts);
 
+  const previousPhaseComplete = !previousPhase || previousPhase.status === "COMPLETED";
+  const currentProgressionRule = selected ? PHASE_PROGRESSION_RULES[selected.key] : null;
+  const startPhaseBlockReason =
+    !previousPhaseComplete && previousPhase && currentProgressionRule
+      ? `Cannot start ${selected.name}: ${previousPhase.name} is incomplete. ${currentProgressionRule.requirementDescription}`
+      : null;
+  const canStartPhase = previousPhaseComplete;
+
   /**
    * The root carries no `overflow-y-auto`, deliberately.
    *
@@ -784,7 +796,8 @@ export function ActivateWorkspace({
                 {can("activate:manage_phases") && selected.status !== "IN_PROGRESS" && selected.status !== "COMPLETED" && (
                   <Btn
                     type="button"
-                    disabled={busy !== null}
+                    disabled={busy !== null || !canStartPhase}
+                    title={startPhaseBlockReason ?? undefined}
                     onClick={() =>
                       send(
                         "Start phase",
@@ -793,7 +806,7 @@ export function ActivateWorkspace({
                         loadProfile
                       )
                     }
-                    variant="primary"
+                    variant={canStartPhase ? "primary" : "secondary"}
                     size="md"
                   >
                     Start Phase
@@ -818,6 +831,7 @@ export function ActivateWorkspace({
                   </Btn>
                 )}
 
+                {/* Completing a phase is a DECISION */}
                 {can("activate:manage_phases") && selected.status !== "COMPLETED" && (
                   <Btn
                     type="button"
@@ -839,20 +853,28 @@ export function ActivateWorkspace({
                     size="md"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    Complete Phase
+                    Mark complete
                   </Btn>
                 )}
               </div>
             </div>
 
-            {/* Caution Banner */}
-            {runningAheadOfGate && previousPhase && (
+            {/* Phase Progression Rule Notice */}
+            {previousPhase && previousPhase.status !== "COMPLETED" && selected.status === "NOT_STARTED" && (
               <div className="mt-3.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
                 <TriangleAlert className="w-4 h-4 shrink-0 text-amber-500" />
                 <span>
-                  <strong>Governance Warning:</strong> {previousPhase.name}&apos;s quality gate is{" "}
-                  {previousGate?.status === "REJECTED" ? "rejected" : "not signed off yet"}. This
-                  phase is currently executing ahead of methodology sign-off.
+                  <strong>Phase Progression Rule:</strong> Cannot start {selected.name} until {previousPhase.name} is COMPLETED. {currentProgressionRule?.requirementDescription || `All ${previousPhase.name} work must be completed.`}
+                </span>
+              </div>
+            )}
+
+            {/* Quality Gate Status Info (Decoupled from Progression) */}
+            {runningAheadOfGate && previousPhase && (
+              <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-blue-500" />
+                <span>
+                  <strong>Governance Advisory:</strong> {previousPhase.name}&apos;s gate is {previousGate?.status === "REJECTED" ? "rejected" : "pending final sign-off"}. Per Activate rules, approval status is not mandatory for phase progression once previous phase work is completed.
                 </span>
               </div>
             )}

@@ -164,3 +164,60 @@ describe("the phase page keeps completing and signing separate", () => {
     expect(SOURCE).toContain("worksheetCounts?.phaseKey === selected?.key");
   });
 });
+
+describe("SAP Activate Phase Gate Rules and progression definitions", () => {
+  const { PHASE_PROGRESSION_RULES } = require("@/lib/activate-phase-completion");
+
+  it("defines strict progression prerequisites for all sequential phase transitions", () => {
+    expect(PHASE_PROGRESSION_RULES.PREPARE).toEqual({
+      fromKey: "DISCOVER",
+      toKey: "PREPARE",
+      fromName: "Discover",
+      toName: "Prepare",
+      checkName: "Discovery activities",
+      requirementDescription:
+        "All Discover Deliverables & Workstreams and Discovery activities must be completed.",
+    });
+
+    expect(PHASE_PROGRESSION_RULES.EXPLORE).toEqual({
+      fromKey: "PREPARE",
+      toKey: "EXPLORE",
+      fromName: "Prepare",
+      toName: "Explore",
+      checkName: "Project Readiness checks",
+      requirementDescription:
+        "All Prepare Deliverables & Workstreams and Project Readiness checks must be completed.",
+    });
+
+    expect(PHASE_PROGRESSION_RULES.REALIZE).toEqual({
+      fromKey: "EXPLORE",
+      toKey: "REALIZE",
+      fromName: "Explore",
+      toName: "Realize",
+      checkName: "Design completion checks",
+      requirementDescription:
+        "All Explore Deliverables & Workstreams and all Design completion checks must be completed.",
+    });
+
+    expect(PHASE_PROGRESSION_RULES.DEPLOY).toEqual({
+      fromKey: "REALIZE",
+      toKey: "DEPLOY",
+      fromName: "Realize",
+      toName: "Deploy",
+      checkName: "Solution Ready checks",
+      requirementDescription:
+        "All Realize Deliverables & Workstreams and all Solution Ready checks must be completed.",
+    });
+
+    expect(PHASE_PROGRESSION_RULES.RUN).toEqual({
+      fromKey: "DEPLOY",
+      toKey: "RUN",
+      fromName: "Deploy",
+      toName: "Run",
+      checkName: "Go-Live Readiness checks",
+      requirementDescription:
+        "All Deploy Deliverables & Workstreams and all Go-Live Readiness checks must be completed.",
+    });
+  });
+});
+

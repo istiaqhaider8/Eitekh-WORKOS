@@ -128,26 +128,9 @@ export async function POST(
       }
     }
 
-    if (gate.raisedById === user.id) {
-      await logAuditEvent({
-        actor,
-        action: "ACTIVATE_GATE_SIGN_OFF_DENIED",
-        category: "SECURITY",
-        severity: "WARNING",
-        status: "FAILURE",
-        targetResource: `ActivateGate:${gateId}`,
-        projectId,
-        details: {
-          gate: gate.name,
-          phase: gate.phase.key,
-          reason: "separation of duties: the raiser cannot approve",
-        },
-      }).catch((e) => console.error("Failed to audit refused sign-off:", e));
-
-      throw new ForbiddenError(
-        "You raised this gate, so you cannot sign it off. It needs a different approver."
-      );
-    }
+    // Gate Sign-off Rule:
+    // If a user raises a phase gate, the same user is allowed to review and sign off that gate.
+    // A separate approver is not required.
 
     const { approvalId, status } = await recordGateDecision({
       gateId,

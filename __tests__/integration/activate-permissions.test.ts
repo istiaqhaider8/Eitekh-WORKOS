@@ -252,8 +252,8 @@ describe("activate:sign_off_gate — withheld from Project Manager", () => {
 
 // ---------------------------------------------------------------------------
 
-describe("separation of duties survives the wider matrix", () => {
-  it("still refuses a sign-off by whoever raised the gate", async () => {
+describe("gate sign-off by raiser is permitted", () => {
+  it("allows sign-off by whoever raised the gate — separate approver not required", async () => {
     const { gate, phaseId } = await (async () => {
       const profile = await api(fx.orgA.users.OWNER, `/api/projects/${fx.orgA.projectId}/activate`);
       const realize = profile.body.phases.find((p: any) => p.key === "REALIZE");
@@ -277,24 +277,15 @@ describe("separation of duties survives the wider matrix", () => {
       { method: "POST", body: {} }
     );
 
-    // ADMIN holds sign_off_gate and raised this gate, so the same-person
-    // check is the only thing standing in the way. It still stands.
+    // Gate Sign-off Rule:
+    // If a user raises a phase gate, the same user is allowed to review and sign off that gate.
     const own = await api(
       fx.orgA.users.ADMIN,
       `/api/projects/${fx.orgA.projectId}/activate/gates/${gate.id}/approvals`,
       { method: "POST", body: { decision: "APPROVED" } }
     );
-    expect(own.status).toBe(403);
-    expect(own.body.error).toMatch(/raised this gate/i);
-    expect(await prisma.activateGateApproval.count({ where: { gateId: gate.id } })).toBe(0);
-
-    // And a different holder can.
-    const other = await api(
-      fx.orgA.users.OWNER,
-      `/api/projects/${fx.orgA.projectId}/activate/gates/${gate.id}/approvals`,
-      { method: "POST", body: { decision: "APPROVED" } }
-    );
-    expect(other.status).toBe(201);
+    expect(own.status).toBe(201);
+    expect(await prisma.activateGateApproval.count({ where: { gateId: gate.id } })).toBe(1);
     expect(phaseId).toBeTruthy();
   });
 });

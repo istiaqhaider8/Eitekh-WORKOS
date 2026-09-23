@@ -392,8 +392,8 @@ describe("Raising a gate", () => {
 
 // ---------------------------------------------------------------------------
 
-describe("Separation of duties — the exit gate", () => {
-  it("refuses the raiser's own sign-off, and writes no approval row", async () => {
+describe("Gate sign-off rule", () => {
+  it("allows the raiser's own sign-off, and writes an approval row", async () => {
     const { gate } = gateOf(phasesA, "EXPLORE"); // raised by OWNER above
 
     const before = await prisma.activateGateApproval.count({ where: { gateId: gate.id } });
@@ -403,18 +403,17 @@ describe("Separation of duties — the exit gate", () => {
       `/api/projects/${fx.orgA.projectId}/activate/gates/${gate.id}/approvals`,
       { method: "POST", body: { decision: "APPROVED", comment: "looks fine to me" } }
     );
-    expect(res.status).toBe(403);
-    expect(res.body.error).toMatch(/raised this gate/i);
+    expect(res.status).toBe(201);
+    expect(res.body.gateStatus).toBe("APPROVED");
 
-    // A 403 alone does not prove the write did not happen.
     const after = await prisma.activateGateApproval.count({ where: { gateId: gate.id } });
-    expect(after).toBe(before);
+    expect(after).toBe(before + 1);
 
-    const stillRaised = await prisma.activateGate.findUnique({
+    const nowApproved = await prisma.activateGate.findUnique({
       where: { id: gate.id },
       select: { status: true },
     });
-    expect(stillRaised?.status).toBe("RAISED");
+    expect(nowApproved?.status).toBe("APPROVED");
   });
 
   it("accepts a DIFFERENT approver — the control permits what it should", async () => {
