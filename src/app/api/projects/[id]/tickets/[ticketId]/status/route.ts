@@ -6,30 +6,16 @@ import { ticketStatusTransitionSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
-import { allocateIssueKey, defaultStatusIdFor } from "@/lib/issue-keys";
+import {
+  convertTicketToIssue,
+  rejectionRefusal,
+  statusAfter,
+  transitionRefusal,
+} from "@/lib/ticket-engine";
 
-// Allowed status state machine transitions
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  NEW: ["UNDER_REVIEW", "REJECTED"],
-  UNDER_REVIEW: ["APPROVED", "REJECTED", "PENDING_INFO"],
-  PENDING_INFO: ["UNDER_REVIEW", "REJECTED"],
-  APPROVED: ["CONVERTED"],
-  REJECTED: ["CLOSED"],
-  CONVERTED: [], // Terminal state
-  CLOSED: [],    // Terminal state
-};
-
-// Map ticket category to standard project issue type
-function mapCategoryToIssueType(category: string): string {
-  switch (category) {
-    case "BUG_REPORT":
-      return "BUG";
-    case "FEATURE_REQUEST":
-      return "FEATURE";
-    default:
-      return "TASK";
-  }
-}
+// The lifecycle, the visibility rules and the conversion all live in
+// `src/lib/ticket-engine.ts`, where they can be tested without a server.
+// This route does auth, parsing, status codes and the broadcast.
 
 export async function PATCH(
   req: Request,
@@ -103,24 +89,11 @@ export async function PATCH(
       );
     }
 
-    // State machine validation
-    const allowed = ALLOWED_TRANSITIONS[existing.status] || [];
-    if (!allowed.includes(targetStatus)) {
-      return NextResponse.json(
-        {
-          error: `Invalid transition: Cannot move ticket from ${existing.status} to ${targetStatus}. Allowed: ${allowed.join(", ") || "None (terminal state)"}`,
-        },
-        { status: 400 }
-      );
-    }
+    const refusal = transitionRefusal(existing.status, targetStatus);
+    if (refusal) return NextResponse.json({ error: refusal }, { status: 400 });
 
-    // If rejecting, rejectionReason is required
-    if (targetStatus === "REJECTED" && (!rejectionReason || !rejectionReason.trim())) {
-      return NextResponse.json(
-        { error: "A rejection reason is required when rejecting a ticket" },
-        { status: 400 }
-      );
-    }
+    const missingReason = rejectionRefusal(targetStatus, rejectionReason);
+    if (missingReason) return NextResponse.json({ error: missingReason }, { status: 400 });
 
     let createdIssue: any = null;
 
@@ -129,64 +102,23 @@ export async function PATCH(
       let convertedIssueId: string | null = null;
       let convertedAt: Date | null = null;
 
-      // Auto-conversion if APPROVED
+      /**
+       * Approving converts, in the same transaction.
+       *
+       * A ticket is therefore never durably APPROVED — `statusAfter` maps
+       * the verb a caller sends to the state that is stored. Doing it here means
+       * the issue, its activity log and the ticket status land together or
+       * not at all; a ticket marked CONVERTED beside an issue that was never
+       * created is a lie the dashboard would repeat for ever.
+       */
       if (targetStatus === "APPROVED") {
-        // 1. Allocate next issue key
-        const allocated = await allocateIssueKey(tx, projectId);
-        const initialStatusId = defaultStatusIdFor(allocated.project);
-
-        /**
-         * 2. Build description with ticket origin metadata.
-         *
-         * NO EMOJI HERE, deliberately. This string is written into a user's
-         * issue description, and a decorative character in a data payload is
-         * one the database has to be able to store. This line carried a 🎫
-         * and every approval returned 500: the local Postgres is WIN1252, and
-         * `0xf0 0x9f 0x8e 0xab has no equivalent in encoding "WIN1252"` aborts
-         * the whole conversion transaction.
-         *
-         * The encoding is the deeper defect — that database also refuses
-         * Bengali and Chinese, so any user typing either into any field hits
-         * the same wall (see DB-1 in AI-STATUS). But decoration in stored data
-         * is worth removing on its own account: it buys nothing and it is the
-         * reason this path failed 100% of the time rather than occasionally.
-         */
-        const originHeader = `> **Converted from Ticket [${existing.ticketKey}]:** ${existing.title}\n> **Category:** ${existing.category} | **Priority:** ${existing.priority}\n> **Client:** ${existing.createdBy.firstName || ""} ${existing.createdBy.lastName || ""} (${existing.createdBy.email})\n${note ? `> **Approval Note:** ${note}\n` : ""}\n---\n\n`;
-        const fullDescription = `${originHeader}${existing.description || ""}`;
-
-        // 3. Create the native Issue
-        createdIssue = await tx.issue.create({
-          data: {
-            projectId,
-            keyNumber: allocated.keyNumber,
-            issueKey: allocated.issueKey,
-            title: existing.title,
-            description: fullDescription,
-            issueType: mapCategoryToIssueType(existing.category),
-            priority: existing.priority,
-            statusId: initialStatusId,
-            reporterId: existing.createdById,
-            assigneeId: existing.assignedManagerId || user.id,
-            dueDate: existing.dueDate,
-          },
-          include: {
-            status: true,
-            assignee: publicUserRelation,
-            reporter: publicUserRelation,
-          },
+        createdIssue = await convertTicketToIssue(tx, {
+          projectId,
+          ticket: existing,
+          actorId: user.id,
+          note,
         });
-
-        // 4. Initial activity log for created issue
-        await tx.activityLog.create({
-          data: {
-            issueId: createdIssue.id,
-            actorId: user.id,
-            actionType: "CREATED",
-            newValue: `Created from approved Ticket ${existing.ticketKey}`,
-          },
-        });
-
-        finalStatus = "CONVERTED";
+        finalStatus = statusAfter(targetStatus);
         convertedIssueId = createdIssue.id;
         convertedAt = new Date();
       }
@@ -199,6 +131,10 @@ export async function PATCH(
           resolutionNote: note ?? existing.resolutionNote,
           rejectionReason: rejectionReason ?? existing.rejectionReason,
           convertedIssueId: convertedIssueId ?? existing.convertedIssueId,
+          // Denormalised alongside the foreign key. That key is SetNull, so
+          // deleting the issue later empties it and the ticket would claim to
+          // have produced work nobody can name. The text survives.
+          convertedIssueKey: createdIssue?.issueKey ?? existing.convertedIssueKey,
           convertedAt: convertedAt ?? existing.convertedAt,
           closedAt: finalStatus === "CLOSED" || finalStatus === "REJECTED" ? new Date() : existing.closedAt,
           firstResponseAt: existing.firstResponseAt ?? new Date(),

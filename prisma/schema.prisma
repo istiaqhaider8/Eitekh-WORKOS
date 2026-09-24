@@ -1849,6 +1849,17 @@ model Ticket {
 
   // Link to converted delivery task
   convertedIssueId  String?   @unique
+  /// The issue key this ticket produced, kept as text on purpose.
+  ///
+  /// `convertedIssueId` is a foreign key with `onDelete: SetNull`, so deleting
+  /// the issue from the board silently empties it — and the ticket is left
+  /// saying CONVERTED while pointing at nothing, claiming it produced work
+  /// nobody can find. Restricting the delete would be the other answer, but
+  /// removing an issue is a legitimate act and a ticket should not veto it.
+  ///
+  /// So the key is denormalised. The link breaks; the record of what was
+  /// built does not.
+  convertedIssueKey String?
   convertedAt       DateTime?
 
   // SLA and due date

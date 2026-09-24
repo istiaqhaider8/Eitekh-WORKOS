@@ -1,0 +1,16 @@
+-- Keep the converted issue's key on the ticket, as text.
+--
+-- `convertedIssueId` is a foreign key declared `onDelete: SetNull`. Deleting
+-- the converted issue from the board therefore empties it silently, leaving a
+-- ticket whose status says CONVERTED and whose link points at nothing — it
+-- claims to have produced work that cannot be found.
+--
+-- Restricting the delete is the other available answer, and it is the wrong
+-- one: removing an issue is a legitimate act and a ticket should not be able
+-- to veto it. Denormalising the key keeps the record of what was built even
+-- after the issue itself is gone.
+--
+-- Additive and nullable: existing rows are untouched and no backfill is
+-- possible for them, since a ticket converted before this column existed may
+-- already have lost its issue.
+ALTER TABLE "Ticket" ADD COLUMN "convertedIssueKey" TEXT;

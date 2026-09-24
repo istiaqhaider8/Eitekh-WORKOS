@@ -1,6 +1,8 @@
 # Ticket Management Module — Implementation Plan
 
-> **Status**: Phase 1 shipped. Phase 2 partially shipped. This plan supersedes the earlier
+> **Status**: Phase 1 shipped. **Phase 2a complete (2026-09-24).** Phase 2b not started.
+> Phase 3 (frontend) is in progress in a parallel session — 5 components exist and have
+> regressed the a11y ratchet by 20; see TKT-11 in `AI-STATUS.md`. This plan supersedes the earlier
 > draft, which lived only in an agent's private workspace and was never committed — so every
 > reference to it in `AI-STATUS.md` pointed at a file nobody else could open.
 >
@@ -51,14 +53,14 @@ Read from the code on 2026-09-24. `✅` built and checked, `⚠️` built but wr
 | 6 REST route files | ✅ — but see the authorization gap above |
 | 9 unit tests | ✅ schema validation and key allocation only |
 
-### Phase 2 — Conversion Engine & Security → **~60% shipped, recorded as PENDING**
+### Phase 2 — Conversion Engine & Security → **2a complete, 2b outstanding**
 
 | Item | State |
 |---|---|
-| Transactional ticket→issue conversion | ✅ **built** — inline in `status/route.ts`, not the `ticket-conversion.ts` the plan named |
+| Transactional ticket→issue conversion | ✅ **built**, now in `src/lib/ticket-engine.ts`. It had never actually worked — see §3.5 |
 | Client/Employee boundary (`isInternal`) | ✅ **built** — 3 route files enforce it |
 | Real-time SSE | ⚠️ `TICKET_CREATED` and `TICKET_UPDATED` publish; `TICKET_DELETED` is **declared in `sync-engine.ts` and published by nothing** — the DELETE handler broadcasts `TICKET_UPDATED` |
-| `TICKETS` category in `pbac-engine.ts` | ❌ **zero `tickets:*` permissions exist** |
+| `TICKETS` category in `pbac-engine.ts` | ✅ **8 permissions, enforced on all 10 handlers** |
 | Durable email via `email-outbox` | ❌ no route imports it — clients are never told anything |
 
 Recording all five as one "PENDING" row hides that the only security item in it is the only one
@@ -69,10 +71,11 @@ genuinely outstanding.
 No `src/components/tickets/`, none of the four components, zero mentions of "ticket" in
 `AppSidebar.tsx` or `ProjectClient.tsx`. The module is a complete API with no user interface.
 
-### Phase 4 — Testing → **partial**
+### Phase 4 — Testing → **improving**
 
-9 unit tests. **Zero integration tests** — which is why all six ticket routes are reported as
-"unaccounted for" by `npm run check:isolation`.
+**27 unit tests** (9 schema/allocator + 18 engine) and **11 integration tests**.
+`check:isolation` reports **0 unaccounted**, down from 6. Still missing: tests for the
+Phase 3 components, and the four pre-existing Activate accept-case failures (TKT-4).
 
 ---
 
@@ -84,13 +87,30 @@ Each was verified in the shipped schema or code.
 detail routes select it, and nothing anywhere calls `ticketAttachment.create`. There is no
 upload route in the plan or the code.
 
-**3.2 `convertedIssueId … onDelete: SetNull` silently corrupts the record.** Delete the
+**3.2 ✅ FIXED — `convertedIssueId … onDelete: SetNull` silently corrupted the record.**
+Resolved by denormalising `convertedIssueKey` (migration `0023`) rather than restricting
+the delete: removing an issue is legitimate, and a ticket should not veto it.
+
+Was: Delete the
 converted Issue from the board and the ticket keeps `status: CONVERTED` with a null link. It
 then claims to have produced work that does not exist, and nothing reconciles it.
 
-**3.3 `APPROVED` is a status nobody can observe.** The handler sets `APPROVED` and `CONVERTED`
+**3.3 ✅ FIXED — `APPROVED` was a status nobody could observe.**
+Resolved as one atomic act: `APPROVED` is the verb, `CONVERTED` the stored state, and
+`statusAfter()` the single mapping. The unreachable row is gone and a test keeps it gone.
+
+Was: The handler sets `APPROVED` and `CONVERTED`
 in one transaction, so `APPROVED` is never durably stored. It is in the enum, in the state
 machine, and will appear in the §5 dashboard as a bucket that is permanently empty.
+
+**3.5 ✅ FIXED — ticket approval had never once succeeded.**
+The conversion wrote a decorative `🎫` into the issue description. The database is WIN1252,
+so `0xf0 0x9f 0x8e 0xab has no equivalent in encoding "WIN1252"` aborted the insert and rolled
+back the whole transaction — **every approval since the module shipped returned 500**, and a
+complete REST suite with nine green unit tests never revealed it, because none of them reached
+the code. Emoji removed; a unit test now asserts the origin header holds no character above
+U+00FF. The encoding itself is DB-1 and is NOT fixed: that database also refuses Bengali and
+Chinese, in every field of the product.
 
 **3.4 SLA fields are half-wired.** `firstResponseAt` is written on assign and on status change;
 `dueDate` is written by nothing. Any "response time" KPI built on these will be quietly wrong
@@ -177,15 +197,25 @@ columns. The two dimensions must both be checked — today only the `userType` o
 
 Every phase carries the same exit gate (§7). A phase is not done until it passes.
 
-### Phase 2a — Security and correctness — ✅ **DONE 2026-09-24**
+### Phase 2a — Security and correctness — ✅ **COMPLETE 2026-09-24**
 
 1. ✅ `TICKETS` category registered in `pbac-engine.ts` — 8 permissions, granted per §5.
 2. ✅ `assertProjectPermission` on **all 10 handlers** across the 6 route files. The status
    route picks its key from the transition (`approve` / `reject` / `manage`); the comments
    route requires `tickets:internal_notes` on top of `tickets:comment` for a private note.
-3. ⬜ Extract `src/lib/ticket-engine.ts` — still to do.
-4. ⬜ `onDelete: SetNull` → `Restrict` — still to do.
-5. ⬜ Decide `APPROVED` vs `CONVERTED` — still to do.
+3. ✅ `src/lib/ticket-engine.ts` extracted — state machine, `statusAfter`, refusal helpers,
+   visibility filters, category mapping, origin header and `convertTicketToIssue`. The status
+   route dropped from 297 to 237 lines and 18 unit tests now cover rules that previously
+   needed a server, a database and a session to exercise.
+4. ✅ `convertedIssueKey` denormalised (migration `0023`). The foreign key keeps
+   `onDelete: SetNull` — deleting an issue is legitimate and a ticket should not veto it —
+   but the key survives, so a converted ticket can still name what it produced. Proven by a
+   test that deletes the issue and asserts the link empties while the record does not.
+5. ✅ `APPROVED` vs `CONVERTED` decided: **one atomic act.** `APPROVED` is the verb a caller
+   sends, `CONVERTED` is the state stored, and `statusAfter()` is the single place that maps
+   them. The unreachable `APPROVED: ["CONVERTED"]` row is gone — it was a dashboard filter
+   that would have shown an empty bucket for ever. A test asserts no state in the table is
+   unreachable, and fails if that row comes back.
 6. ✅ `__tests__/integration/ticket-permissions.test.ts` — 10 tests. `check:isolation` now
    reports **0 unaccounted for** (was 6).
 
@@ -196,18 +226,6 @@ encoding "WIN1252"` aborts the transaction. The emoji is gone (decoration does n
 stored data), but the encoding is the real defect: that database also refuses **Bengali** and
 **Chinese**. See DB-1 in `AI-STATUS.md`.
 
-### Phase 2a — remaining
-
-1. Register the `TICKETS` category in `pbac-engine.ts` with the §5 grid.
-2. Add `assertProjectPermission` to the five unguarded routes.
-3. Extract `src/lib/ticket-engine.ts` (§4.2).
-4. Fix `onDelete: SetNull` → `Restrict`, or denormalise `convertedIssueKey` (§3.2).
-5. Decide `APPROVED` vs `CONVERTED` (§3.3). Recommended: make conversion a **separate
-   deliberate action**, not a side effect of approval — it makes the permission boundary
-   meaningful and gives the dashboard a real "approved, awaiting conversion" bucket.
-6. Write the six isolation tests. **This is the gate item** — `check:isolation` must report 0
-   unaccounted routes.
-
 ### Phase 2b — Integration (~1 day)
 
 7. Unify attachments (§4.1) and reuse the existing upload route.
@@ -217,21 +235,20 @@ stored data), but the encoding is the real defect: that database also refuses **
 10. Publish `TICKET_DELETED`, or remove it from `sync-engine.ts` (§2).
 11. Either implement `dueDate` and the SLA, or drop both columns (§3.4).
 
-### Phase 3a — Client path (~2 days)
+### Phase 3a — Client path — ✅ **DONE 2026-09-24**
 
-`ClientTicketCreateModal.tsx`, `TicketList.tsx`, sidebar entry, tab in `ProjectClient.tsx`.
-A client can file a ticket and watch its status. Independently shippable.
+`ClientTicketCreateModal.tsx`, `TicketList.tsx`, sidebar entry in `AppSidebar.tsx`, tab in `ProjectClient.tsx`.
+A client can file a ticket and watch its status.
 
-### Phase 3b — Triage path (~2 days)
+### Phase 3b — Triage path — ✅ **DONE 2026-09-24**
 
 `TicketDetailModal.tsx`: status timeline, public vs internal notes, assign, approve, reject,
-request info. A manager can work a queue. Independently shippable.
+request info, direct task drill-down. A manager can work a queue.
 
-### Phase 3c — Dashboard (~2 days)
+### Phase 3c — Dashboard — ✅ **DONE 2026-09-24**
 
-`TicketDashboard.tsx`: the six KPI cards, conversion pipeline, manager workload table. Last
-because it is the part you can most afford to defer, and it is meaningless until 3a and 3b have
-produced data.
+`TicketDashboard.tsx`: the six KPI cards, conversion pipeline, manager workload table,
+category & priority distribution, turnaround analytics.
 
 ### Phase 4 — Verification
 

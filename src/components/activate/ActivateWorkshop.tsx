@@ -755,6 +755,7 @@ export function ActivateWorkshop({
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  aria-label="Filter scope items by name or code"
                   type="text"
                   placeholder="Filter scope items by name or code…"
                   value={searchQuery}

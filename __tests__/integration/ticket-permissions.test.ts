@@ -215,6 +215,34 @@ describe("Triage and approval are separate powers", () => {
     });
     expect(issue!.projectId).toBe(fx.orgA.projectId);
   });
+
+  it("remembers which issue it produced even after that issue is deleted", async () => {
+    /**
+     * `convertedIssueId` is a foreign key declared `onDelete: SetNull`, so
+     * deleting the issue empties it — and the ticket is left saying CONVERTED
+     * while pointing at nothing, claiming work nobody can name. Restricting
+     * the delete is the other answer and it is the wrong one: removing an
+     * issue is a legitimate act that a ticket should not be able to veto.
+     *
+     * So the key is denormalised as text. This asserts the link breaks and
+     * the record does not.
+     */
+    const before = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { convertedIssueId: true, convertedIssueKey: true, status: true },
+    });
+    expect(before!.convertedIssueKey).toBeTruthy();
+
+    await prisma.issue.delete({ where: { id: before!.convertedIssueId! } });
+
+    const after = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { convertedIssueId: true, convertedIssueKey: true, status: true },
+    });
+    expect(after!.convertedIssueId).toBeNull();          // the link is gone
+    expect(after!.convertedIssueKey).toBe(before!.convertedIssueKey); // the record is not
+    expect(after!.status).toBe(before!.status);
+  });
 });
 
 // ---------------------------------------------------------------------------

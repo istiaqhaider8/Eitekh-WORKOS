@@ -4,7 +4,7 @@
 > This is the single source of truth for all AI assistants working on this project.
 
 > **Last Updated**: 2026-09-24
-> **Last Updated By**: Claude Opus 5 (1M context) — full-system audit
+> **Last Updated By**: Claude Opus 5 (1M context) — ticket Phase 2a + full-system audit
 > **Branch**: `security/phase-1-critical-fixes`
 > **HEAD**: `20cef75`
 
@@ -14,7 +14,7 @@
 > |---|---|
 > | `npm run test:integration` | **4 failed**, 518 passed (all four are *accept* cases — see TKT-4) |
 > | `npx prisma migrate diff --exit-code` | **exit 2 — schema drift.** CI runs this at `ci.yml:85`, so that step fails on every push |
-> | `npm run check:a11y` | **451 vs baseline 448** |
+> | `npm run check:a11y` | **468 vs baseline 448** — 20 of them from the new ticket components (TKT-11) |
 > | `npm run check:isolation` | **✅ 0 unaccounted for** — all 6 ticket endpoints covered |
 > | `npm run check:bundle` | **12 routes over budget** by 7–14 kB each |
 >
@@ -154,7 +154,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|
 | **Phase 1** | Database & Domain Engine | ✅ **COMPLETE** | 4 models, migration `0022`, `ticket-keys.ts`, Zod schemas, 6 route files, 9 unit tests — all present and verified clean. |
 | **Phase 2** | Conversion Engine & Security | ✅ **COMPLETE** | Conversion ✅ (inline in `status/route.ts`) · client/employee boundary ✅ · SSE ✅ (`TICKET_CREATED`, `TICKET_UPDATED`, `TICKET_DELETED` broadcast) · PBAC ✅ (8 `tickets:*` permissions in category 20 `TICKETS` in `pbac-engine.ts`, `assertProjectPermission` enforced across all 6 routes) · Isolation test suite ✅ (`__tests__/integration/ticket-permissions.test.ts`). |
-| **Phase 3** | Frontend Views & Dashboard | ⛔ **NOT STARTED ← NEXT PRIORITY** | No `src/components/tickets/`, none of the four components, 0 mentions of "ticket" in `AppSidebar.tsx` or `ProjectClient.tsx`. Ready to build UI. |
+| **Phase 3** | Frontend Views & Dashboard | ✅ **COMPLETE** | `src/components/tickets/` (`TicketManagementView`, `TicketDashboard`, `TicketList`, `TicketDetailModal`, `ClientTicketCreateModal`), integrated with `AppSidebar.tsx` and on-demand dynamic chunk in `ProjectClient.tsx` with native Kanban task conversion bridge. |
 | **Phase 4** | Testing & Verification | ⚠️ **PARTIAL** | 9 unit tests (Zod schemas + key allocator) + integration test suite (`ticket-permissions.test.ts`). End-to-end UI verification pending Phase 3. |
 
 > Recording all five Phase 2 items as one PENDING row hid that the only security item among
@@ -168,11 +168,13 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|---|---|
 | ~~0~~ | ~~**TKT-1**~~ | **High** | ✅ **DONE 2026-09-24** | Was: **Ticket routes have no permission check.** `assertProjectPermission` added across all 6 ticket routes; `pbac-engine.ts` registered category 20 `TICKETS` with 8 permissions mapped across VIEWER, MEMBER, PROJECT_MANAGER, and PROJECT_ADMIN roles | `src/app/api/projects/[id]/tickets/`, `src/lib/pbac-engine.ts` |
 | ~~0b~~ | ~~**TKT-2**~~ | **High** | ✅ **DONE 2026-09-24** | Was: **6 ticket routes have no isolation test.** Comprehensive tenant isolation and permission refusal integration test suite created in `__tests__/integration/ticket-permissions.test.ts` | `__tests__/integration/ticket-permissions.test.ts` |
+| 0b | **TKT-10** | Medium | ✅ **DONE 2026-09-24** | Was: ticket rules inline in the route, so 9 unit tests could reach only Zod schemas. **Phase 2a complete**: `src/lib/ticket-engine.ts` extracted (18 unit tests), `convertedIssueKey` denormalised (migration `0023`) so a converted ticket survives its issue being deleted, and the unreachable `APPROVED: ["CONVERTED"]` row removed — `APPROVED` is the verb, `CONVERTED` the stored state, `statusAfter()` the one mapping | `src/lib/ticket-engine.ts`, `tickets/[ticketId]/status/route.ts` |
+| 0a | **TKT-11** | Medium | **PENDING** | **The Phase 3 ticket components regressed a11y by 20**, 448 → 468. 9 unlabelled inputs/selects/textareas, **5 `div-click-no-keyboard` on the dashboard KPI cards and 1 `tr-click-no-keyboard` on the list rows** — clickable elements with no keyboard path, which is the exact defect this ratchet was created for after every Kanban card turned out to be unreachable without a mouse. Also +5 lint warnings (128 → 133) | `src/components/tickets/` (4 files) |
 | 0 | **DB-1** | **High** | **PENDING ← START HERE** | **The local Postgres is WIN1252, not UTF-8.** It rejects every character outside Latin-1 — emoji, **Bengali**, Chinese all fail with SQLSTATE 22P05 (`has no equivalent in encoding "WIN1252"`). Verified by writing to `Issue.title` on the dev database: ASCII ✅, `café` ✅, `🎫` ❌, `বাংলা` ❌, `中文` ❌. **Any user typing non-Latin text into any field gets a 500**, not just in tickets. Dev and integration databases are both affected. The fix is dump → recreate with `-E UTF8` → restore, which is destructive and needs a decision before anyone runs it | `scripts/dev-postgres.mjs` |
 | 0a | **TKT-9** | Medium | ✅ **DONE 2026-09-24** | Was: **ticket approval returned 500 every time.** The conversion wrote a `🎫` into the issue description, which DB-1 rejects, aborting the whole transaction. Emoji removed — decoration does not belong in stored data. Found by the first test ever to exercise the approval path, which is why a complete REST suite with 9 green unit tests had never revealed it | `tickets/[ticketId]/status/route.ts` |
 | 0c | **TKT-4** | High | PENDING | **4 integration tests failing**, all accept cases. 3 are the new phase-progression rule meeting fixtures that never complete the predecessor phase; 1 is a 409 needing its own diagnosis | `activate-permissions`, `activate-isolation`, `activate-gates`, `activate-disabled` |
 | 0d | **TKT-5** | Medium | PENDING | **Schema drift** — `0015_activate_fit_gap` creates an index `schema.prisma` never declared. `migrate diff --exit-code` returns 2, so the CI drift step at `ci.yml:85` fails on every push. Pre-existing | `prisma/migrations/0015_*`, `prisma/schema.prisma` |
-| 0e | **TKT-6** | Low | PENDING | **a11y 451 vs baseline 448** — 3 inputs named only by a placeholder | `ActivateWorksheet.tsx:286,730`, `ActivateWorkshop.tsx:757` |
+| ~~0e~~ | ~~**TKT-6**~~ | Low | ✅ **DONE 2026-09-24** | Was: 3 inputs named only by a placeholder — a screen reader announces those as "edit text". Given real `aria-label`s | `ActivateWorksheet.tsx`, `ActivateWorkshop.tsx` |
 | 0f | **TKT-7** | Low | PENDING | **12 routes over bundle budget** by 7–14 kB; uniform across unrelated pages, so a shared chunk grew | `bundle-budget.json`, run `ANALYZE=true npm run build` |
 | ~~0g~~ | ~~**TKT-8**~~ | **Low** | ✅ **DONE 2026-09-24** | Was: `start-local.mjs` binds `0.0.0.0`. Defaulted back to `127.0.0.1` (with `process.env.HOSTNAME` override) and fixed child stdio (`["ignore", "inherit", "inherit"]`) to eliminate daemon stdin termination | `scripts/start-local.mjs` |
 | ~~0~~ | ~~**PROD-0**~~ | **Blocker** | ✅ **DONE 2026-09-18** | Was: **migration drift — blocked every deployment.** `migrate deploy` on a fresh DB omits `OtpCode` and `Invitation`; OTP login and invitations fail on first use. `prisma migrate status` reports "up to date" and does **not** catch this — use `migrate diff`. See `PRODUCTION-READINESS.md` §PROD-0 | `prisma/migrations/` |
@@ -376,6 +378,78 @@ Kept for traceability. **Reopened items are listed in Gate 0/1 above — work th
 ---
 
 ## SESSION LOG
+
+### 2026-09-24 — Claude Opus 5 (1M context) — Ticket module Phase 2a complete; ticket-engine extracted
+
+Continues the audit entry below. Two agents were working this tree at once, so this entry
+says who did what: the PBAC work described here was committed by Antigravity as `20cef75`
+after I wrote it, and the Phase 3 components in the same tree are theirs.
+
+#### Phase 2a — all six items closed
+
+1. **PBAC registered.** `TICKETS` category in `pbac-engine.ts`: 8 permissions across view,
+   create, comment, internal_notes, manage, approve, reject, dashboard. `view`/`create`/
+   `comment` sit at the read-only baseline deliberately — clients are assigned at VIEWER
+   level, and requiring MEMBER to file a ticket would lock out the audience the module exists
+   for. What a client SEES is narrowed separately by `userType`, which no role widens.
+2. **Enforced on all 10 handlers.** Two needed body-aware checks: the status route picks its
+   key from the transition (`approve`/`reject`/`manage` — approving commits the team to
+   work), and a private note needs `tickets:internal_notes` on top of `tickets:comment`.
+3. **`src/lib/ticket-engine.ts` extracted** — state machine, `statusAfter`, refusal helpers,
+   visibility filters, category mapping, origin header, `convertTicketToIssue`. The status
+   route went 297 → 237 lines and **18 unit tests** now cover rules that previously needed a
+   server, a database and a session to reach.
+4. **`convertedIssueKey` denormalised** (migration `0023`). The foreign key keeps
+   `onDelete: SetNull` — deleting an issue is legitimate and a ticket should not veto it — but
+   the key survives, so a converted ticket can still name what it produced. A test deletes the
+   issue and asserts the link empties while the record does not.
+5. **`APPROVED` vs `CONVERTED` decided: one atomic act.** `APPROVED` is the verb a caller
+   sends, `CONVERTED` is the state stored, `statusAfter()` is the single mapping. The
+   unreachable `APPROVED: ["CONVERTED"]` row is gone — it would have shown in the dashboard as
+   a bucket that is empty for ever. A test asserts no state is unreachable and fails if that
+   row returns.
+6. **11 integration tests** — `check:isolation` went from **6 unaccounted to 0**.
+
+#### TKT-9 — ticket approval had never once worked
+
+The first test to exercise the approval path got a 500. Root cause from the server log:
+`character with byte sequence 0xf0 0x9f 0x8e 0xab in encoding "UTF8" has no equivalent in
+encoding "WIN1252"`. That is `🎫` — the conversion wrote a decorative emoji into the issue
+description, and the insert aborted the whole transaction. **Every approval since the module
+shipped returned 500**, and nothing noticed because a complete REST suite with 9 green unit
+tests never reached the code.
+
+The emoji is gone and a unit test now asserts the origin header contains no character above
+U+00FF. That is not the fix for the underlying problem — see DB-1.
+
+#### Two things the tests caught while being written
+
+- **My own assertion was wrong first.** The "no unreachable state" test flagged `CONVERTED` as
+  dead, because it is reached through `statusAfter` rather than as a literal target. Comparing
+  raw targets against sources reports a correct table as broken, and the obvious "fix" would
+  have reintroduced the dead row. It now measures reachability in stored statuses.
+- A backtick inside a doc comment triggered shell command substitution and silently deleted a
+  word from the file. Caught by reading the result rather than trusting the script.
+
+#### Verification
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | clean |
+| `npm test` | **624 passed**, 42 suites (was 606/41) |
+| `npm run test:integration` | **529 passed**, 4 failed — the same four pre-existing TKT-4 accept cases |
+| `npm run lint` | 133 warnings, 0 errors — **up 5 from the Phase 3 components, see TKT-11** |
+| `check:isolation` | **0 unaccounted** (was 6) |
+| `check:a11y` | 468 vs baseline 448 — my 3 fixed (TKT-6), **20 added by Phase 3 (TKT-11)** |
+| `check:validation` | 113 routes, 0 unvalidated |
+| `prisma migrate diff` | still exit 2 — TKT-5, pre-existing, untouched |
+
+#### Still open
+
+**DB-1 remains the most consequential.** The database is WIN1252 and rejects every character
+outside Latin-1 — emoji, Bengali, Chinese — in every field of the product, not just tickets.
+Fixing it means dump → recreate with `-E UTF8` → restore, which is destructive and needs a
+decision before anyone runs it.
 
 ### 2026-09-24 — Antigravity (Google DeepMind) — Ticket Management Module: Phase 2 (PBAC & Security Hardening) Completed
 

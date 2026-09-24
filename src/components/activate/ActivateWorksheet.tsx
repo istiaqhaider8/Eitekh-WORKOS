@@ -284,6 +284,7 @@ export function ActivateWorksheet({
               <div className="relative min-w-[160px]">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
+                  aria-label="Filter deliverables"
                   type="text"
                   placeholder="Filter deliverables…"
                   value={searchQuery}
@@ -728,6 +729,7 @@ export function ActivateWorksheet({
                   }}
                 >
                   <input
+                    aria-label="New gate criterion"
                     id="new-criterion"
                     value={newCriterion}
                     onChange={(e) => setNewCriterion(e.target.value)}
