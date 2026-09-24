@@ -94,7 +94,7 @@ if (!existsSync(join(STANDALONE, "server.js"))) {
     ...process.env,
     NODE_ENV: "production",
     PORT,
-    HOSTNAME: "127.0.0.1",
+    HOSTNAME: "0.0.0.0",
     DATABASE_URL: databaseUrl,
     JWT_SECRET: process.env.JWT_SECRET || fromEnvFile("JWT_SECRET"),
     FIELD_ENCRYPTION_KEY: process.env.FIELD_ENCRYPTION_KEY || fromEnvFile("FIELD_ENCRYPTION_KEY"),

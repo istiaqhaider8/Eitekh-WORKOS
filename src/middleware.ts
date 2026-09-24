@@ -314,10 +314,21 @@ export async function middleware(req: NextRequest) {
   // BASE_URL must be included too: it is the variable documented in
   // .env.example, so an operator may set only that one. Omitting it would
   // reject legitimate cross-origin requests behind a proxy as CSRF.
+  const localPort = req.nextUrl.port || "3000";
   const allowed = new Set([
     req.nextUrl.origin,
     process.env.NEXTAUTH_URL,
     process.env.BASE_URL,
+    ...(process.env.ALLOW_LOCAL_BASE_URL === "1"
+      ? [
+          `http://localhost:${localPort}`,
+          `http://127.0.0.1:${localPort}`,
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "http://localhost:3100",
+          "http://127.0.0.1:3100",
+        ]
+      : []),
   ].filter(Boolean));
 
   let originHost: string;
