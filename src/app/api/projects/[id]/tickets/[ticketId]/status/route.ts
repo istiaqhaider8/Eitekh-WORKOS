@@ -292,3 +292,5 @@ export async function PATCH(
     return handleApiError(error, "tickets/status");
   }
 }
+
+export const POST = PATCH;

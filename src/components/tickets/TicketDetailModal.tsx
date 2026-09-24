@@ -335,9 +335,9 @@ export function TicketDetailModal({
                       </div>
                     </div>
                   </div>
-                  {onNavigateToIssue && ticketData.convertedIssue?.id && (
+                  {onNavigateToIssue && (ticketData.convertedIssue?.id || ticketData.convertedIssueId) && (
                     <button
-                      onClick={() => onNavigateToIssue(ticketData.convertedIssue.id)}
+                      onClick={() => onNavigateToIssue(ticketData.convertedIssue?.id || ticketData.convertedIssueId)}
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <span>View Task</span>
@@ -563,11 +563,16 @@ export function TicketDetailModal({
                       className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     >
                       <option value="">Unassigned</option>
-                      {projectMembers.map((m) => (
-                        <option key={m.userId || m.id} value={m.userId || m.id}>
-                          {m.user?.firstName || m.firstName || ""} {m.user?.lastName || m.lastName || ""} ({m.user?.email || m.email})
-                        </option>
-                      ))}
+                      {projectMembers.map((m) => {
+                        const mId = m.userId || m.id || m.user?.id;
+                        const name = `${m.user?.firstName || m.firstName || ""} ${m.user?.lastName || m.lastName || ""}`.trim();
+                        const email = m.user?.email || m.email || "";
+                        return (
+                          <option key={mId} value={mId}>
+                            {name ? `${name} (${email})` : email || mId}
+                          </option>
+                        );
+                      })}
                     </select>
                   ) : (
                     <div className="text-xs text-slate-700 dark:text-slate-300 font-medium p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">

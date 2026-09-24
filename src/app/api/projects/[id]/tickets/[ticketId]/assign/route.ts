@@ -170,3 +170,5 @@ export async function PATCH(
     return handleApiError(error, "tickets/assign");
   }
 }
+
+export const POST = PATCH;
