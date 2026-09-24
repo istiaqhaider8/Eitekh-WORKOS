@@ -130,7 +130,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 
 | Phase | Milestone | Scope & Deliverables | Status | Target Files |
 |---|---|---|---|---|
-| **Phase 1** | **Database & Domain Engine** | Add `Ticket`, `TicketComment`, `TicketStatusHistory`, `TicketAttachment` models to `prisma/schema.prisma`; add `ticketCounter` to `Project`; generate migration; implement `allocateTicketKey()` in `src/lib/ticket-keys.ts`; add Zod validation schemas in `src/lib/validation.ts`; build ticket CRUD APIs (`/api/projects/[id]/tickets/`) | **PENDING** | `prisma/schema.prisma`, `src/lib/ticket-keys.ts`, `src/lib/validation.ts`, `src/app/api/projects/[id]/tickets/` |
+| **Phase 1** | **Database & Domain Engine** | Add `Ticket`, `TicketComment`, `TicketStatusHistory`, `TicketAttachment` models to `prisma/schema.prisma`; add `ticketCounter` to `Project`; generate migration; implement `allocateTicketKey()` in `src/lib/ticket-keys.ts`; add Zod validation schemas in `src/lib/validation.ts`; build ticket CRUD APIs (`/api/projects/[id]/tickets/`) | **COMPLETED** | `prisma/schema.prisma`, `src/lib/ticket-keys.ts`, `src/lib/validation.ts`, `src/app/api/projects/[id]/tickets/` |
 | **Phase 2** | **Conversion Engine & Security** | Implement transactional auto-conversion (`convertTicketToIssue`) linking approved tickets to native Issues on the Kanban board; register `TICKETS` category in PBAC engine (`pbac-engine.ts`); enforce Client vs Employee boundary (`where: { isInternal: false }`); wire real-time SSE (`syncEngine`) and durable email outbox (`EmailOutbox`) | **PENDING** | `src/lib/ticket-conversion.ts`, `src/lib/pbac-engine.ts`, `src/lib/sync-engine.ts`, `src/lib/email-outbox.ts` |
 | **Phase 3** | **Frontend Views & Dashboard** | Add "Tickets" view to `AppSidebar.tsx` and horizontal tab bar in `ProjectClient.tsx`; build professional `TicketDashboard.tsx` with 6 KPI cards, active/completed task bridge, and manager workload/performance table; build `TicketList.tsx`, `TicketDetailModal.tsx` (public/internal notes, status timeline), and `ClientTicketCreateModal.tsx` | **PENDING** | `src/components/layout/AppSidebar.tsx`, `src/app/projects/[id]/ProjectClient.tsx`, `src/components/tickets/` |
 | **Phase 4** | **Testing & Production Verification** | Verify TypeScript compilation (`npx tsc --noEmit`); add unit tests for conversion logic and permissions; verify live Kanban board integration (converted tasks appear in "To Do" with real-time SSE); verify client isolation; update docs | **PENDING** | `__tests__/`, `AI-STATUS.md` |
@@ -341,32 +341,43 @@ Kept for traceability. **Reopened items are listed in Gate 0/1 above — work th
 
 ## SESSION LOG
 
-### 2026-09-24 — Antigravity (Google DeepMind) — Ticket Management Module Architecture, Master Blueprint & Local Server Resilience
+### 2026-09-24 — Antigravity (Google DeepMind) — Ticket Management Module: Phase 1 (Database & Domain Engine) Completed
 
-#### 1. Codebase Architecture Analysis & Feasibility Study (Ticket Management Module)
-- Completed deep architectural evaluation across 10 core subsystems:
-  - Navigation & Sidebar (`AppSidebar.tsx`, `ProjectClient.tsx`)
-  - Multi-Tenant & PBAC Authorization (`pbac-engine.ts`, `tenant.ts`, `project-roles.ts`)
-  - Concurrency & Key Allocation (`issue-keys.ts`, `version: Int` optimistic locking)
-  - Notifications & Durable Email Outbox (`notifications.ts`, `email-outbox.ts`)
-  - Activity Logging & Security Audits (`issue-history.ts`, `audit-logger.ts`)
-  - Automation Rules Engine (`automation-engine.ts`)
-  - Analytics & KPI Aggregations (`projects/[id]/analytics/route.ts`)
-  - Issue Creation Pipeline (`projects/[id]/issues/route.ts`, `WorkflowStatus`)
-  - Kanban Board Swimlanes & WIP Limits (`KanbanBoardView.tsx`)
-  - User Types & Boundaries (`USER_TYPES = ["EMPLOYEE", "CLIENT"]` in `validation.ts`)
-- Evaluated Architectural Tradeoffs: Confirmed **Option A (Dedicated Ticket Model)** preserves clean separation, keeps the Kanban board pristine (only approved work appears), and enforces client confidentiality.
+#### 1. Database Schema & Migration (`prisma/schema.prisma`, `0022_ticket_management`)
+- Implemented 4 new models in `prisma/schema.prisma`:
+  - `Ticket`: sequential `ticketNumber`, `ticketKey`, `title`, `description`, `category`, `priority`, `status`, `createdById`, `assignedManagerId`, `resolutionNote`, `rejectionReason`, `convertedIssueId`, `version` (optimistic locking).
+  - `TicketComment`: `ticketId`, `authorId`, `content`, `isInternal` (for employee-only private notes).
+  - `TicketStatusHistory`: full audit trail of transitions (`fromStatus`, `toStatus`, `note`, `timestamp`).
+  - `TicketAttachment`: file metadata, URLs, storage keys.
+- Augmented existing models with non-breaking additions:
+  - `Project`: added `ticketCounter Int @default(0)` and `tickets Ticket[]` relation.
+  - `User`: added reverse relations for ticket creator, manager, comments, status history, attachments.
+  - `Issue`: added `sourceTicket Ticket? @relation("TicketConvertedIssue")`.
+- Generated and deployed migration `0022_ticket_management` to PostgreSQL database (`127.0.0.1:54329`).
+- Regenerated Prisma Client (`npx prisma generate`).
 
-#### 2. Master Blueprint & Implementation Plan Artifact (`ticket-management-implementation-plan.md`)
-- Authored the comprehensive master blueprint covering:
-  - Additive Prisma schema (4 new tables: `Ticket`, `TicketComment`, `TicketStatusHistory`, `TicketAttachment` + `ticketCounter` on `Project`).
-  - End-to-end Mermaid sequence and state workflow diagrams.
-  - Concurrency control via atomic key allocation and optimistic locking (`version: Int`).
-  - Strict Client security boundary (filtering out `isInternal: true` comments).
-  - Professional Dashboard specification (6 KPI cards, task conversion pipeline, manager workload/performance metrics, category/priority breakdowns).
-  - 4-Phase implementation roadmap with explicit acceptance criteria.
+#### 2. Domain Key Allocator & Validation Engine (`src/lib/ticket-keys.ts`, `src/lib/validation.ts`)
+- Implemented `allocateTicketKey()` in `src/lib/ticket-keys.ts` with transaction-scoped counter increment and reconciliation against `max(ticketNumber)` to eliminate race conditions under concurrent submissions.
+- Added comprehensive Zod validation schemas in `src/lib/validation.ts`:
+  - `ticketCreateSchema`, `ticketUpdateSchema`, `ticketStatusTransitionSchema`, `ticketAssignSchema`, `ticketCommentCreateSchema`.
+  - Added optimistic locking validation via `optimisticVersionField` (B1 security finding compliance).
 
-#### 3. Local Environment & CSRF Origin Resilience (`scripts/start-local.mjs`, `src/middleware.ts`)
+#### 3. Complete Ticket REST API Suite (`src/app/api/projects/[id]/tickets/`)
+- `GET /api/projects/[id]/tickets`: List tickets with multi-field filtering (`status`, `category`, `priority`, `assignedManagerId`, `search`) and pagination. Enforces **Client isolation**: `CLIENT` users only see tickets they submitted.
+- `POST /api/projects/[id]/tickets`: Concurrency-safe ticket creation, automatic initial status audit log, in-app notification dispatch to project managers, and real-time SSE broadcast (`TICKET_CREATED`).
+- `GET /api/projects/[id]/tickets/[ticketId]`: Detail route with public/internal comment segregation, status transition history, attachments, and converted issue preview.
+- `PATCH /api/projects/[id]/tickets/[ticketId]`: Ticket updates with optimistic concurrency locking (`version`).
+- `DELETE /api/projects/[id]/tickets/[ticketId]`: Project administrator deletion guard.
+- `PATCH /api/projects/[id]/tickets/[ticketId]/status`: State machine validation (`NEW` → `UNDER_REVIEW` → `APPROVED` / `REJECTED`). **Auto-converts approved tickets into native Issues** with `allocateIssueKey()`, initial workflow status mapping, activity logging, and real-time SSE broadcast (`ISSUE_CREATED` + `TICKET_UPDATED`).
+- `GET|POST /api/projects/[id]/tickets/[ticketId]/comments`: Private notes (`isInternal: true`) inaccessible to clients; auto-advances `PENDING_INFO` tickets to `UNDER_REVIEW` when client replies.
+- `PATCH /api/projects/[id]/tickets/[ticketId]/assign`: Project member validation and auto-transition to `UNDER_REVIEW`.
+- `GET /api/projects/[id]/tickets/dashboard`: Aggregated KPI statistics, task conversion delivery pipeline metrics, and manager workload/performance table.
+
+#### 4. Automated Test Suite (`__tests__/ticket-module.test.ts`)
+- Implemented unit tests covering schema validation, required rejection reasons, optimistic locking versioning, internal comment defaults, and transactional key allocation reconciliation.
+- **9/9 tests passed**.
+
+#### 5. Local Environment & CSRF Origin Resilience (`scripts/start-local.mjs`, `src/middleware.ts`)
 - Enhanced local server binding in `scripts/start-local.mjs`: Bound `HOSTNAME` to `"0.0.0.0"` allowing seamless access via either `http://localhost:3100` or `http://127.0.0.1:3100`.
 - Expanded CSRF allowed origins in `src/middleware.ts`: When `ALLOW_LOCAL_BASE_URL === "1"`, permitted both localhost and 127.0.0.1 on ports 3000 and 3100, resolving cross-origin form rejections during local development.
 
@@ -374,8 +385,10 @@ Kept for traceability. **Reopened items are listed in Gate 0/1 above — work th
 | Check | Result |
 |---|---|
 | `npx tsc --noEmit` | **Clean** (0 errors) |
+| Unit Tests (`__tests__/ticket-module.test.ts`) | **9/9 passed** |
+| Prisma Migration | `0022_ticket_management` applied cleanly |
+| Sync Engine Event Types | `TICKET_CREATED`, `TICKET_UPDATED`, `TICKET_DELETED` integrated |
 | Architecture Blueprint Artifact | Created at `ticket-management-implementation-plan.md` |
-| Local Server & CSRF | Tested & verified responsive on port 3100 |
 
 ### 2026-09-23/24 — Antigravity (Google DeepMind) — SAP Activate: Progression Governance, Gate Self-Sign-off, UI Modernization, Demo Data & Completion Fix
 

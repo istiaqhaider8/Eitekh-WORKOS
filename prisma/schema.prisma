@@ -74,6 +74,11 @@ model User {
   activateQuestionsOwned   ActivateDecision[]        @relation("ActivateQuestionOwner")
   activateDeltasOwned      ActivateDelta[]           @relation("ActivateDeltaOwner")
   activateCustomScope      ActivateCustomScopeItem[] @relation("ActivateCustomScopeAuthor")
+  createdTickets           Ticket[]                  @relation("TicketCreator")
+  managedTickets           Ticket[]                  @relation("TicketManager")
+  ticketComments           TicketComment[]           @relation("TicketCommentAuthor")
+  ticketStatusChanges      TicketStatusHistory[]     @relation("TicketStatusActor")
+  ticketAttachments        TicketAttachment[]        @relation("TicketAttachmentUploader")
 
   @@index([userType])
 }
@@ -258,12 +263,13 @@ model Project {
   ownerId      String
   template     String    @default("SCRUM") // SCRUM, KANBAN, BUG_TRACKING, GENERAL
   status       String    @default("ACTIVE") // PLANNING, ACTIVE, ON_HOLD, COMPLETED, ARCHIVED
-  priority     String    @default("MEDIUM")
-  issueCounter Int       @default(0)
-  startDate    DateTime?
-  targetDate   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  priority      String    @default("MEDIUM")
+  issueCounter  Int       @default(0)
+  ticketCounter Int       @default(0)
+  startDate     DateTime?
+  targetDate    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   /// M4 — optimistic locking. Incremented on every update; a client that
   /// sends a stale value is told so rather than silently overwriting an edit
@@ -286,6 +292,7 @@ model Project {
   sprints                  Sprint[]
   workflows                Workflow[]
   issues                   Issue[]
+  tickets                  Ticket[]
   labels                   Label[]
   automationRules          AutomationRule[]
   recurringTasks           RecurringTask[]
@@ -512,6 +519,7 @@ model Issue {
   outgoingDeps              IssueDependency[]        @relation("SourceDep")
   incomingDeps              IssueDependency[]        @relation("TargetDep")
   delegations               TaskDelegation[]
+  sourceTicket              Ticket?                  @relation("TicketConvertedIssue")
 
   @@unique([projectId, keyNumber])
   @@index([issueKey])
@@ -1807,4 +1815,117 @@ model ActivateCustomScopeItem {
 
   @@unique([projectId, code])
   @@index([projectId])
+}
+
+// =============================================================
+// TICKET MANAGEMENT MODULE
+// =============================================================
+
+/// Support/service ticket raised by Client users or internal teams.
+model Ticket {
+  id                String    @id @default(cuid())
+  projectId         String
+
+  // Sequential ticket key per project (e.g. DEV-TKT-101)
+  ticketNumber      Int
+  ticketKey         String
+
+  // Core content
+  title             String
+  description       String?   // Markdown rich text
+  category          String    @default("GENERAL") // GENERAL, BUG_REPORT, FEATURE_REQUEST, SUPPORT, CHANGE_REQUEST
+  priority          String    @default("MEDIUM")  // CRITICAL, HIGH, MEDIUM, LOW
+
+  // Lifecycle status
+  status            String    @default("NEW")     // NEW, UNDER_REVIEW, PENDING_INFO, APPROVED, REJECTED, CONVERTED, CLOSED
+
+  // Roles & actors
+  createdById       String    // Client or reporter
+  assignedManagerId String?   // Ticket Manager responsible for triage
+
+  // Triage rationale
+  resolutionNote    String?   // Manager's decision note
+  rejectionReason   String?   // Mandatory reason if rejected
+
+  // Link to converted delivery task
+  convertedIssueId  String?   @unique
+  convertedAt       DateTime?
+
+  // SLA and due date
+  dueDate           DateTime?
+  firstResponseAt   DateTime?
+  closedAt          DateTime?
+
+  // Concurrency & tracking
+  version           Int       @default(0) // Optimistic locking (Audit B1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy         User      @relation("TicketCreator", fields: [createdById], references: [id])
+  assignedManager   User?     @relation("TicketManager", fields: [assignedManagerId], references: [id])
+  convertedIssue    Issue?    @relation("TicketConvertedIssue", fields: [convertedIssueId], references: [id], onDelete: SetNull)
+
+  comments          TicketComment[]
+  statusHistory     TicketStatusHistory[]
+  attachments       TicketAttachment[]
+
+  @@unique([projectId, ticketNumber])
+  @@index([ticketKey])
+  @@index([projectId, status])
+  @@index([projectId, createdById])
+  @@index([projectId, assignedManagerId])
+  @@index([projectId, priority])
+  @@index([projectId, createdAt])
+}
+
+model TicketComment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorId   String
+  content    String   // Markdown
+  isInternal Boolean  @default(false) // If true, only visible to EMPLOYEE users
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author     User     @relation("TicketCommentAuthor", fields: [authorId], references: [id])
+
+  @@index([ticketId, createdAt])
+  @@index([authorId])
+}
+
+model TicketStatusHistory {
+  id         String   @id @default(cuid())
+  ticketId   String
+  actorId    String
+  fromStatus String
+  toStatus   String
+  note       String?
+  timestamp  DateTime @default(now())
+
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor      User     @relation("TicketStatusActor", fields: [actorId], references: [id])
+
+  @@index([ticketId, timestamp])
+  @@index([actorId])
+}
+
+model TicketAttachment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  uploaderId String
+  fileName   String
+  fileSize   Int
+  mimeType   String
+  fileUrl    String
+  storageKey String?
+  createdAt  DateTime @default(now())
+
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploader   User     @relation("TicketAttachmentUploader", fields: [uploaderId], references: [id])
+
+  @@index([ticketId])
 }

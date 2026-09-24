@@ -1408,3 +1408,73 @@ export const activateWorksheetDeliverableSchema = z.object({
 export const activateGateCriterionCreateSchema = z.object({
   criterion: safeStringSchema.trim().min(3).max(300),
 });
+
+// -------------------------------------------------------------
+// TICKET MANAGEMENT MODULE
+// -------------------------------------------------------------
+
+export const TICKET_STATUSES = [
+  "NEW",
+  "UNDER_REVIEW",
+  "PENDING_INFO",
+  "APPROVED",
+  "REJECTED",
+  "CONVERTED",
+  "CLOSED",
+] as const;
+export type TicketStatus = (typeof TICKET_STATUSES)[number];
+export const ticketStatusSchema = z.enum(TICKET_STATUSES);
+
+export const TICKET_CATEGORIES = [
+  "GENERAL",
+  "BUG_REPORT",
+  "FEATURE_REQUEST",
+  "SUPPORT",
+  "CHANGE_REQUEST",
+] as const;
+export type TicketCategory = (typeof TICKET_CATEGORIES)[number];
+export const ticketCategorySchema = z.enum(TICKET_CATEGORIES);
+
+export const TICKET_PRIORITIES = [
+  "CRITICAL",
+  "HIGH",
+  "MEDIUM",
+  "LOW",
+] as const;
+export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
+export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
+
+export const ticketCreateSchema = z.object({
+  title: safeStringSchema.trim().min(3, "Title must be at least 3 characters").max(200, "Title cannot exceed 200 characters"),
+  description: safeLongStringSchema.optional().nullable(),
+  category: ticketCategorySchema.default("GENERAL"),
+  priority: ticketPrioritySchema.default("MEDIUM"),
+  dueDate: z.string().max(50).nullable().optional(),
+});
+
+export const ticketUpdateSchema = z.object({
+  title: safeStringSchema.trim().min(3).max(200).optional(),
+  description: safeLongStringSchema.optional().nullable(),
+  category: ticketCategorySchema.optional(),
+  priority: ticketPrioritySchema.optional(),
+  dueDate: z.string().max(50).nullable().optional(),
+  assignedManagerId: optionalCuidSchema,
+  version: optimisticVersionField,
+});
+
+export const ticketStatusTransitionSchema = z.object({
+  status: ticketStatusSchema,
+  note: safeStringSchema.trim().max(1000).optional().nullable(),
+  rejectionReason: safeStringSchema.trim().max(1000).optional().nullable(),
+  version: optimisticVersionField,
+});
+
+export const ticketAssignSchema = z.object({
+  assignedManagerId: cuidSchema.nullable(),
+  version: optimisticVersionField,
+});
+
+export const ticketCommentCreateSchema = z.object({
+  content: safeLongStringSchema,
+  isInternal: z.boolean().default(false),
+});
