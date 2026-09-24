@@ -73,6 +73,10 @@ const ActivateWorkspace = dynamic(
   () => import("@/components/activate/ActivateWorkspace").then((m) => m.ActivateWorkspace),
   { loading: viewLoading, ssr: false }
 );
+const TicketManagementView = dynamic(
+  () => import("@/components/tickets/TicketManagementView").then((m) => m.TicketManagementView),
+  { loading: viewLoading, ssr: false }
+);
 import { IssueDetailModal } from "@/components/issues/IssueDetailModal";
 import { TeamManagementModal } from "@/components/teams/TeamManagementModal";
 import { BulkImportModal } from "@/components/import/BulkImportModal";
@@ -114,6 +118,7 @@ import {
   PieChart,
   ChevronDown,
   SlidersHorizontal,
+  Ticket,
 } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 
@@ -272,6 +277,7 @@ export function ProjectClient({
        * decision, not a UI one.
        */
       activate: "activate:view",
+      tickets: "tickets:view",
     };
     const perm = permMap[viewId];
     return perm ? currentUser.capabilities.includes(perm) : true;
@@ -1573,6 +1579,7 @@ export function ProjectClient({
                * the views after it are ways of LOOKING at the same work.
                */
               { id: "activate", label: "Activate", icon: Target },
+              { id: "tickets", label: "Ticket Desk", icon: Ticket },
               { id: "timeline", label: "Timeline", icon: Clock },
               { id: "calendar", label: "Calendar", icon: Calendar },
               { id: "workload", label: "Workload", icon: Users },
@@ -1798,6 +1805,15 @@ export function ProjectClient({
                   // everything else does rather than in a parallel detail view
                   // that would drift from it.
                   onOpenIssue={(issueId) => setSelectedIssueId(issueId)}
+                />
+              )}
+
+              {activeView === "tickets" && (
+                <TicketManagementView
+                  projectId={currentProject.id}
+                  currentUser={currentUser}
+                  projectMembers={members}
+                  onNavigateToIssue={(issueId) => setSelectedIssueId(issueId)}
                 />
               )}
             </>

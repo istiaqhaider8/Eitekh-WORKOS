@@ -18,7 +18,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Menu,
-  X
+  X,
+  Ticket
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -87,6 +88,7 @@ export function AppSidebar({
      * the navigation.
      */
     { id: "activate", label: "SAP Activate", icon: Target, permission: "activate:view" },
+    { id: "tickets", label: "Ticket Desk", icon: Ticket, permission: "tickets:view" },
     { id: "timeline", label: "Timeline (Gantt)", icon: Clock, permission: "timeline:view" },
     { id: "calendar", label: "Calendar", icon: Calendar, permission: "calendar:view" },
     { id: "workload", label: "Team Workload", icon: Users, permission: "workload:view" },
