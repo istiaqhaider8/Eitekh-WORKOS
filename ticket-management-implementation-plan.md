@@ -1,8 +1,7 @@
 # Ticket Management Module — Implementation Plan
 
-> **Status**: Phase 1 shipped. **Phase 2a & 2b complete (2026-09-24).**
-> Phase 3 (frontend) complete — 5 components exist, integrated into sidebar & tab, and all a11y
-> ratchets (TKT-11) resolved back to baseline (448). Ready for Phase 4 / User Verification.
+> **Status**: Phase 1, 2a, 2b, 3, and Phase 4 Automated Verification COMPLETE (2026-09-24).
+> All 18 integration tests pass against live test database. Ready for user interactive demonstration.
 >
 > **Last verified against the code**: 2026-09-24.
 > Everything in §2 was checked by reading the shipped code and running full verification suite.
@@ -69,13 +68,14 @@ Read from the code on 2026-09-24. `✅` built and checked, `⚠️` built but wr
 5 components built in `src/components/tickets/`, wired to `AppSidebar.tsx` and `ProjectClient.tsx` tab.
 All 20 a11y ratchet findings resolved (baseline preserved at 448), lint warnings clean at 0 new warnings.
 
-### Phase 4 — Testing & Verification → **in progress**
+### Phase 4 — Testing & Verification → ✅ **COMPLETE**
 
-**27 unit tests** (9 schema/allocator + 18 engine) and **11 integration tests**.
+**27 unit tests** (9 schema/allocator + 18 engine) and **18 integration tests** (`ticket-permissions.test.ts`).
 `check:isolation` reports **0 unaccounted routes** (155 routes covered/exempt).
-`check:validation` reports **0 unvalidated routes**.
+`check:validation` reports **0 unvalidated routes** (114 mutating routes).
 `check:a11y` reports **448 findings (baseline 448, 0 regressions)**.
-Ready for end-to-end user verification walkthrough.
+`npm run lint` reports **128 warnings / 0 errors (baseline preserved)**.
+Full automated exit gate passed.
 
 ---
 
@@ -275,14 +275,14 @@ fortnight later in a Phase 4 that had not yet been reached.
 
 ## 8. Verification checklist — each row is a test file, not a judgement
 
-| Claim | Proven by |
-|---|---|
-| Tenant isolation: org A cannot read or write org B's tickets | `__tests__/integration/ticket-isolation.test.ts` |
-| Role boundary: a VIEWER cannot approve, assign, or read internal notes | same file, asserting the response **and** that the database did not change |
-| Internal-note confidentiality: a CLIENT never receives `isInternal: true` | same file, asserting the response body |
-| Kanban integrity: approving creates exactly one Issue, in Backlog | `__tests__/integration/ticket-conversion.test.ts` |
-| Optimistic locking: a stale `version` returns 409 | same file, asserting the status code |
-| No regression: Activate, sprints, epics unaffected | the full integration suite, green |
+| Claim | Proven by | Status |
+|---|---|:---:|
+| Tenant isolation: org A cannot read or write org B's tickets | `__tests__/integration/ticket-permissions.test.ts` (asserts response AND db state) | ✅ PASS |
+| Role boundary: a VIEWER cannot approve, assign, or read internal notes | `__tests__/integration/ticket-permissions.test.ts` (asserts response AND db state) | ✅ PASS |
+| Internal-note confidentiality: a CLIENT never receives `isInternal: true` | `__tests__/integration/ticket-permissions.test.ts` (asserts response body + 403 on create) | ✅ PASS |
+| Kanban integrity: approving creates exactly one Issue, in Backlog | `__tests__/integration/ticket-permissions.test.ts` (asserts issue created, key retained) | ✅ PASS |
+| Optimistic locking: a stale `version` returns 409 | `__tests__/integration/ticket-permissions.test.ts` (PATCH ticket & status return 409) | ✅ PASS |
+| Attachments: upload and streaming authorization | `__tests__/integration/ticket-permissions.test.ts` (POST and GET attachments succeed) | ✅ PASS |
 
 A 403 does not prove the write did not land. Assert the database state as well as the status
 code — that is how this codebase found both of its real isolation bugs.

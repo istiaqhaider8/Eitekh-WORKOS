@@ -301,18 +301,130 @@ describe("Tenant isolation on every ticket route", () => {
     const postRes = await api(fx.orgA.users.MEMBER, P.attachments(PID, ticketId), {
       method: "POST",
       body: {
-        fileName: "logs.txt",
+        fileName: "logs.pdf",
         fileSize: 42,
-        mimeType: "text/plain",
-        fileUrl: "data:text/plain;base64,aGVsbG8gd29ybGQ=",
+        mimeType: "application/pdf",
+        fileUrl: "data:application/pdf;base64,aGVsbG8gd29ybGQ=",
       },
     });
     expectAllowed(postRes, "a member uploading an attachment");
-    expect(postRes.body.attachment?.fileName).toBe("logs.txt");
+    expect(postRes.body.attachment?.fileName).toBe("logs.pdf");
 
     const getRes = await api(fx.orgA.users.MEMBER, P.attachments(PID, ticketId));
     expectAllowed(getRes, "a member listing attachments");
     expect(getRes.body.attachments?.length).toBeGreaterThanOrEqual(1);
-    expect(getRes.body.attachments[0].fileName).toBe("logs.txt");
+    expect(getRes.body.attachments[0].fileName).toBe("logs.pdf");
   });
 });
+
+// ---------------------------------------------------------------------------
+
+describe("Optimistic concurrency control (409 Conflict)", () => {
+  it("rejects PATCH ticket with a stale version and returns 409", async () => {
+    const res = await api(fx.orgA.users.MANAGER, P.detail(fx.orgA.projectId, ticketId), {
+      method: "PATCH",
+      body: { title: "Stale update attempt", version: 9999 },
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("Conflict");
+  });
+
+  it("rejects status transition with a stale version and returns 409", async () => {
+    // Raise a fresh ticket for testing status conflict
+    const createRes = await api(fx.orgA.users.MEMBER, P.list(fx.orgA.projectId), {
+      method: "POST",
+      body: { title: "Status conflict ticket", category: "BUG_REPORT", priority: "MEDIUM" },
+    });
+    expectAllowed(createRes, "raising ticket for status conflict test");
+    const freshId = createRes.body.ticket?.id ?? createRes.body.id;
+
+    const res = await api(fx.orgA.users.MANAGER, P.status(fx.orgA.projectId, freshId), {
+      method: "PATCH",
+      body: { status: "UNDER_REVIEW", version: 9999 },
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("Conflict");
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("Client confidentiality and isolation boundary", () => {
+  let clientTicketId = "";
+
+  beforeAll(async () => {
+    // Switch VIEWER to userType = CLIENT to exercise the client isolation boundary
+    await prisma.user.update({
+      where: { id: fx.orgA.users.VIEWER.id },
+      data: { userType: "CLIENT" },
+    });
+  });
+
+  afterAll(async () => {
+    // Restore VIEWER to EMPLOYEE
+    await prisma.user.update({
+      where: { id: fx.orgA.users.VIEWER.id },
+      data: { userType: "EMPLOYEE" },
+    });
+  });
+
+  it("lets a CLIENT raise their own ticket", async () => {
+    const res = await api(fx.orgA.users.VIEWER, P.list(fx.orgA.projectId), {
+      method: "POST",
+      body: { title: "Client confidential inquiry", category: "SUPPORT", priority: "MEDIUM" },
+    });
+    expectAllowed(res, "a CLIENT raising their ticket");
+    clientTicketId = res.body.ticket?.id ?? res.body.id;
+    expect(clientTicketId).toBeTruthy();
+  });
+
+  it("refuses a CLIENT access to tickets filed by other users in the same project", async () => {
+    // ticketId was filed by MEMBER
+    const detailRes = await api(fx.orgA.users.VIEWER, P.detail(fx.orgA.projectId, ticketId));
+    expect(detailRes.status).toBe(403);
+
+    const commentsRes = await api(fx.orgA.users.VIEWER, P.comments(fx.orgA.projectId, ticketId));
+    expect(commentsRes.status).toBe(403);
+  });
+
+  it("refuses a CLIENT writing an internal note on their own ticket", async () => {
+    const res = await api(fx.orgA.users.VIEWER, P.comments(fx.orgA.projectId, clientTicketId), {
+      method: "POST",
+      body: { content: "Sneaky internal note", isInternal: true },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("never discloses isInternal: true comments to a CLIENT on reads", async () => {
+    // 1. Manager posts an internal note
+    const internalRes = await api(fx.orgA.users.MANAGER, P.comments(fx.orgA.projectId, clientTicketId), {
+      method: "POST",
+      body: { content: "Internal staff assessment: confidential", isInternal: true },
+    });
+    expectAllowed(internalRes, "manager posting internal note");
+
+    // 2. Manager posts a public comment
+    const publicRes = await api(fx.orgA.users.MANAGER, P.comments(fx.orgA.projectId, clientTicketId), {
+      method: "POST",
+      body: { content: "Public response: we are looking into your request.", isInternal: false },
+    });
+    expectAllowed(publicRes, "manager posting public comment");
+
+    // 3. Client reads comments endpoint
+    const listRes = await api(fx.orgA.users.VIEWER, P.comments(fx.orgA.projectId, clientTicketId));
+    expectAllowed(listRes, "client reading their comments");
+    const comments = listRes.body.comments;
+    expect(comments.length).toBeGreaterThanOrEqual(1);
+    expect(comments.some((c: any) => c.isInternal === true)).toBe(false);
+    expect(comments.some((c: any) => c.content.includes("confidential"))).toBe(false);
+    expect(comments.some((c: any) => c.content.includes("Public response"))).toBe(true);
+
+    // 4. Client reads ticket detail endpoint
+    const detailRes = await api(fx.orgA.users.VIEWER, P.detail(fx.orgA.projectId, clientTicketId));
+    expectAllowed(detailRes, "client reading ticket detail");
+    const detailComments = detailRes.body.ticket?.comments ?? [];
+    expect(detailComments.some((c: any) => c.isInternal === true)).toBe(false);
+    expect(detailComments.some((c: any) => c.content.includes("confidential"))).toBe(false);
+  });
+});
+

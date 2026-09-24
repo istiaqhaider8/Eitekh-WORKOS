@@ -128,6 +128,7 @@ async function loadCurrentUser() {
         isSuperAdmin: true,
         isSupportAdmin: true,
         status: true,
+        userType: true,
         mfaEnabled: true,
         emailVerifiedAt: true,
         orgMemberships: {

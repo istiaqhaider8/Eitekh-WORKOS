@@ -91,7 +91,13 @@ export async function POST(
     const body = parsed.data;
 
     // Security guard: Clients can NEVER write internal comments
-    const isInternal = user.userType === "CLIENT" ? false : Boolean(body.isInternal);
+    if (user.userType === "CLIENT" && body.isInternal) {
+      return NextResponse.json(
+        { error: "Clients cannot create internal notes" },
+        { status: 403 }
+      );
+    }
+    const isInternal = Boolean(body.isInternal);
 
     /**
      * Two permissions, because they are two different acts.
