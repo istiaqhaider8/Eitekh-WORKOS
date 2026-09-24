@@ -238,6 +238,7 @@ export function TicketManagementView({
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         projectId={projectId}
+        projectMembers={projectMembers}
         onTicketCreated={handleTicketCreated}
       />
 

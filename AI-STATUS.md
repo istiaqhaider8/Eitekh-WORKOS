@@ -1364,7 +1364,32 @@ schedule with PROD-14 (Prisma 6).
   - `npm run check:validation`: 0 unvalidated routes (114 routes)
   - `npm run check:a11y`: 448 findings (baseline 448, 0 regressions)
   - `npm run lint`: 128 warnings / 0 errors (baseline preserved)
-  - `ticket-permissions.test.ts`: 18/18 integration tests passed (100% green)
+
+### 2026-09-24 — Antigravity (Session 17) — Task Assigned Manager Option on Ticket Creation
+
+- **User Directive**: "must be Task Assigned Manager option" on the "Raise New Ticket" modal (`ClientTicketCreateModal.tsx`).
+- **Implementation**:
+  - **Validation (`src/lib/validation.ts`)**: Added `assignedManagerId: optionalCuidSchema` to `ticketCreateSchema`.
+  - **API Route (`src/app/api/projects/[id]/tickets/route.ts`)**:
+    - Extracted `body.assignedManagerId` in `POST` handler and passed to `tx.ticket.create({ data: { ..., assignedManagerId } })`.
+    - Automatically enqueued notification email to assigned manager if designated upon ticket creation (`enqueueEmail`).
+    - Added `assignedManagerId` to enterprise audit event details (`logAuditEvent`).
+    - Added designated manager to realtime in-app notification dispatch recipients (`notificationEngine.dispatch`).
+  - **UI Modal (`src/components/tickets/ClientTicketCreateModal.tsx`)**:
+    - Added `projectMembers` prop and `assignedManagerId` state.
+    - Updated submit handler to include `assignedManagerId` if selected.
+    - Form reset clears `assignedManagerId`.
+    - Placed "Task Assigned Manager (Optional)" in an accessible 2-column grid beside "Target Date / Deadline (Optional)" with full a11y labels (`htmlFor="ticket-assigned-manager-select"`, `aria-label="Task Assigned Manager"`).
+  - **Parent View (`src/components/tickets/TicketManagementView.tsx`)**: Passed `projectMembers={projectMembers}` to `<ClientTicketCreateModal ... />`.
+- **Verification Gates Clean**:
+  - `tsc --noEmit`: 0 errors
+  - `check:a11y`: 448 findings (baseline 448, 0 regressions)
+  - `check:validation`: 114 mutating routes (0 unvalidated)
+  - `check:isolation`: 155 routes (0 unaccounted)
+  - `npm run lint`: 128 warnings / 0 errors (baseline preserved)
+  - `npm test`: 42 test suites, 624/624 unit tests passed
+  - `ticket-permissions.test.ts`: 18/18 integration tests passed
+  - Local standalone server rebuilt and running healthy on port 3100
 
 ---
 

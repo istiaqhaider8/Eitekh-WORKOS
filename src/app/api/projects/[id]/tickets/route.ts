@@ -159,6 +159,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           status: "NEW",
           createdById: user.id,
           dueDate: calculatedDueDate,
+          assignedManagerId: body.assignedManagerId ?? null,
         },
         include: {
           createdBy: publicUserRelation,
@@ -190,6 +191,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
     }
 
+    // Enqueue assigned manager notification if a manager was designated upon creation
+    if (result.assignedManager?.email) {
+      await enqueueEmail({
+        to: result.assignedManager.email,
+        customSubject: `[${result.ticketKey}] You have been assigned to Ticket: ${result.title}`,
+        customHtml: `<p>Hello ${result.assignedManager.firstName || result.assignedManager.email},</p><p>You have been assigned as the manager for ticket <strong>${result.ticketKey}</strong>: <em>${result.title}</em> (Priority: ${result.priority}).</p><p>Please review it in the Ticket Management portal.</p>`,
+        idempotencyKey: `ticket-assigned-${result.id}-${result.assignedManager.id}`,
+      });
+    }
+
     // Log enterprise audit event
     await logAuditEvent({
       actorId: user.id,
@@ -207,6 +218,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         priority: result.priority,
         category: result.category,
         dueDate: result.dueDate,
+        assignedManagerId: result.assignedManagerId,
       },
     });
 
@@ -221,7 +233,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         select: { userId: true },
       });
 
-      const recipientUserIds = managers.map((m) => m.userId);
+      const recipientUserIds = Array.from(
+        new Set([
+          ...managers.map((m) => m.userId),
+          ...(result.assignedManagerId && result.assignedManagerId !== user.id ? [result.assignedManagerId] : []),
+        ])
+      );
       if (recipientUserIds.length > 0) {
         await notificationEngine.dispatch({
           type: "INFO",

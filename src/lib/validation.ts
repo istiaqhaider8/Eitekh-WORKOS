@@ -1450,6 +1450,7 @@ export const ticketCreateSchema = z.object({
   category: ticketCategorySchema.default("GENERAL"),
   priority: ticketPrioritySchema.default("MEDIUM"),
   dueDate: z.string().max(50).nullable().optional(),
+  assignedManagerId: optionalCuidSchema,
 });
 
 export const ticketUpdateSchema = z.object({

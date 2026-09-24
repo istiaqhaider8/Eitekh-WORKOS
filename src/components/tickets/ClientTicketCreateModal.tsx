@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, AlertCircle, Loader2, Send, Tag, AlertTriangle, Calendar } from "lucide-react";
+import { X, AlertCircle, Loader2, Send, Tag, AlertTriangle, Calendar, UserCheck } from "lucide-react";
 
 interface ClientTicketCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
+  projectMembers?: any[];
   onTicketCreated?: (ticket: any) => void;
 }
 
@@ -29,6 +30,7 @@ export function ClientTicketCreateModal({
   isOpen,
   onClose,
   projectId,
+  projectMembers = [],
   onTicketCreated,
 }: ClientTicketCreateModalProps) {
   const [title, setTitle] = useState("");
@@ -36,6 +38,7 @@ export function ClientTicketCreateModal({
   const [category, setCategory] = useState("GENERAL");
   const [priority, setPriority] = useState("MEDIUM");
   const [dueDate, setDueDate] = useState("");
+  const [assignedManagerId, setAssignedManagerId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +62,10 @@ export function ClientTicketCreateModal({
         priority,
       };
 
+      if (assignedManagerId) {
+        payload.assignedManagerId = assignedManagerId;
+      }
+
       if (dueDate) {
         payload.dueDate = new Date(dueDate).toISOString();
       }
@@ -80,6 +87,7 @@ export function ClientTicketCreateModal({
       setCategory("GENERAL");
       setPriority("MEDIUM");
       setDueDate("");
+      setAssignedManagerId("");
 
       if (onTicketCreated) {
         onTicketCreated(data);
@@ -201,22 +209,54 @@ export function ClientTicketCreateModal({
             </div>
           </div>
 
-          {/* Due Date (Optional) */}
-          <div>
-            <label htmlFor="ticket-due-date-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                Target Date / Deadline (Optional)
-              </span>
-            </label>
-            <input
-              id="ticket-due-date-input"
-              aria-label="Target Date / Deadline (Optional)"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
+          {/* Target Date & Assigned Manager Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Due Date (Optional) */}
+            <div>
+              <label htmlFor="ticket-due-date-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  Target Date / Deadline (Optional)
+                </span>
+              </label>
+              <input
+                id="ticket-due-date-input"
+                aria-label="Target Date / Deadline (Optional)"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+              />
+            </div>
+
+            {/* Task Assigned Manager (Optional) */}
+            <div>
+              <label htmlFor="ticket-assigned-manager-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                  Task Assigned Manager (Optional)
+                </span>
+              </label>
+              <select
+                id="ticket-assigned-manager-select"
+                aria-label="Task Assigned Manager"
+                value={assignedManagerId}
+                onChange={(e) => setAssignedManagerId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+              >
+                <option value="">Unassigned</option>
+                {projectMembers.map((m) => {
+                  const mId = m.userId || m.id || m.user?.id;
+                  const name = `${m.user?.firstName || m.firstName || ""} ${m.user?.lastName || m.lastName || ""}`.trim();
+                  const email = m.user?.email || m.email || "";
+                  return (
+                    <option key={mId} value={mId}>
+                      {name ? `${name} (${email})` : email || mId}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
 
           {/* Description */}
