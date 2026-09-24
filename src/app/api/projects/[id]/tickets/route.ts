@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
 import { getCurrentUser } from "@/lib/auth";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { ticketCreateSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { allocateTicketKey } from "@/lib/ticket-keys";
@@ -15,6 +15,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:view");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
@@ -115,6 +116,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:create");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }

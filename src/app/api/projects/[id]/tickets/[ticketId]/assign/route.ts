@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { ticketAssignSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
@@ -16,6 +16,7 @@ export async function PATCH(
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:manage");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }

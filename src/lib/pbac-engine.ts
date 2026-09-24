@@ -224,6 +224,44 @@ export const PBAC_PERMISSION_CATEGORIES: PermissionCategory[] = [
       { key: 'activate:sign_off_gate', label: 'Sign Off Gate', description: 'Approve or reject a phase quality gate', riskLevel: 'CRITICAL' },
     ],
   },
+  {
+    id: 'tickets',
+    name: '20. TICKETS (Client Requests & Triage)',
+    description: 'Client-raised requests, internal triage, and their conversion into delivery tasks.',
+    permissions: [
+      /**
+       * Raising a request is not a privileged act.
+       *
+       * `view` and `create` sit at the read-only baseline because the people
+       * who file tickets are usually the least privileged users in the
+       * project — clients, assigned at VIEWER level. A permission model that
+       * required MEMBER to submit a ticket would lock out exactly the
+       * audience the module exists for. What a client may SEE is narrowed
+       * separately by `userType`, which no role can widen.
+       */
+      { key: 'tickets:view', label: 'View Tickets', description: 'Read tickets and their public comments', riskLevel: 'LOW' },
+      { key: 'tickets:create', label: 'Submit Tickets', description: 'Raise a new ticket against a project', riskLevel: 'LOW' },
+      { key: 'tickets:comment', label: 'Comment on Tickets', description: 'Post public comments visible to the requester', riskLevel: 'LOW' },
+      /**
+       * Internal notes are staff deliberation before a decision — the place
+       * where "this is out of contract" gets said. A client must never read
+       * them, and the `userType` guard enforces that independently; this key
+       * is what keeps them from the read-only stakeholders too.
+       */
+      { key: 'tickets:internal_notes', label: 'Read & Write Internal Notes', description: 'Private staff-only notes on a ticket', riskLevel: 'MEDIUM' },
+      { key: 'tickets:manage', label: 'Triage Tickets', description: 'Assign, prioritise and request information', riskLevel: 'MEDIUM' },
+      /**
+       * Separated from `manage` for the same reason `activate:sign_off_gate`
+       * is separated from `activate:manage_gates`: approving a ticket puts
+       * real work on the delivery board under the project's own issue key.
+       * Whoever triages a queue should not necessarily be able to commit the
+       * team to building its contents.
+       */
+      { key: 'tickets:approve', label: 'Approve & Convert', description: 'Approve a ticket and convert it into a delivery task', riskLevel: 'HIGH' },
+      { key: 'tickets:reject', label: 'Reject Tickets', description: 'Reject a ticket with a recorded reason', riskLevel: 'MEDIUM' },
+      { key: 'tickets:dashboard', label: 'Ticket Analytics', description: 'Queue metrics, conversion pipeline and manager workload', riskLevel: 'LOW' },
+    ],
+  },
 ];
 
 export const ALL_PBAC_PERMISSION_KEYS = PBAC_PERMISSION_CATEGORIES.flatMap((c) =>
@@ -251,6 +289,10 @@ export const VIEWER_PERMISSION_KEYS = [
   'workload:view',
   'reports:view',
   'analytics:view',
+  // Filing a request is not a privileged act; see the TICKETS category.
+  'tickets:view',
+  'tickets:create',
+  'tickets:comment',
   // Matches the VIEWER role. A read-only baseline that could see every
   // other view but not the methodology would be an odd gap, and every
   // Activate read route is guarded by this one key.
@@ -648,7 +690,11 @@ class UnifiedPBACEngine {
            * raised a gate cannot sign that gate off either.
            */
           'activate:view', 'activate:manage_phases', 'activate:manage_deliverables',
-          'activate:manage_gates', 'activate:sign_off_gate'
+          'activate:manage_gates', 'activate:sign_off_gate',
+          // The full ticket set. Approving commits the team to work, which
+          // is a project-admin decision.
+          'tickets:view', 'tickets:create', 'tickets:comment', 'tickets:internal_notes',
+          'tickets:manage', 'tickets:approve', 'tickets:reject', 'tickets:dashboard'
         ],
       },
       {
@@ -700,7 +746,13 @@ class UnifiedPBACEngine {
            * is the control the gate exists to provide.
            */
           'activate:view', 'activate:manage_phases', 'activate:manage_deliverables',
-          'activate:manage_gates'
+          'activate:manage_gates',
+          // Runs the queue: triages, approves and rejects. A manager holds
+          // approve here because converting a request into a task is the
+          // job, not an escalation — unlike a gate sign-off, which stays
+          // with the Project Admin.
+          'tickets:view', 'tickets:create', 'tickets:comment', 'tickets:internal_notes',
+          'tickets:manage', 'tickets:approve', 'tickets:reject', 'tickets:dashboard'
         ],
       },
       {
@@ -732,7 +784,10 @@ class UnifiedPBACEngine {
           // Read-only on the methodology: a member does the work a gate is
           // about and should be able to see the plan and where it stands,
           // but recording a fit-to-standard decision is a governance act.
-          'activate:view'
+          'activate:view',
+          // Staff deliberation, but not triage: a member can be asked what
+          // they think without being able to commit the team to the work.
+          'tickets:view', 'tickets:create', 'tickets:comment', 'tickets:internal_notes'
         ],
       },
       {
@@ -759,7 +814,10 @@ class UnifiedPBACEngine {
           'workload:view',
           'reports:view',
           'analytics:view',
-          'activate:view'
+          'activate:view',
+          // A stakeholder can raise a request and follow it. What a CLIENT
+          // sees is narrowed further by userType, which no role widens.
+          'tickets:view', 'tickets:create', 'tickets:comment'
         ],
       },
     ];

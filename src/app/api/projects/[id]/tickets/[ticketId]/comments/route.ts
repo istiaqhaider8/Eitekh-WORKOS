@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { ticketCommentCreateSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
@@ -16,6 +16,7 @@ export async function GET(
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:view");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
@@ -89,6 +90,23 @@ export async function POST(
 
     // Security guard: Clients can NEVER write internal comments
     const isInternal = user.userType === "CLIENT" ? false : Boolean(body.isInternal);
+
+    /**
+     * Two permissions, because they are two different acts.
+     *
+     * A public comment is a reply the requester will read. An internal note is
+     * staff deliberation — "this is outside the contract", "we quoted this
+     * wrong" — and a read-only stakeholder should not be able to write into
+     * that conversation, or read it back on the GET above.
+     *
+     * The `userType` guard on the line above is a separate axis and stays:
+     * it stops a CLIENT regardless of any role they might be granted. This
+     * one stops an employee who has not been given the note-taking key.
+     */
+    await assertProjectPermission(projectId, "tickets:comment");
+    if (isInternal) {
+      await assertProjectPermission(projectId, "tickets:internal_notes");
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const comment = await tx.ticketComment.create({

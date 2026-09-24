@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { ticketUpdateSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
@@ -15,6 +15,7 @@ export async function GET(
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:view");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
@@ -87,6 +88,7 @@ export async function PATCH(
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:manage");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
@@ -177,6 +179,7 @@ export async function DELETE(
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:manage");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
@@ -199,6 +202,15 @@ export async function DELETE(
 
     await prisma.ticket.delete({
       where: { id: ticketId },
+    });
+
+    syncEngine.publishProjectEvent({
+      projectId,
+      eventType: "TICKET_DELETED",
+      entityId: ticketId,
+      entityType: "ISSUE",
+      data: { id: ticketId },
+      actor: { id: user.id, email: user.email, name: `${user.firstName || ""} ${user.lastName || ""}`.trim() },
     });
 
     return NextResponse.json({ success: true, deletedId: ticketId });

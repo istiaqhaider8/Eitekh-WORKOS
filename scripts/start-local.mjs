@@ -94,7 +94,7 @@ if (!existsSync(join(STANDALONE, "server.js"))) {
     ...process.env,
     NODE_ENV: "production",
     PORT,
-    HOSTNAME: "0.0.0.0",
+    HOSTNAME: process.env.HOSTNAME || "127.0.0.1",
     DATABASE_URL: databaseUrl,
     JWT_SECRET: process.env.JWT_SECRET || fromEnvFile("JWT_SECRET"),
     FIELD_ENCRYPTION_KEY: process.env.FIELD_ENCRYPTION_KEY || fromEnvFile("FIELD_ENCRYPTION_KEY"),
@@ -161,14 +161,19 @@ if (!existsSync(join(STANDALONE, "server.js"))) {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: STANDALONE,
     env,
-    stdio: "inherit",
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+
+  child.on("error", (err) => {
+    console.error("[start-local] child error:", err);
   });
 
   // Forward Ctrl-C so the server shuts down cleanly rather than being orphaned.
   for (const sig of ["SIGINT", "SIGTERM"]) {
     process.on(sig, () => child.kill(sig));
   }
-  child.on("exit", (code) => {
+  child.on("exit", (code, signal) => {
+    console.log(`[start-local] child server.js exited with code ${code}, signal ${signal}`);
     process.exitCode = code ?? 0;
   });
 }

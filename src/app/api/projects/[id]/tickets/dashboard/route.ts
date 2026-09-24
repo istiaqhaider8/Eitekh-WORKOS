@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api-error";
 
 export async function GET(
@@ -12,6 +12,7 @@ export async function GET(
     let authContext: any;
     try {
       authContext = await assertProjectAccess(projectId);
+      await assertProjectPermission(projectId, "tickets:dashboard");
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }

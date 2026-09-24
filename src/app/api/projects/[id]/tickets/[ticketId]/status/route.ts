@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicUserRelation } from "@/lib/safe-select";
-import { assertProjectAccess } from "@/lib/tenant";
+import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { ticketStatusTransitionSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
@@ -69,6 +69,29 @@ export async function PATCH(
     if (!parsed.success) return parsed.error;
     const { status: targetStatus, note, rejectionReason, version } = parsed.data;
 
+    /**
+     * The permission depends on WHICH transition is being asked for.
+     *
+     * Approving is not the same act as asking the requester for more detail:
+     * approval converts the ticket into a task on the delivery board under the
+     * project's own issue key, which commits the team to building it. So the
+     * three outcomes carry three keys, and a role can hold triage without
+     * holding the power to spend the team's time.
+     *
+     * Checked here rather than beside `assertProjectAccess` because it cannot
+     * be known before the body is parsed. Everything above this line is a
+     * read; nothing has been written yet.
+     */
+    const PERMISSION_FOR_TRANSITION: Record<string, string> = {
+      APPROVED: "tickets:approve",
+      CONVERTED: "tickets:approve",
+      REJECTED: "tickets:reject",
+    };
+    await assertProjectPermission(
+      projectId,
+      PERMISSION_FOR_TRANSITION[targetStatus] ?? "tickets:manage"
+    );
+
     // Optimistic locking check
     if (version !== undefined && version !== existing.version) {
       return NextResponse.json(
@@ -112,8 +135,23 @@ export async function PATCH(
         const allocated = await allocateIssueKey(tx, projectId);
         const initialStatusId = defaultStatusIdFor(allocated.project);
 
-        // 2. Build description with ticket origin metadata
-        const originHeader = `> 🎫 **Converted from Ticket [${existing.ticketKey}]:** ${existing.title}\n> **Category:** ${existing.category} | **Priority:** ${existing.priority}\n> **Client:** ${existing.createdBy.firstName || ""} ${existing.createdBy.lastName || ""} (${existing.createdBy.email})\n${note ? `> **Approval Note:** ${note}\n` : ""}\n---\n\n`;
+        /**
+         * 2. Build description with ticket origin metadata.
+         *
+         * NO EMOJI HERE, deliberately. This string is written into a user's
+         * issue description, and a decorative character in a data payload is
+         * one the database has to be able to store. This line carried a 🎫
+         * and every approval returned 500: the local Postgres is WIN1252, and
+         * `0xf0 0x9f 0x8e 0xab has no equivalent in encoding "WIN1252"` aborts
+         * the whole conversion transaction.
+         *
+         * The encoding is the deeper defect — that database also refuses
+         * Bengali and Chinese, so any user typing either into any field hits
+         * the same wall (see DB-1 in AI-STATUS). But decoration in stored data
+         * is worth removing on its own account: it buys nothing and it is the
+         * reason this path failed 100% of the time rather than occasionally.
+         */
+        const originHeader = `> **Converted from Ticket [${existing.ticketKey}]:** ${existing.title}\n> **Category:** ${existing.category} | **Priority:** ${existing.priority}\n> **Client:** ${existing.createdBy.firstName || ""} ${existing.createdBy.lastName || ""} (${existing.createdBy.email})\n${note ? `> **Approval Note:** ${note}\n` : ""}\n---\n\n`;
         const fullDescription = `${originHeader}${existing.description || ""}`;
 
         // 3. Create the native Issue
