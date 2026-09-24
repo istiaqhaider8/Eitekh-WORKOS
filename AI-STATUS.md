@@ -153,14 +153,10 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | Phase | Milestone | Status | Verified against the code |
 |---|---|---|---|
 | **Phase 1** | Database & Domain Engine | ✅ **COMPLETE** | 4 models, migration `0022`, `ticket-keys.ts`, Zod schemas, 6 route files, 9 unit tests — all present and verified clean. |
-| **Phase 2** | Conversion Engine & Security | ✅ **COMPLETE** | Conversion ✅ (inline in `status/route.ts`) · client/employee boundary ✅ · SSE ✅ (`TICKET_CREATED`, `TICKET_UPDATED`, `TICKET_DELETED` broadcast) · PBAC ✅ (8 `tickets:*` permissions in category 20 `TICKETS` in `pbac-engine.ts`, `assertProjectPermission` enforced across all 6 routes) · Isolation test suite ✅ (`__tests__/integration/ticket-permissions.test.ts`). |
-| **Phase 3** | Frontend Views & Dashboard | ✅ **COMPLETE** | `src/components/tickets/` (`TicketManagementView`, `TicketDashboard`, `TicketList`, `TicketDetailModal`, `ClientTicketCreateModal`), integrated with `AppSidebar.tsx` and on-demand dynamic chunk in `ProjectClient.tsx` with native Kanban task conversion bridge. |
-| **Phase 4** | Testing & Verification | ⚠️ **PARTIAL** | 9 unit tests (Zod schemas + key allocator) + integration test suite (`ticket-permissions.test.ts`). End-to-end UI verification pending Phase 3. |
-
-> Recording all five Phase 2 items as one PENDING row hid that the only security item among
-> them is the only one genuinely outstanding. The revised plan splits Phase 2 into **2a
-> (security and correctness)** and **2b (integration)**, and moves authorization into the same
-> phase as the routes it guards.
+| **Phase 2a** | Security & Correctness | ✅ **COMPLETE** | 17 PBAC keys, 17 guard call sites, `src/lib/ticket-engine.ts` (18 unit tests), `convertedIssueKey` denormalised (`0023`), isolation 0 unaccounted. |
+| **Phase 2b** | Integration & System Wiring | ⛔ **NOT STARTED** | email-outbox 0 routes, audit-logger 0 routes, attachments have 0 write paths, `TICKET_DELETED` declared in `sync-engine.ts` and published by nothing. |
+| **Phase 3** | Frontend Views & Dashboard | ⏳ **IN PROGRESS** | 5 components exist, sidebar & tab wired. Regressed a11y (448 → 468, +20) and lint (128 → 133, +5) (TKT-11). 0 tickets in DB, unverified in browser. |
+| **Phase 4** | Verification & Hardening | ⚠️ **PARTIAL** | 27 unit + 11 integration tests pass. End-to-end browser walkthrough and exit gate pending Phase 2b, TKT-11, and DB-1 fix. |
 
 ### 🚨 STILL OPEN — highest priority
 
