@@ -87,13 +87,32 @@ export function TicketDetailModal({
   }, [projectId, ticketId]);
 
   useEffect(() => {
+    let ignore = false;
     if (isOpen && ticketId) {
-      fetchDetails();
-      setActionType(null);
-      setActionNote("");
-      setRejectionReason("");
+      fetch(`/api/projects/${projectId}/tickets/${ticketId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!ignore) {
+            if (data.error) setError(data.error);
+            else {
+              setTicketData(data.ticket);
+              setComments(data.comments || []);
+              setHistory(data.history || []);
+            }
+            setLoading(false);
+          }
+        })
+        .catch((err: any) => {
+          if (!ignore) {
+            setError(err.message || "Failed to fetch ticket");
+            setLoading(false);
+          }
+        });
     }
-  }, [isOpen, ticketId, fetchDetails]);
+    return () => {
+      ignore = true;
+    };
+  }, [isOpen, ticketId, projectId]);
 
   if (!isOpen || !ticketId) return null;
 
@@ -437,6 +456,8 @@ export function TicketDetailModal({
                   <form onSubmit={handleAddComment} className="pt-2">
                     <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/80">
                       <textarea
+                        id="ticket-comment-textarea"
+                        aria-label="Write a comment or internal note"
                         rows={3}
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
@@ -449,8 +470,10 @@ export function TicketDetailModal({
                       />
                       <div className="flex items-center justify-between px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/40">
                         {canSeeInternalNotes ? (
-                          <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300 select-none">
+                          <label htmlFor="ticket-internal-note-checkbox" className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300 select-none">
                             <input
+                              id="ticket-internal-note-checkbox"
+                              aria-label="Internal Staff Note"
                               type="checkbox"
                               checked={isInternalComment}
                               onChange={(e) => setIsInternalComment(e.target.checked)}
@@ -508,7 +531,7 @@ export function TicketDetailModal({
                           </div>
                           {h.note && (
                             <p className="mt-1 text-slate-500 dark:text-slate-400 italic">
-                              "{h.note}"
+                              &ldquo;{h.note}&rdquo;
                             </p>
                           )}
                           <div className="text-[10px] text-slate-400 mt-0.5">
@@ -527,11 +550,13 @@ export function TicketDetailModal({
               <div className="space-y-6">
                 {/* Manager Assignment */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                  <label htmlFor="ticket-manager-select" className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                     Ticket Manager
                   </label>
                   {canManage ? (
                     <select
+                      id="ticket-manager-select"
+                      aria-label="Ticket Manager"
                       value={ticketData?.assignedManagerId || ""}
                       onChange={(e) => handleAssignManager(e.target.value)}
                       disabled={isAssigning}
@@ -655,6 +680,7 @@ export function TicketDetailModal({
                       </span>
                       <button
                         onClick={() => setActionType(null)}
+                        aria-label="Close action panel"
                         className="text-slate-400 hover:text-slate-600"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -663,10 +689,12 @@ export function TicketDetailModal({
 
                     {actionType === "REJECT" ? (
                       <div>
-                        <label className="block text-[11px] font-semibold text-rose-600 dark:text-rose-400 mb-1">
+                        <label htmlFor="ticket-rejection-reason-textarea" className="block text-[11px] font-semibold text-rose-600 dark:text-rose-400 mb-1">
                           Rejection Reason <span className="text-red-500">*</span>
                         </label>
                         <textarea
+                          id="ticket-rejection-reason-textarea"
+                          aria-label="Rejection Reason"
                           rows={3}
                           value={rejectionReason}
                           onChange={(e) => setRejectionReason(e.target.value)}
@@ -676,10 +704,12 @@ export function TicketDetailModal({
                       </div>
                     ) : (
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label htmlFor="ticket-action-note-textarea" className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                           Note (Optional)
                         </label>
                         <textarea
+                          id="ticket-action-note-textarea"
+                          aria-label="Action Note"
                           rows={3}
                           value={actionNote}
                           onChange={(e) => setActionNote(e.target.value)}

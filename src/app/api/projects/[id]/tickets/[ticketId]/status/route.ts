@@ -6,6 +6,8 @@ import { ticketStatusTransitionSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
+import { enqueueEmail } from "@/lib/email-outbox";
+import { logAuditEvent } from "@/lib/audit-logger";
 import {
   convertTicketToIssue,
   rejectionRefusal,
@@ -175,7 +177,7 @@ export async function PATCH(
       return { ticket: updatedTicket, issue: createdIssue };
     });
 
-    // Notify ticket creator
+    // Notify ticket creator via in-app notification & durable email outbox
     try {
       if (existing.createdById !== user.id) {
         let notifTitle = `Ticket ${existing.ticketKey} Updated`;
@@ -200,10 +202,65 @@ export async function PATCH(
           recipientUserIds: [existing.createdById],
           actorId: user.id,
         });
+
+        // Durable email dispatch for client-facing transitions
+        const creatorEmail = result.ticket.createdBy?.email;
+        if (creatorEmail) {
+          if (result.ticket.status === "CONVERTED") {
+            await enqueueEmail({
+              to: creatorEmail,
+              customSubject: `[${existing.ticketKey}] Ticket Approved: Converted to ${result.ticket.convertedIssueKey || "Task"}`,
+              customHtml: `<p>Hello ${result.ticket.createdBy.firstName || creatorEmail},</p><p>Your ticket <strong>${existing.ticketKey}</strong>: <em>${existing.title}</em> has been approved and converted to project task <strong>${result.ticket.convertedIssueKey || ""}</strong>.</p>${note ? `<p><strong>Resolution Note:</strong> ${note}</p>` : ""}`,
+              idempotencyKey: `ticket-approved-${ticketId}-${result.ticket.version}`,
+            });
+          } else if (result.ticket.status === "REJECTED") {
+            await enqueueEmail({
+              to: creatorEmail,
+              customSubject: `[${existing.ticketKey}] Ticket Rejected`,
+              customHtml: `<p>Hello ${result.ticket.createdBy.firstName || creatorEmail},</p><p>Your ticket <strong>${existing.ticketKey}</strong>: <em>${existing.title}</em> has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason || "No reason specified"}</p>`,
+              idempotencyKey: `ticket-rejected-${ticketId}-${result.ticket.version}`,
+            });
+          } else if (result.ticket.status === "PENDING_INFO") {
+            await enqueueEmail({
+              to: creatorEmail,
+              customSubject: `[${existing.ticketKey}] More Information Requested`,
+              customHtml: `<p>Hello ${result.ticket.createdBy.firstName || creatorEmail},</p><p>Additional information is requested for your ticket <strong>${existing.ticketKey}</strong>: <em>${existing.title}</em>.</p>${note ? `<p><strong>Details:</strong> ${note}</p>` : ""}`,
+              idempotencyKey: `ticket-pending-info-${ticketId}-${result.ticket.version}`,
+            });
+          } else if (result.ticket.status === "UNDER_REVIEW") {
+            await enqueueEmail({
+              to: creatorEmail,
+              customSubject: `[${existing.ticketKey}] Ticket Under Review`,
+              customHtml: `<p>Hello ${result.ticket.createdBy.firstName || creatorEmail},</p><p>Your ticket <strong>${existing.ticketKey}</strong>: <em>${existing.title}</em> is now under review by our team.</p>`,
+              idempotencyKey: `ticket-under-review-${ticketId}-${result.ticket.version}`,
+            });
+          }
+        }
       }
     } catch (notifErr) {
       console.error("[tickets/status] Failed to send notification:", notifErr);
     }
+
+    // Log enterprise audit event
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: targetStatus === "APPROVED" ? "TICKET_APPROVED" : targetStatus === "REJECTED" ? "TICKET_REJECTED" : "TICKET_STATUS_CHANGED",
+      category: "PROJECT",
+      projectId,
+      targetResource: existing.ticketKey,
+      previousState: { status: existing.status },
+      newState: { status: result.ticket.status, convertedIssueKey: result.ticket.convertedIssueKey },
+      details: {
+        ticketId,
+        fromStatus: existing.status,
+        toStatus: result.ticket.status,
+        convertedIssueKey: result.ticket.convertedIssueKey,
+        note: note || undefined,
+        rejectionReason: rejectionReason || undefined,
+      },
+    });
 
     // Real-time SSE Broadcasts
     syncEngine.publishProjectEvent({

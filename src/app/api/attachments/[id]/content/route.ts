@@ -41,6 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         fileUrl: true,
         storageKey: true,
         issue: { select: { projectId: true } },
+        ticket: { select: { projectId: true } },
       },
     });
 
@@ -48,10 +49,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
     }
 
-    // Authorize through the parent issue's project. Serving a file by its own
+    const projectId = attachment.issue?.projectId || attachment.ticket?.projectId;
+    if (!projectId) {
+      return NextResponse.json({ error: "Attachment has no associated project" }, { status: 404 });
+    }
+
+    // Authorize through the parent issue's or ticket's project. Serving a file by its own
     // id without this is exactly the shape of the cross-tenant leaks the
     // isolation suite found twice.
-    await assertProjectAccess(attachment.issue.projectId);
+    await assertProjectAccess(projectId);
 
     /**
      * B3 — the object store first, when this row has been moved there.

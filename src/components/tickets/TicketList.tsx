@@ -110,6 +110,7 @@ export function TicketList({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              aria-label="Search by ticket key, title, or client"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by ticket key, title, or client..."
@@ -119,6 +120,7 @@ export function TicketList({
 
           {/* Category Filter */}
           <select
+            aria-label="Filter by category"
             value={selectedCategory}
             onChange={(e) => onCategoryChange(e.target.value)}
             className="px-3 py-1.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
@@ -133,6 +135,7 @@ export function TicketList({
 
           {/* Priority Filter */}
           <select
+            aria-label="Filter by priority"
             value={selectedPriority}
             onChange={(e) => onPriorityChange(e.target.value)}
             className="px-3 py-1.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
@@ -224,7 +227,16 @@ export function TicketList({
                 {tickets.map((t) => (
                   <tr
                     key={t.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View ticket ${t.ticketKey}: ${t.title}`}
                     onClick={() => onSelectTicket(t.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelectTicket(t.id);
+                      }
+                    }}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 cursor-pointer transition-colors group"
                   >
                     {/* Ticket Key */}

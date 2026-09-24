@@ -52,6 +52,7 @@ const P = {
   status: (pid: string, t: string) => `/api/projects/${pid}/tickets/${t}/status`,
   assign: (pid: string, t: string) => `/api/projects/${pid}/tickets/${t}/assign`,
   comments: (pid: string, t: string) => `/api/projects/${pid}/tickets/${t}/comments`,
+  attachments: (pid: string, t: string) => `/api/projects/${pid}/tickets/${t}/attachments`,
   dashboard: (pid: string) => `/api/projects/${pid}/tickets/dashboard`,
 };
 
@@ -254,6 +255,7 @@ describe("Tenant isolation on every ticket route", () => {
       ["list", P.list(PID)],
       ["detail", P.detail(PID, ticketId)],
       ["comments", P.comments(PID, ticketId)],
+      ["attachments", P.attachments(PID, ticketId)],
       ["dashboard", P.dashboard(PID)],
     ];
     for (const [what, path] of reads) {
@@ -264,6 +266,7 @@ describe("Tenant isolation on every ticket route", () => {
       ["status", "PATCH", P.status(PID, ticketId), { status: "REJECTED", rejectionReason: "no" }],
       ["assign", "PATCH", P.assign(PID, ticketId), { assignedManagerId: fx.orgB.users.OWNER.id }],
       ["comment", "POST", P.comments(PID, ticketId), { content: "from another tenant" }],
+      ["attachment", "POST", P.attachments(PID, ticketId), { fileName: "evil.pdf", fileSize: 100, mimeType: "application/pdf", fileUrl: "data:application/pdf;base64,dGVzdA==" }],
       ["update", "PATCH", P.detail(PID, ticketId), { title: "renamed from outside" }],
     ];
     for (const [what, method, path, body] of writes) {
@@ -280,6 +283,9 @@ describe("Tenant isolation on every ticket route", () => {
     expect(
       await prisma.ticketComment.count({ where: { ticketId, content: "from another tenant" } })
     ).toBe(0);
+    expect(
+      await prisma.attachment.count({ where: { ticketId, fileName: "evil.pdf" } })
+    ).toBe(0);
   });
 
   it("refuses a delete from another tenant, and the ticket survives", async () => {
@@ -288,5 +294,25 @@ describe("Tenant isolation on every ticket route", () => {
       "org B deleting org A's ticket"
     );
     expect(await prisma.ticket.count({ where: { id: ticketId } })).toBe(1);
+  });
+
+  it("allows a member to upload and list attachments", async () => {
+    const PID = fx.orgA.projectId;
+    const postRes = await api(fx.orgA.users.MEMBER, P.attachments(PID, ticketId), {
+      method: "POST",
+      body: {
+        fileName: "logs.txt",
+        fileSize: 42,
+        mimeType: "text/plain",
+        fileUrl: "data:text/plain;base64,aGVsbG8gd29ybGQ=",
+      },
+    });
+    expectAllowed(postRes, "a member uploading an attachment");
+    expect(postRes.body.attachment?.fileName).toBe("logs.txt");
+
+    const getRes = await api(fx.orgA.users.MEMBER, P.attachments(PID, ticketId));
+    expectAllowed(getRes, "a member listing attachments");
+    expect(getRes.body.attachments?.length).toBeGreaterThanOrEqual(1);
+    expect(getRes.body.attachments[0].fileName).toBe("logs.txt");
   });
 });

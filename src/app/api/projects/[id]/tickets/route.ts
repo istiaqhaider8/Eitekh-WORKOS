@@ -8,6 +8,8 @@ import { handleApiError } from "@/lib/api-error";
 import { allocateTicketKey } from "@/lib/ticket-keys";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
+import { enqueueEmail } from "@/lib/email-outbox";
+import { logAuditEvent } from "@/lib/audit-logger";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -130,6 +132,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // Concurrency-safe key allocation
       const { ticketNumber, ticketKey } = await allocateTicketKey(tx, projectId);
 
+      // SLA target: use caller-provided dueDate, or default based on priority
+      let calculatedDueDate: Date | null = null;
+      if (body.dueDate) {
+        calculatedDueDate = new Date(body.dueDate);
+      } else {
+        const priorityHours: Record<string, number> = {
+          CRITICAL: 24,
+          HIGH: 48,
+          MEDIUM: 120, // 5 days
+          LOW: 240,    // 10 days
+        };
+        const hours = priorityHours[body.priority] ?? 120;
+        calculatedDueDate = new Date(Date.now() + hours * 3600 * 1000);
+      }
+
       const ticket = await tx.ticket.create({
         data: {
           projectId,
@@ -141,7 +158,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           priority: body.priority,
           status: "NEW",
           createdById: user.id,
-          dueDate: body.dueDate ? new Date(body.dueDate) : null,
+          dueDate: calculatedDueDate,
         },
         include: {
           createdBy: publicUserRelation,
@@ -161,6 +178,36 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
 
       return ticket;
+    });
+
+    // Enqueue client confirmation email via durable email-outbox
+    if (user.email) {
+      await enqueueEmail({
+        to: user.email,
+        customSubject: `[${result.ticketKey}] Ticket Received: ${result.title}`,
+        customHtml: `<p>Hello ${user.firstName || user.email},</p><p>We have received your ticket <strong>${result.ticketKey}</strong>: <em>${result.title}</em>.</p><p>Our team has been notified and is reviewing it. You can check updates directly on your dashboard.</p>`,
+        idempotencyKey: `ticket-received-${result.id}`,
+      });
+    }
+
+    // Log enterprise audit event
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: "TICKET_CREATED",
+      category: "PROJECT",
+      projectId,
+      targetResource: result.ticketKey,
+      newState: { status: result.status, priority: result.priority, category: result.category },
+      details: {
+        ticketId: result.id,
+        ticketKey: result.ticketKey,
+        title: result.title,
+        priority: result.priority,
+        category: result.category,
+        dueDate: result.dueDate,
+      },
     });
 
     // Notify project managers & admins

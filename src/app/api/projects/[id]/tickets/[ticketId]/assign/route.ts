@@ -6,6 +6,8 @@ import { ticketAssignSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
+import { enqueueEmail } from "@/lib/email-outbox";
+import { logAuditEvent } from "@/lib/audit-logger";
 
 export async function PATCH(
   req: Request,
@@ -108,7 +110,7 @@ export async function PATCH(
       return updated;
     });
 
-    // Notify newly assigned manager
+    // Notify newly assigned manager via notification engine & durable email outbox
     if (assignedManagerId && assignedManagerId !== user.id) {
       try {
         await notificationEngine.dispatch({
@@ -120,10 +122,39 @@ export async function PATCH(
           recipientUserIds: [assignedManagerId],
           actorId: user.id,
         });
+
+        const managerEmail = result.assignedManager?.email;
+        if (managerEmail) {
+          await enqueueEmail({
+            to: managerEmail,
+            customSubject: `[${existing.ticketKey}] Assigned as Ticket Manager: ${existing.title}`,
+            customHtml: `<p>Hello ${result.assignedManager?.firstName || managerEmail},</p><p>You have been assigned to triage and review ticket <strong>${existing.ticketKey}</strong>: <em>${existing.title}</em>.</p><p><a href="/projects/${projectId}?view=tickets&ticketId=${ticketId}">View Ticket</a></p>`,
+            idempotencyKey: `ticket-assigned-${ticketId}-${result.version}`,
+          });
+        }
       } catch (notifErr) {
         console.error("[tickets/assign] Failed to send notification:", notifErr);
       }
     }
+
+    // Enterprise audit log
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: "TICKET_ASSIGNED",
+      category: "PROJECT",
+      projectId,
+      targetResource: existing.ticketKey,
+      previousState: { assignedManagerId: existing.assignedManagerId, status: existing.status },
+      newState: { assignedManagerId: result.assignedManagerId, status: result.status },
+      details: {
+        ticketId,
+        assignedManagerId: result.assignedManagerId,
+        previousManagerId: existing.assignedManagerId,
+        status: result.status,
+      },
+    });
 
     syncEngine.publishProjectEvent({
       projectId,

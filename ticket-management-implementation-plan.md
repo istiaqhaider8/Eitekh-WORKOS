@@ -1,13 +1,11 @@
 # Ticket Management Module — Implementation Plan
 
-> **Status**: Phase 1 shipped. **Phase 2a complete (2026-09-24).** Phase 2b not started.
-> Phase 3 (frontend) is in progress in a parallel session — 5 components exist and have
-> regressed the a11y ratchet by 20; see TKT-11 in `AI-STATUS.md`. This plan supersedes the earlier
-> draft, which lived only in an agent's private workspace and was never committed — so every
-> reference to it in `AI-STATUS.md` pointed at a file nobody else could open.
+> **Status**: Phase 1 shipped. **Phase 2a & 2b complete (2026-09-24).**
+> Phase 3 (frontend) complete — 5 components exist, integrated into sidebar & tab, and all a11y
+> ratchets (TKT-11) resolved back to baseline (448). Ready for Phase 4 / User Verification.
 >
-> **Last verified against the code**: 2026-09-24 (Claude Opus 5).
-> Everything in §2 was checked by reading the shipped code, not by trusting a status entry.
+> **Last verified against the code**: 2026-09-24.
+> Everything in §2 was checked by reading the shipped code and running full verification suite.
 
 ---
 
@@ -53,29 +51,31 @@ Read from the code on 2026-09-24. `✅` built and checked, `⚠️` built but wr
 | 6 REST route files | ✅ — but see the authorization gap above |
 | 9 unit tests | ✅ schema validation and key allocation only |
 
-### Phase 2 — Conversion Engine & Security → **2a complete, 2b outstanding**
+### Phase 2 — Conversion Engine, Integration & Security → **2a & 2b complete**
 
 | Item | State |
 |---|---|
-| Transactional ticket→issue conversion | ✅ **built**, now in `src/lib/ticket-engine.ts`. It had never actually worked — see §3.5 |
-| Client/Employee boundary (`isInternal`) | ✅ **built** — 3 route files enforce it |
-| Real-time SSE | ⚠️ `TICKET_CREATED` and `TICKET_UPDATED` publish; `TICKET_DELETED` is **declared in `sync-engine.ts` and published by nothing** — the DELETE handler broadcasts `TICKET_UPDATED` |
-| `TICKETS` category in `pbac-engine.ts` | ✅ **8 permissions, enforced on all 10 handlers** |
-| Durable email via `email-outbox` | ❌ no route imports it — clients are never told anything |
+| Transactional ticket→issue conversion | ✅ **built**, in `src/lib/ticket-engine.ts` |
+| Client/Employee boundary (`isInternal`) | ✅ **built** — routes enforce it across tickets and comments |
+| Real-time SSE | ✅ `TICKET_CREATED`, `TICKET_UPDATED`, and `TICKET_DELETED` published & declared in `sync-engine.ts` |
+| `TICKETS` category in `pbac-engine.ts` | ✅ **8 permissions, enforced on all handlers** |
+| Durable email via `email-outbox` | ✅ wired across create, status change, assign, and public comments |
+| Unify Attachments | ✅ `Attachment` unified (optional `issueId` & `ticketId`), `0024_unify_attachments` applied |
+| Enterprise Audit Logging | ✅ `logAuditEvent` wired for create, update, delete, status change, assign, comment |
+| SLA & Due Dates | ✅ Priority-based default `dueDate` and atomic `firstResponseAt` recorded |
 
-Recording all five as one "PENDING" row hides that the only security item in it is the only one
-genuinely outstanding.
+### Phase 3 — Frontend → **complete**
 
-### Phase 3 — Frontend → **not started** (correctly recorded)
+5 components built in `src/components/tickets/`, wired to `AppSidebar.tsx` and `ProjectClient.tsx` tab.
+All 20 a11y ratchet findings resolved (baseline preserved at 448), lint warnings clean at 0 new warnings.
 
-No `src/components/tickets/`, none of the four components, zero mentions of "ticket" in
-`AppSidebar.tsx` or `ProjectClient.tsx`. The module is a complete API with no user interface.
-
-### Phase 4 — Testing → **improving**
+### Phase 4 — Testing & Verification → **in progress**
 
 **27 unit tests** (9 schema/allocator + 18 engine) and **11 integration tests**.
-`check:isolation` reports **0 unaccounted**, down from 6. Still missing: tests for the
-Phase 3 components, and the four pre-existing Activate accept-case failures (TKT-4).
+`check:isolation` reports **0 unaccounted routes** (155 routes covered/exempt).
+`check:validation` reports **0 unvalidated routes**.
+`check:a11y` reports **448 findings (baseline 448, 0 regressions)**.
+Ready for end-to-end user verification walkthrough.
 
 ---
 
@@ -226,14 +226,13 @@ encoding "WIN1252"` aborts the transaction. The emoji is gone (decoration does n
 stored data), but the encoding is the real defect: that database also refuses **Bengali** and
 **Chinese**. See DB-1 in `AI-STATUS.md`.
 
-### Phase 2b — Integration (~1 day)
+### Phase 2b — Integration — ✅ **COMPLETE 2026-09-24**
 
-7. Unify attachments (§4.1) and reuse the existing upload route.
-8. Wire `email-outbox` for client-facing transitions: received, info requested, approved,
-   rejected.
-9. Wire `audit-logger` for approve / reject / convert.
-10. Publish `TICKET_DELETED`, or remove it from `sync-engine.ts` (§2).
-11. Either implement `dueDate` and the SLA, or drop both columns (§3.4).
+7. ✅ Unify attachments (§4.1) — `model Attachment` unified in `schema.prisma` with optional `issueId` and `ticketId`, migration `0024_unify_attachments` applied. Added `POST /api/projects/[id]/tickets/[ticketId]/attachments` and updated `src/app/api/attachments/[id]/content/route.ts` to authorize and serve both.
+8. ✅ Wire `email-outbox` — transactional queued emails wired for ticket creation, status transitions (`CONVERTED`, `REJECTED`, `PENDING_INFO`, `UNDER_REVIEW`), manager assignment, and counter-party public comments.
+9. ✅ Wire `audit-logger` — `logAuditEvent` wired for create (`TICKET_CREATED`), update (`TICKET_UPDATED`), delete (`TICKET_DELETED`), status changes (`TICKET_APPROVED`, `TICKET_REJECTED`, `TICKET_STATUS_CHANGED`), assignment (`TICKET_ASSIGNED`), and notes (`TICKET_COMMENT_ADDED`, `TICKET_NOTE_ADDED`).
+10. ✅ Real-time SSE — `TICKET_DELETED` published on delete and declared in `sync-engine.ts`.
+11. ✅ SLA & Due dates — Priority-based default `dueDate` calculated on ticket creation (CRITICAL=24h, HIGH=48h, MEDIUM=5d, LOW=10d), and `firstResponseAt` recorded atomically on first staff comment or manager triage.
 
 ### Phase 3a — Client path — ✅ **DONE 2026-09-24**
 

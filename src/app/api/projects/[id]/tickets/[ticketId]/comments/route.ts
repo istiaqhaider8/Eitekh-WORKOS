@@ -6,6 +6,8 @@ import { ticketCommentCreateSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
 import { notificationEngine } from "@/lib/notifications";
+import { enqueueEmail } from "@/lib/email-outbox";
+import { logAuditEvent } from "@/lib/audit-logger";
 
 export async function GET(
   req: Request,
@@ -140,6 +142,14 @@ export async function POST(
             note: "Client provided requested information via comment",
           },
         });
+      } else if (user.id !== ticket.createdById && !isInternal && !ticket.firstResponseAt) {
+        // First staff response timestamp recording for SLA
+        await tx.ticket.update({
+          where: { id: ticketId },
+          data: {
+            firstResponseAt: new Date(),
+          },
+        });
       }
 
       return comment;
@@ -148,10 +158,17 @@ export async function POST(
     // Notify appropriate counter-party (only if not an internal note viewed by client)
     try {
       let recipientId: string | null = null;
+      let recipientEmail: string | null = null;
+      let recipientName: string | null = null;
+
       if (user.id === ticket.createdById && ticket.assignedManagerId) {
         recipientId = ticket.assignedManagerId;
+        recipientEmail = ticket.assignedManager?.email ?? null;
+        recipientName = ticket.assignedManager?.firstName ?? recipientEmail;
       } else if (user.id !== ticket.createdById && !isInternal) {
         recipientId = ticket.createdById;
+        recipientEmail = ticket.createdBy?.email ?? null;
+        recipientName = ticket.createdBy?.firstName ?? recipientEmail;
       }
 
       if (recipientId) {
@@ -164,10 +181,35 @@ export async function POST(
           recipientUserIds: [recipientId],
           actorId: user.id,
         });
+
+        if (recipientEmail) {
+          await enqueueEmail({
+            to: recipientEmail,
+            customSubject: `[${ticket.ticketKey}] New Reply: ${ticket.title}`,
+            customHtml: `<p>Hello ${recipientName || ""},</p><p><strong>${user.firstName || user.email}</strong> replied to ticket <strong>${ticket.ticketKey}</strong> (<em>${ticket.title}</em>):</p><blockquote>${body.content}</blockquote><p><a href="/projects/${projectId}?view=tickets&ticketId=${ticketId}">View Ticket</a></p>`,
+            idempotencyKey: `ticket-comment-${result.id}`,
+          });
+        }
       }
     } catch (notifErr) {
       console.error("[tickets/comments/create] Failed to send notification:", notifErr);
     }
+
+    // Enterprise audit log
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: isInternal ? "TICKET_NOTE_ADDED" : "TICKET_COMMENT_ADDED",
+      category: "PROJECT",
+      projectId,
+      targetResource: ticket.ticketKey,
+      details: {
+        ticketId,
+        commentId: result.id,
+        isInternal,
+      },
+    });
 
     syncEngine.publishProjectEvent({
       projectId,

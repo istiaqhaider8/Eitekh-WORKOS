@@ -81,8 +81,39 @@ export function TicketManagementView({
   }, [projectId, page, selectedStatus, selectedCategory, selectedPriority, searchQuery]);
 
   useEffect(() => {
-    fetchTickets();
-  }, [fetchTickets]);
+    let ignore = false;
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: "15",
+    });
+    if (selectedStatus !== "ALL") params.set("status", selectedStatus);
+    if (selectedCategory !== "ALL") params.set("category", selectedCategory);
+    if (selectedPriority !== "ALL") params.set("priority", selectedPriority);
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
+
+    fetch(`/api/projects/${projectId}/tickets?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore) {
+          if (data.tickets) {
+            setTickets(data.tickets || []);
+            setTotal(data.total || 0);
+            setTotalPages(data.totalPages || 1);
+          }
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          console.error("Error fetching tickets:", err);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [projectId, page, selectedStatus, selectedCategory, selectedPriority, searchQuery]);
 
   const handleTicketCreated = (newTicket: any) => {
     fetchTickets();

@@ -136,10 +136,12 @@ export function ClientTicketCreateModal({
 
           {/* Ticket Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label htmlFor="ticket-title-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Ticket Subject / Title <span className="text-red-500">*</span>
             </label>
             <input
+              id="ticket-title-input"
+              aria-label="Ticket Subject / Title"
               type="text"
               required
               value={title}
@@ -154,13 +156,15 @@ export function ClientTicketCreateModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label htmlFor="ticket-category-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-slate-400" />
                   Category
                 </span>
               </label>
               <select
+                id="ticket-category-select"
+                aria-label="Category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
@@ -175,13 +179,15 @@ export function ClientTicketCreateModal({
 
             {/* Priority */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label htmlFor="ticket-priority-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 text-slate-400" />
                   Urgency / Priority
                 </span>
               </label>
               <select
+                id="ticket-priority-select"
+                aria-label="Urgency / Priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
@@ -197,13 +203,15 @@ export function ClientTicketCreateModal({
 
           {/* Due Date (Optional) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label htmlFor="ticket-due-date-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 Target Date / Deadline (Optional)
               </span>
             </label>
             <input
+              id="ticket-due-date-input"
+              aria-label="Target Date / Deadline (Optional)"
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
@@ -213,10 +221,12 @@ export function ClientTicketCreateModal({
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label htmlFor="ticket-description-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Description & Specifics
             </label>
             <textarea
+              id="ticket-description-input"
+              aria-label="Description & Specifics"
               rows={5}
               value={description}
               onChange={(e) => setDescription(e.target.value)}

@@ -78,7 +78,6 @@ model User {
   managedTickets           Ticket[]                  @relation("TicketManager")
   ticketComments           TicketComment[]           @relation("TicketCommentAuthor")
   ticketStatusChanges      TicketStatusHistory[]     @relation("TicketStatusActor")
-  ticketAttachments        TicketAttachment[]        @relation("TicketAttachmentUploader")
 
   @@index([userType])
 }
@@ -611,7 +610,8 @@ model Comment {
 
 model Attachment {
   id         String   @id @default(cuid())
-  issueId    String
+  issueId    String?
+  ticketId   String?
   uploaderId String
   fileName   String
   fileSize   Int
@@ -624,10 +624,12 @@ model Attachment {
   storageKey String?
   createdAt  DateTime @default(now())
 
-  issue    Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  uploader User  @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  issue    Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  ticket   Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploader User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
+  @@index([ticketId])
   @@index([uploaderId])
 }
 
@@ -1880,7 +1882,7 @@ model Ticket {
 
   comments          TicketComment[]
   statusHistory     TicketStatusHistory[]
-  attachments       TicketAttachment[]
+  attachments       Attachment[]
 
   @@unique([projectId, ticketNumber])
   @@index([ticketKey])
@@ -1922,21 +1924,4 @@ model TicketStatusHistory {
 
   @@index([ticketId, timestamp])
   @@index([actorId])
-}
-
-model TicketAttachment {
-  id         String   @id @default(cuid())
-  ticketId   String
-  uploaderId String
-  fileName   String
-  fileSize   Int
-  mimeType   String
-  fileUrl    String
-  storageKey String?
-  createdAt  DateTime @default(now())
-
-  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  uploader   User     @relation("TicketAttachmentUploader", fields: [uploaderId], references: [id])
-
-  @@index([ticketId])
 }

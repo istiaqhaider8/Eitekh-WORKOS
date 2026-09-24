@@ -50,8 +50,26 @@ export function TicketDashboard({
   }, [projectId]);
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, [fetchDashboardStats]);
+    let ignore = false;
+    fetch(`/api/projects/${projectId}/tickets/dashboard`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore) {
+          if (data.error) setError(data.error);
+          else setStats(data.stats);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err.message || "Error fetching dashboard");
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [projectId]);
 
   if (loading && !stats) {
     return (
@@ -112,6 +130,7 @@ export function TicketDashboard({
         </div>
         <button
           onClick={fetchDashboardStats}
+          aria-label="Refresh dashboard"
           className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           title="Refresh dashboard"
         >
@@ -123,7 +142,16 @@ export function TicketDashboard({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Total Tickets */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Filter tickets: All tickets"
           onClick={() => onSelectStatusFilter && onSelectStatusFilter("ALL")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectStatusFilter && onSelectStatusFilter("ALL");
+            }
+          }}
           className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xs hover:border-blue-400 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
@@ -136,7 +164,16 @@ export function TicketDashboard({
 
         {/* New Tickets */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Filter tickets: New"
           onClick={() => onSelectStatusFilter && onSelectStatusFilter("NEW")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectStatusFilter && onSelectStatusFilter("NEW");
+            }
+          }}
           className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xs hover:border-blue-400 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
@@ -149,7 +186,16 @@ export function TicketDashboard({
 
         {/* Pending Approvals */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Filter tickets: Pending approvals"
           onClick={() => onSelectStatusFilter && onSelectStatusFilter("UNDER_REVIEW")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectStatusFilter && onSelectStatusFilter("UNDER_REVIEW");
+            }
+          }}
           className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xs hover:border-amber-400 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
@@ -164,7 +210,16 @@ export function TicketDashboard({
 
         {/* Approved / Converted */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Filter tickets: Approved and converted"
           onClick={() => onSelectStatusFilter && onSelectStatusFilter("CONVERTED")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectStatusFilter && onSelectStatusFilter("CONVERTED");
+            }
+          }}
           className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xs hover:border-emerald-400 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
@@ -177,7 +232,16 @@ export function TicketDashboard({
 
         {/* Rejected Tickets */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Filter tickets: Rejected"
           onClick={() => onSelectStatusFilter && onSelectStatusFilter("REJECTED")}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectStatusFilter && onSelectStatusFilter("REJECTED");
+            }
+          }}
           className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xs hover:border-rose-400 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">

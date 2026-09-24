@@ -5,6 +5,7 @@ import { assertProjectAccess, assertProjectPermission } from "@/lib/tenant";
 import { ticketUpdateSchema, parseJsonBody } from "@/lib/validation";
 import { handleApiError } from "@/lib/api-error";
 import { syncEngine } from "@/lib/sync-engine";
+import { logAuditEvent } from "@/lib/audit-logger";
 
 export async function GET(
   req: Request,
@@ -155,6 +156,17 @@ export async function PATCH(
       },
     });
 
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: "TICKET_UPDATED",
+      category: "PROJECT",
+      projectId,
+      targetResource: updated.ticketKey,
+      details: updateData,
+    });
+
     syncEngine.publishProjectEvent({
       projectId,
       eventType: "TICKET_UPDATED",
@@ -202,6 +214,17 @@ export async function DELETE(
 
     await prisma.ticket.delete({
       where: { id: ticketId },
+    });
+
+    await logAuditEvent({
+      actorId: user.id,
+      actorName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+      actorEmail: user.email,
+      action: "TICKET_DELETED",
+      category: "PROJECT",
+      projectId,
+      targetResource: existing.ticketKey,
+      details: { ticketId, ticketKey: existing.ticketKey, title: existing.title },
     });
 
     syncEngine.publishProjectEvent({

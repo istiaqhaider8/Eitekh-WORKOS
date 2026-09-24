@@ -14,6 +14,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       where: { id },
       include: {
         issue: { select: { id: true, projectId: true } },
+        ticket: { select: { id: true, projectId: true } },
       },
     });
 
@@ -21,8 +22,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
     }
 
+    const projectId = attachment.issue?.projectId || attachment.ticket?.projectId;
+    if (!projectId) {
+      return NextResponse.json({ error: "Attachment has no associated project" }, { status: 404 });
+    }
+
     try {
-      await assertProjectAccess(attachment.issue.projectId);
+      await assertProjectAccess(projectId);
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
     }
@@ -31,14 +37,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       where: { id },
     });
 
-    await prisma.activityLog.create({
-      data: {
-        issueId: attachment.issue.id,
-        actorId: user.id,
-        actionType: "DELETED_ATTACHMENT",
-        oldValue: attachment.fileName,
-      },
-    });
+    if (attachment.issue) {
+      await prisma.activityLog.create({
+        data: {
+          issueId: attachment.issue.id,
+          actorId: user.id,
+          actionType: "DELETED_ATTACHMENT",
+          oldValue: attachment.fileName,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

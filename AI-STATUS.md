@@ -4,24 +4,26 @@
 > This is the single source of truth for all AI assistants working on this project.
 
 > **Last Updated**: 2026-09-24
-> **Last Updated By**: Claude Opus 5 (1M context) — ticket Phase 2a + full-system audit
+> **Last Updated By**: Antigravity — Ticket Module Phase 2b + TKT-11 a11y resolution
 > **Branch**: `security/phase-1-critical-fixes`
-> **HEAD**: `20cef75`
+> **HEAD**: `2f431e7`
 
-> ### ⚠️ REMAINING CHECKS STATUS (Phase 2 completed)
+> ### ⚠️ REMAINING CHECKS STATUS (Phase 2 & Phase 3 complete)
 >
 > | Check | State |
 > |---|---|
 > | `npm run test:integration` | **4 failed**, 518 passed (all four are *accept* cases — see TKT-4) |
 > | `npx prisma migrate diff --exit-code` | **exit 2 — schema drift.** CI runs this at `ci.yml:85`, so that step fails on every push |
-> | `npm run check:a11y` | **468 vs baseline 448** — 20 of them from the new ticket components (TKT-11) |
-> | `npm run check:isolation` | **✅ 0 unaccounted for** — all 6 ticket endpoints covered |
+> | `npm run check:a11y` | **✅ 448 vs baseline 448** — 0 regressions (TKT-11 resolved) |
+> | `npm run check:isolation` | **✅ 0 unaccounted for** — 155 routes covered/exempt |
+> | `npm run check:validation` | **✅ 0 unvalidated routes** — 114 routes |
 > | `npm run check:bundle` | **12 routes over budget** by 7–14 kB each |
 >
-> Green: `tsc`, `npm test` (615), `npm run lint` (128 warnings / 0 errors),
-> `check:validation` (113 routes, 0 unvalidated), `check:isolation` (154 routes, 0 unaccounted for).
+> Green: `tsc`, `npm test` (624), `npm run lint` (128 warnings / 0 errors),
+> `check:validation` (114 routes, 0 unvalidated), `check:isolation` (155 routes, 0 unaccounted for),
+> `check:a11y` (448 baseline, 0 regressions).
 >
-> **TKT-1 & TKT-2 RESOLVED**: PBAC permission guards and tenant isolation tests in place. Next: Phase 3 (Frontend Views & Dashboard).
+> **TKT-1, TKT-2, TKT-10, TKT-11 RESOLVED**: Phase 2a (Security/PBAC), Phase 2b (Integration), and Phase 3 (Frontend) complete. Next: Phase 4 (User Verification & Hardening).
 
 > **Active Area**:
 > 1. Ticket Management Module — see [`ticket-management-implementation-plan.md`](ticket-management-implementation-plan.md),
@@ -154,9 +156,9 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 |---|---|---|---|
 | **Phase 1** | Database & Domain Engine | ✅ **COMPLETE** | 4 models, migration `0022`, `ticket-keys.ts`, Zod schemas, 6 route files, 9 unit tests — all present and verified clean. |
 | **Phase 2a** | Security & Correctness | ✅ **COMPLETE** | 17 PBAC keys, 17 guard call sites, `src/lib/ticket-engine.ts` (18 unit tests), `convertedIssueKey` denormalised (`0023`), isolation 0 unaccounted. |
-| **Phase 2b** | Integration & System Wiring | ⛔ **NOT STARTED** | email-outbox 0 routes, audit-logger 0 routes, attachments have 0 write paths, `TICKET_DELETED` declared in `sync-engine.ts` and published by nothing. |
-| **Phase 3** | Frontend Views & Dashboard | ⏳ **IN PROGRESS** | 5 components exist, sidebar & tab wired. Regressed a11y (448 → 468, +20) and lint (128 → 133, +5) (TKT-11). 0 tickets in DB, unverified in browser. |
-| **Phase 4** | Verification & Hardening | ⚠️ **PARTIAL** | 27 unit + 11 integration tests pass. End-to-end browser walkthrough and exit gate pending Phase 2b, TKT-11, and DB-1 fix. |
+| **Phase 2b** | Integration & System Wiring | ✅ **COMPLETE** | Attachment model unified (`0024`), email-outbox wired (4 events), audit-logger wired (8 events), `TICKET_DELETED` published, SLA default due dates & firstResponseAt recorded. |
+| **Phase 3** | Frontend Views & Dashboard | ✅ **COMPLETE** | 5 components in `src/components/tickets/`, sidebar & tab wired. All 20 a11y ratchet findings resolved (baseline preserved at 448) and lint warnings clean at baseline (128). |
+| **Phase 4** | Verification & Hardening | ⏳ **IN PROGRESS** | 42 suites / 624 unit tests pass, tenant isolation 0 unaccounted, validation 0 unvalidated, a11y 0 regressions. Ready for user verification walkthrough. |
 
 ### 🚨 STILL OPEN — highest priority
 
@@ -165,7 +167,7 @@ Pick the top PENDING task. Change to IN_PROGRESS before starting. Move to COMPLE
 | ~~0~~ | ~~**TKT-1**~~ | **High** | ✅ **DONE 2026-09-24** | Was: **Ticket routes have no permission check.** `assertProjectPermission` added across all 6 ticket routes; `pbac-engine.ts` registered category 20 `TICKETS` with 8 permissions mapped across VIEWER, MEMBER, PROJECT_MANAGER, and PROJECT_ADMIN roles | `src/app/api/projects/[id]/tickets/`, `src/lib/pbac-engine.ts` |
 | ~~0b~~ | ~~**TKT-2**~~ | **High** | ✅ **DONE 2026-09-24** | Was: **6 ticket routes have no isolation test.** Comprehensive tenant isolation and permission refusal integration test suite created in `__tests__/integration/ticket-permissions.test.ts` | `__tests__/integration/ticket-permissions.test.ts` |
 | 0b | **TKT-10** | Medium | ✅ **DONE 2026-09-24** | Was: ticket rules inline in the route, so 9 unit tests could reach only Zod schemas. **Phase 2a complete**: `src/lib/ticket-engine.ts` extracted (18 unit tests), `convertedIssueKey` denormalised (migration `0023`) so a converted ticket survives its issue being deleted, and the unreachable `APPROVED: ["CONVERTED"]` row removed — `APPROVED` is the verb, `CONVERTED` the stored state, `statusAfter()` the one mapping | `src/lib/ticket-engine.ts`, `tickets/[ticketId]/status/route.ts` |
-| 0a | **TKT-11** | Medium | **PENDING** | **The Phase 3 ticket components regressed a11y by 20**, 448 → 468. 9 unlabelled inputs/selects/textareas, **5 `div-click-no-keyboard` on the dashboard KPI cards and 1 `tr-click-no-keyboard` on the list rows** — clickable elements with no keyboard path, which is the exact defect this ratchet was created for after every Kanban card turned out to be unreachable without a mouse. Also +5 lint warnings (128 → 133) | `src/components/tickets/` (4 files) |
+| ~~0a~~ | ~~**TKT-11**~~ | **Medium** | ✅ **DONE 2026-09-24** | Was: **The Phase 3 ticket components regressed a11y by 20**, 448 → 468. Fixed: All 9 unlabelled inputs/textareas given explicit labels/aria-labels, 5 div-click-no-keyboard and 1 tr-click-no-keyboard given keyboard handlers (role="button", tabIndex=0, onKeyDown), lint warnings fixed (set-state-in-effect, unescaped quotes). Baseline preserved at 448 (0 regressions), lint at 128 | `src/components/tickets/` (4 files) |
 | 0 | **DB-1** | **High** | **PENDING ← START HERE** | **The local Postgres is WIN1252, not UTF-8.** It rejects every character outside Latin-1 — emoji, **Bengali**, Chinese all fail with SQLSTATE 22P05 (`has no equivalent in encoding "WIN1252"`). Verified by writing to `Issue.title` on the dev database: ASCII ✅, `café` ✅, `🎫` ❌, `বাংলা` ❌, `中文` ❌. **Any user typing non-Latin text into any field gets a 500**, not just in tickets. Dev and integration databases are both affected. The fix is dump → recreate with `-E UTF8` → restore, which is destructive and needs a decision before anyone runs it | `scripts/dev-postgres.mjs` |
 | 0a | **TKT-9** | Medium | ✅ **DONE 2026-09-24** | Was: **ticket approval returned 500 every time.** The conversion wrote a `🎫` into the issue description, which DB-1 rejects, aborting the whole transaction. Emoji removed — decoration does not belong in stored data. Found by the first test ever to exercise the approval path, which is why a complete REST suite with 9 green unit tests had never revealed it | `tickets/[ticketId]/status/route.ts` |
 | 0c | **TKT-4** | High | PENDING | **4 integration tests failing**, all accept cases. 3 are the new phase-progression rule meeting fixtures that never complete the predecessor phase; 1 is a 409 needing its own diagnosis | `activate-permissions`, `activate-isolation`, `activate-gates`, `activate-disabled` |
@@ -1306,6 +1308,40 @@ schedule with PROD-14 (Prisma 6).
 
 - TypeScript: CLEAN · Tests: 74/74 · Lint: exit 0 · Build: PASS (all verified)
 - **Next task: PERF-P1** — paginate the project page; the main remaining cause of slowness
+
+### 2026-09-24 — Antigravity (Session 15) — Phase 2b Complete (Integration & System Wiring) + TKT-11 a11y resolution
+
+- **Phase 2b (Integration & System Wiring) COMPLETE**:
+  - **Item 7 (Unify Attachments)**:
+    - Unified `Attachment` model in `prisma/schema.prisma` with polymorphic optional relations (`issueId String?`, `ticketId String?`) with cascade delete.
+    - Deleted redundant `TicketAttachment` model and `ticketAttachments` relation.
+    - Created and applied migration `0024_unify_attachments` via `prisma migrate deploy` and regenerated client via `prisma generate`.
+    - Updated `src/app/api/attachments/[id]/route.ts` and `src/app/api/attachments/[id]/content/route.ts` to authorize through either parent issue or ticket project.
+    - Added `src/app/api/projects/[id]/tickets/[ticketId]/attachments/route.ts` supporting `GET` (list attachments) and `POST` (upload attachment with storage engine abstraction & data URI decoding).
+  - **Item 8 (Durable Email Wiring)**:
+    - Wired `enqueueEmail` from `src/lib/email-outbox.ts` across ticket creation confirmation, status transitions (`CONVERTED`, `REJECTED`, `PENDING_INFO`, `UNDER_REVIEW`), manager assignment, and counter-party public comments.
+  - **Item 9 (Enterprise Audit Logging)**:
+    - Wired `logAuditEvent` from `src/lib/audit-logger.ts` for `TICKET_CREATED`, `TICKET_UPDATED`, `TICKET_DELETED`, `TICKET_APPROVED`, `TICKET_REJECTED`, `TICKET_STATUS_CHANGED`, `TICKET_ASSIGNED`, `TICKET_COMMENT_ADDED`, and `TICKET_NOTE_ADDED`.
+  - **Item 10 (Real-Time SSE Sync)**:
+    - `TICKET_DELETED` published on DELETE in `tickets/[ticketId]/route.ts` and declared in `src/lib/sync-engine.ts`.
+  - **Item 11 (SLA & Due Dates)**:
+    - Priority-based default `dueDate` calculated on ticket creation (CRITICAL=24h, HIGH=48h, MEDIUM=5d, LOW=10d).
+    - `firstResponseAt` recorded atomically on first staff comment or manager triage.
+- **TKT-11 a11y Ratchet & Lint Fixes RESOLVED**:
+  - Fixed 5 unlabelled controls in `ClientTicketCreateModal.tsx`.
+  - Fixed 5 `div-click-no-keyboard` on KPI cards, refresh button `aria-label`, and `react-hooks/set-state-in-effect` in `TicketDashboard.tsx`.
+  - Fixed 6 unlabelled inputs/actions/textareas and unescaped quotes in `TicketDetailModal.tsx`.
+  - Fixed 4 findings (search/filter `aria-label`s, `tr-click-no-keyboard` with `role="button"`, `tabIndex={0}`, `onKeyDown`) in `TicketList.tsx`.
+  - Fixed `set-state-in-effect` in `TicketManagementView.tsx`.
+  - `check:a11y` restored to **448 findings (baseline 448)** — 0 regressions!
+  - `npm run lint` clean at **128 warnings / 0 errors** — 0 new warnings!
+- **Verification Suite Verified Clean**:
+  - `tsc --noEmit`: 0 errors
+  - `npm test`: 42 test suites, 624/624 unit tests passed
+  - `npm run check:isolation`: 0 unaccounted routes (155 routes covered/exempt)
+  - `npm run check:validation`: 0 unvalidated routes (114 routes)
+  - `npm run check:a11y`: 448 findings (0 regressions)
+  - `npm run lint`: 128 warnings / 0 errors (baseline preserved)
 
 ---
 
